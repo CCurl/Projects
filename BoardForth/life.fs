@@ -4,7 +4,7 @@ all definitions
 life-words definitions
 
  30       constant rows  inline
- 50       constant cols  inline
+120       constant cols  inline
 rows cols * constant grid-sz
 
 variable grid-1      inline grid-sz allot
@@ -52,7 +52,7 @@ variable wait-time 0 wait-time !
 : .grid 0 0 gotoXY 1 rows 1- for dup cols type cr cols + next drop ;
 : gen process-grid grid-t .grid ;
 : gens 1 for 
-        gen space '(' emit i . ')' emit 
+        gen space '(' emit i (.) ')' emit 
         wait-time @ ms 
         switch-grids
     next ;
@@ -82,4 +82,4 @@ variable wait-time 0 wait-time !
 
 init-grids clear-grids grid-f .grid
 reset-grids
-500 gens
+cls 300 gens
