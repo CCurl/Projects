@@ -3,8 +3,8 @@ all definitions
 : life-words 19 ;
 life-words definitions
 
- 45       constant rows  inline
-120       constant cols  inline
+ 30       constant rows  inline
+ 50       constant cols  inline
 rows cols * constant grid-sz
 
 variable grid-1      inline grid-sz allot
@@ -25,14 +25,14 @@ variable (grid-t)   inline
 	else  grid-1 grid-f! grid-2 grid-t!  
 	then ;
 
-variable num inline
-: alive? ( a -- a ) dup c@ '*' = if num @ 1+ num ! then ;
+: alive? ( n1 a -- n2 a ) dup c@ '*' = if swap 1+ swap then ;
+
 : count-neighbors ( a -- n ) 
-	>r 0 num !
-	r@ cols - 1- alive? 1+ alive? 1+ alive? drop
-	r@        1- alive? 1+        1+ alive? drop
-	r> cols + 1- alive? 1+ alive? 1+ alive? drop
-	num @ ;
+	0 swap
+	cols - 1- alive? 1+ alive? 1+ alive?
+    cols +    alive? 1-        1- alive?
+	cols +    alive? 1+ alive? 1+ alive?
+    drop ;
 	
 : cell-status ( x n -- c )
 	dup 2 = if drop          ret then
