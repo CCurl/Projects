@@ -1,5 +1,10 @@
 forth definitions
 : all 0 ;
+: ? @ . ;
+: .wordl-hdr cr ."  addr    xt      f L l   name" ;
+: _t0 wordsl ; : wordsl .wordl-hdr _t0 ;
+: .ch dup bl < if drop '.' then dup $7f = if drop '.' then emit ;
+: dump-ch low->high for i c@ .ch next ;
 
 variable seed
 timer seed !
@@ -17,9 +22,9 @@ timer seed !
 : pc 64 ; 
 pc definitions
 
-: csi 27 emit '[' emit ;
-: gotoXY csi (.) ';' emit (.) 'H' emit ;
-: cls csi ." 2J" 0 dup gotoXY ;
+: _t0 27 emit '[' emit ;
+: gotoXY _t0 (.) ';' emit (.) 'H' emit ;
+: cls _t0 ." 2J" 0 dup gotoXY ;
 
 all definitions
 marker
