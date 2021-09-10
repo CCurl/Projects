@@ -7,8 +7,11 @@ typedef unsigned char byte;
 typedef short CELL;
 typedef unsigned short UCELL;
 
-#define MEM_SZ 100
-#define STK_SZ   8
+#define MEM_SZ  100
+#define STK_SZ    8
+#define LH_INIT  50
+#define VH_INIT  30
+
 
 typedef struct {
     CELL next;
@@ -51,7 +54,7 @@ sys_t sys;
 #define SET_CELL(l, v) MEM[l] = (v&0xff); MEM[l+1] = (v>>8)
 #define BYTE_AT(x) (MEM[x])
 #define STR_AT(x) (char *)&MEM[x]
-#define DE_AT(x) (dict_t *)&MEM[x]
+#define DP_AT(x) (dict_t *)&MEM[x]
 
 #define T DSTK[DSP]
 #define SN(x) (x % STK_SZ)
@@ -94,20 +97,20 @@ void strCpy(char* d, const char* s) {
 }
 
 void doCreate(const char* name, byte f) {
-    dict_t* dp = DE_AT(LHERE);
+    dict_t* dp = DP_AT(LHERE);
     dp->next = LAST;
+    dp->xt = HERE;
     dp->flags = f;
     strCpy(dp->name, name);
     LAST = LHERE;
     LHERE = strLen(name) + LHERE + 6;
-    dp->xt = HERE;
 }
 
 dict_t* doFind(const char* name) {
-    dict_t* dp = DE_AT(LAST);
+    dict_t* dp = DP_AT(LAST);
     while (dp) {
         if (strEq(dp->name, name)) { return dp; }
-        if (dp->next) { dp = DE_AT(dp->next); }
+        if (dp->next) { dp = DP_AT(dp->next); }
         else { dp = NULL; }
     }
     return dp;
@@ -139,8 +142,8 @@ void reset() {
     BASE = 10;
     HERE = 2;
     LAST = 0;
-    LHERE = 50;
-    VHERE = 30;
+    LHERE = LH_INIT;
+    VHERE = VH_INIT;
 }
 
 void run(CELL start) {
