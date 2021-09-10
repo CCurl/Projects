@@ -7,10 +7,10 @@ typedef unsigned char byte;
 typedef short CELL;
 typedef unsigned short UCELL;
 
-#define MEM_SZ  100
+#define MEM_SZ  200
 #define STK_SZ    8
-#define LH_INIT  50
-#define VH_INIT  30
+#define LH_INIT  70
+#define VH_INIT  50
 
 
 typedef struct {
@@ -116,6 +116,15 @@ dict_t* doFind(const char* name) {
     return dp;
 }
 
+void doWords() {
+    dict_t* dp = DP_AT(LAST);
+    while (dp) {
+        printf("%s ", dp->name);
+        if (dp->next) { dp = DP_AT(dp->next); }
+        else { dp = NULL; }
+    }
+}
+
 void str2Here(const char* str) {
     while (*str) {
         CCOMMA(*(str++));
@@ -157,14 +166,18 @@ void run(CELL start) {
         case '#': push(T);                   break;
         case '\\': pop();                    break;
         case '+': t1 = pop(); T += t1;       break;
+        case '-': t1 = pop(); T -= t1;       break;
+        case '*': t1 = pop(); T *= t1;       break;
+        case '/': t1 = pop(); T /= t1;       break;
         case '.': printf("%d", pop());       break;
         case ',': printf("%c", (byte)pop()); break;
         case 'b': printf(" ");               break;
         case 'n': printf("\r\n");            break;
-        case '$': t1 = pop(); t2 = pop();
+        case 'W': doWords();                 break;
+        case '$': t1 = pop(); t2 = pop();    // SWAP
             push(t1); push(t2);
             break;
-        case '%': t1 = pop(); t2 = T;
+        case '%': t1 = pop(); t2 = T;        // OVER
             push(t1); push(t2);
             break;
         case ';': return;                    break;
@@ -177,20 +190,36 @@ void run(CELL start) {
     }
 }
 
+void doBuiltin(const char* name, byte flags, const char* code) {
+    doCreate(name, flags);
+    str2Here(code);
+    CCOMMA(';');
+}
+
 int main()
 {
-    printf("mem usage: %d", sizeof(sys));
+    CELL x;
+    dict_t* dp;
+    printf("mem usage: %d\n", sizeof(sys));
     reset();
-    doCreate("CELL", 0);
-    str2Here("2;");
-    doCreate("EMIT", 1);
-    str2Here(",;");
-    dict_t* dp = doFind("CELL");
-    if (dp) { run(dp->xt); }
+    x = HERE; str2Here("1 2 3++."); HERE = x; run(HERE);
+    doBuiltin("CELL", 1, "2 ");
+    doBuiltin("SWAP", 1, "$");
+    doBuiltin("DROP", 1, "\\");
+    doBuiltin("DUP",  1, "#");
+    doBuiltin("OVER", 1, "%");
+    doBuiltin("EMIT", 1, ",");
+    doBuiltin("WORDS", 1, "W");
+    doBuiltin("CR", 1, "n");
+    doBuiltin(".", 1, ".");
+    doBuiltin("+", 1, "+");
+    doBuiltin("-", 1, "-");
+    doBuiltin("*", 1, "*");
+    doBuiltin("/", 1, "/");
     push(78);
-    dp = doFind("EMIT");
-    if (dp) { run(dp->xt); }
-    CELL x = HERE;
-    str2Here("b1 2 3++.");
-    run(x);
+    dp = doFind("CR");    if (dp) { run(dp->xt); }
+    dp = doFind("WORDS"); if (dp) { run(dp->xt); }
+    dp = doFind("CR");    if (dp) { run(dp->xt); }
+    dp = doFind("EMIT");  if (dp) { run(dp->xt); }
+    x = HERE; str2Here(""); HERE = x; run(HERE);
 }
