@@ -7,8 +7,8 @@ typedef unsigned char byte;
 typedef short CELL;
 typedef unsigned short UCELL;
 
-#define MEM_SZ 32
-#define STK_SZ  8
+#define MEM_SZ 100
+#define STK_SZ   8
 
 typedef struct {
     CELL next;
@@ -19,8 +19,10 @@ typedef struct {
 
 typedef struct {
     CELL pc;
-    CELL here;
     CELL last;
+    CELL here;
+    CELL lhere;
+    CELL vhere;
     byte ir;
     byte base;
     byte dsp;
@@ -41,10 +43,12 @@ sys_t sys;
 #define MEM  sys.mem
 #define BASE sys.base
 #define HERE sys.here
+#define LHERE sys.lhere
+#define VHERE sys.vhere
 #define LAST sys.last
 
-#define GET_CELL(x) (MEM[x] | (MEM[x+1]<<8))
-#define SET_CELL(x, y) MEM[x] = (y&0xff); MEM[x+1] = (y>>8)
+#define GET_CELL(l) (MEM[l] | (MEM[l+1]<<8))
+#define SET_CELL(l, v) MEM[l] = (v&0xff); MEM[l+1] = (v>>8)
 #define BYTE_AT(x) (MEM[x])
 #define STR_AT(x) (char *)&MEM[x]
 #define DE_AT(x) (dict_t *)&MEM[x]
@@ -52,23 +56,23 @@ sys_t sys;
 #define T DSTK[DSP]
 #define SN(x) (x % STK_SZ)
 
+#define CCOMMA(x) MEM[HERE++] = x
+#define VCCOMMA(x) MEM[VHERE++] = x
+
 void push(CELL v) { DSP = SN(DSP + 1);  DSTK[DSP] = v; }
 CELL pop() { CELL x = T; DSP = SN(DSP - 1);  return x; }
 
 void rpush(CELL v) { RSP = SN(RSP + 1);  RSTK[RSP] = v; }
 CELL rpop() { CELL x = T; RSP = SN(RSP - 1);  return x; }
 
-#define CCOMMA(x) push(x); cComma()
-inline void cComma() { MEM[HERE++] = (byte)pop(); }
+inline void cComma() { CCOMMA((byte)pop()); }
 
-void comma() {
-    CELL t1 = pop();
-    SET_CELL(HERE, t1);
+void Comma(CELL v) {
+    SET_CELL(HERE, v);
     HERE += 2;
 }
-#define COMMA(x) push(x); comma()
 
-byte strEq(const char *x, const char *y) {
+byte strEq(const char* x, const char* y) {
     while (*x && *y && (*x == *y)) {
         ++x; ++y;
     }
@@ -84,22 +88,22 @@ int strLen(const char* str) {
     return l;
 }
 
-void strCpy(char *d, const char *s) {
+void strCpy(char* d, const char* s) {
     while (*s) { *(d++) = *(s++); }
     *d = 0;
 }
 
-void create(const char* name, byte f) {
-    dict_t* dp = DE_AT(HERE);
+void doCreate(const char* name, byte f) {
+    dict_t* dp = DE_AT(LHERE);
     dp->next = LAST;
     dp->flags = f;
     strCpy(dp->name, name);
-    LAST = HERE;
-    HERE = strLen(name) + HERE + 6;
+    LAST = LHERE;
+    LHERE = strLen(name) + LHERE + 6;
     dp->xt = HERE;
 }
 
-dict_t* doFind(const char *name) {
+dict_t* doFind(const char* name) {
     dict_t* dp = DE_AT(LAST);
     while (dp) {
         if (strEq(dp->name, name)) { return dp; }
@@ -109,13 +113,13 @@ dict_t* doFind(const char *name) {
     return dp;
 }
 
-void cStr(const char* str) {
+void str2Here(const char* str) {
     while (*str) {
         CCOMMA(*(str++));
     }
 }
 
-int isDigit(char c) { 
+int isDigit(char c) {
     if (('0' <= c) && (c <= '9')) { return c - '0'; }
     return -1;
 }
@@ -135,6 +139,8 @@ void reset() {
     BASE = 10;
     HERE = 2;
     LAST = 0;
+    LHERE = 50;
+    VHERE = 30;
 }
 
 void run(CELL start) {
@@ -143,9 +149,11 @@ void run(CELL start) {
     while (1) {
         IR = MEM[PC++];
         switch (IR) {
+        case 0: return;
         case ' ': break;
         case '#': push(T);                   break;
         case '\\': pop();                    break;
+        case '+': t1 = pop(); T += t1;       break;
         case '.': printf("%d", pop());       break;
         case ',': printf("%c", (byte)pop()); break;
         case 'b': printf(" ");               break;
@@ -170,13 +178,16 @@ int main()
 {
     printf("mem usage: %d", sizeof(sys));
     reset();
-    create("CELL", 0);
-    cStr("2;");
-    create("EMIT", 1);
-    cStr(",;");
+    doCreate("CELL", 0);
+    str2Here("2;");
+    doCreate("EMIT", 1);
+    str2Here(",;");
     dict_t* dp = doFind("CELL");
     if (dp) { run(dp->xt); }
     push(78);
     dp = doFind("EMIT");
     if (dp) { run(dp->xt); }
+    CELL x = HERE;
+    str2Here("b1 2 3++.");
+    run(x);
 }
