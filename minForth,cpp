@@ -1,0 +1,182 @@
+// MinForth.cpp : An extremely memory conscious Forth interpreter
+//
+
+#include <stdio.h>
+
+typedef unsigned char byte;
+typedef short CELL;
+typedef unsigned short UCELL;
+
+#define MEM_SZ 32
+#define STK_SZ  8
+
+typedef struct {
+    CELL next;
+    CELL xt;
+    byte flags;
+    char name[16];
+} dict_t;
+
+typedef struct {
+    CELL pc;
+    CELL here;
+    CELL last;
+    byte ir;
+    byte base;
+    byte dsp;
+    byte rsp;
+    CELL dstack[STK_SZ];
+    CELL rstack[STK_SZ];
+    byte mem[MEM_SZ];
+} sys_t;
+
+sys_t sys;
+
+#define PC   sys.pc
+#define IR   sys.ir
+#define DSTK sys.dstack
+#define RSTK sys.rstack
+#define DSP  sys.dsp
+#define RSP  sys.rsp
+#define MEM  sys.mem
+#define BASE sys.base
+#define HERE sys.here
+#define LAST sys.last
+
+#define GET_CELL(x) (MEM[x] | (MEM[x+1]<<8))
+#define SET_CELL(x, y) MEM[x] = (y&0xff); MEM[x+1] = (y>>8)
+#define BYTE_AT(x) (MEM[x])
+#define STR_AT(x) (char *)&MEM[x]
+#define DE_AT(x) (dict_t *)&MEM[x]
+
+#define T DSTK[DSP]
+#define SN(x) (x % STK_SZ)
+
+void push(CELL v) { DSP = SN(DSP + 1);  DSTK[DSP] = v; }
+CELL pop() { CELL x = T; DSP = SN(DSP - 1);  return x; }
+
+void rpush(CELL v) { RSP = SN(RSP + 1);  RSTK[RSP] = v; }
+CELL rpop() { CELL x = T; RSP = SN(RSP - 1);  return x; }
+
+#define CCOMMA(x) push(x); cComma()
+inline void cComma() { MEM[HERE++] = (byte)pop(); }
+
+void comma() {
+    CELL t1 = pop();
+    SET_CELL(HERE, t1);
+    HERE += 2;
+}
+#define COMMA(x) push(x); comma()
+
+byte strEq(const char *x, const char *y) {
+    while (*x && *y && (*x == *y)) {
+        ++x; ++y;
+    }
+    return (*x || *y) ? 0 : 1;
+}
+
+int strLen(const char* str) {
+    int l = 0;
+    while (*str) {
+        l++;
+        str++;
+    }
+    return l;
+}
+
+void strCpy(char *d, const char *s) {
+    while (*s) { *(d++) = *(s++); }
+    *d = 0;
+}
+
+void create(const char* name, byte f) {
+    dict_t* dp = DE_AT(HERE);
+    dp->next = LAST;
+    dp->flags = f;
+    strCpy(dp->name, name);
+    LAST = HERE;
+    HERE = strLen(name) + HERE + 6;
+    dp->xt = HERE;
+}
+
+dict_t* doFind(const char *name) {
+    dict_t* dp = DE_AT(LAST);
+    while (dp) {
+        if (strEq(dp->name, name)) { return dp; }
+        if (dp->next) { dp = DE_AT(dp->next); }
+        else { dp = NULL; }
+    }
+    return dp;
+}
+
+void cStr(const char* str) {
+    while (*str) {
+        CCOMMA(*(str++));
+    }
+}
+
+int isDigit(char c) { 
+    if (('0' <= c) && (c <= '9')) { return c - '0'; }
+    return -1;
+}
+
+CELL doNum(CELL pc) {
+    int c = isDigit(MEM[pc]);
+    while (0 <= c) {
+        T = (T * 10) + c;
+        c = isDigit(MEM[++pc]);
+    }
+    return pc;
+}
+
+void reset() {
+    DSP = 0;
+    RSP = 0;
+    BASE = 10;
+    HERE = 2;
+    LAST = 0;
+}
+
+void run(CELL start) {
+    PC = start;
+    CELL t1, t2;
+    while (1) {
+        IR = MEM[PC++];
+        switch (IR) {
+        case ' ': break;
+        case '#': push(T);                   break;
+        case '\\': pop();                    break;
+        case '.': printf("%d", pop());       break;
+        case ',': printf("%c", (byte)pop()); break;
+        case 'b': printf(" ");               break;
+        case 'n': printf("\r\n");            break;
+        case '$': t1 = pop(); t2 = pop();
+            push(t1); push(t2);
+            break;
+        case '%': t1 = pop(); t2 = T;
+            push(t1); push(t2);
+            break;
+        case ';': return;                    break;
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+            push(isDigit(IR));
+            PC = doNum(PC);
+            break;
+        }
+    }
+}
+
+int main()
+{
+    printf("mem usage: %d", sizeof(sys));
+    reset();
+    create("CELL", 0);
+    cStr("2;");
+    create("EMIT", 1);
+    cStr(",;");
+    dict_t* dp = doFind("CELL");
+    if (dp) { run(dp->xt); }
+    push(78);
+    dp = doFind("EMIT");
+    if (dp) { run(dp->xt); }
+}
