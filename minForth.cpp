@@ -7,11 +7,10 @@ typedef unsigned char byte;
 typedef short CELL;
 typedef unsigned short UCELL;
 
-#define MEM_SZ  200
+#define MEM_SZ  300
 #define STK_SZ    8
-#define LH_INIT  70
-#define VH_INIT  50
-
+#define LH_INIT 100
+#define VH_INIT  80
 
 typedef struct {
     CELL next;
@@ -176,6 +175,16 @@ void run(CELL start) {
         case '.': printf("%d", pop());       break;
         case ',': printf("%c", (byte)pop()); break;
         case 'b': printf(" ");               break;
+        case 'c': T = MEM[T];                break;
+        case 'C': t1 = pop();
+            t2 = pop();
+            MEM[t1] = (byte)t2;
+            break;
+        case '!': T = GET_CELL(T);           break;
+        case '@': t1 = pop();
+            t2 = pop();
+            SET_CELL(t1, t2);
+            break;
         case 'n': printf("\r\n");            break;
         case 'W': doWords();                 break;
         case '$': t1 = pop(); t2 = pop();    // SWAP
@@ -298,6 +307,10 @@ void doBuiltin(const char* name, const char* code) {
     dp->xt = code[0];
 }
 
+void loop() {
+
+}
+
 int main()
 {
     CELL x;
@@ -317,7 +330,11 @@ int main()
     doBuiltin("-", "-");
     doBuiltin("*", "*");
     doBuiltin("/", "/");
-    doParse(": test 1 2 3 4 + + + . ; CR test CR 123 . CR");
+    doBuiltin("C@", "c");
+    doBuiltin("C!", "C");
+    doBuiltin("@", "@");
+    doBuiltin("!", "!");
+    doParse(": test 1 2 3 4 + + + . ; CR");
     doParse("test CR");
     x = HERE; str2Here(""); HERE = x; run(HERE);
     printf("\r\nHERE: %d, LAST: %d (%d)", HERE, LAST, LAST - LH_INIT);
