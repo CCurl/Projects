@@ -28,6 +28,7 @@ typedef struct {
     CELL vhere;
     byte ir;
     byte base;
+    byte state;
     byte dsp;
     byte rsp;
     CELL dstack[STK_SZ];
@@ -36,6 +37,7 @@ typedef struct {
 } sys_t;
 
 sys_t sys;
+char word[32];
 
 #define PC   sys.pc
 #define IR   sys.ir
@@ -45,6 +47,7 @@ sys_t sys;
 #define RSP  sys.rsp
 #define MEM  sys.mem
 #define BASE sys.base
+#define STATE sys.state
 #define HERE sys.here
 #define LHERE sys.lhere
 #define VHERE sys.vhere
@@ -157,6 +160,7 @@ void reset() {
 
 void run(CELL start) {
     PC = start;
+    int rdepth = 0;
     CELL t1, t2;
     while (1) {
         IR = MEM[PC++];
@@ -180,7 +184,13 @@ void run(CELL start) {
         case '%': t1 = pop(); t2 = T;        // OVER
             push(t1); push(t2);
             break;
-        case ';': return;                    break;
+        case ':': rpush(PC+2); PC = GET_CELL(PC);
+            ++rdepth;
+            break;
+        case ';': if (rdepth < 1) { return; }
+                PC = rpop();
+                --rdepth;
+            break;
         case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9':
             push(isDigit(IR));
@@ -190,36 +200,125 @@ void run(CELL start) {
     }
 }
 
-void doBuiltin(const char* name, byte flags, const char* code) {
-    doCreate(name, flags);
-    str2Here(code);
-    CCOMMA(';');
+char* in;
+int getWord(char* wd, char delim) {
+    while (*in && (*in == delim)) {
+        ++in;
+    }
+    int l = 0;
+    while (*in && (*in != delim)) {
+        *(wd++) = *(in++);
+        ++l;
+    }
+    *wd = 0;
+    return l;
+}
+
+void execWord(dict_t* dp) {
+    if (STATE) {
+        if (dp->flags == 2) { CCOMMA((byte)dp->xt); }
+        else {  
+            CCOMMA(':');
+            Comma(dp->xt);
+        }
+    }
+    else {
+        if (dp->flags == 2) { 
+            MEM[HERE] = ((byte)dp->xt); 
+            MEM[HERE + 1] = ';';
+            run(HERE);
+        } else {
+            run(dp->xt); 
+        }
+    }
+}
+
+int isNum(char* x) {
+    while (*x) {
+        if (isDigit(*(x++)) == -1) { return 0; }
+    }
+    return 1;
+}
+
+int doParseNum(char *wd) {
+    // TODO: support neg
+    // TODO: support other bases
+    if (!isNum(wd)) { return 0; }
+    push(0);
+    while (*wd) {
+        T = (T * BASE) + isDigit(*wd);
+        wd++;
+    }
+    return 1;
+}
+
+char* doParseWord(char* wd) {
+    dict_t* dp = doFind(wd);
+    if (dp) {
+        execWord(dp);
+        return wd;
+    }
+
+    if (doParseNum(wd)) {
+        // TODO change this
+        if (STATE) { CCOMMA(' '); str2Here(wd); pop(); }
+        return wd;
+    }
+
+    if (strEq(wd, ":")) {
+        if (getWord(wd, ' ')) {
+            doCreate(wd, 0);
+            STATE = 1;
+        } else { return 0; }
+        return wd;
+    }
+
+    if (strEq(wd, ";")) {
+        STATE = 0;
+        CCOMMA(';');
+        return wd;
+    }
+    return 0;
+}
+
+void doParse(const char* line) {
+    in = (char*)line;
+    int len = getWord(word, ' ');
+    while (0 < len) {
+        if (doParseWord(word) == 0) {
+            return;
+        }
+        len = getWord(word, ' ');
+    }
+}
+
+void doBuiltin(const char* name, const char* code) {
+    doCreate(name, 2);
+    dict_t* dp = (dict_t*)&MEM[LAST];
+    dp->xt = code[0];
 }
 
 int main()
 {
     CELL x;
-    dict_t* dp;
     printf("mem usage: %d\n", sizeof(sys));
     reset();
     x = HERE; str2Here("1 2 3++."); HERE = x; run(HERE);
-    doBuiltin("CELL", 1, "2 ");
-    doBuiltin("SWAP", 1, "$");
-    doBuiltin("DROP", 1, "\\");
-    doBuiltin("DUP",  1, "#");
-    doBuiltin("OVER", 1, "%");
-    doBuiltin("EMIT", 1, ",");
-    doBuiltin("WORDS", 1, "W");
-    doBuiltin("CR", 1, "n");
-    doBuiltin(".", 1, ".");
-    doBuiltin("+", 1, "+");
-    doBuiltin("-", 1, "-");
-    doBuiltin("*", 1, "*");
-    doBuiltin("/", 1, "/");
-    push(78);
-    dp = doFind("CR");    if (dp) { run(dp->xt); }
-    dp = doFind("WORDS"); if (dp) { run(dp->xt); }
-    dp = doFind("CR");    if (dp) { run(dp->xt); }
-    dp = doFind("EMIT");  if (dp) { run(dp->xt); }
+    doParse(": CELL 2 ;");
+    doBuiltin("SWAP", "$");
+    doBuiltin("DROP", "\\");
+    doBuiltin("DUP", "#");
+    doBuiltin("OVER", "%");
+    doBuiltin("EMIT", ",");
+    doBuiltin("WORDS", "W");
+    doBuiltin("CR", "n");
+    doBuiltin(".", ".");
+    doBuiltin("+", "+");
+    doBuiltin("-", "-");
+    doBuiltin("*", "*");
+    doBuiltin("/", "/");
+    doParse(": test 1 2 3 4 + + + . ; CR test CR 123 . CR");
+    doParse("test CR");
     x = HERE; str2Here(""); HERE = x; run(HERE);
+    printf("\r\nHERE: %d, LAST: %d (%d)", HERE, LAST, LAST - LH_INIT);
 }
