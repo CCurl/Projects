@@ -8,9 +8,9 @@ typedef short CELL;
 typedef unsigned short UCELL;
 
 #define MEM_SZ  300
-#define STK_SZ    8
+#define STK_SZ    7
 #define LH_INIT 100
-#define VH_INIT  80
+#define VH_INIT  70
 
 typedef struct {
     CELL next;
@@ -30,8 +30,8 @@ typedef struct {
     byte state;
     byte dsp;
     byte rsp;
-    CELL dstack[STK_SZ];
-    CELL rstack[STK_SZ];
+    CELL dstack[STK_SZ+1];
+    CELL rstack[STK_SZ+1];
     byte mem[MEM_SZ];
 } sys_t;
 
@@ -59,7 +59,8 @@ char word[32];
 #define DP_AT(x) (dict_t *)&MEM[x]
 
 #define T DSTK[DSP]
-#define SN(x) (x % STK_SZ)
+#define R RSTK[RSP]
+#define SN(x) (x & STK_SZ)
 
 #define CCOMMA(x) MEM[HERE++] = x
 #define VCCOMMA(x) MEM[VHERE++] = x
@@ -68,7 +69,7 @@ void push(CELL v) { DSP = SN(DSP + 1);  DSTK[DSP] = v; }
 CELL pop() { CELL x = T; DSP = SN(DSP - 1);  return x; }
 
 void rpush(CELL v) { RSP = SN(RSP + 1);  RSTK[RSP] = v; }
-CELL rpop() { CELL x = T; RSP = SN(RSP - 1);  return x; }
+CELL rpop() { CELL x = R; RSP = SN(RSP - 1);  return x; }
 
 inline void cComma() { CCOMMA((byte)pop()); }
 
@@ -176,13 +177,11 @@ void run(CELL start) {
         case ',': printf("%c", (byte)pop()); break;
         case 'b': printf(" ");               break;
         case 'c': T = MEM[T];                break;
-        case 'C': t1 = pop();
-            t2 = pop();
+        case 'C': t1 = pop(); t2 = pop();
             MEM[t1] = (byte)t2;
             break;
-        case '!': T = GET_CELL(T);           break;
-        case '@': t1 = pop();
-            t2 = pop();
+        case '@': if (T < (MEM_SZ-1)) { T = GET_CELL(T); } break;
+        case '!': t1 = pop(); t2 = pop();
             SET_CELL(t1, t2);
             break;
         case 'n': printf("\r\n");            break;
@@ -205,6 +204,7 @@ void run(CELL start) {
             push(isDigit(IR));
             PC = doNum(PC);
             break;
+        case 'Z': RSP = 99; return;
         }
     }
 }
@@ -307,8 +307,31 @@ void doBuiltin(const char* name, const char* code) {
     dp->xt = code[0];
 }
 
-void loop() {
+void doOK() {
+    int d = DSP;
+    // printf("\r\nHERE: %d, LAST: %d, VHERE: %d", HERE, LAST, VHERE);
+    printf(" OK (");
+    for (int d = 1; d <= DSP; d++) { printf("%s%d", (1<d)?" ":"", DSTK[d]); }
+    printf(")\r\n");
+}
 
+void loop() {
+    char *tib = STR_AT(VHERE);
+    // FILE* fp = (input_fp) ? input_fp : stdin;
+    FILE* fp = stdin;
+    if (fp == stdin) { doOK(); }
+    if (fgets(tib, 100, fp) == tib) {
+        // if (fp == stdin) { doHistory(tib); }
+        int l = strLen(tib)-1;
+        while ((0<l) && (tib[l]) && (tib[l] < ' ')) { --l; }
+        tib[l+1] = 0;
+        doParse(tib);
+        return;
+    }
+    //if (input_fp) {
+    //    fclose(input_fp);
+    //    input_fp = NULL;
+    //}
 }
 
 int main()
@@ -316,7 +339,6 @@ int main()
     CELL x;
     printf("mem usage: %d\n", sizeof(sys));
     reset();
-    x = HERE; str2Here("1 2 3++."); HERE = x; run(HERE);
     doParse(": CELL 2 ;");
     doBuiltin("SWAP", "$");
     doBuiltin("DROP", "\\");
@@ -325,7 +347,7 @@ int main()
     doBuiltin("EMIT", ",");
     doBuiltin("WORDS", "W");
     doBuiltin("CR", "n");
-    doBuiltin(".", ".");
+    doBuiltin("(.)", ".");
     doBuiltin("+", "+");
     doBuiltin("-", "-");
     doBuiltin("*", "*");
@@ -334,8 +356,12 @@ int main()
     doBuiltin("C!", "C");
     doBuiltin("@", "@");
     doBuiltin("!", "!");
-    doParse(": test 1 2 3 4 + + + . ; CR");
-    doParse("test CR");
-    x = HERE; str2Here(""); HERE = x; run(HERE);
-    printf("\r\nHERE: %d, LAST: %d (%d)", HERE, LAST, LAST - LH_INIT);
+    doBuiltin("BYE", "Z");
+    doBuiltin("ZZ", "Z");
+    x = HERE; str2Here(": . 32 EMIT (.) ;"); HERE = x; doParse(STR_AT(x));
+    // x = HERE; str2Here(""); HERE = x; run(HERE);
+    printf("\r\nMinForth v0.0.1\r\n");
+    while (RSP != 99) {
+        loop();
+    }
 }
