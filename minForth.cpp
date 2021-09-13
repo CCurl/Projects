@@ -70,11 +70,11 @@ char word[32];
 #define STR_AT(x) (char *)&MEM[x]
 #define DP_AT(x) (dict_t *)&MEM[x]
 
-WORD GET_WORD(ADDR l) { return BYTE_AT(l) | (BYTE_AT(l+1) << 8); }
+WORD GET_WORD(ADDR l) { return BYTE_AT(l) | (BYTE_AT(l + 1) << 8); }
 void SET_WORD(ADDR l, WORD v) { BYTE_AT(l) = (v & 0xff); BYTE_AT(l + 1) = (byte)(v >> 8); }
 
-long GET_LONG(ADDR l) { return GET_WORD(l) | (GET_WORD(l+2) << 16); }
-void SET_LONG(ADDR l, CELL v) { SET_WORD(l, v & 0xFFFF); SET_WORD(l+2, (WORD)(v >> 16)); }
+long GET_LONG(ADDR l) { return GET_WORD(l) | (GET_WORD(l + 2) << 16); }
+void SET_LONG(ADDR l, CELL v) { SET_WORD(l, v & 0xFFFF); SET_WORD(l + 2, (WORD)(v >> 16)); }
 
 #if CELL_SZ == 2
 CELL GET_CELL(ADDR l) { return GET_WORD(l); }
@@ -135,9 +135,9 @@ void strCpy(char* d, const char* s) {
 
 void doCreate(const char* name, byte f) {
     int len = strLen(name);
-    ADDR x = (LAST) ? LAST : (MEM_SZ-4);
-    x -= ((ADDR_SZ*2) + len + 2);
-    while (x%4) { --x; }
+    ADDR x = (LAST) ? LAST : (MEM_SZ - 4);
+    x -= ((ADDR_SZ * 2) + len + 2);
+    while (x % 4) { --x; }
     dict_t* dp = DP_AT(x);
     dp->next = LAST;
     dp->xt = HERE;
@@ -394,9 +394,9 @@ int main()
     ADDR x;
     printf("mem usage: %d\n", sizeof(sys));
     reset();
-    char *cp = STR_AT(HERE+4); sprintf(cp, ": CELL %d ; : ADDR %d ;", CELL_SZ, ADDR_SZ);
+    char* cp = STR_AT(HERE + 4);
+    sprintf(cp, ": CELL %d ; : ADDR %d ;", CELL_SZ, ADDR_SZ);
     doParse(cp);
-    doParse("");
     doBuiltin("SWAP", "$");
     doBuiltin("DROP", "\\");
     doBuiltin("DUP", "#");
@@ -415,8 +415,7 @@ int main()
     doBuiltin("!", "!");
     doBuiltin("BYE", "Z");
     doBuiltin("ZZ", "Z");
-    x = HERE; str2Here(": . 32 EMIT (.) ;"); HERE = x; doParse(STR_AT(x));
-    // x = HERE; str2Here(""); HERE = x; run(HERE);
+    doParse(": . 32 EMIT (.) ;");
     printf("\r\nMinForth v0.0.1");
     printf("\r\nMEM: %ld, CODE: %ld, HERE: %ld", MEM_SZ, CODE_SZ, HERE);
     printf("\r\nVARS: %ld, VHERE: %ld", CODE_SZ, VHERE);
