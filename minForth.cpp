@@ -1,37 +1,51 @@
 // MinForth.cpp : An extremely memory conscious Forth interpreter
 //
-
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 
+#define ADDR_SZ   2
+#define CELL_SZ   4
+#define MEM_SZ   (64*1024)
+#define CODE_SZ  (24*1024)
+#define STK_SZ    15
+
 typedef unsigned char byte;
+typedef short WORD;
+
+#if CELL_SZ == 2
 typedef short CELL;
 typedef unsigned short UCELL;
+#else
+typedef long CELL;
+typedef unsigned long UCELL;
+#endif
 
-#define MEM_SZ  300
-#define STK_SZ    7
-#define LH_INIT 100
-#define VH_INIT  70
+#if ADDR_SZ == 2
+typedef unsigned short ADDR;
+#else
+typedef unsigned long ADDR;
+#endif
 
 typedef struct {
-    CELL next;
-    CELL xt;
+    ADDR next;
+    ADDR xt;
     byte flags;
     char name[16];
 } dict_t;
 
 typedef struct {
-    CELL pc;
-    CELL last;
-    CELL here;
-    CELL lhere;
-    CELL vhere;
+    ADDR pc;
+    ADDR last;
+    ADDR here;
+    ADDR vhere;
+    CELL base;
+    CELL state;
     byte ir;
-    byte base;
-    byte state;
     byte dsp;
     byte rsp;
-    CELL dstack[STK_SZ+1];
-    CELL rstack[STK_SZ+1];
+    byte unused1;
+    CELL dstack[STK_SZ + 1];
+    CELL rstack[STK_SZ + 1];
     byte mem[MEM_SZ];
 } sys_t;
 
@@ -52,11 +66,31 @@ char word[32];
 #define VHERE sys.vhere
 #define LAST sys.last
 
-#define GET_CELL(l) (MEM[l] | (MEM[l+1]<<8))
-#define SET_CELL(l, v) MEM[l] = (v&0xff); MEM[l+1] = (v>>8)
 #define BYTE_AT(x) (MEM[x])
 #define STR_AT(x) (char *)&MEM[x]
 #define DP_AT(x) (dict_t *)&MEM[x]
+
+WORD GET_WORD(ADDR l) { return BYTE_AT(l) | (BYTE_AT(l+1) << 8); }
+void SET_WORD(ADDR l, WORD v) { BYTE_AT(l) = (v & 0xff); BYTE_AT(l + 1) = (byte)(v >> 8); }
+
+long GET_LONG(ADDR l) { return GET_WORD(l) | (GET_WORD(l+2) << 16); }
+void SET_LONG(ADDR l, CELL v) { SET_WORD(l, v & 0xFFFF); SET_WORD(l+2, (WORD)(v >> 16)); }
+
+#if CELL_SZ == 2
+CELL GET_CELL(ADDR l) { return GET_WORD(l); }
+void SET_CELL(ADDR l, CELL v) { SET_WORD(l, v); }
+#else
+CELL GET_CELL(ADDR l) { return GET_LONG(l); }
+void SET_CELL(ADDR l, CELL v) { SET_LONG(l, v); }
+#endif
+
+#if ADDR_SZ == 2
+ADDR GET_ADDR(ADDR l) { return GET_WORD(l); }
+void SET_ADDR(ADDR l, ADDR v) { SET_WORD(l, v); }
+#else
+ADDR GET_ADDR(ADDR l) { return GET_WORD(l); }
+void SET_ADDR(ADDR l, ADDR v) { SET_LONG(l, v); }
+#endif
 
 #define T DSTK[DSP]
 #define R RSTK[RSP]
@@ -100,13 +134,16 @@ void strCpy(char* d, const char* s) {
 }
 
 void doCreate(const char* name, byte f) {
-    dict_t* dp = DP_AT(LHERE);
+    int len = strLen(name);
+    ADDR x = (LAST) ? LAST : (MEM_SZ-4);
+    x -= ((ADDR_SZ*2) + len + 2);
+    while (x%4) { --x; }
+    dict_t* dp = DP_AT(x);
     dp->next = LAST;
     dp->xt = HERE;
     dp->flags = f;
     strCpy(dp->name, name);
-    LAST = LHERE;
-    LHERE = strLen(name) + LHERE + 6;
+    LAST = x;
 }
 
 dict_t* doFind(const char* name) {
@@ -139,26 +176,16 @@ int isDigit(char c) {
     return -1;
 }
 
-CELL doNum(CELL pc) {
-    int c = isDigit(MEM[pc]);
-    while (0 <= c) {
-        T = (T * 10) + c;
-        c = isDigit(MEM[++pc]);
-    }
-    return pc;
-}
-
 void reset() {
     DSP = 0;
     RSP = 0;
     BASE = 10;
     HERE = 2;
     LAST = 0;
-    LHERE = LH_INIT;
-    VHERE = VH_INIT;
+    VHERE = CODE_SZ;
 }
 
-void run(CELL start) {
+void run(ADDR start) {
     PC = start;
     int rdepth = 0;
     CELL t1, t2;
@@ -167,6 +194,9 @@ void run(CELL start) {
         switch (IR) {
         case 0: return;
         case ' ': break;
+        case 1: push(BYTE_AT(PC++));         break;
+        case 2: push(GET_WORD(PC)); PC += 2; break;
+        case 4: push(GET_LONG(PC)); PC += 4; break;
         case '#': push(T);                   break;
         case '\\': pop();                    break;
         case '+': t1 = pop(); T += t1;       break;
@@ -180,9 +210,9 @@ void run(CELL start) {
         case 'C': t1 = pop(); t2 = pop();
             MEM[t1] = (byte)t2;
             break;
-        case '@': if (T < (MEM_SZ-1)) { T = GET_CELL(T); } break;
+        case '@': if (T < (MEM_SZ - CELL_SZ)) { T = GET_CELL((ADDR)T); } break;
         case '!': t1 = pop(); t2 = pop();
-            SET_CELL(t1, t2);
+            SET_CELL((ADDR)t1, t2);
             break;
         case 'n': printf("\r\n");            break;
         case 'W': doWords();                 break;
@@ -192,18 +222,13 @@ void run(CELL start) {
         case '%': t1 = pop(); t2 = T;        // OVER
             push(t1); push(t2);
             break;
-        case ':': rpush(PC+2); PC = GET_CELL(PC);
+        case ':': rpush(PC + 2); PC = GET_ADDR((ADDR)PC);
             ++rdepth;
             break;
         case ';': if (rdepth < 1) { return; }
-                PC = rpop();
+                PC = (ADDR)rpop();
                 --rdepth;
-            break;
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
-            push(isDigit(IR));
-            PC = doNum(PC);
-            break;
+                break;
         case 'Z': RSP = 99; return;
         }
     }
@@ -226,18 +251,19 @@ int getWord(char* wd, char delim) {
 void execWord(dict_t* dp) {
     if (STATE) {
         if (dp->flags == 2) { CCOMMA((byte)dp->xt); }
-        else {  
+        else {
             CCOMMA(':');
             Comma(dp->xt);
         }
     }
     else {
-        if (dp->flags == 2) { 
-            MEM[HERE] = ((byte)dp->xt); 
+        if (dp->flags == 2) {
+            MEM[HERE] = ((byte)dp->xt);
             MEM[HERE + 1] = ';';
             run(HERE);
-        } else {
-            run(dp->xt); 
+        }
+        else {
+            run(dp->xt);
         }
     }
 }
@@ -249,7 +275,24 @@ int isNum(char* x) {
     return 1;
 }
 
-int doParseNum(char *wd) {
+void compileNumber(CELL num) {
+    if ((0 <= num) && (num <= 0xFF)) {
+        CCOMMA(1);
+        CCOMMA(num & 0xff);
+    }
+    else if ((0x0100 <= num) && (num <= 0xFFFF)) {
+        CCOMMA(2);
+        SET_WORD(HERE, (WORD)num);
+        HERE += 2;
+    }
+    else {
+        CCOMMA(4);
+        SET_LONG(HERE, (WORD)num);
+        HERE += 4;
+    }
+}
+
+int doParseNum(char* wd) {
     // TODO: support neg
     // TODO: support other bases
     if (!isNum(wd)) { return 0; }
@@ -261,32 +304,45 @@ int doParseNum(char *wd) {
     return 1;
 }
 
-char* doParseWord(char* wd) {
+int doParseWord(char* wd) {
     dict_t* dp = doFind(wd);
     if (dp) {
         execWord(dp);
-        return wd;
+        return 1;
     }
 
     if (doParseNum(wd)) {
-        // TODO change this
-        if (STATE) { CCOMMA(' '); str2Here(wd); pop(); }
-        return wd;
+        if (STATE == 1) { compileNumber(pop()); }
+        return 1;
     }
 
     if (strEq(wd, ":")) {
         if (getWord(wd, ' ')) {
             doCreate(wd, 0);
             STATE = 1;
-        } else { return 0; }
-        return wd;
+        }
+        else { return 0; }
+        return 1;
     }
 
     if (strEq(wd, ";")) {
         STATE = 0;
         CCOMMA(';');
-        return wd;
+        return 1;
     }
+
+    if (strEq(wd, "VARIABLE")) {
+        if (getWord(wd, ' ')) {
+            doCreate(wd, 0);
+            compileNumber(VHERE);
+            CCOMMA(';');
+            SET_CELL(VHERE, 0);
+            VHERE += CELL_SZ;
+            return 1;
+        }
+        else { return 0; }
+    }
+
     return 0;
 }
 
@@ -309,22 +365,21 @@ void doBuiltin(const char* name, const char* code) {
 
 void doOK() {
     int d = DSP;
-    // printf("\r\nHERE: %d, LAST: %d, VHERE: %d", HERE, LAST, VHERE);
     printf(" OK (");
-    for (int d = 1; d <= DSP; d++) { printf("%s%d", (1<d)?" ":"", DSTK[d]); }
+    for (int d = 1; d <= DSP; d++) { printf("%s%d", (1 < d) ? " " : "", DSTK[d]); }
     printf(")\r\n");
 }
 
 void loop() {
-    char *tib = STR_AT(VHERE);
+    char* tib = STR_AT(VHERE);
     // FILE* fp = (input_fp) ? input_fp : stdin;
     FILE* fp = stdin;
     if (fp == stdin) { doOK(); }
     if (fgets(tib, 100, fp) == tib) {
         // if (fp == stdin) { doHistory(tib); }
-        int l = strLen(tib)-1;
-        while ((0<l) && (tib[l]) && (tib[l] < ' ')) { --l; }
-        tib[l+1] = 0;
+        int l = strLen(tib) - 1;
+        while ((0 < l) && (tib[l]) && (tib[l] < ' ')) { --l; }
+        tib[l + 1] = 0;
         doParse(tib);
         return;
     }
@@ -336,10 +391,12 @@ void loop() {
 
 int main()
 {
-    CELL x;
+    ADDR x;
     printf("mem usage: %d\n", sizeof(sys));
     reset();
-    doParse(": CELL 2 ;");
+    char *cp = STR_AT(HERE+4); sprintf(cp, ": CELL %d ; : ADDR %d ;", CELL_SZ, ADDR_SZ);
+    doParse(cp);
+    doParse("");
     doBuiltin("SWAP", "$");
     doBuiltin("DROP", "\\");
     doBuiltin("DUP", "#");
@@ -360,7 +417,11 @@ int main()
     doBuiltin("ZZ", "Z");
     x = HERE; str2Here(": . 32 EMIT (.) ;"); HERE = x; doParse(STR_AT(x));
     // x = HERE; str2Here(""); HERE = x; run(HERE);
-    printf("\r\nMinForth v0.0.1\r\n");
+    printf("\r\nMinForth v0.0.1");
+    printf("\r\nMEM: %ld, CODE: %ld, HERE: %ld", MEM_SZ, CODE_SZ, HERE);
+    printf("\r\nVARS: %ld, VHERE: %ld", CODE_SZ, VHERE);
+    printf("\r\nLAST: %d", LAST);
+    printf("\r\nHello.");
     while (RSP != 99) {
         loop();
     }
