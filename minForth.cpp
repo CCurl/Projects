@@ -242,18 +242,6 @@ void doOK() {
 }
 
 void doTests() {
-    doParse("VARIABLE xx");
-    doParse("237663 xx !");
-    doParse("xx ?");
-    doParse(": 1+ 1 + ; : 1- 1 - ; : 0= 0 = ;");
-    doParse(": 2dup over over ; : 2drop drop drop ;");
-    doParse(": +! SWAP OVER @ + SWAP ! ;");
-    doParse("xx @ 1+ DUP . 1+ .");
-    doParse("27 xx +! xx ? CR WORDS");
-    doParse(": ttt if 65 else 66 then EMIT ;");
-    doParse(": ccc 0 1 ttt ttt ; ");
-    doParse(": t1 dup 0= if drop leave then dup . 1- t1 ; ");
-    doParse(": t2 2dup > if 2drop leave then over . swap 1+ swap t2 ; ");
 }
 
 void doUserWords() {
