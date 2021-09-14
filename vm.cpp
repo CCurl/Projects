@@ -92,6 +92,33 @@ void doEmit(CELL x) {
     putc(char(x), stdout);
 }
 
+// NB: type: 1=>VAR, 2=>CODE, 3=>absolute
+ADDR buildAddr(UCELL addr, int type) {
+    if (type == 1) { addr += (UCELL)VARS; }
+    else if (type == 2) { addr += (UCELL)CODE; }
+    return (ADDR)addr;
+}
+
+CELL doFetch(UCELL from, int type) {
+    ADDR addr = buildAddr(from, type);
+    return GET_CELL(addr);
+}
+
+void doStore(UCELL to, CELL val, int type) {
+    ADDR addr = buildAddr(to, type);
+    SET_CELL(addr, val);
+}
+
+CELL doCFetch(UCELL from, int type) {
+    ADDR addr = buildAddr(from, type);
+    return *addr;
+}
+
+void doCStore(UCELL to, CELL val, int type) {
+    ADDR addr = buildAddr(to, type);
+    *addr = (byte)val;
+}
+
 void run(CELL start) {
     PC = start;
     int rdepth = 0;
@@ -101,37 +128,39 @@ void run(CELL start) {
         switch (IR) {
         case 0: return;
         case ' ': break;
-        case 1: push(CODE[PC++]);                 break;
-        case 2: push(GET_WORD(CODE+PC)); PC += 2; break;
-        case 4: push(GET_LONG(CODE+PC)); PC += 4; break;
-        case '#': push(T);                        break;
-        case '\\': pop();                         break;
-        case '+': t1 = pop(); T += t1;            break;
-        case '-': t1 = pop(); T -= t1;            break;
-        case '*': t1 = pop(); T *= t1;            break;
-        case '/': t1 = pop(); T /= t1;            break;
-        case '=': N = (N == T) ? 1 : 0; pop();    break;
-        case '>': N = (N > T) ? 1 : 0; pop();     break;
-        case '<': N = (N < T) ? 1 : 0; pop();     break;
-        case '.': printf("%d", pop());            break;
-        case ',': doEmit(pop());      break;
-        case '@': T = GET_CELL(&VARS[T]);         break;
-        case '!':  t1 = pop(); t2 = pop();
-            SET_CELL(&VARS[t1], t2);
+        case 1: push(CODE[PC++]);                  break;
+        case 2: push(GET_WORD(CODE+PC)); PC += 2;  break;
+        case 4: push(GET_LONG(CODE+PC)); PC += 4;  break;
+        case '#': push(T);                         break;
+        case '\\': pop();                          break;
+        case '+': t1 = pop(); T += t1;             break;
+        case '-': t1 = pop(); T -= t1;             break;
+        case '*': t1 = pop(); T *= t1;             break;
+        case '/': t1 = pop(); T /= t1;             break;
+        case '=': N = (N == T) ? 1 : 0; pop();     break;
+        case '>': N = (N > T) ? 1 : 0; pop();      break;
+        case '<': N = (N < T) ? 1 : 0; pop();      break;
+        case '.': printf("%d", pop());             break;
+        case ',': doEmit(pop());                   break;
+        case 'b': printf(" ");                     break;
+        case '@': T = doFetch(T, 1);                  break;
+        case 11:  T = doFetch(T, 2);                 break;
+        case 12:  T = doFetch(T, 3);                 break;
+        case 'c': T = doCFetch(T, 1);                 break;
+        case 13:  T = doCFetch(T, 2);                 break;
+        case 14:  T = doCFetch(T, 3);                 break;
+        case '!': doStore(T, N, 1); pop(); pop();     break;
+        case 15:  doStore(T, N, 2); pop(); pop();    break;
+        case 16:  doStore(T, N, 3); pop(); pop();    break;
+        case 'C': doCStore(T, N, 1); pop(); pop();    break;
+        case 17:  doCStore(T, N, 2); pop(); pop();    break;
+        case 18:  doCStore(T, N, 3); pop(); pop();    break;
+        case 'j': if (pop() == 0) {
+                PC = GET_CELL(CODE+PC); 
+            } else { PC += CELL_SZ; }
             break;
-        case 'a':  T = *(A);                      break;
-        case 'A': T = GET_CELL(A);                break;
-            break;
-        case 'b': printf(" ");                    break;
-        case 'c': T = VARS[T];                    break;
-        case 'C': t1 = pop(); t2 = pop();
-            VARS[t1] = (byte)t2;
-            break;
-        case 'j': if (pop() == 0) { PC = GET_CELL(CODE+PC); }
-                else { PC += CELL_SZ; }
-            break;
-        case 'J': PC = GET_CELL(CODE + PC);       break;
-        case 'n': printf("\r\n");                 break;
+        case 'J': PC = GET_CELL(CODE + PC);        break;
+        case 'n': printf("\r\n");                  break;
         case '$': t1 = pop(); t2 = pop();    // SWAP
             push(t1); push(t2);
             break;

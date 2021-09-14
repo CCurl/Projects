@@ -180,7 +180,7 @@ int doParseWord(char* wd) {
         return 1;
     }
 
-    if (strEq(wd, "VARIABLE")) {
+    if (strEqI(wd, "VARIABLE")) {
         if (getWord(wd, ' ')) {
             doCreate(wd, 0);
             compileNumber((UCELL)VHERE);
@@ -214,6 +214,7 @@ int doParseWord(char* wd) {
     }
 
     STATE = 0;
+    printf("[%s]??", wd);
     return 0;
 }
 
@@ -228,20 +229,11 @@ void doParse(const char* line) {
     }
 }
 
-void doBuiltin(const char* name, byte op) {
-    doCreate(name, 2);
-    dict_t* dp = DP_AT(LAST);
-    dp->xt = op;
-}
-
 void doOK() {
     int d = DSP;
     printf(" OK (");
     for (int d = 1; d <= DSP; d++) { printf("%s%d", (1 < d) ? " " : "", DSTK[d]); }
     printf(")\r\n");
-}
-
-void doTests() {
 }
 
 void doUserWords() {
@@ -250,11 +242,49 @@ void doUserWords() {
     cp = STR_AT(VHERE + 6); sprintf(cp, ": (code) %lu ; : (vars) %lu ;", (UCELL)CODE, (UCELL)VARS); doParse(cp);
     doParse(": last (last) A@ ;");
     doParse(": here (here) A@ ;");
-    doParse(": free last here - ;");
-    doParse(": ? @ . ;");
 }
 
-void doHistory(const char *txt) {
+void doBuiltin(const char* name, byte op) {
+    doCreate(name, 2);
+    dict_t* dp = DP_AT(LAST);
+    dp->xt = op;
+}
+
+void doBuiltIns()
+{
+    doBuiltin("SWAP", '$');
+    doBuiltin("DROP", '\\');
+    doBuiltin("DUP", '#');
+    doBuiltin("OVER", '%');
+    doBuiltin("EMIT", ',');
+    doBuiltin("WORDS", 'W');
+    doBuiltin("=", '=');
+    doBuiltin(">", '>');
+    doBuiltin("<", '<');
+    doBuiltin("LEAVE", ';');
+    doBuiltin("CR", 'n');
+    doBuiltin("(.)", '.');
+    doBuiltin("+", '+');
+    doBuiltin("-", '-');
+    doBuiltin("*", '*');
+    doBuiltin("/", '/');
+    doBuiltin("@", '@');
+    doBuiltin("D@", 11);
+    doBuiltin("A@", 12);
+    doBuiltin("C@", 'c');
+    doBuiltin("DC@", 13);
+    doBuiltin("AC@", 14);
+    doBuiltin("!", '!');
+    doBuiltin("D!", 15);
+    doBuiltin("A!", 16);
+    doBuiltin("C!", 'C');
+    doBuiltin("DC!", 17);
+    doBuiltin("AC!", 18);
+    doBuiltin("BYE", 'Z');
+    doBuiltin("ZZ", 'Z');
+}
+
+void doHistory(const char* txt) {
     FILE* fp = fopen("history.txt", "at");
     if (fp) {
         fputs(txt, fp);
@@ -284,41 +314,17 @@ int main()
 {
     char* cp;
     reset();
-    cp = STR_AT(VHERE + 6); sprintf(cp, ": CELL %d ; : ADDR %d ;", CELL_SZ, ADDR_SZ); doParse(cp);
-    doBuiltin("SWAP", '$');
-    doBuiltin("DROP", '\\');
-    doBuiltin("DUP", '#');
-    doBuiltin("OVER", '%');
-    doBuiltin("EMIT", ',');
-    doBuiltin("WORDS", 'W');
-    doBuiltin("=", '=');
-    doBuiltin(">", '>');
-    doBuiltin("<", '<');
-    doBuiltin("LEAVE", ';');
-    doBuiltin("CR", 'n');
-    doBuiltin("(.)", '.');
-    doBuiltin("+", '+');
-    doBuiltin("-", '-');
-    doBuiltin("*", '*');
-    doBuiltin("/", '/');
-    doBuiltin("C@", 'c');
-    doBuiltin("C!", 'C');
-    doBuiltin("AC@", 'a');
-    doBuiltin("A@", 'A');
-    doBuiltin("@", '@');
-    doBuiltin("!", '!');
-    doBuiltin("BYE", 'Z');
-    doBuiltin("ZZ", 'Z');
-    doParse(": . 32 EMIT (.) ;");
+    cp = STR_AT(VHERE + 6); 
+    sprintf(cp, ": CELL %d ; : ADDR %d ;", CELL_SZ, ADDR_SZ); 
+    doParse(cp);
 
+    doBuiltIns();
     doUserWords();
 
     printf("\r\nMinForth v0.0.1");
     printf("\r\nCODE: %lu, SIZE: %ld, HERE: %ld", (UCELL)CODE, (UCELL)CODE_SZ, HERE);
     printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", VARS, (long)CODE_SZ, VHERE);
     printf("\r\nDICT: %lu, SIZE: %ld, LAST: %ld", (UCELL)DICT, (long)DICT_SZ, LAST);
-
-    doTests();
 
     printf("\r\nHello.");
     input_fp = fopen("sys.fs", "rt");

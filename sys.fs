@@ -1,12 +1,6 @@
-VARIABLE xx");
-237663 xx !");
-xx ?");
-: 1+ 1 + ; : 1- 1 - ; : 0= 0 = ;");
-: 2dup over over ; : 2drop drop drop ;");
-: +! SWAP OVER @ + SWAP ! ;");
-xx @ 1+ DUP . 1+ .");
-27 xx +! xx ? CR WORDS");
-: ttt if 65 else 66 then EMIT ;");
-: ccc 0 1 ttt ttt ; ");
-: t1 dup 0= if drop leave then dup . 1- t1 ; ");
-: t2 2dup > if 2drop leave then over . swap 1+ swap t2 ; ");
+: . 32 emit (.) ;
+: 1+ 1 + ;
+: 2dup over over ;
+: 2drop drop drop ;
+: .c dup dc@ dup . dup 32 < if drop 46 then emit 1+ ;
+: dd 2dup > if 2drop leave then swap .c swap dd ;
