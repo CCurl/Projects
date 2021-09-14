@@ -7,7 +7,7 @@ CELL DSTK[STK_SZ + 1];
 CELL RSTK[STK_SZ + 1];
 byte CODE[CODE_SZ];
 byte VARS[VARS_SZ];
-byte DICT[DICT_SZ];
+// byte DICT[DICT_SZ];
 UCELL PC, HERE, VHERE, LAST;
 
 #define T  DSTK[DSP]
@@ -110,21 +110,27 @@ void run(CELL start) {
         case '-': t1 = pop(); T -= t1;            break;
         case '*': t1 = pop(); T *= t1;            break;
         case '/': t1 = pop(); T /= t1;            break;
+        case '=': N = (N == T) ? 1 : 0; pop();    break;
+        case '>': N = (N > T) ? 1 : 0; pop();     break;
+        case '<': N = (N < T) ? 1 : 0; pop();     break;
         case '.': printf("%d", pop());            break;
         case ',': doEmit(pop());      break;
-        case 'b': printf(" ");                    break;
-        case 'c': T = VARS[T];                    break;
-        case 'C': t1 = pop(); t2 = pop();
-            VARS[t1] = (byte)t2;
-            break;
         case '@': T = GET_CELL(&VARS[T]);         break;
         case '!':  t1 = pop(); t2 = pop();
             SET_CELL(&VARS[t1], t2);
             break;
         case 'a':  T = *(A);                      break;
-        case 'A': t1 = pop(); t2 = pop();
-            SET_CELL((ADDR)t1, t2);
+        case 'A': T = GET_CELL(A);                break;
             break;
+        case 'b': printf(" ");                    break;
+        case 'c': T = VARS[T];                    break;
+        case 'C': t1 = pop(); t2 = pop();
+            VARS[t1] = (byte)t2;
+            break;
+        case 'j': if (pop() == 0) { PC = GET_CELL(CODE+PC); }
+                else { PC += CELL_SZ; }
+            break;
+        case 'J': PC = GET_CELL(CODE + PC);       break;
         case 'n': printf("\r\n");                 break;
         case '$': t1 = pop(); t2 = pop();    // SWAP
             push(t1); push(t2);

@@ -3,8 +3,8 @@
 
 #define ADDR_SZ   4
 #define CELL_SZ   4
-#define CODE_SZ  (1*256)
-#define DICT_SZ  (1*1024)
+#define CODE_SZ  (1*1024)
+#define DICT_SZ  CODE_SZ // (1*1024)
 #define VARS_SZ  (1*256)
 #define STK_SZ    15
 
@@ -33,6 +33,7 @@ typedef struct {
 #define A (ADDR)DSTK[DSP]
 #define N  DSTK[DSP-1]
 #define R  RSTK[RSP]
+#define DICT CODE
 #define DP_AT(l) (dict_t *)&DICT[l]
 #define STR_AT(l) (char *)&VARS[l]
 
@@ -42,7 +43,7 @@ extern CELL BASE, STATE;
 extern UCELL HERE, VHERE, LAST;
 extern byte CODE[];
 extern byte VARS[];
-extern byte DICT[];
+//extern byte DICT[];
 extern CELL DSTK[];
 extern CELL RSTK[];
 

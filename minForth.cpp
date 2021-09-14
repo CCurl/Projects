@@ -5,9 +5,23 @@
 #include "Shared.h"
 
 char word[32];
+FILE* input_fp = NULL;
+byte lastWasCall = 0;
 
 byte strEq(const char* x, const char* y) {
     while (*x && *y && (*x == *y)) {
+        ++x; ++y;
+    }
+    return (*x || *y) ? 0 : 1;
+}
+
+char lower(char c) {
+    return (('A' <= c) && (c <= 'Z')) ? (c + 32) : c;
+}
+
+byte strEqI(const char* x, const char* y) {
+    while (*x && *y) {
+        if (lower(*x) != lower(*y)) { return 0; }
         ++x; ++y;
     }
     return (*x || *y) ? 0 : 1;
@@ -26,7 +40,7 @@ UCELL align4(UCELL x) {
 void doCreate(const char* name, byte f) {
     int len = strLen(name);
     CELL n = LAST - (CELL_SZ + 1 + len + 1);
-    if (n < 0) {
+    if ((UCELL)n < HERE) {
         printf("-DICT-OVERFLOW-"); return; 
     }
     dict_t* dp = DP_AT(n);
@@ -42,7 +56,7 @@ dict_t* doFind(const char* name) {
     CELL end = DICT_SZ - 2;
     while (l && (l < end)) {
         dict_t *dp = DP_AT(l);
-        if (strEq(dp->name, name)) { return dp; }
+        if (strEqI(dp->name, name)) { return dp; }
         l = getNext(l);
     }
     return NULL;
@@ -83,9 +97,9 @@ void execWord(dict_t* dp) {
         else {
             CComma(':');
             Comma((CELL)dp->xt);
+            lastWasCall = 1;
         }
-    }
-    else {
+    } else {
         if (dp->flags == 2) {
             CODE[HERE] = (byte)(dp->xt);
             CODE[HERE+1] = ';';
@@ -134,6 +148,8 @@ int doParseNum(char* wd) {
 }
 
 int doParseWord(char* wd) {
+    byte lwc = lastWasCall;
+    lastWasCall = 0;
     dict_t* dp = doFind(wd);
     if (dp) {
         execWord(dp);
@@ -156,7 +172,11 @@ int doParseWord(char* wd) {
 
     if (strEq(wd, ";")) {
         STATE = 0;
-        CComma(';');
+        if (lwc && (CODE[HERE - 5] == ':')) { 
+            CODE[HERE - 5] = 'J';
+        } else {
+            CComma(';');
+        }
         return 1;
     }
 
@@ -171,6 +191,29 @@ int doParseWord(char* wd) {
         else { return 0; }
     }
 
+    if (strEqI(wd, "IF")) {
+        CComma('j');
+        push(HERE);
+        Comma(0);
+        return 1;
+    }
+
+    if (strEqI(wd, "ELSE")) {
+        CELL tgt = pop();
+        CComma('J');
+        push(HERE);
+        Comma(0);
+        SET_CELL(CODE+tgt, HERE);
+        return 1;
+    }
+
+    if (strEqI(wd, "THEN")) {
+        CELL tgt = pop();
+        SET_CELL(CODE + tgt, HERE);
+        return 1;
+    }
+
+    STATE = 0;
     return 0;
 }
 
@@ -198,43 +241,72 @@ void doOK() {
     printf(")\r\n");
 }
 
+void doTests() {
+    doParse("VARIABLE xx");
+    doParse("237663 xx !");
+    doParse("xx ?");
+    doParse(": 1+ 1 + ; : 1- 1 - ; : 0= 0 = ;");
+    doParse(": 2dup over over ; : 2drop drop drop ;");
+    doParse(": +! SWAP OVER @ + SWAP ! ;");
+    doParse("xx @ 1+ DUP . 1+ .");
+    doParse("27 xx +! xx ? CR WORDS");
+    doParse(": ttt if 65 else 66 then EMIT ;");
+    doParse(": ccc 0 1 ttt ttt ; ");
+    doParse(": t1 dup 0= if drop leave then dup . 1- t1 ; ");
+    doParse(": t2 2dup > if 2drop leave then over . swap 1+ swap t2 ; ");
+}
+
+void doUserWords() {
+    char* cp;
+    cp = STR_AT(VHERE + 6); sprintf(cp, ": (here) %lu ; : (last) %lu ;", (UCELL)&HERE, (UCELL)&LAST); doParse(cp);
+    cp = STR_AT(VHERE + 6); sprintf(cp, ": (code) %lu ; : (vars) %lu ;", (UCELL)CODE, (UCELL)VARS); doParse(cp);
+    doParse(": last (last) A@ ;");
+    doParse(": here (here) A@ ;");
+    doParse(": free last here - ;");
+    doParse(": ? @ . ;");
+}
+
+void doHistory(const char *txt) {
+    FILE* fp = fopen("history.txt", "at");
+    if (fp) {
+        fputs(txt, fp);
+        fclose(fp);
+    }
+}
+
 void loop() {
-    char* tib = STR_AT(VHERE+6);
-    // FILE* fp = (input_fp) ? input_fp : stdin;
-    FILE* fp = stdin;
+    char* tib = STR_AT(VHERE + 6);
+    FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { doOK(); }
     if (fgets(tib, 100, fp) == tib) {
-        // if (fp == stdin) { doHistory(tib); }
+        if (fp == stdin) { doHistory(tib); }
         int l = strLen(tib) - 1;
         while ((0 < l) && (tib[l]) && (tib[l] < ' ')) { --l; }
         tib[l + 1] = 0;
         doParse(tib);
         return;
     }
-    //if (input_fp) {
-    //    fclose(input_fp);
-    //    input_fp = NULL;
-    //}
+    if (input_fp) {
+        fclose(input_fp);
+        input_fp = NULL;
+    }
 }
 
 int main()
 {
     char* cp;
     reset();
-    printf("\r\nMinForth v0.0.1");
-    printf("\r\nCODE: %lu, SIZE: %ld, HERE: %ld", (UCELL)CODE, (UCELL)CODE_SZ, HERE);
-    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", VARS, (long)CODE_SZ, VHERE);
-    printf("\r\nDICT: %p, SIZE: %ld, LAST: %ld", DICT, (long)DICT_SZ, LAST);
-    printf("\r\nHello.");
     cp = STR_AT(VHERE + 6); sprintf(cp, ": CELL %d ; : ADDR %d ;", CELL_SZ, ADDR_SZ); doParse(cp);
-    cp = STR_AT(VHERE + 6); sprintf(cp, ": (here) %lu ; : (last) %lu ;", (UCELL)&HERE, (UCELL)&LAST); doParse(cp);
-    cp = STR_AT(VHERE + 6); sprintf(cp, ": (code) %lu ; : (vars) %lu ;", (UCELL)CODE, (UCELL)VARS); doParse(cp);
     doBuiltin("SWAP", '$');
     doBuiltin("DROP", '\\');
     doBuiltin("DUP", '#');
     doBuiltin("OVER", '%');
     doBuiltin("EMIT", ',');
     doBuiltin("WORDS", 'W');
+    doBuiltin("=", '=');
+    doBuiltin(">", '>');
+    doBuiltin("<", '<');
+    doBuiltin("LEAVE", ';');
     doBuiltin("CR", 'n');
     doBuiltin("(.)", '.');
     doBuiltin("+", '+');
@@ -243,13 +315,25 @@ int main()
     doBuiltin("/", '/');
     doBuiltin("C@", 'c');
     doBuiltin("C!", 'C');
-    doBuiltin("A@", 'a');
-    doBuiltin("A!", 'A');
+    doBuiltin("AC@", 'a');
+    doBuiltin("A@", 'A');
     doBuiltin("@", '@');
     doBuiltin("!", '!');
     doBuiltin("BYE", 'Z');
     doBuiltin("ZZ", 'Z');
     doParse(": . 32 EMIT (.) ;");
+
+    doUserWords();
+
+    printf("\r\nMinForth v0.0.1");
+    printf("\r\nCODE: %lu, SIZE: %ld, HERE: %ld", (UCELL)CODE, (UCELL)CODE_SZ, HERE);
+    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", VARS, (long)CODE_SZ, VHERE);
+    printf("\r\nDICT: %lu, SIZE: %ld, LAST: %ld", (UCELL)DICT, (long)DICT_SZ, LAST);
+
+    doTests();
+
+    printf("\r\nHello.");
+    input_fp = fopen("sys.fs", "rt");
     while (RSP != 99) {
         loop();
     }
