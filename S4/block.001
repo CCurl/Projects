@@ -19,10 +19,9 @@ HS; 0( save HERE )
 0( d03: >S )
 {d03 \P1+:a60}
 
-h04AF
-16B; 
-:d01 8 1[:d02] :d03
-" ... should be 0004AF"
+{d09:d01 4 1[:d02] b:d03}
+h04AF# 16B;:d09 10B;:d09
+" ... should be 04AF 1199"
 
 0(  751: [f t--] dump bytes )
 0( {751 [xIc@:113b]} )
@@ -44,4 +43,4 @@ h04AF
 0(  182: get a long from absolute memory )
 0( {182 #3+m@h1000000*$ #2+m@h10000*$ #1+m@h100*$ m@ +++} )
 
-1(SH;) 0( restore HERE )
+0(SH;) 0( restore HERE )
