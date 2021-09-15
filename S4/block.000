@@ -1,48 +1,39 @@
-0(  111: dump all code currently defined )
-111xFN0=({111 iFnn0H1-[xId@#,125=(n)]}
+0( Block.000 - general system functions )
+0H; 0(';H+d!)
+0( q11: dump all code currently defined )
+1( {q11 iFnn0H1-[xId@#,h7D=(n)]} )
 
-0(  10x: print T to width of x [T--] )
-1( {102 #10<(0.).} )
-1( {103 #100<(0.):102} )
-1( {104 #1000<(0.):103} )
+0(  a1X: print TOS to <X> width )
+1( {a12 #10<(0.).} )
+1( {a13 #100<(0.)ja12} )
+1( {a14 #1000<(0.)ja13} )
 
-0(  120: Modulo [n1--n2] )
-1( {120 %%/*-} )
+0(  a21: Modulo )
+1( {a21 %%/*-} )
 
-0(  121: print T as x/1000 to 3 places )
-1( {121 1000%%/.".":120:103} )
+0(  a51: Elapsed )
+1( {a51 t$-1k%%/.".":a21:a13} )
 
-0(  122: Elapsed [t--] )
-1( {122 t$-:121} )
+0(  a27: vt100 CSI code - '<ESC>[' )
+1( {a27 27,"["} )
 
-0(  123: TOS *= 1 million [n1--n2] )
-0( {123 1000#**} )
+0(  a28: Set Color: fb bg Y )
+0( {a28 :a27.";"."m"} )
 
-0(  181: simple decrement benchmark [n--] )
-0( {181 t$[[1-]]:122} )
-0( {182 t$1[]:122} )
+0(  a29: Save the cursor pos )
+0( {a29 :a27"s"} )
 
-0(  c0: vt100 CSI code )
-1( {127 27,"["} )
+0( xr: cursor pos restore )
+0( {a30 :a27"u"} )
 
-0(  sc: Set Color: [fb bg--] )
-0( {128 :127.";"."m"} )
+0(  a31: Set cursor pos: x y CP )
+1( {a31 :a27.";"."H"} )
 
-0(  sp: Save cursor pos )
-0( {128 :127"s"} )
+0(  a33: Clear Screen )
+1( {a33 :a27"2J"0#:a31} )
 
-0(  rp: restore cursor pos )
-0( {129 :127"u""} )
-
-0(  xy: gotoXY: [x y--] )
-1( {130 :127.";"."H"} )
-
-0(  cs: Clear Screen )
-1( {131 :127"2J"0#:130} )
-
-0(  140: print NULL-terminated string [a--] )
-0( - EG - 123#_hello world_\:140 )
-1( {140 #c@[,1+#c@]\} )
+0(  a60: type a NULL terminated string [a--] )
+1( {a60 #c@[[,1+#c@]]\} )
 
 1( "S4 v0.0.1 - https://github.com/CCurl/S4" )
-0( r"Hello." )
+1( n"Hello." )

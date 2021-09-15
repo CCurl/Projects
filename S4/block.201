@@ -1,0 +1,17 @@
+0( open/close files)
+{251 1000 #N;_jack.bmp_  #M;_rb_\ NM xFO F;}
+{252 1000 #N;_jack2.bmp_ #M;_wb_\ NM xFO T;}
+{253 FxFC 0F;}
+{254 TxFC 0T;}
+
+0( 201: copy header )
+{201 1 54[F xFR (TxFW) X+\]\}
+
+0( 202: copy 1 byte )
+0( this would be replaced with the encoder)
+{202 1[[\FxFR(TxFW X+\1)]]\}
+0({202 "todo"})
+
+0( convert file )
+{298 0X;:251:252 1(F.bT.b) F0> T0> &(:201:202:253:254)}
+{299 "coping ... ":298"done."X." bytes"}

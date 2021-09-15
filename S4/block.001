@@ -1,0 +1,47 @@
+0( Block.001 - sandbox )
+HS; 0( save HERE )
+
+0( Default V to 26 for a VHERE value )
+26V;
+0( 199: similar to ALLOT )
+0( {199 V$%+V;} )
+
+0( 731: CCOMMA )
+0( {731 H+d!} )
+
+0( m00: /MOD [a b--a/b a%b] )
+{m00%%/T;%%/*-T$}
+
+0( d01: <S, uses P )
+{d01 V4*10+P;0Pc!B0=(10B;)}
+0( d02: #)
+{d02 B:m00#9>(7+)'0+P-c!}
+0( d03: >S )
+{d03 \P1+:a60}
+
+h04AF
+16B; 
+:d01 8 1[:d02] :d03
+" ... should be 0004AF"
+
+0(  751: [f t--] dump bytes )
+0( {751 [xIc@:113b]} )
+
+0(  752: [f t--] dump longs )
+0( {752 [xI@.b]} )
+
+0(  301: Benchmark: a simple decrement loop )
+0(  302: Benchmark: a simple for loop )
+0( {301 t$[[1-]]:151} )
+0( {302 t$1[]:151} )
+
+0(  160: type a NULL terminated string [a--] )
+0( {160 #c@[[,1+#c@]]\} )
+
+0(  181: store a long to absolute memory )
+0( {181 "TODO"} )
+
+0(  182: get a long from absolute memory )
+0( {182 #3+m@h1000000*$ #2+m@h10000*$ #1+m@h100*$ m@ +++} )
+
+1(SH;) 0( restore HERE )

@@ -1,1 +1,10 @@
-"index"
+0(block index)
+n"num description"
+n"--- ----------------------------"
+n"000 a sandbox"
+n"201 file/text encoder"
+n"202 file/text decoder"
+n"203 file/text comparer"
+n"999 this index"
+nn"https://github.com/CCurl/S4/blob/main/reference.txt"
+n

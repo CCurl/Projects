@@ -1,0 +1,18 @@
+0(compare files)
+
+{sh 54[F xFR\\ T xFR\\ 1-]}
+{bo F0> t0> &}
+{cd = I+\ 0=(D+\)}
+{rf F(F xFR)
+{xx :bo ()}
+
+{cb 1[\ F xFR $X; T xFR $Y; :cd F]\}
+{cf :sh:cb D}
+"comparing ..."
+1000 #_jack.bmp_ #_rb_\ xFO F;
+1000 #_jack2.bmp_#_rb_\ xFO T;
+0D;0I;
+:bo(:sh:cb)
+F(F xFC)
+T(T xFC)
+D." differences. "
