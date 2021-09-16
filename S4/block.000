@@ -1,18 +1,16 @@
 0( Block.000 - general system functions )
-0H; 0(';H+d!)
-0( q11: dump all code currently defined )
-1( {q11 iFnn0H1-[xId@#,h7D=(n)]} )
+0H;
+0( a11: dump all code currently defined )
+1( {a11 iFnn0Hq[xId@#,125=(n)]} )
 
-0(  a1X: print TOS to <X> width )
-1( {a12 #10<(0.).} )
-1( {a13 #100<(0.)ja12} )
-1( {a14 #1000<(0.)ja13} )
-
-0(  a21: Modulo )
-1( {a21 %%/*-} )
+0(  a0X: print TOS to <X> width )
+1( {a02 #10<(0.).} )
+1( {a03 #100<(0.)ja02} )
+0( {a04 #1000<(0.)ja03} )
+0( {a05 #10000<(0.)ja04} )
 
 0(  a51: Elapsed )
-1( {a51 t$-1k%%/.".":a21:a13} )
+1( {a51 t$-1ks$."."ja03} )
 
 0(  a27: vt100 CSI code - '<ESC>[' )
 1( {a27 27,"["} )
@@ -30,10 +28,7 @@
 1( {a31 :a27.";"."H"} )
 
 0(  a33: Clear Screen )
-1( {a33 :a27"2J"0#:a31} )
-
-0(  a60: type a NULL terminated string [a--] )
-1( {a60 #c@[[,1+#c@]]\} )
+1( {a33 :a27"2J"0#ja31} )
 
 1( "S4 v0.0.1 - https://github.com/CCurl/S4" )
 1( n"Hello." )
