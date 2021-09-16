@@ -9,19 +9,23 @@ HS; 0( save HERE )
 0( 731: CCOMMA )
 0( {731 H+d!} )
 
-0( m00: /MOD [a b--a/b a%b] )
-{m00%%/T;%%/*-T$}
+0( m01: /MOD [a b--a/b a%b] )
+{m01 %%/*-T;%%/T}
 
 0( d01: <S, uses P )
 {d01 V4*10+P;0Pc!B0=(10B;)}
 0( d02: #)
-{d02 B:m00#9>(7+)'0+P-c!}
-0( d03: >S )
-{d03 \P1+:a60}
+{d02 B:m01#9>(7+)'0+P-c!}
+0( d03: #S)
+{d03 :d02[[:d02]]\}
+0( d04: >S )
+{d04 \P1+:a60}
 
-{d09:d01 4 1[:d02] b:d03}
-h04AF# 16B;:d09 10B;:d09
-" ... should be 04AF 1199"
+0( d09: print T in base B )
+{d09 :d01:d03b:d04}
+
+h3804AF# 16B;:d09 10B;:d09
+" ... should be 3804AF 1199"
 
 0(  751: [f t--] dump bytes )
 0( {751 [xIc@:113b]} )
