@@ -30,5 +30,6 @@
 0(  a33: Clear Screen )
 1( {a33 :a27"2J"0#ja31} )
 
-1( "S4 v0.0.1 - https://github.com/CCurl/S4" )
-1( n"Hello." )
+"S4 v0.0.1 - Chris Curl - https://github.com/CCurl/S4"n
+n"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
+nn"Hello."
