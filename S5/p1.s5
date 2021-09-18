@@ -1,0 +1,16 @@
+{
+ "start ..."
+ {"hello."}H0:{n"goodbye!"}G0:
+ {{" yes"}{" no"}?"-after-"}Y1:
+ {[i.b]}I0:
+ " middle ..."n
+ 1 Y1x 0 Y1x
+ 5 8 A0x
+ 12 17 A0x
+ 99364 Z9:
+ " end"
+}
+nniAnn
+H0x
+x nniAnn
+G0x
