@@ -24,7 +24,7 @@
     <ProjectGuid>{bdd1c19e-3eec-4ddf-ad67-406628bacccf}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>S5</ProjectName>
+    <ProjectName>s5</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -145,20 +145,18 @@
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsCpp</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsCpp</CompileAs>
     </ClCompile>
-    <Text Include="S4.ino">
-      <FileType>Document</FileType>
-    </Text>
   </ItemGroup>
   <ItemGroup>
-    <None Include=".gitignore" />
     <None Include="LICENSE" />
     <None Include="README.md" />
+    <None Include="s5.ino" />
     <Text Include="block.999">
       <FileType>Document</FileType>
     </Text>
   </ItemGroup>
   <ItemGroup>
     <Text Include="examples.txt" />
+    <Text Include="history.txt" />
     <Text Include="reference.txt" />
   </ItemGroup>
   <ItemGroup>
