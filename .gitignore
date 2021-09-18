@@ -2,3 +2,7 @@ BoardForth/history.txt
 a.exe
 S4/history.txt
 history.txt
+/S5/Release
+/S5/Debug
+/S5/.vs/S5/v16
+/S5/S4.vcxproj.user
