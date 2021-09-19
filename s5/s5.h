@@ -8,9 +8,10 @@ typedef unsigned long ulong;
 typedef unsigned short ushort;
 
 typedef struct {
-    addr pc;
+    addr start;
     long from;
     long to;
+    addr end;
 } LOOP_ENTRY_T;
 
 typedef struct {
@@ -40,6 +41,7 @@ typedef struct {
 #define LSTK       sys->lstack
 #define DSP        sys->dsp
 #define RSP        sys->rsp
+#define LSP        sys->lsp 
 #define SZ_CODE    sys->code_sz
 #define SZ_MEM     sys->mem_sz
 #define SZ_STK     sys->stack_sz
@@ -55,7 +57,7 @@ extern void printString(const char*);
 extern void printStringF(const char* fmt, ...);
 
 #ifdef _WIN32
-#define __PC__
+#define __PC__ 1
 #define INPUT 0
 #define INPUT_PULLUP 1
 #define OUTPUT 2
@@ -69,6 +71,7 @@ extern void delay(unsigned long ms);
 extern FILE* input_fp;
 extern byte isBye;
 #else
+#define __PC__ 0
 #define _DEV_BOARD_
 #define __SERIAL__
 #include <Arduino.h>

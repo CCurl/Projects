@@ -16,7 +16,6 @@ sys_t *sys;
 #define T        DSTK[DSP]
 #define N        DSTK[DSP-1]
 #define R        RSTK[RSP]
-#define L        sys->lsp
 #define DROP1    pop()
 #define DROP2    pop(); pop()
 
@@ -26,11 +25,34 @@ long pop() { return (DSP > 0) ? DSTK[DSP--] : 0; }
 void rpush(addr v) { if (RSP < SZ_STK) { RSTK[++RSP] = v; } }
 addr rpop() { return (RSP > 0) ? RSTK[RSP--] : 0; }
 
-void vmReset() {
-    DSP = RSP = sys->lsp = 0;
-    for (ulong i = 0; i < SZ_CODE; i++) { 
-        CODE[i] = 0;
+void doStore(byte isByte, byte *area) {
+    long t = pop(), n = pop();
+    if (isByte) { area[t] = (n & 0xff); }
+    else {
+        if (__PC__ == 2|| ((t % 4) == 0)) { *(long*)&area[t] = n; }
+        else {
+            area[t++] = ((n) & 0xff);
+            area[t++] = ((n >> 8) & 0xff);
+            area[t++] = ((n >> 16) & 0xff);
+            area[t++] = ((n >> 24) & 0xff);
+        }
     }
+}
+
+void doFetch(byte isByte, byte * area) {
+    if (isByte) { T = area[T]; }
+    else {
+        long t = T;
+        T  = (area[t++]);
+        T |= (area[t++] <<  8);
+        T |= (area[t++] << 16);
+        T |= (area[t++] << 24);
+    }
+}
+
+void vmReset() {
+    DSP = RSP = LSP = 0;
+    for (ulong i = 0; i < SZ_CODE; i++) { CODE[i] = 0; }
     for (ulong i = 0; i < SZ_MEM; i++) { MEM[i] = 0; }
     for (short i = 0; i < SZ_REG; i++) { REG[i] = 0; }
     CODE[HERE++] = ';';
@@ -110,12 +132,13 @@ addr doWhile(addr pc) {
 }
 
 addr doFor(addr pc) {
-    if (L < 4) {
-        LOOP_ENTRY_T* x = &LSTK[L];
-        L++;
-        x->pc = pc;
+    if (LSP < 4) {
+        LOOP_ENTRY_T* x = &LSTK[LSP];
+        LSP++;
+        x->start = pc;
         x->to = pop();
         x->from = pop();
+        x->end = 0;
         if (x->to < x->from) {
             push(x->to);
             x->to = x->from;
@@ -126,21 +149,22 @@ addr doFor(addr pc) {
 }
 
 addr doNext(addr pc) {
-    if (L < 1) { L = 0; }
+    if (LSP < 1) { LSP = 0; }
     else {
-        LOOP_ENTRY_T* x = &LSTK[L - 1];
+        LOOP_ENTRY_T* x = &LSTK[LSP - 1];
         ++x->from;
-        if (x->from <= x->to) { pc = x->pc; }
-        else { L--; }
+        x->end = pc;
+        if (x->from <= x->to) { pc = x->start; }
+        else { LSP--; }
     }
     return pc;
 }
 
 addr doIJK(addr pc, int mode) {
     push(0);
-    if ((mode == 1) && (0 < L)) { T = LSTK[L - 1].from; }
-    if ((mode == 2) && (0 < L)) { T = LSTK[L - 2].from; }
-    if ((mode == 3) && (0 < L)) { T = LSTK[L - 3].from; }
+    if ((mode == 1) && (0 < LSP)) { T = LSTK[LSP-1].from; }
+    if ((mode == 2) && (0 < LSP)) { T = LSTK[LSP-2].from; }
+    if ((mode == 3) && (0 < LSP)) { T = LSTK[LSP-3].from; }
     return pc;
 }
 
@@ -248,7 +272,7 @@ addr doExt(addr pc) {
     case 'F': pc = doFile(pc);          break;
     case 'P': pc = doPin(pc);           break;
     case 'R': vmReset();                break;
-    case 'S': DSP = 0;              break;
+    case 'S': DSP = 0;                  break;
     case 'T': isBye = 1;                break;
     case 'I': ir = CODE[pc++];
         if (ir == 'A') { dumpAll(); }
@@ -271,14 +295,13 @@ addr run(addr pc) {
         case 0: RSP = 0; return -1;
         case ' ': while (CODE[pc] == ' ') { pc++; }         // 32
                 break;
-        case '!': if ((0 <= T) && ((addr)T < SZ_MEM)) { MEM[T] = (byte)N; }
-                DROP2;    break;
+        case '!': doStore(0, BMEM);      break;             // 33
         case '"': buf[1] = 0;                               // 34
             while ((pc < SZ_CODE) && (CODE[pc] != '"')) {
                 buf[0] = CODE[pc++];
                 printString(buf);
             }
-            ++pc; break;
+            ++pc;                        break;
         case '#': push(T);               break;             // 35 (DUP)
         case '$': t1 = N; N = T; T = t1; break;             // 36 (SWAP)
         case '%': push(N);               break;             // 37 (OVER)
@@ -304,18 +327,17 @@ addr run(addr pc) {
                 t1 = CODE[++pc] - '0';
             }
             break;
-        case ':': /* FREE */         break;
-        case ';': if (RSP == 0) { return pc; }
-            pc = rpop();                             break;  // 59
+        case ':': /* FREE */                         break;  // 58
+        case ';': if (RSP == 0) { return pc; }               // 59
+            pc = rpop();                             break;
         case '<': t1 = pop(); T = T < t1  ? 1 : 0;   break;  // 60
         case '=': t1 = pop(); T = T == t1 ? 1 : 0;   break;  // 61
         case '>': t1 = pop(); T = T > t1  ? 1 : 0;   break;  // 62
-        case '?': t2 = pop(); t1 = pop(); t3 = pop();
+        case '?': t2 = pop(); t1 = pop(); t3 = pop();        // 63
             if ( t3 && t1) { rpush(pc); pc = (addr)t1; } // TRUE case
             if (!t3 && t2) { rpush(pc); pc = (addr)t2; } // FALSE case
-            break;                                       // 63
-        case '@': if ((0 <= T) && ((ulong)T < SZ_MEM)) { T = MEM[T]; }
             break;
+        case '@': doFetch(0, BMEM);           break;
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
@@ -344,11 +366,10 @@ addr run(addr pc) {
             if (CODE[pc]) { push(t1); ++pc; }
             break;
         case 'A': ir = CODE[pc++];
-            bp = (byte*)T;
-            if (ir == '@') { T = *bp; }
-            if (ir == '!') { *bp = N & 0xff; DROP2; }
+            if (ir == '@') { doFetch(1, 0); }
+            if (ir == '!') { doStore(1, 0); }
             break;
-        case 'B': printString(" ");         break;
+        case 'B': printString(" ");             break;
         case 'C': ir = CODE[pc++];
             bp = &BMEM[T];
             if ((0 <= T) && ((ulong)T < SZ_MEM)) {
@@ -356,11 +377,9 @@ addr run(addr pc) {
                 if (ir == '!') { *bp = N & 0xff; DROP2; }
             } break;
         case 'D': ir = CODE[pc++];
-            bp = &CODE[T];
-            if ((0 <= T) && ((addr)T < SZ_CODE)) {
-                if (ir == '@') { T = *bp; }
-                if (ir == '!') { *bp = N & 0xff; DROP2; }
-            } break;
+            if (ir == '@') { doFetch(1, CODE); }
+            if (ir == '!') { doStore(1, CODE); }
+            break;
         case 'E': pc = (addr)pop();       break;
         case 'F': T = ~T;                 break;
         case 'G': /* FREE */              break;
@@ -370,10 +389,29 @@ addr run(addr pc) {
                 T = (T * 0x10) + t1;
                 t1 = hexNum(CODE[++pc]);
             } break;
-        case 'I': doIJK(pc, 1);           break;
-        case 'J': doIJK(pc, 2);           break;
-        case 'K': T *= 1000;              break;
-        case 'L': t1 = pop();  // LOAD
+        case 'I': doIJK(pc, 1);                 break;
+        case 'J': doIJK(pc, 2);                 break;
+        case 'K': T *= 1000;                    break;
+        case 'L': N = N << T; DROP1;            break;
+        case 'M': ir = CODE[pc++];
+            if (ir == '@') { doFetch(1, 0); }
+            if (ir == '!') { doStore(1, 0); }
+            break;
+        case 'N': printString("\r\n");          break;
+        case 'O': T = -T;                       break;
+        case 'P': T++;                          break;
+        case 'Q': T--;                          break;
+        case 'R': N = N >> T; DROP1;            break;
+        case 'S': t2 = N; t1 = T;               // SLASHMOD
+            if (t1 == 0) { isError = 1; }
+            else { N = (t2 / t1); T = (t2 % t1); }
+            break;
+        case 'T': push(millis());               break;
+        case 'U': if (T < 0) { T = -T; }        break;
+        case 'W': delay(pop());                 break;
+        case 'X': pc = doExt(pc);               break;
+        case 'V': /* FREE */                    break;
+        case 'Y': t1 = pop();  // LOAD
 #ifdef __PC__
             if (input_fp) { fclose(input_fp); }
             sprintf_s(buf, sizeof(buf), "block.%03ld", t1);
@@ -382,31 +420,6 @@ addr run(addr pc) {
             printString("-l:pc only-");
 #endif
             break;
-        case 'M': ir = CODE[pc++];
-            bp = (byte*)T;
-            if (ir == '@') { T = *bp; }
-            if (ir == '!') {
-                t1 = N; DROP2;
-                *(bp++) = ((t1) & 0xff);
-                *(bp++) = ((t1 >> 8) & 0xff);
-                *(bp++) = ((t1 >> 16) & 0xff);
-                *(bp++) = ((t1 >> 24) & 0xff);
-            } break;          // 97
-        case 'N': printString("\r\n");          break;
-        case 'O': T = -T;                       break;
-        case 'P': T++;                          break;
-        case 'Q': T--;                          break;
-        case 'R': N = N >> T; DROP1;            break;
-        case 'S': t2 = N; t1 = T;  // /MOD
-            if (t1 == 0) { isError = 1; }
-            else { N = (t2 / t1); T = (t2 % t1); }
-            break;
-        case 'T': push(millis());               break;
-        case 'U': if (T < 0) { T = -T; }        break;
-        case 'V': N = N << T; DROP1;            break;
-        case 'W': delay(pop());                 break;
-        case 'X': pc = doExt(pc);               break;
-        case 'Y': /* FREE */                    break;
         case 'Z':  if ((0 <= T) && ((ulong)T < SZ_MEM)) { 
             bp = &BMEM[pop()];
             printString((char*)bp); }
