@@ -9,6 +9,15 @@
 
 typedef unsigned char byte;
 
+#define STK_SZ 31
+
+byte code[64*1024];
+byte memory[128*1024];
+byte regs[260];
+long dstk[STK_SZ + 1];
+addr rstk[STK_SZ + 1];
+sys_t sys;
+
 // These are used only be the PC version
 static HANDLE hStdOut = 0;
 static char input_fn[32];
@@ -54,7 +63,7 @@ addr strToCode(addr loc, const char *txt, int NT) {
 
 void loop() {
     char tib[100];
-    addr nTib = CODE_SZ - 100;
+    addr nTib = sys.code_sz - 100;
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
     if (fgets(tib, 100, fp) == tib) {
@@ -91,7 +100,18 @@ int main(int argc, char** argv) {
     hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD m; GetConsoleMode(hStdOut, &m);
     SetConsoleMode(hStdOut, (m | ENABLE_VIRTUAL_TERMINAL_PROCESSING));
-    vmInit();
+
+    sys.code = code;
+    sys.mem = memory;
+    sys.reg = regs;
+    sys.code_sz = (addr)32*1024;
+    sys.mem_sz = 128*1024;
+    sys.reg_rz = 260;
+    sys.dstack = dstk;
+    sys.rstack = rstk;
+    sys.stack_sz = STK_SZ;
+
+    vmInit(&sys);
 
     input_fn[0] = 0;
     input_fp = NULL;

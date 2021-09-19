@@ -3,10 +3,44 @@
 typedef unsigned char byte;
 #define MAX_REG  (260)
 #define MAX_CODE (64*1024)
-#define MEM_SZ   (MEM_SZB/4)
-typedef unsigned short addr;
+typedef byte *addr;
 
-extern void vmInit();
+typedef struct {
+    addr pc;
+    long from;
+    long to;
+} LOOP_ENTRY_T;
+
+typedef struct {
+    long dsp, rsp, lsp;
+    byte *code;
+    byte *reg;
+    byte *mem;
+    long here;
+    long code_sz;
+    long mem_sz;
+    byte reg_rz;
+    byte stack_sz;
+    long *dstack;
+    addr rstack;
+    LOOP_ENTRY_T lstack[4];
+} sys_t;
+
+#define REG        sys->reg
+#define CODE       sys->code
+#define MEM        sys->mem
+#define HERE       sys->here
+#define DSTK       sys->dstack
+#define RSTK       sys->rstack
+#define LSTK       sys->lstack
+#define DSP        sys->dsp
+#define RSP        sys->rsp
+#define SZ_CODE    sys->code_sz
+#define SZ_MEM     sys->mem_sz
+#define SZ_STK     sys->stack_sz
+#define SZ_REG     sys->reg_rz
+
+extern void vmInit(sys_t *Sys);
 extern addr run(addr pc);
 extern void dumpStack(int hdr);
 extern void setCodeByte(addr loc, char ch);
@@ -29,9 +63,6 @@ extern void pinMode(int pin, int mode);
 extern void delay(unsigned long ms);
 extern FILE* input_fp;
 extern byte isBye;
-#define CODE_SZ      MAX_CODE
-#define MEM_SZB      (256*1024)
-#define NUM_REGS     MAX_REG
 #else
 #define _DEV_BOARD_
 #define __SERIAL__
