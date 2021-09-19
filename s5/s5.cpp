@@ -7,7 +7,6 @@
 #include "s5.h"
 
 #define RN_SZ    2
-#define BASE     &MEM[2]
 
 byte isBye = 0, isError = 0;
 char buf[100];
@@ -29,14 +28,17 @@ addr rpop() { return (RSP > 0) ? RSTK[RSP--] : 0; }
 
 void vmReset() {
     DSP = RSP = sys->lsp = 0;
-    for (int i = 0; i < SZ_CODE; i++) { CODE[i] = 0; }
-    for (int i = 0; i < SZ_MEM; i++) { MEM[i] = 0; }
-    for (int i = 0; i < SZ_STK; i++) { REG[i] = 0; }
+    for (ulong i = 0; i < SZ_CODE; i++) { 
+        CODE[i] = 0;
+    }
+    for (ulong i = 0; i < SZ_MEM; i++) { MEM[i] = 0; }
+    for (short i = 0; i < SZ_REG; i++) { REG[i] = 0; }
     CODE[HERE++] = ';';
 }
 
 void vmInit(sys_t *Sys) {
     sys = Sys;
+    sys->bmem = (byte *)sys->mem;
     vmReset();
 }
 
@@ -50,26 +52,25 @@ void printStringF(const char* fmt, ...) {
 
 int hexNum(char x) {
     if (('0' <= x) && (x <= '9')) { return x - '0'; }
-    if (('A' <= x) && (x <= 'F')) { return x - 'A' + 10; }
     if (('a' <= x) && (x <= 'f')) { return x - 'a' + 10; }
     return -1;
 }
 
 int regNum(char x, int isAlpha) {
-    if ((isAlpha)  && ('A' <= x) && (x <= 'Z')) { return x - 'A'; }
+    if ((isAlpha)  && ('a' <= x) && (x <= 'z')) { return x - 'a'; }
     if ((!isAlpha) && ('0' <= x) && (x <= '9')) { return x - '0'; }
     isError = 1;
     return -1;
 }
 
-addr getRegNum(int pc, int msg) {
+short getRegNum(int pc, int msg) {
     int c1 = regNum(CODE[pc], 1);
     int c2 = regNum(CODE[pc+1], 0);
     if (isError) {
         if (msg) { printStringF("-%c%c:BadReg-", CODE[pc], CODE[pc+1]); }
         return 0;
     }
-    addr n = (c2*26) + c1;
+    short n = (c2*26) + c1;
     if (SZ_REG <= n) {
         if (msg) { printStringF("-%d:RN_OOB-", n); }
         isError = 1;
@@ -97,7 +98,7 @@ addr doDefineQuote(addr pc) {
 addr doBegin(addr pc) {
     rpush(pc);
     if (T == 0) {
-        while ((pc < SZ_CODE) && (CODE[pc] != ']')) { pc++; }
+        while ((pc < SZ_CODE) && (CODE[pc] != ')')) { pc++; }
     }
     return pc;
 }
@@ -149,7 +150,7 @@ void dumpCode() {
     addr x = HERE;
     int ti = 0, npl = 20;
     char txt[32];
-    for (addr i = 0; i < HERE; i++) {
+    for (long i = 0; i < HERE; i++) {
         if ((i % npl) == 0) {
             if (ti) { txt[ti] = 0;  printStringF(" ; %s", txt); ti = 0; }
             printStringF("\n\r%05d: ", i);
@@ -172,7 +173,7 @@ void dumpStack(int hdr) {
 }
 
 void dumpRegs() {
-    printStringF("\r\nREGISTERS: ");
+    printStringF("\r\nREGISTERS: %d available", SZ_REG);
     int n = 0;
     for (int i = 0; i < SZ_REG; i++) {
         if (MEM[i] == 0) { continue; }
@@ -198,8 +199,8 @@ addr doFile(addr pc) {
         DROP1;
         break;
     case 'O': {
-        byte* md = MEM + pop();
-        byte* fn = MEM + T;
+        byte* md = BMEM + pop();
+        byte* fn = BMEM + T;
         T = 0;
         fopen_s((FILE**)&T, (char *)fn, (char *)md);
     }
@@ -265,11 +266,12 @@ addr run(addr pc) {
     isError = 0;
     while (!isError && (0 < pc)) {
         byte ir = CODE[pc++];
+        //printf("\n-pc:%3ld,ir:%3d(%c),DSP:%d,RSP:%d,T:%ld-", pc-1,ir,ir?ir:'.',DSP,RSP,T);
         switch (ir) {
         case 0: RSP = 0; return -1;
         case ' ': while (CODE[pc] == ' ') { pc++; }         // 32
                 break;
-        case '!': if ((0 <= T) && (T < SZ_MEM)) { MEM[T] = N; }
+        case '!': if ((0 <= T) && ((addr)T < SZ_MEM)) { MEM[T] = (byte)N; }
                 DROP2;    break;
         case '"': buf[1] = 0;                               // 34
             while ((pc < SZ_CODE) && (CODE[pc] != '"')) {
@@ -312,19 +314,20 @@ addr run(addr pc) {
             if ( t3 && t1) { rpush(pc); pc = (addr)t1; } // TRUE case
             if (!t3 && t2) { rpush(pc); pc = (addr)t2; } // FALSE case
             break;                                       // 63
-        case '@': if ((0 <= T) && (T < SZ_MEM)) { T = MEM[T]; }
+        case '@': if ((0 <= T) && ((ulong)T < SZ_MEM)) { T = MEM[T]; }
             break;
-        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-        case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
-        case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
-        case 'S': case 'T': case 'U': case 'V': case 'W': case 'X':
-        case 'Y': case 'Z': ir -= 'A';
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+        case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
+        case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
+        case 's': case 't': case 'u': case 'v': case 'w': case 'x':
+        case 'y': case 'z': ir -= 'a';
             t1 = getRegNum(pc-1, 1);
             pc += 1;
             push(MEM[t1]); ir = CODE[pc];
+            //printf("-reg:%c%c:%ld-", CODE[pc-2], CODE[pc-1], T);
             if (ir == '+') { ++pc; ++MEM[t1]; }
             if (ir == '-') { ++pc; --MEM[t1]; }
-            if (ir == ':') { DROP1; ++pc; MEM[t1] = pop(); }
+            if (ir == ':') { DROP1; ++pc; MEM[t1] = (byte)pop(); }
             break;
         case '[': pc = doFor(pc);               break;       // 91
         case '\\': DROP1;                       break;       // 92
@@ -340,37 +343,37 @@ addr run(addr pc) {
             }
             if (CODE[pc]) { push(t1); ++pc; }
             break;
-        case 'a': ir = CODE[pc++];
+        case 'A': ir = CODE[pc++];
             bp = (byte*)T;
             if (ir == '@') { T = *bp; }
             if (ir == '!') { *bp = N & 0xff; DROP2; }
             break;
-        case 'b': printString(" ");         break;
-        case 'c': ir = CODE[pc++];
-            bp = &MEM[T];
-            if ((0 <= T) && (T < SZ_MEM)) {
+        case 'B': printString(" ");         break;
+        case 'C': ir = CODE[pc++];
+            bp = &BMEM[T];
+            if ((0 <= T) && ((ulong)T < SZ_MEM)) {
                 if (ir == '@') { T = *bp; }
                 if (ir == '!') { *bp = N & 0xff; DROP2; }
             } break;
-        case 'd': ir = CODE[pc++];
+        case 'D': ir = CODE[pc++];
             bp = &CODE[T];
-            if ((0 <= T) && (T < SZ_CODE)) {
+            if ((0 <= T) && ((addr)T < SZ_CODE)) {
                 if (ir == '@') { T = *bp; }
                 if (ir == '!') { *bp = N & 0xff; DROP2; }
             } break;
-        case 'e': pc = (addr)pop();       break;
-        case 'f': T = ~T;                 break;
-        case 'g': /* FREE */              break;
-        case 'h': push(0);
+        case 'E': pc = (addr)pop();       break;
+        case 'F': T = ~T;                 break;
+        case 'G': /* FREE */              break;
+        case 'H': push(0);
             t1 = hexNum(CODE[pc]);
             while (0 <= t1) {
                 T = (T * 0x10) + t1;
                 t1 = hexNum(CODE[++pc]);
             } break;
-        case 'i': doIJK(pc, 1);           break;
-        case 'j': doIJK(pc, 2);           break;
-        case 'k': T *= 1000;              break;
-        case 'l': t1 = pop();  // LOAD
+        case 'I': doIJK(pc, 1);           break;
+        case 'J': doIJK(pc, 2);           break;
+        case 'K': T *= 1000;              break;
+        case 'L': t1 = pop();  // LOAD
 #ifdef __PC__
             if (input_fp) { fclose(input_fp); }
             sprintf_s(buf, sizeof(buf), "block.%03ld", t1);
@@ -379,7 +382,7 @@ addr run(addr pc) {
             printString("-l:pc only-");
 #endif
             break;
-        case 'm': ir = CODE[pc++];
+        case 'M': ir = CODE[pc++];
             bp = (byte*)T;
             if (ir == '@') { T = *bp; }
             if (ir == '!') {
@@ -389,23 +392,23 @@ addr run(addr pc) {
                 *(bp++) = ((t1 >> 16) & 0xff);
                 *(bp++) = ((t1 >> 24) & 0xff);
             } break;          // 97
-        case 'n': printString("\r\n");          break;
-        case 'o': T = -T;                       break;
-        case 'p': T++;                          break;
-        case 'q': T--;                          break;
-        case 'r': N = N >> T; DROP1;            break;
-        case 's': t2 = N; t1 = T;  // /MOD
+        case 'N': printString("\r\n");          break;
+        case 'O': T = -T;                       break;
+        case 'P': T++;                          break;
+        case 'Q': T--;                          break;
+        case 'R': N = N >> T; DROP1;            break;
+        case 'S': t2 = N; t1 = T;  // /MOD
             if (t1 == 0) { isError = 1; }
             else { N = (t2 / t1); T = (t2 % t1); }
             break;
-        case 't': push(millis());               break;
-        case 'u': if (T < 0) { T = -T; }        break;
-        case 'v': N = N << T; DROP1;            break;
-        case 'w': delay(pop());                 break;
-        case 'x': pc = doExt(pc);               break;
-        case 'y': /* FREE */                    break;
-        case 'z':  if ((0 <= T) && (T < SZ_MEM)) { 
-            bp = &MEM[pop()];
+        case 'T': push(millis());               break;
+        case 'U': if (T < 0) { T = -T; }        break;
+        case 'V': N = N << T; DROP1;            break;
+        case 'W': delay(pop());                 break;
+        case 'X': pc = doExt(pc);               break;
+        case 'Y': /* FREE */                    break;
+        case 'Z':  if ((0 <= T) && ((ulong)T < SZ_MEM)) { 
+            bp = &BMEM[pop()];
             printString((char*)bp); }
             break;
         case '{': pc = doDefineQuote(pc);    break;    // 123

@@ -9,14 +9,15 @@
 
 typedef unsigned char byte;
 
-#define STK_SZ 31
+#define MEM_SZ   (16*1024)
+#define STK_SZ         31
+#define REGS_SZ       260
+#define CODE_SZ  ( 1*1024)
 
-byte code[64*1024];
-byte memory[128*1024];
-byte regs[260];
+byte memory[(MEM_SZ)+(CODE_SZ)+4];
 long dstk[STK_SZ + 1];
 addr rstk[STK_SZ + 1];
-sys_t sys;
+sys_t mySys;
 
 // These are used only be the PC version
 static HANDLE hStdOut = 0;
@@ -63,7 +64,7 @@ addr strToCode(addr loc, const char *txt, int NT) {
 
 void loop() {
     char tib[100];
-    addr nTib = sys.code_sz - 100;
+    addr nTib = mySys.code_sz - 100;
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
     if (fgets(tib, 100, fp) == tib) {
@@ -101,17 +102,17 @@ int main(int argc, char** argv) {
     DWORD m; GetConsoleMode(hStdOut, &m);
     SetConsoleMode(hStdOut, (m | ENABLE_VIRTUAL_TERMINAL_PROCESSING));
 
-    sys.code = code;
-    sys.mem = memory;
-    sys.reg = regs;
-    sys.code_sz = (addr)32*1024;
-    sys.mem_sz = 128*1024;
-    sys.reg_rz = 260;
-    sys.dstack = dstk;
-    sys.rstack = rstk;
-    sys.stack_sz = STK_SZ;
+    mySys.code = memory;
+    mySys.mem = (long *)&memory[CODE_SZ];
+    mySys.reg = mySys.mem;
+    mySys.code_sz = CODE_SZ;
+    mySys.mem_sz = (MEM_SZ/4);
+    mySys.reg_rz = REGS_SZ;
+    mySys.dstack = dstk;
+    mySys.rstack = rstk;
+    mySys.stack_sz = STK_SZ;
 
-    vmInit(&sys);
+    vmInit(&mySys);
 
     input_fn[0] = 0;
     input_fp = NULL;
@@ -121,10 +122,11 @@ int main(int argc, char** argv) {
         char* cp = argv[i];
         if (*cp == '-') { process_arg(++cp); }
         else { 
-            doHistory(argv[i]);
+            int tib = mySys.code_sz - 48;
+            doHistory(cp);
             doHistory("\n");
-            strToCode(500, argv[i], 1);
-            run(500);
+            strToCode(tib, cp, 1);
+            run(tib);
         }
     }
 

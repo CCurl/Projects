@@ -3,7 +3,9 @@
 typedef unsigned char byte;
 #define MAX_REG  (260)
 #define MAX_CODE (64*1024)
-typedef byte *addr;
+typedef unsigned long addr;
+typedef unsigned long ulong;
+typedef unsigned short ushort;
 
 typedef struct {
     addr pc;
@@ -14,22 +16,25 @@ typedef struct {
 typedef struct {
     long dsp, rsp, lsp;
     byte *code;
-    byte *reg;
-    byte *mem;
-    long here;
-    long code_sz;
-    long mem_sz;
-    byte reg_rz;
+    long *reg;
+    long *mem;
+    byte *bmem;
+    ulong here;
+    ulong code_sz;
+    ulong mem_sz;
+    ushort reg_rz;
     byte stack_sz;
     long *dstack;
-    addr rstack;
+    addr *rstack;
     LOOP_ENTRY_T lstack[4];
 } sys_t;
 
 #define REG        sys->reg
 #define CODE       sys->code
 #define MEM        sys->mem
-#define HERE       sys->here
+#define BMEM       sys->bmem
+#define HERE       sys->mem[7]
+#define BASE       sys->mem[2]
 #define DSTK       sys->dstack
 #define RSTK       sys->rstack
 #define LSTK       sys->lstack
