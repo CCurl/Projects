@@ -9,12 +9,12 @@
 
 typedef unsigned char byte;
 
-#define MEM_SZ   (64*1024)
+#define MEM_SZ   (96*1024)
 #define REGS_SZ   MAX_REGS
-#define CODE_SZ  (96*1024)
+#define CODE_SZ  (32*1024)
 #define STK_SZ         31
 
-byte memory[(MEM_SZ)+(CODE_SZ)+4];
+byte memory[MEM_SZ+4];
 long dstk[STK_SZ + 1];
 addr rstk[STK_SZ + 1];
 sys_t mySys;
@@ -100,10 +100,9 @@ void process_arg(char* arg)
 sys_t *createSystem() {
     mySys.code = memory;
     mySys.mem = (long*)&memory[CODE_SZ];
-    mySys.reg = mySys.mem;
     mySys.code_sz = CODE_SZ;
-    mySys.mem_sz = (MEM_SZ / 4);
-    mySys.reg_rz = REGS_SZ;
+    mySys.mem_sz = MEM_SZ;
+    mySys.reg_sz = REGS_SZ;
     mySys.dstack = dstk;
     mySys.rstack = rstk;
     mySys.stack_sz = STK_SZ;

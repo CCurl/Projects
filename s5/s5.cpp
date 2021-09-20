@@ -18,21 +18,23 @@ sys_t *sys;
 #define R        RSTK[RSP]
 #define DROP1    pop()
 #define DROP2    pop(); pop()
-#define BASE     sys->mem[1]
-#define HERE     sys->mem[7]
+#define BASE     MEM[1]
+#define HERE     MEM[7]
 
 void vmReset() {
     DSP = RSP = LSP = 0;
-    for (ulong i = 0; i < SZ_CODE; i++) { CODE[i] = 0; }
-    for (ulong i = 0; i < SZ_MEM;  i++) { MEM[i]  = 0; }
-    for (short i = 0; i < SZ_REG;  i++) { REG[i]  = 0; }
+    for (ulong i = 0; i < SZ_MEM; i++) { CODE[i] = 0; }
     CODE[HERE++] = ';';
     BASE = 10;
+    MEM[2] = SZ_CODE;             // C
+    MEM[12] = SZ_MEM;             // M
+    MEM[17] = SZ_REG;             // R
+    MEM[21] = SZ_CODE + SZ_REG;   // V
 }
 
-void vmInit(sys_t* Sys) {
-    sys = Sys;
-    sys->bmem = (byte*)sys->mem;
+void vmInit(sys_t *theSystem) {
+    sys = theSystem;
+    BMEM = (byte*)MEM;
     vmReset();
 }
 
@@ -46,7 +48,7 @@ void doStore(byte isByte, byte *base) {
     long t = pop(), n = pop();
     if (isByte) { base[t] = (n & 0xff); }
     else {
-        if (__PC__ == 2|| ((t % 4) == 0)) { *(long*)&base[t] = n; }
+        if (__PC__ || ((t%4) == 0)) { *(long *)&base[t] = n; }
         else {
             base[t++] = ((n) & 0xff);
             base[t++] = ((n >> 8) & 0xff);
@@ -81,7 +83,7 @@ int hexNum(char x) {
     return -1;
 }
 
-int regNum(char x, int isAlpha) {
+int regDigit(char x, int isAlpha) {
     if ((isAlpha)  && ('a' <= x) && (x <= 'z')) { return x - 'a'; }
     if ((!isAlpha) && ('0' <= x) && (x <= '9')) { return x - '0'; }
     isError = 1;
@@ -89,8 +91,8 @@ int regNum(char x, int isAlpha) {
 }
 
 short getRegNum(int pc, int msg) {
-    int c1 = regNum(CODE[pc], 1);
-    int c2 = regNum(CODE[pc+1], 0);
+    int c1 = regDigit(CODE[pc], 1);
+    int c2 = regDigit(CODE[pc+1], 0);
     if (isError) {
         if (msg) { printStringF("-%c%c:BadReg-", CODE[pc], CODE[pc+1]); }
         return -1;
@@ -116,7 +118,7 @@ addr doDefineQuote(addr pc) {
         }
     }
     isError = 1;
-    printString("-noQE-");
+    printString("-noQtEnd-");
     return pc;
 }
 
@@ -391,7 +393,7 @@ addr run(addr pc) {
         case 'W': delay(pop());                 break;
         case 'X': pc = doExt(pc);               break;
         case 'Y': t1 = pop();  // LOAD
-            if (0 < __PC__) {
+            if (__PC__) {
                 if (input_fp) { fclose(input_fp); }
                 sprintf_s(buf, sizeof(buf), "block.%03ld", t1);
                 fopen_s(&input_fp, buf, "rt");
@@ -409,18 +411,15 @@ addr run(addr pc) {
             while (CODE[pc] && (CODE[pc] != '_')) { MEM[T++] = CODE[pc++]; }
             ++pc; MEM[T++] = 0;
             break;
-        case '`': t1 = HERE;                                 // 96
-            while (CODE[pc] && (CODE[pc] != '`')) {
-                CODE[HERE++] = CODE[pc++];
-            }
-            if (CODE[pc]) { push(t1); ++pc; }
-            break;
+        case '`':                                            // 96
+            while (CODE[pc] && (CODE[pc] != '`')) { CODE[HERE++] = CODE[pc++]; }
+            ++pc; break;
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
         case 's': case 't': case 'u': case 'v': case 'w': case 'x':
         case 'y': case 'z': ir -= 'a';
-            t1 = getRegNum(pc - 1, 1);
+            t1 = getRegNum(pc-1, 1);
             pc++;
             if (!isError) {
                 push(MEM[t1]);
@@ -429,8 +428,7 @@ addr run(addr pc) {
                 if (ir == '+') { ++pc; ++MEM[t1]; }
                 if (ir == '-') { ++pc; --MEM[t1]; }
                 if (ir == ':') { DROP1; ++pc; MEM[t1] = pop(); }
-            }
-            break;
+            } break;
         case '{': pc = doDefineQuote(pc);    break;    // 123
         case '|': t1 = pop(); T |= t1;       break;    // 124
         case '}': if (0 < RSP) { pc = rpop(); }        // 125
