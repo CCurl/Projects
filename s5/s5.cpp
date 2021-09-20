@@ -77,22 +77,36 @@ void printStringF(const char* fmt, ...) {
     printString(buf);
 }
 
-int hexNum(char x) {
-    if (('0' <= x) && (x <= '9')) { return x - '0'; }
-    if (('a' <= x) && (x <= 'f')) { return x - 'a' + 10; }
-    return -1;
+#define isBetweenX(n, lo, hi) ((lo <  n) && (n <  hi))
+#define isBetweenI(n, lo, hi) ((lo <= n) && (n <= hi))
+
+int digitToNum(char x, byte base, byte mode) {
+    // mode: 1 => upper, 2 => either, 3 => lower
+    int n = -1;
+    if (isBetweenI(x, '0', '9')) { n = x - '0'; }
+    if (isBetweenI(x, 'A', 'Z') && (mode <= 2)) { n = x - 'A' + 10; }
+    if (isBetweenI(x, 'a', 'z') && (2 <= mode)) { n = x - 'a' + 10; }
+    if (base <= n) { n = -1; }
+    return n;
 }
 
-int regDigit(char x, int isAlpha) {
-    if ((isAlpha)  && ('a' <= x) && (x <= 'z')) { return x - 'a'; }
-    if ((!isAlpha) && ('0' <= x) && (x <= '9')) { return x - '0'; }
-    isError = 1;
-    return -1;
+char numToDigit(short num, byte base, byte toUpper) {
+    char c = num % base + '0';
+    if ('9' < c) { c += 7 + (toUpper ? 0 : 32); }
+    return c;
 }
 
-short getRegNum(int pc, int msg) {
+int regDigit(char x, byte isFirst) {
+    int n = -1;
+    if ( isFirst && isBetweenI(x, 'a', 'z')) { n = x - 'a'; }
+    if (!isFirst) { n = digitToNum(x, 36, 3); }
+    if (n < 0) { isError = 1; }
+    return n;
+}
+
+short getRegNum(int pc, byte msg) {
     int c1 = regDigit(CODE[pc], 1);
-    int c2 = regDigit(CODE[pc+1], 0);
+    int c2 = regDigit(CODE[pc+1], 1);
     if (isError) {
         if (msg) { printStringF("-%c%c:BadReg-", CODE[pc], CODE[pc+1]); }
         return -1;
@@ -201,15 +215,22 @@ void dumpStack(int hdr) {
     printString(")");
 }
 
+char *getRegName(short regNum, char *buf) {
+    int slash = regNum / 26, mod = regNum % 26;
+    buf[0] = 'a' + mod;
+    buf[1] = 'a' + slash;
+    buf[2] = 0;
+    return buf;
+}
+
 void dumpRegs() {
     printStringF("\r\nREGISTERS: %d available", SZ_REG);
     int n = 0;
+    char buf[3];
     for (int i = 0; i < SZ_REG; i++) {
-        if (MEM[i] == 0) { continue; }
+        if (REG[i] == 0) { continue; }
         if (((n++) % 5) == 0) { printString("\r\n"); }
-        char r1 = (i / 26) + '0';
-        char r2 = (i % 26) + 'A';
-        printStringF("%c%c: %-10ld  ", r2, r1, MEM[i]);
+        printStringF("%s: %-12ld  ", getRegName(i, buf), REG[i]);
     }
 }
 
@@ -365,10 +386,10 @@ addr run(addr pc) {
         case 'F': T = ~T;                       break;
         case 'G': /* FREE */                    break;
         case 'H': push(0);
-            t1 = hexNum(CODE[pc]);
+            t1 = digitToNum(CODE[pc], 0x10, 2);
             while (0 <= t1) {
                 T = (T * 0x10) + t1;
-                t1 = hexNum(CODE[++pc]);
+                t1 = digitToNum(CODE[++pc], 0x10, 2);
             } break;
         case 'I': doIJK(pc, 1);                 break;
         case 'J': doIJK(pc, 2);                 break;

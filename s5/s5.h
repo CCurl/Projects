@@ -1,7 +1,7 @@
 // S4 - a stack VM, inspired by Sandor Schneider's STABLE - https://w3group.de/stable.html
 
 typedef unsigned char byte;
-#define MAX_REGS (260)
+#define MAX_REGS (26*26)
 #define MAX_CODE (64*1024)
 typedef unsigned long addr;
 typedef unsigned long ulong;
@@ -29,8 +29,8 @@ typedef struct {
     LOOP_ENTRY_T lstack[4];
 } sys_t;
 
-#define REG        sys->mem
 #define CODE       sys->code
+#define REG        sys->mem
 #define MEM        sys->mem
 #define BMEM       sys->bmem
 #define DSTK       sys->dstack

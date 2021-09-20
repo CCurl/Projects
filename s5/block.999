@@ -1,18 +1,18 @@
 XR
-h0`{1h0Q[ID@#,58={N}0?]}c1:`^
-h0`{"-b"{"-yes-"1}{"-no-"0}?"a-"}y1:`^
-h0`{%."+"#."="+.}a2:`^
-h0`{I.B}x9:`^
-h0`{[x9^]}x8:`^
-h0`{s1 #0{\T}? #117XOR #13RXOR #5LXOR s1:}r1:`^
-h0`{r1^U$S$\}r2:`^
-h0`{#b0<{0.}0?.}n2:`^
-h0`{#b0#*<{0.}0?n2^}n3:`^
-h0`{"Hello. testing 123 ..."`
-   `N72 16a2^`
-   `N1y1^.B"..."B0y1^.`
-   `N55 66x8^`
-   `N1 100[100r2^n2^.B]`
-`}p9:`^
-p9^
-NN"The code:"N20("-"Q)\Nc1^NXIA
+ha`{1haQ[ID@#,58={N}0?]}yy:`^
+ha`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yb:`^
+ha`{%."+"#."="+.}ab:`^
+ha`{I.B}xi:`^
+ha`{[xi^]}xf:`^
+ha`{sb #0{\T}? #117XOR #13RXOR #5LXOR sb:}rb:`^
+ha`{rb^U$S$\}rc:`^
+ha`{#10<{"0"}0?.}nb:`^
+ha`{#100<{"0"}0?nbE}nc:`^
+ha`{"Hello. testing 123 ..."`
+   `N72 16ab^`
+   `N1yb^.B"..."B0yb^.`
+   `N55 66xf^`
+   `N1 100[100rc^nb^B]`
+`}pg:`^
+pg^
+NN"The code:"N20("-"Q)\Nyy^NXIA
