@@ -357,8 +357,12 @@ addr run(addr pc) {
             }
             break;
         case ':': /* FREE */                         break;  // 58
-        case ';': if (RSP == 0) { return pc; }               // 59
-            pc = rpop();                             break;
+        case ';': if (RSP < 2) {                             // 59
+                RSP = 0;
+                return pc;
+            }
+            rpop();  pc = rpop();
+            break;
         case '<': t1 = pop(); T = T < t1  ? 1 : 0;   break;  // 60
         case '=': t1 = pop(); T = T == t1 ? 1 : 0;   break;  // 61
         case '>': t1 = pop(); T = T > t1  ? 1 : 0;   break;  // 62

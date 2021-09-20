@@ -1,18 +1,19 @@
 XR
-ha`{1haQ[ID@#,58={N}0?]}yy:`^
-ha`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yb:`^
-ha`{%."+"#."="+.}ab:`^
-ha`{I.B}xi:`^
-ha`{[xi^]}xf:`^
-ha`{sb #0{\T}? #117XOR #13RXOR #5LXOR sb:}rb:`^
-ha`{rb^U$S$\}rc:`^
-ha`{#10<{"0"}0?.}nb:`^
-ha`{#100<{"0"}0?nbE}nc:`^
-ha`{"Hello. testing 123 ..."`
-   `N72 16ab^`
-   `N1yb^.B"..."B0yb^.`
-   `N55 66xf^`
-   `N1 100[100rc^nb^B]`
+ha`{1haQ[ID@#,':={I3-D@125={N}0?}0?]}yy:`^
+ha`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yt:`^
+ha`{%."+"#."="+.}tt:`^
+ha`{BI.}li:`^
+ha`{"count from "%." thru "%.": "[li^]}lt:`^
+ha`{sd #0{\T}? #117XOR #13RXOR #5LXOR sd:}rn:`^
+ha`{rn^U$S$\}rm:`^
+ha`{#ba<{" "}0?.}nb:`^
+ha`{#ba#*<{" "}{}?nbE}nc:`^
+ha`{#.BQ#0{\;}?rcE}rc:`^ ; recursive proc
+ha`{"Hello World!."`
+   `N72 16tt^`
+   `N1yt^.B"..."B0yt^.`
+   `N51 67lt^`
+   `N"recursion (20): "20rc^`
+   `N"10 random numbers: "1 10[1000rm^nc^B]`
 `}pg:`^
-pg^
-NN"The code:"N20("-"Q)\Nyy^NXIA
+pg^NN"The code:"N30("-"Q)Nyy^N"Stack: "XISNXIR
