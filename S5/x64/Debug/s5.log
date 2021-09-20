@@ -1,3 +1,0 @@
-﻿  pc-main.cpp
-C:\Users\Chris\Documents\Code\Projects\S5\pc-main.cpp(32,33): warning C4267: 'initializing': conversion from 'size_t' to 'DWORD', possible loss of data
-C:\Users\Chris\Documents\Code\Projects\S5\pc-main.cpp(62,17): error C2065: 'CODE_SZ': undeclared identifier

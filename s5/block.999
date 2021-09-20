@@ -1,19 +1,20 @@
 XR
-ha`{1haQ[ID@#,':={I3-D@125={N}0?}0?]}yy:`^
+ha`{1 ha Q[I D@ #, ':= {I 3- D@ 125={N} 0 ? } 0 ?]}yy:`^
 ha`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yt:`^
 ha`{%."+"#."="+.}tt:`^
-ha`{BI.}li:`^
-ha`{"count from "%." thru "%.": "[li^]}lt:`^
-ha`{sd #0{\T}? #117XOR #13RXOR #5LXOR sd:}rn:`^
-ha`{rn^U$S$\}rm:`^
-ha`{#ba<{" "}0?.}nb:`^
-ha`{#ba#*<{" "}{}?nbE}nc:`^
-ha`{#.BQ#0{\;}?rcE}rc:`^ ; recursive proc
-ha`{"Hello World!."`
-   `N72 16tt^`
-   `N1yt^.B"..."B0yt^.`
-   `N51 67lt^`
-   `N"recursion (20): "20rc^`
-   `N"10 random numbers: "1 10[1000rm^nc^B]`
+ha`{B I .}li:`^
+ha`{"count from " %. " thru " %. ": " [li ^]}lt:`^
+ha`{sd # 0{\T}? # 17 L XOR # 13 R XOR # 5 L XOR # sd:}rn:`^
+ha`{rn ^ U $ S $ \}rm:`^
+ha`{#10  < {"0"} 0  ? .   }nb:`^
+ha`{#100 < {"0"} {} ? nb E}nc:`^
+ha`{# . B Q # 0{\;}? rc E}rc:`^      ; This is a test of a recursive proc
+ha`{"Hello World!"`
+   `N 72 16 tt ^`
+   `N 1 yt ^ . B"..."B 0 yt ^.`
+   `N 51 67 lt ^`
+   `N "recursion (20): " 20 rc ^`
+   `N "10 random numbers: " 1 10[1000 rm ^ nc ^ B]`
 `}pg:`^
-pg^NN"The code:"N30("-"Q)Nyy^N"Stack: "XISNXIR
+pg^
+NN "The code:" N 30("-"Q) N yy ^ N "Stack: " XIS N XIR
