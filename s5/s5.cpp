@@ -18,6 +18,23 @@ sys_t *sys;
 #define R        RSTK[RSP]
 #define DROP1    pop()
 #define DROP2    pop(); pop()
+#define BASE     sys->mem[1]
+#define HERE     sys->mem[7]
+
+void vmReset() {
+    DSP = RSP = LSP = 0;
+    for (ulong i = 0; i < SZ_CODE; i++) { CODE[i] = 0; }
+    for (ulong i = 0; i < SZ_MEM;  i++) { MEM[i]  = 0; }
+    for (short i = 0; i < SZ_REG;  i++) { REG[i]  = 0; }
+    CODE[HERE++] = ';';
+    BASE = 10;
+}
+
+void vmInit(sys_t* Sys) {
+    sys = Sys;
+    sys->bmem = (byte*)sys->mem;
+    vmReset();
+}
 
 void push(long v) { if (DSP < SZ_STK) { DSTK[++DSP] = v; } }
 long pop() { return (DSP > 0) ? DSTK[DSP--] : 0; }
@@ -25,43 +42,29 @@ long pop() { return (DSP > 0) ? DSTK[DSP--] : 0; }
 void rpush(addr v) { if (RSP < SZ_STK) { RSTK[++RSP] = v; } }
 addr rpop() { return (RSP > 0) ? RSTK[RSP--] : 0; }
 
-void doStore(byte isByte, byte *area) {
+void doStore(byte isByte, byte *base) {
     long t = pop(), n = pop();
-    if (isByte) { area[t] = (n & 0xff); }
+    if (isByte) { base[t] = (n & 0xff); }
     else {
-        if (__PC__ == 2|| ((t % 4) == 0)) { *(long*)&area[t] = n; }
+        if (__PC__ == 2|| ((t % 4) == 0)) { *(long*)&base[t] = n; }
         else {
-            area[t++] = ((n) & 0xff);
-            area[t++] = ((n >> 8) & 0xff);
-            area[t++] = ((n >> 16) & 0xff);
-            area[t++] = ((n >> 24) & 0xff);
+            base[t++] = ((n) & 0xff);
+            base[t++] = ((n >> 8) & 0xff);
+            base[t++] = ((n >> 16) & 0xff);
+            base[t++] = ((n >> 24) & 0xff);
         }
     }
 }
 
-void doFetch(byte isByte, byte * area) {
-    if (isByte) { T = area[T]; }
+void doFetch(byte isByte, byte * base) {
+    if (isByte) { T = base[T]; }
     else {
         long t = T;
-        T  = (area[t++]);
-        T |= (area[t++] <<  8);
-        T |= (area[t++] << 16);
-        T |= (area[t++] << 24);
+        T  = (base[t++]);
+        T |= (base[t++] <<  8);
+        T |= (base[t++] << 16);
+        T |= (base[t++] << 24);
     }
-}
-
-void vmReset() {
-    DSP = RSP = LSP = 0;
-    for (ulong i = 0; i < SZ_CODE; i++) { CODE[i] = 0; }
-    for (ulong i = 0; i < SZ_MEM; i++) { MEM[i] = 0; }
-    for (short i = 0; i < SZ_REG; i++) { REG[i] = 0; }
-    CODE[HERE++] = ';';
-}
-
-void vmInit(sys_t *Sys) {
-    sys = Sys;
-    sys->bmem = (byte *)sys->mem;
-    vmReset();
 }
 
 void printStringF(const char* fmt, ...) {
@@ -90,13 +93,13 @@ short getRegNum(int pc, int msg) {
     int c2 = regNum(CODE[pc+1], 0);
     if (isError) {
         if (msg) { printStringF("-%c%c:BadReg-", CODE[pc], CODE[pc+1]); }
-        return 0;
+        return -1;
     }
     short n = (c2*26) + c1;
     if (SZ_REG <= n) {
         if (msg) { printStringF("-%d:RN_OOB-", n); }
         isError = 1;
-        return 0;
+        return -1;
     }
     return n;
 }
@@ -270,16 +273,19 @@ addr doExt(addr pc) {
     byte ir = CODE[pc++];
     switch (ir) {
     case 'F': pc = doFile(pc);          break;
-    case 'P': pc = doPin(pc);           break;
-    case 'R': vmReset();                break;
-    case 'S': DSP = 0;                  break;
-    case 'T': isBye = 1;                break;
     case 'I': ir = CODE[pc++];
         if (ir == 'A') { dumpAll(); }
         if (ir == 'C') { dumpCode(); }
         if (ir == 'R') { dumpRegs(); }
         if (ir == 'S') { dumpStack(0); }
         break;
+    case 'O': ir = CODE[pc++];
+        if (ir == 'R') { N ^= T; DROP1; }
+        break;
+    case 'P': pc = doPin(pc);           break;
+    case 'R': vmReset();                break;
+    case 'S': DSP = 0;                  break;
+    case 'T': isBye = 1;                break;
     }
     return pc;
 }
@@ -338,33 +344,6 @@ addr run(addr pc) {
             if (!t3 && t2) { rpush(pc); pc = (addr)t2; } // FALSE case
             break;
         case '@': doFetch(0, BMEM);           break;
-        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-        case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
-        case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
-        case 's': case 't': case 'u': case 'v': case 'w': case 'x':
-        case 'y': case 'z': ir -= 'a';
-            t1 = getRegNum(pc-1, 1);
-            pc += 1;
-            push(MEM[t1]); ir = CODE[pc];
-            //printf("-reg:%c%c:%ld-", CODE[pc-2], CODE[pc-1], T);
-            if (ir == '+') { ++pc; ++MEM[t1]; }
-            if (ir == '-') { ++pc; --MEM[t1]; }
-            if (ir == ':') { DROP1; ++pc; MEM[t1] = (byte)pop(); }
-            break;
-        case '[': pc = doFor(pc);               break;       // 91
-        case '\\': DROP1;                       break;       // 92
-        case ']': pc = doNext(pc);              break;       // 93
-        case '^': rpush(pc); pc = (addr)pop();  break;       // 94
-        case '_': push(T);                                   // 95
-            while (CODE[pc] && (CODE[pc] != '_')) { MEM[T++] = CODE[pc++]; }
-            ++pc; MEM[T++] = 0;
-            break;
-        case '`': t1 = HERE;                                // 96
-            while (CODE[pc] && (CODE[pc] != '`')) {
-                CODE[HERE++] = CODE[pc++];
-            }
-            if (CODE[pc]) { push(t1); ++pc; }
-            break;
         case 'A': ir = CODE[pc++];
             if (ir == '@') { doFetch(1, 0); }
             if (ir == '!') { doStore(1, 0); }
@@ -380,9 +359,9 @@ addr run(addr pc) {
             if (ir == '@') { doFetch(1, CODE); }
             if (ir == '!') { doStore(1, CODE); }
             break;
-        case 'E': pc = (addr)pop();       break;
-        case 'F': T = ~T;                 break;
-        case 'G': /* FREE */              break;
+        case 'E': pc = (addr)pop();             break;
+        case 'F': T = ~T;                       break;
+        case 'G': /* FREE */                    break;
         case 'H': push(0);
             t1 = hexNum(CODE[pc]);
             while (0 <= t1) {
@@ -408,25 +387,53 @@ addr run(addr pc) {
             break;
         case 'T': push(millis());               break;
         case 'U': if (T < 0) { T = -T; }        break;
+        case 'V': /* FREE */                    break;
         case 'W': delay(pop());                 break;
         case 'X': pc = doExt(pc);               break;
-        case 'V': /* FREE */                    break;
         case 'Y': t1 = pop();  // LOAD
-#ifdef __PC__
-            if (input_fp) { fclose(input_fp); }
-            sprintf_s(buf, sizeof(buf), "block.%03ld", t1);
-            fopen_s(&input_fp, buf, "rt");
-#else
-            printString("-l:pc only-");
-#endif
+            if (0 < __PC__) {
+                if (input_fp) { fclose(input_fp); }
+                sprintf_s(buf, sizeof(buf), "block.%03ld", t1);
+                fopen_s(&input_fp, buf, "rt");
+            } else { printString("-l:pc only-"); }
             break;
         case 'Z':  if ((0 <= T) && ((ulong)T < SZ_MEM)) { 
             bp = &BMEM[pop()];
             printString((char*)bp); }
             break;
+        case '[': pc = doFor(pc);               break;       // 91
+        case '\\': DROP1;                       break;       // 92
+        case ']': pc = doNext(pc);              break;       // 93
+        case '^': rpush(pc); pc = (addr)pop();  break;       // 94
+        case '_': push(T);                                   // 95
+            while (CODE[pc] && (CODE[pc] != '_')) { MEM[T++] = CODE[pc++]; }
+            ++pc; MEM[T++] = 0;
+            break;
+        case '`': t1 = HERE;                                 // 96
+            while (CODE[pc] && (CODE[pc] != '`')) {
+                CODE[HERE++] = CODE[pc++];
+            }
+            if (CODE[pc]) { push(t1); ++pc; }
+            break;
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+        case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
+        case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
+        case 's': case 't': case 'u': case 'v': case 'w': case 'x':
+        case 'y': case 'z': ir -= 'a';
+            t1 = getRegNum(pc - 1, 1);
+            pc++;
+            if (!isError) {
+                push(MEM[t1]);
+                ir = CODE[pc];
+                //printf("-reg:%c%c:%ld-", CODE[pc-2], CODE[pc-1], T);
+                if (ir == '+') { ++pc; ++MEM[t1]; }
+                if (ir == '-') { ++pc; --MEM[t1]; }
+                if (ir == ':') { DROP1; ++pc; MEM[t1] = pop(); }
+            }
+            break;
         case '{': pc = doDefineQuote(pc);    break;    // 123
         case '|': t1 = pop(); T |= t1;       break;    // 124
-        case '}': if (0 < RSP) { pc = rpop(); }    // 125
+        case '}': if (0 < RSP) { pc = rpop(); }        // 125
                 else { RSP = 0; return pc; }
             break;
         case '~': T = (T) ? 0 : 1;           break;    // 126

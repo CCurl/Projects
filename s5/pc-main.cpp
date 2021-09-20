@@ -9,10 +9,10 @@
 
 typedef unsigned char byte;
 
-#define MEM_SZ   (16*1024)
+#define MEM_SZ   (64*1024)
+#define REGS_SZ   MAX_REGS
+#define CODE_SZ  (96*1024)
 #define STK_SZ         31
-#define REGS_SZ       260
-#define CODE_SZ  ( 1*1024)
 
 byte memory[(MEM_SZ)+(CODE_SZ)+4];
 long dstk[STK_SZ + 1];
@@ -97,22 +97,25 @@ void process_arg(char* arg)
     else { printf("unknown arg '-%s' (try s5 -?)\n", arg); }
 }
 
+sys_t *createSystem() {
+    mySys.code = memory;
+    mySys.mem = (long*)&memory[CODE_SZ];
+    mySys.reg = mySys.mem;
+    mySys.code_sz = CODE_SZ;
+    mySys.mem_sz = (MEM_SZ / 4);
+    mySys.reg_rz = REGS_SZ;
+    mySys.dstack = dstk;
+    mySys.rstack = rstk;
+    mySys.stack_sz = STK_SZ;
+    return &mySys;
+}
+
 int main(int argc, char** argv) {
     hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD m; GetConsoleMode(hStdOut, &m);
     SetConsoleMode(hStdOut, (m | ENABLE_VIRTUAL_TERMINAL_PROCESSING));
 
-    mySys.code = memory;
-    mySys.mem = (long *)&memory[CODE_SZ];
-    mySys.reg = mySys.mem;
-    mySys.code_sz = CODE_SZ;
-    mySys.mem_sz = (MEM_SZ/4);
-    mySys.reg_rz = REGS_SZ;
-    mySys.dstack = dstk;
-    mySys.rstack = rstk;
-    mySys.stack_sz = STK_SZ;
-
-    vmInit(&mySys);
+    vmInit(createSystem());
 
     input_fn[0] = 0;
     input_fp = NULL;
