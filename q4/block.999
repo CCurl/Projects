@@ -7,8 +7,8 @@ ha`{"count from " %. " thru " %. ": " [li ^]}lt:`^
 ha`{sd # 0{\T}? # 17 L XOR # 13 R XOR # 5 L XOR # sd:}rn:`^
 ha`{rn ^ U $ S $ \}rm:`^
 ha`{#10  < {"0"} 0  ? .   }nb:`^
-ha`{#100 < {"0"} {} ? nb E}nc:`^
-ha`{# . B Q # 0{\;}? rc E}rc:`^      ; This is a test of a recursive proc
+ha`{#100 < {"0"} {} ? nb G}nc:`^
+ha`{# . B Q # 0{\;}? rc G}rc:`^      ; This is a test of a recursive proc
 ha`{"Hello World!"`
    `N 72 16 tt ^`
    `N 1 yt ^ . B"..."B 0 yt ^.`
