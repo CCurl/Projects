@@ -1,20 +1,20 @@
 XR
-ha`{1 ha Q[I D@ #, ':= {I 3- D@ 125={N} 0 ? } 0 ?]}yy:`^
-ha`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yt:`^
-ha`{%."+"#."="+.}tt:`^
-ha`{B I .}li:`^
-ha`{"count from " %. " thru " %. ": " [li ^]}lt:`^
-ha`{sd # 0{\T}? # 17 L XOR # 13 R XOR # 5 L XOR # sd:}rn:`^
-ha`{rn ^ U $ S $ \}rm:`^
-ha`{#10  < {"0"} 0  ? .   }nb:`^
-ha`{#100 < {"0"} {} ? nb G}nc:`^
-ha`{# . B Q # 0{\;}? rc G}rc:`^      ; This is a test of a recursive proc
-ha`{"Hello World!"`
-   `N 72 16 tt ^`
-   `N 1 yt ^ . B"..."B 0 yt ^.`
-   `N 51 67 lt ^`
-   `N "recursion (20): " 20 rc ^`
-   `N "10 random numbers: " 1 10[1000 rm ^ nc ^ B]`
-`}pg:`^
+`{1 ha Q[I D@ #, ':= {I 3- D@ 125={N} 0 ? } 0 ?]}yy:`^
+`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yt:`^
+`{%."+"#."="+.}tt:`^
+`{B I .}li:`^
+`{"count from " %. " thru " #. ": " [li ^]}lt:`^
+`{sd # 0{\T}? # 17 L XOR # 13 R XOR # 5 L XOR # sd:}rn:`^
+`{rn ^ U $ S $ \}rm:`^
+`{#10  < {"0"} 0  ? .   }nb:`^
+`{#100 < {"0"} {} ? nb G}nc:`^
+`{# . B Q # 0{\;}? rc G}rc:`^      ; This is a test of a recursive proc
+`{"Hello World!"`
+   `N 72 16 tt ^`\
+   `N 1 yt ^ . B"..."B 0 yt ^.`\
+   `N 51 67 lt ^`\
+   `N "recursion (20): " 20 rc ^`\
+   `N "10 random numbers: " 1 10[1000 rm ^ nc ^ B]`\
+`}pg:`\^
 pg^
 NN "The code:" N 30("-"Q) N yy ^ N "Stack: " XIS N XIR
