@@ -1,20 +1,23 @@
-XR 
-`{1 aah Q[I D@ #, ':= {I 4- D@ 125={N} 0 ? } 0 ?]}yyy:`^
-`{"-b"{"-yes-"1}{"-no-"0}?"a-"}ytt:`^
-`{%."+"#."="+.}ttt:`^
-`{B I .}lin:`^
-`{"count from %"." thru "#.": "[lin^]}llt:`^
-`{rsd #0{\T}? #17L XOR #13R XOR #5L XOR #rsd:}rnd:`^
-`{rnd^U$S$\}rmd:`^
-`{#10  <{"0"}0?.}nnb:`^
-`{#100 <{"0"}0?nnb G}nnc:`^
-`{#.B Q#0{\;}?rec G}rec:`^      ; This is a test of a recursive proc
+XR
+`{1 hM[I C@ #, ':= {I 3- C@ 125={N} 0 ? } 0 ?]}yy:`^
+`{27,"["}cz:`^
+`{cz^.";"."H"}xy:`^
+`{cz^"2J"0#xy^}cs:`^
+`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yt:`^
+`{%."+"#."="+.}tt:`^
+`{BI.}li:`^
+`{"count from "%." thru "#.": " [li^]}lt:`^
+`{sd # 0{\T}? #17L XOR #13R XOR #5L XOR #sd:}rn:`^
+`{rn^ U$S$\}rm:`^
+`{#10 <{"0"}0?.}nb:`^
+`{#100<{"0"}{}? nb G}nc:`^
+`{#.BM# 0{\;}? rc G}rc:`^      ; This is a test of a recursive proc
 `{"Hello World!"`
-   `N 72 16 ttt^`\
-   `N 1 ytt^ . B"..."B 0 ytt^.`\
-   `N 51 67 llt^`\
-   `N "recursion (20): " 20 rec^`\
-   `N "10 random numbers: " 1 10[1000 rmd^ nnc^ B]`\
-`}pgm:`\^
-pgm^
-NN "The code:" N 30("-"Q) N yyy^ N "Stack: " XIS N XIR
+   `N 72 16 tt^`\
+   `N 1yt^ .B"..."B0yt^.`\
+   `N 51 67 lt^`\
+   `N "recursion (20): " 20 rc^`\
+   `N "10 random numbers: " 1 10[1000 rm^ nc^ B]`\
+`}pg:`\^
+`{NN "Stack: " XIS N XIR NN "The code:" N 1 30["-"] N yy^}si:`^
+pg^si^
