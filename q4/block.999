@@ -1,23 +1,9 @@
-XR
-`{1 hM[I C@ #, ':= {I 3- C@ 125={N} 0 ? } 0 ?]}yy:`^
-`{27,"["}cz:`^
-`{cz^.";"."H"}xy:`^
-`{cz^"2J"0#xy^}cs:`^
-`{"-b"{"-yes-"1}{"-no-"0}?"a-"}yt:`^
-`{%."+"#."="+.}tt:`^
-`{BI.}li:`^
-`{"count from "%." thru "#.": " [li^]}lt:`^
-`{sd # 0{\T}? #17L XOR #13R XOR #5L XOR #sd:}rn:`^
-`{rn^ U$S$\}rm:`^
-`{#10 <{"0"}0?.}nb:`^
-`{#100<{"0"}{}? nb G}nc:`^
-`{#.BM# 0{\;}? rc G}rc:`^      ; This is a test of a recursive proc
-`{"Hello World!"`
-   `N 72 16 tt^`\
-   `N 1yt^ .B"..."B0yt^.`\
-   `N 51 67 lt^`\
-   `N "recursion (20): " 20 rc^`\
-   `N "10 random numbers: " 1 10[1000 rm^ nc^ B]`\
-`}pg:`\^
-`{NN "Stack: " XIS N XIR NN "The code:" N 1 30["-"] N yy^}si:`^
-pg^si^
+N"Block Description"
+N1 65["-"]
+N"001   Sandbox"
+N"100   Tests and Demos"
+N"200   The Game of Life"
+N"210   The Mandelbrot Set"
+N"220   Primes to 100000"
+N"650   A 6502 emulator"
+N"999   This file"
