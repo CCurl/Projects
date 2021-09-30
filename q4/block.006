@@ -1,0 +1,23 @@
+; My sandbox
+
+XR
+`{1hM[IC@#,':={I4-C@125={N}0?}0?]} yy:`^
+`{27,"["} cz:{cz^.";"."H"} xy:{cz^"2J"0#xy^} cs:`^
+`{N"STACK: "XIS N XIR NN"CODE: "h." bytes used." N1 50["-"] Nyy^} si:`^
+
+; Line input stuff (to tib)
+; `{'x,1w[]8,B8,w1[]}idl:`^
+`{}idl:`^
+`{1(\ idl^ XK? ~)XKY}wfk:`^
+`{t+ C!}tba:`^
+`{0 t- M C! 8,B8,}tbx:`^
+`{# 31 >{#,tba^}{8={tbx^}{}?}?}kyh:`^   ; (c--)
+`{tib t: 1(\ wfk^ #13={'; tba^ \0}{kyh^ 1}?)}gtl:`^
+
+; main loop stuff
+`{'x tib C@ =}isq:`^
+`{gtl^ isq^ {;}0? tib^ " ok " XIS N mlp G}mlp:`^
+90K tib:
+64K v:
+100KK w:
+si^
