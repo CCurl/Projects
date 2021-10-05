@@ -2,11 +2,22 @@
 
 XR
 
-`{# tn: 2/1| stp: 0 qt: 3 num: 1(\ tn num S {\ num 2+ num:}{qt: 0 stp:}? num stp <) qt}fac:`^
-`{to: 2 np: 3 ni: 1(\ni fac^ 0{np+\}? ni 2+# ni: to<) np}pms:`^
+; s: Stop at
+; n: Number of primes (count)
 
-`{N"#primes in " #. ": " T$ pms^ . T$- " (" . " ms)"}bm:`^
+; ds: Derive Stop (n--n)
+`{s#*%<(\s+P#*%<)}ds:`^
+
+; ipn: Is Prime Number (n q--f)
+`{%%S0{\\\0;}?\PP#s>{\\1;}0?ipnG}ipn:`^
+
+; np: Number of primes (quote) (n1--n2)
+`{0s: 4n: 11 1(\ ds^ #3 ipn^ {n+\}0? PP%%>)\\ n}np:`^
+
+`{N"# primes in " #. ": " T$ np^ . T$- " (" . " ms)"}bm:`^
 100 bm^
 1000 bm^
 10000 bm^
 100000 bm^
+1000000 bm^
+10000000 bm^
