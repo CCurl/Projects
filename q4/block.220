@@ -1,1 +1,12 @@
 ; Primes to 100000
+
+XR
+
+`{# tn: 2/1| stp: 0 qt: 3 num: 1(\ tn num S {\ num 2+ num:}{qt: 0 stp:}? num stp <) qt}fac:`^
+`{to: 2 np: 3 ni: 1(\ni fac^ 0{np+\}? ni 2+# ni: to<) np}pms:`^
+
+`{N"#primes in " #. ": " T$ pms^ . T$- " (" . " ms)"}bm:`^
+100 bm^
+1000 bm^
+10000 bm^
+100000 bm^
