@@ -1,7 +1,5 @@
 n"The Mandelbrot Set"
 
-HL;
-
 ; Registers:
 ; A: temp 1
 ; B: temp 2
@@ -28,5 +26,3 @@ HL;
 {M 0 T; t :y t$-  n T." iterations, " . " ms"}
 
 :M
-
-LH;
