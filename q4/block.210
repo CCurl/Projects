@@ -1,5 +1,7 @@
 "The Mandelbrot Set"N
-XR
+
+h l:
+
 `{ni+\ x#*200/xx: y#*200/yy: xx yy + 800 >`
 ` {'a i + tc: i 9> {'@tc:}0? mi i:}0?`\
 ` x y * 100 / yi + y:`\
@@ -11,3 +13,5 @@ XR
 `{300O yi: 1  41 [N mbx^ yi 15+ yi:]}mby:`^
 0 ni: T mby^ T$- 
 N ni." iterations, " . " ms"
+
+l h:
