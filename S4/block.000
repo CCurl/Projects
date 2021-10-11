@@ -1,40 +1,41 @@
 ; Block.000 - general system functions
 
-0H; ; Reset the HERE pointer
+XR
+0h; ; Reset the HERE pointer
 
-; a11: dump all code currently defined
-{a11 iFnn0Hq[xId@#,125=(n)]}
+; D: Dump the code
+`D XIF NN hQ 0[I C@, IQC@';= IC@96= &(N)];`
 
 ;  a0X: print TOS to <X> width
-{a02 #10<(0.).}
-{a03 #100<(0.)ja02}
-; {a04 #1000<(0.)ja03}
-; {a05 #10000<(0.)ja04}
+`NB #10<(0.).;`
+`NC #100<(0.)GNB;`
+; `ND #k<(0.)GNC;`
+; `NE #10k*<(0.)GND;`
 
 ;  a51: Elapsed
-{a51 t$-1ks$."."ja03}
+`ET T$-kS$."."GNC;`
 
-;  a27: vt100 CSI code - '<ESC>['
-{a27 27,"["}
+;  CSI: vt100 CSI code - '<ESC>['
+`CSI 27,"[";`
 
 ;  a28: Set Color: (fb bg--)
-; {a28 :a27.";"."m"}
+; `STC :CSI.";"."m";`
 
 ; a29: Save the cursor pos (--)
-; {a29 :a27"s"}
+; `SCP` :a27"s";`
 
 ; xr: cursor pos restore (--)
-; {a30 :a27"u"}
+; `RCP :a27"u";`
 
 ;  a31: Set cursor pos: (x y--)
-{a31 :a27.";"."H"}
+`GXY :CSI.";"."H";`
 
 ;  a33: Clear Screen (--)
-{a33 :a27"2J"0#ja31}
+`CLS :CSI"2J"0#GGXY;`
 
 ; a token
-; {z99 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}
+; `Z99 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;`
 
-"S4 v0.0.1 - Chris Curl - https://github.com/CCurl/S4"n
-n"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
-nn"Hello."
+"S4 v0.0.1 - Chris Curl - https://github.com/CCurl/S4"
+NN"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
+NN"Hello."

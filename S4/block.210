@@ -1,28 +1,28 @@
-n"The Mandelbrot Set"
+N"The Mandelbrot Set"
 
 ; Registers:
-; A: temp 1
-; B: temp 2
-; C: temp 3
-; D: temp 4
-; I: MB loop counter
-; T: # iterations
-; X: Y pos
-; Y: X pos
+; a: temp 1
+; b: temp 2
+; c: temp 3
+; d: temp 4
+; i: MB loop counter
+; t: count of iterations
+; x: Y pos
+; y: X pos
 
 ; Functions:
-; c: mandelbrot calc
-; l: main MB loop 
-; o: output
-; x: loop for X axis
-; y: loop for Y axis
+; C: mandelbrot calc
+; L: main MB loop 
+; O: output
+; X: loop for X axis
+; Y: loop for Y axis
 ; M: main, loop for Y axis
 
-{c T+\ A#*200/C; B#*200/D; CD + 1kk>(IM; ;) AB*100/Y +B; CD -X +A; I+\}
-{l 0A; 0B; 32E; 0I; 200M; 1[[\:c IM <]]}
-{o :l I 40+ #126>(\32) ,}
-{x 490o X; 1 190 [  :o X  4+ X;]}
-{y 340o Y; 1  69 [n :x Y 10+ Y;]}
-{M 0 T; t :y t$-  n T." iterations, " . " ms"}
+`C t+\ a#*200/c; b#*200/d; c d + k#*>(i m; ;) a b*100/y +b; c d -x +a; i+\;`
+`L 0a; 0b; 0i; 200m; 1{\ :C i m <};`
+`O :L i 40+ #126>(\32),;`
+`X 490 O x; 1 190 [  :O x  4+ x;];`
+`Y 340 O y; 1  69 [N :X y 10+ y;];`
+`M 0t; T :Y T$- N t." iterations, " . " ms";`
 
 :M
