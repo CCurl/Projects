@@ -1,37 +1,36 @@
 ; Block.000 - general system functions
 
 XR
-0h; ; Reset the HERE pointer
 
 ; D: Dump the code
-`D XIF NN hQ 0[I C@, IQC@';= IC@96= &(N)];`
+`D XIFNNhQ0[IC@#,96=IQC@';=&(N)];`
 
-;  a0X: print TOS to <X> width
+;  NB/C: print TOS to <X> width
 `NB #10<(0.).;`
 `NC #100<(0.)GNB;`
 ; `ND #k<(0.)GNC;`
 ; `NE #10k*<(0.)GND;`
 
-;  a51: Elapsed
-`ET T$-kS$."."GNC;`
+;  EL: Elapsed
+`EL T$-kS$."."GNC;`
 
 ;  CSI: vt100 CSI code - '<ESC>['
 `CSI 27,"[";`
 
-;  a28: Set Color: (fb bg--)
-; `STC :CSI.";"."m";`
+;  STC: Set Color: (fb bg--)
+`STC 0(fg bg--) :CSI.";"."m";`
 
-; a29: Save the cursor pos (--)
-; `SCP` :a27"s";`
+; SCP: Save cursor pos (--)
+`SCP 27,"7";`
 
-; xr: cursor pos restore (--)
-; `RCP :a27"u";`
+; RCP: Restore cursor pos (--)
+`RCP 27,"8";`
 
-;  a31: Set cursor pos: (x y--)
-`GXY :CSI.";"."H";`
+;  GXY: Set cursor pos: (x y--)
+`GXY 0(x y--) :CSI.";"."H";`
 
-;  a33: Clear Screen (--)
-`CLS :CSI"2J"0#GGXY;`
+; CLS: Clear Screen (--)
+`CLS :CSI"2J"1#:GXY;`
 
 ; a token
 ; `Z99 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;`
