@@ -1,50 +1,23 @@
 0( Block.001 - sandbox )
-HS; 0( save HERE )
+; EDITOR work
+XR
+1000h;
+0 off;
 
-0( Default V to 26 for a VHERE value )
-26V;
-0( 199: similar to ALLOT )
-0( {199 V$%+V;} )
+`D XIF NN hQ 0[I C@, IQC@';= IC@96= &(N)];`
+`CSI 27,"[";`
+`GXY :CSI y.";"x."H";`
+`OXY 96S Px;Py; :GXY;`
+`CLS :CSI "2J" 0 :OXY;`
 
-0( 731: CCOMMA )
-0( {731 H+d!} )
+0h;
 
-0( m01: /MOD [a b--a/b a%b] )
-{m01 %%/*-T;%%/T}
-
-0( d01: <S, uses P )
-{d01 V4*10+P;0Pc!B0=(10B;)}
-0( d02: #)
-{d02 B:m01#9>(7+)'0+P-c!}
-0( d03: #S)
-{d03 :d02[[:d02]]\}
-0( d04: >S )
-{d04 \P1+:a60}
-
-0( d09: print T in base B )
-{d09 :d01:d03b:d04}
-
-h3804AF# 16B;:d09 10B;:d09
-" ... should be 3804AF 1199"
-
-0(  751: [f t--] dump bytes )
-0( {751 [xIc@:113b]} )
-
-0(  752: [f t--] dump longs )
-0( {752 [xI@.b]} )
-
-0(  301: Benchmark: a simple decrement loop )
-0(  302: Benchmark: a simple for loop )
-0( {301 t$[[1-]]:151} )
-0( {302 t$1[]:151} )
-
-0(  160: type a NULL terminated string [a--] )
-0( {160 #c@[[,1+#c@]]\} )
-
-0(  181: store a long to absolute memory )
-0( {181 "TODO"} )
-
-0(  182: get a long from absolute memory )
-0( {182 #3+m@h1000000*$ #2+m@h10000*$ #1+m@h100*$ m@ +++} )
-
-0(SH;) 0( restore HERE )
+:CLS 1 32[I.N]
+0 :OXY "-0-"
+34 :OXY "--34--"
+67 :OXY "--67--"
+67 :OXY "--67--"
+563 :OXY "--563--"
+1023 # :OXY "--"."--"
+96 32*Q # :OXY "--"."--"
+2047 # :OXY "--"."--"

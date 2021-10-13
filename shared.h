@@ -3,10 +3,7 @@
 
 #define ADDR_SZ   4
 #define CELL_SZ   4
-#define CODE_SZ  (1*1024)
-#define DICT_SZ  CODE_SZ // (1*1024)
-#define VARS_SZ  (1*256)
-#define STK_SZ    15
+#define STK_SZ    7
 
 typedef unsigned char byte;
 typedef short WORD;
@@ -24,28 +21,21 @@ typedef byte *ADDR;
 #define NAME_LEN 15
 
 typedef struct {
-    CELL xt;
+    ADDR next;
+    ADDR xt;
     byte flags;
     char name[NAME_LEN+1];
 } dict_t;
 
-#define T  DSTK[DSP]
 #define A (ADDR)DSTK[DSP]
-#define N  DSTK[DSP-1]
-#define R  RSTK[RSP]
-#define DICT CODE
-#define DP_AT(l) (dict_t *)&DICT[l]
-#define STR_AT(l) (char *)&VARS[l]
 
-extern UCELL PC;
+extern ADDR PC;
 extern byte IR, DSP, RSP;
 extern CELL BASE, STATE;
-extern UCELL HERE, VHERE, LAST;
-extern byte CODE[];
-extern byte VARS[];
-//extern byte DICT[];
+extern ADDR HERE, VHERE;
+extern dict_t *LAST;
 extern CELL DSTK[];
-extern CELL RSTK[];
+extern ADDR RSTK[];
 
 extern void push(CELL);
 extern CELL pop();
@@ -55,9 +45,8 @@ extern int  SET_CELL(ADDR l, CELL v);
 extern void CComma(CELL v);
 extern void Comma(CELL v);
 
-
 extern int strLen(const char *);
-extern CELL getNext(CELL);
-extern void run(CELL);
-
+extern dict_t *getNext(dict_t *);
+extern void run(ADDR);
+extern void vm_init(ADDR, UCELL);
 #endif

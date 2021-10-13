@@ -1,38 +1,60 @@
 #include <stdio.h>
 #include "shared.h"
 
-byte IR, DSP, RSP;
 CELL BASE, STATE;
-CELL DSTK[STK_SZ + 1];
-CELL RSTK[STK_SZ + 1];
-byte CODE[CODE_SZ];
-byte VARS[VARS_SZ];
-// byte DICT[DICT_SZ];
-UCELL PC, HERE, VHERE, LAST;
+ADDR MEM;
+byte IR, * PC, * HERE;
+dict_t *LAST;
+UCELL MEM_SZ;
 
-#define T  DSTK[DSP]
-#define A (ADDR)DSTK[DSP]
-#define N  DSTK[DSP-1]
-#define R  RSTK[RSP]
+byte DSP;
+CELL T, DSTK[STK_SZ+1];
+#define N DSTK[DSP]
+
+byte RSP;
+ADDR RSTK[STK_SZ+1];
+#define R RSTK[RSP]
 
 void push(CELL v) {
-    if (DSP < STK_SZ) { DSTK[++DSP] = v; }
+    DSP = (DSP+1) & STK_SZ;
+    N = T;
+    T = v;
 }
+
+void drop() {
+    T = N;
+    DSP = (DSP-1)&STK_SZ;
+}
+#define drop2() drop(); drop()
 
 CELL pop() {
     CELL x = T;
-    if (0 < DSP) { DSP--; }
+    drop();
     return x;
 }
 
-void rpush(CELL v) {
-    if (RSP < STK_SZ) { RSTK[++RSP] = v; }
+void rpush(ADDR v) {
+    RSP = (RSP+1) & STK_SZ;
+    R = v;
 }
 
-CELL rpop() {
-    CELL x = R;
-    if (0 < RSP) { RSP--; }
+inline void rdrop() {
+    RSP = (RSP-1)&STK_SZ;
+}
+
+ADDR rpop() {
+    ADDR x = R;
+    rdrop();
     return x;
+}
+
+void vm_init(ADDR mem, UCELL mem_sz) {
+    MEM = mem;
+    MEM_SZ = mem_sz;
+    DSP = RSP = STK_SZ;
+    HERE = mem;
+    LAST = 0;
+    BASE = 10;
 }
 
 unsigned short GET_WORD(ADDR l) { 
@@ -58,8 +80,8 @@ void SET_LONG(ADDR l, long v) {
 CELL GET_CELL(ADDR l) { return GET_LONG(l); }
 int SET_CELL(ADDR l, CELL v) { SET_LONG(l, v); return CELL_SZ;  }
 
-void CComma(CELL v) { CODE[HERE++] = (byte)v; }
-void Comma(CELL v) { HERE += SET_CELL(CODE + HERE, v); }
+void CComma(CELL v) { *(HERE++) = (byte)v; }
+void Comma(CELL v) { HERE += SET_CELL(HERE, v); }
 
 int strLen(const char* str) {
     int l = 0;
@@ -70,19 +92,19 @@ int strLen(const char* str) {
     return l;
 }
 
-CELL getNext(CELL l) {
-    dict_t* dp = DP_AT(l);
+dict_t *getNext(dict_t *l) {
+    dict_t* dp = l;
     int len = strLen(dp->name);
-    l += (CELL_SZ + 1 + len + 1);
+    l = (dict_t *)l->next;
     while ((UCELL)l % 4) { ++l; }
     return l;
 }
 
 void doWords() {
-    CELL l = LAST;
-    CELL end = DICT_SZ - 2;
-    while (l && (l < end)) {
-        dict_t* dp = DP_AT(l);
+    dict_t *l = LAST;
+    ADDR end = MEM+MEM_SZ-2;
+    while (l) {
+        dict_t *dp =(dict_t *)l;
         printf("%s ", dp->name);
         l = getNext(l);
     }
@@ -94,8 +116,6 @@ void doEmit(CELL x) {
 
 // NB: type: 1=>VAR, 2=>CODE, 3=>absolute
 ADDR buildAddr(UCELL addr, int type) {
-    if (type == 1) { addr += (UCELL)VARS; }
-    else if (type == 2) { addr += (UCELL)CODE; }
     return (ADDR)addr;
 }
 
@@ -119,47 +139,39 @@ void doCStore(UCELL to, CELL val, int type) {
     *addr = (byte)val;
 }
 
-void run(CELL start) {
+void run(ADDR start) {
     PC = start;
     int rdepth = 0;
     CELL t1, t2;
     while (1) {
-        IR = CODE[PC++];
+        IR = *(PC++);
         switch (IR) {
         case 0: return;
         case ' ': break;
-        case 1: push(CODE[PC++]);                  break;
-        case 2: push(GET_WORD(CODE+PC)); PC += 2;  break;
-        case 4: push(GET_LONG(CODE+PC)); PC += 4;  break;
+        case 1: push(*(PC++));                     break;
+        case 2: push(GET_WORD(PC)); PC += 2;       break;
+        case 4: push(GET_LONG(PC)); PC += 4;       break;
         case '#': push(T);                         break;
         case '\\': pop();                          break;
-        case '+': t1 = pop(); T += t1;             break;
-        case '-': t1 = pop(); T -= t1;             break;
-        case '*': t1 = pop(); T *= t1;             break;
-        case '/': t1 = pop(); T /= t1;             break;
-        case '=': N = (N == T) ? 1 : 0; pop();     break;
-        case '>': N = (N > T) ? 1 : 0; pop();      break;
-        case '<': N = (N < T) ? 1 : 0; pop();      break;
+        case '+': N += T; drop();             break;
+        case '-': N -= T; drop();             break;
+        case '*': N *= T; drop();             break;
+        case '/': N /= T; drop();             break;
+        case '=': N = (N == T) ? 1 : 0; drop();     break;
+        case '>': N = (N > T)  ? 1 : 0; drop();      break;
+        case '<': N = (N < T)  ? 1 : 0; drop();      break;
         case '.': printf("%d", pop());             break;
         case ',': doEmit(pop());                   break;
         case 'b': printf(" ");                     break;
         case '@': T = doFetch(T, 1);                  break;
-        case 11:  T = doFetch(T, 2);                 break;
-        case 12:  T = doFetch(T, 3);                 break;
         case 'c': T = doCFetch(T, 1);                 break;
-        case 13:  T = doCFetch(T, 2);                 break;
-        case 14:  T = doCFetch(T, 3);                 break;
-        case '!': doStore(T, N, 1); pop(); pop();     break;
-        case 15:  doStore(T, N, 2); pop(); pop();    break;
-        case 16:  doStore(T, N, 3); pop(); pop();    break;
-        case 'C': doCStore(T, N, 1); pop(); pop();    break;
-        case 17:  doCStore(T, N, 2); pop(); pop();    break;
-        case 18:  doCStore(T, N, 3); pop(); pop();    break;
+        case '!': doStore(T, N, 1);  drop2();  break;
+        case 'C': doCStore(T, N, 1); drop2();  break;
         case 'j': if (pop() == 0) {
-                PC = GET_CELL(CODE+PC); 
+                PC = (ADDR)GET_CELL(PC); 
             } else { PC += CELL_SZ; }
             break;
-        case 'J': PC = GET_CELL(CODE + PC);        break;
+        case 'J': PC = (ADDR)GET_CELL(PC);        break;
         case 'n': printf("\r\n");                  break;
         case '$': t1 = pop(); t2 = pop();    // SWAP
             push(t1); push(t2);
@@ -168,7 +180,7 @@ void run(CELL start) {
             push(t1); push(t2);
             break;
         case ':': rpush(PC + ADDR_SZ);
-            PC = GET_CELL(CODE+PC);
+            PC = (ADDR)GET_CELL(PC);
             ++rdepth;
             break;
         case ';': if (rdepth < 1) { return; }

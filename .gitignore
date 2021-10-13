@@ -6,3 +6,5 @@ history.txt
 /S5/Debug
 /S5/.vs/S5/v16
 /S5/S4.vcxproj.user
+MinForth.vcxproj.user
+.vs/*
