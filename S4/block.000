@@ -5,35 +5,31 @@ XR
 ; D: Dump the code
 `D XIFNNhQ0[IC@#,96=IQC@';=&(N)];`
 
-;  NB/C: print TOS to <X> width
+; NB/C/D/E: print TOS to <X> width
 `NB #10<(0.).;`
 `NC #100<(0.)GNB;`
-; `ND #k<(0.)GNC;`
-; `NE #10k*<(0.)GND;`
+`ND #k<(0.)GNC;`
+`NE #10k*<(0.)GND;`
 
-;  EL: Elapsed
-`EL T$-kS$."."GNC;`
+; ET: Elapsed Time
+`ET T$-kS$."."GNC;`
 
-;  CSI: vt100 CSI code - '<ESC>['
+; CSI: vt100 CSI code - '<ESC>['
 `CSI 27,"[";`
 
-;  STC: Set Color: (fb bg--)
+; STC: Set Color, CLC: Clear Color
 `STC 0(fg bg--) :CSI.";"."m";`
+`CLC 0# GSTC;`
 
-; SCP: Save cursor pos (--)
+; SCP, RCP: Save/Restore Cursor Pos
 `SCP 27,"7";`
-
-; RCP: Restore cursor pos (--)
 `RCP 27,"8";`
 
-;  GXY: Set cursor pos: (x y--)
-`GXY 0(x y--) :CSI.";"."H";`
+;  GXY: Goto XY
+`GXY 0(x y--):CSI.";"."H";`
 
 ; CLS: Clear Screen (--)
 `CLS :CSI"2J"1#:GXY;`
-
-; a token
-; `Z99 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;`
 
 "S4 v0.0.1 - Chris Curl - https://github.com/CCurl/S4"
 NN"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
