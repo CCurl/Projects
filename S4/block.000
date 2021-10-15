@@ -2,31 +2,31 @@
 
 XR
 
-; D: Dump the code
-`D XIFNNhQ0[IC@#,96=IQC@';=&(N)];`
+; DC: Dump the code
+`DC hQ0[IC@#,96=IQC@';=&(N)];`
 
 ; NB/C/D/E: print TOS to <X> width
 `NB #10<(0.).;`
 `NC #100<(0.)GNB;`
-`ND #k<(0.)GNC;`
-`NE #10k*<(0.)GND;`
+; `ND #k<(0.)GNC;`
+; `NE #10k*<(0.)GND;`
 
 ; ET: Elapsed Time
-`ET T$-kS$."."GNC;`
+; `ET T$-kS$."."GNC;`
 
 ; CSI: vt100 CSI code - '<ESC>['
 `CSI 27,"[";`
 
-; STC: Set Color, CLC: Clear Color
-`STC 0(fg bg--) :CSI.";"."m";`
+; STC: Set Color, CLC: Clear Color (fg bg--)
+`STC :CSI.";"."m";`
 `CLC 0# GSTC;`
 
 ; SCP, RCP: Save/Restore Cursor Pos
 `SCP 27,"7";`
 `RCP 27,"8";`
 
-;  GXY: Goto XY
-`GXY 0(x y--):CSI.";"."H";`
+;  GXY: Goto XY (x y--)
+`GXY :CSI.";"."H";`
 
 ; CLS: Clear Screen (--)
 `CLS :CSI"2J"1#:GXY;`
