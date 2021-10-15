@@ -18,8 +18,11 @@ XR
 `CSI 27,"[";`
 
 ; STC: Set Color, CLC: Clear Color (fg bg--)
+; To list the colors:
+; 30 37[N I fg;  40  47[I bg; fg bg :STC " (",fg.";"bg.") "]:CLC]
+; 90 97[N I fg; 100 107[I bg; fg bg :STC " (",fg.";"bg.") "]:CLC]
 `STC :CSI.";"."m";`
-`CLC 0# GSTC;`
+`CLC 0#:STC;`
 
 ; SCP, RCP: Save/Restore Cursor Pos
 `SCP 27,"7";`
