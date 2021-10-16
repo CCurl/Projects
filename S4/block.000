@@ -3,7 +3,7 @@
 XR
 
 ; DC: Dump the code
-`DC hQ0[IC@#,96=IQC@';=&(N)];`
+`DC hD0[IC@#,96=IDC@';=&(N)];`
 
 ; NB/C/D/E: print TOS to <X> width
 `NB #10<(0.).;`

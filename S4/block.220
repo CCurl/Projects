@@ -4,12 +4,12 @@ N"Count of Primes benchmark"
 ; c:              Count of primes
 
 ; FUNCTIONS:
-; I: (n l--f)     Is Prime Number
-; C: (n1--n2)     Count of Primes
-; B: (n--)        Benchmark
-; L: (n--)        Loop for multiple benchmarks
+; Q:   (n l--f)     Is Prime Number
+; CP:  (n1--n2)     Count of Primes
+; BP:  (n--)        Benchmark
+; CPL: (n--)        Loop for multiple benchmarks
 
-`I%%S~(\\~;)%<(\;)PPGI;`
-`C 4c; 11 1{\ #3 :I (c+\) PP %% >}\\c ;`
-`B N"# primes in " #. ": " T$ :C . T$- " (" . " ms)";`
-`L 256$ 1[#+# :B]\;`
+`Q%%S~(\\~;)%<(\;)PPGQ;`
+`CP 4c; 11 1{\ #3 :Q (c+\) PP %% >}\\c ;`
+`BP N"# primes in " #. ": " T$ :CP . T$- " (" . " ms)";`
+`CPL 256$ 1[#+# :BP]\;`
