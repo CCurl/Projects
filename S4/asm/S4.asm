@@ -68,6 +68,9 @@ betw:   cmp     al, bl
 betF:   mov     bl, 0
         ret
 
+f_UnknownOpcode:
+        ret
+
 run:    mov     esi, edx
 runS:   lodsb
         cmp     al, 32
@@ -123,5 +126,42 @@ s0:     call   ok
         jmp    s0
     
         invoke ExitProcess, 0
+
+
+.data
+
+jmpTable dd f_UnknownOpcode ; 0
+dd f_UnknownOpcode            ; Hex: 01 (1)
+dd f_UnknownOpcode            ; Hex: 02 (2)
+dd f_UnknownOpcode            ; Hex: 03 (3)
+dd f_UnknownOpcode            ; Hex: 04 (4)
+dd f_UnknownOpcode            ; Hex: 05 (5)
+dd f_UnknownOpcode            ; Hex: 06 (6)
+dd f_UnknownOpcode            ; Hex: 07 (7)
+dd f_UnknownOpcode            ; Hex: 08 (8)
+dd f_UnknownOpcode            ; Hex: 09 (9)
+dd f_UnknownOpcode            ; Hex: 0A (10)
+dd f_UnknownOpcode            ; Hex: 0B (11)
+dd f_UnknownOpcode            ; Hex: 0C (12)
+dd f_UnknownOpcode            ; Hex: 0D (13)
+dd f_UnknownOpcode            ; Hex: 0E (14)
+dd f_UnknownOpcode            ; Hex: 0F (15)
+dd f_UnknownOpcode            ; Hex: 10 (16)
+dd f_UnknownOpcode            ; Hex: 11 (17)
+dd f_UnknownOpcode            ; Hex: 12 (18)
+dd f_UnknownOpcode            ; Hex: 13 (19)
+dd f_UnknownOpcode            ; Hex: 14 (20)
+dd f_UnknownOpcode            ; Hex: 15 (21)
+dd f_UnknownOpcode            ; Hex: 16 (22)
+dd f_UnknownOpcode            ; Hex: 17 (23)
+dd f_UnknownOpcode            ; Hex: 18 (24)
+dd f_UnknownOpcode            ; Hex: 19 (25)
+dd f_UnknownOpcode            ; Hex: 1A (26)
+dd f_UnknownOpcode            ; Hex: 1B (27)
+dd f_UnknownOpcode            ; Hex: 1C (28)
+dd f_UnknownOpcode            ; Hex: 1D (29)
+dd f_UnknownOpcode            ; Hex: 1E (30)
+dd f_UnknownOpcode            ; Hex: 1F (32)
+dd f_UnknownOpcode            ; Hex: 20 (33)
 
 .end start
