@@ -24,15 +24,11 @@ bytesRead   dd  0
 unkOP       db  "-unk-"
 isNum       db  "-num-"
 isReg       db  "-reg-"
-regs        dd  676 dup 0
-dStack      dd   31 dup (0)
-dstackE     db    4 dup (0)          ; Buffer between stacks
-rStack      dd   32 dup (0)
-tmpBuf3     db    4 dup (0)          ; Buffer for return stack
 rDepth      dd   ?
 rStackPtr   dd   ?
 
-jmpTable     dd f_UnknownOpcode            ; # 00 ()
+jmpTable:
+dd f_UnknownOpcode            ; # 00 ()
 dd f_UnknownOpcode            ; # 01 (☺)
 dd f_UnknownOpcode            ; # 02 (☻)
 dd f_UnknownOpcode            ; # 03 (♥)
@@ -41,7 +37,7 @@ dd f_UnknownOpcode            ; # 05 (♣)
 dd f_UnknownOpcode            ; # 06 (♠)
 dd f_UnknownOpcode            ; # 07 ()
 dd f_UnknownOpcode            ; # 08 ()
-dd f_UnknownOpcode            ; # 09 ()
+dd doNop                      ; # 09 ()
 dd f_UnknownOpcode            ; # 010 ()
 dd f_UnknownOpcode            ; # 011 ()
 dd f_UnknownOpcode            ; # 012 ()
@@ -64,7 +60,7 @@ dd f_UnknownOpcode            ; # 028 (∟)
 dd f_UnknownOpcode            ; # 029 (↔)
 dd f_UnknownOpcode            ; # 030 (▲)
 dd f_UnknownOpcode            ; # 031 (▼)
-dd f_UnknownOpcode            ; # 032 ( )
+dd doNop                      ; # 032 ( )
 dd f_UnknownOpcode            ; # 033 (!)
 dd qt                         ; # 034 (")
 dd f_UnknownOpcode            ; # 035 (#)
@@ -270,34 +266,44 @@ macro m_NEXT
 
 
 ; ******************************************************************************
+doNop:  m_NEXT
+
+; ******************************************************************************
 ; register
 reg:    sub     al, 'a'
         and     eax, $ff
         mov     edx, eax
-        invoke WriteConsole, [hStdOut], isReg, 5, NULL, NULL
+        ; invoke WriteConsole, [hStdOut], isReg, 5, NULL, NULL
 reg1:   mov     al, [esi]
         mov     bx, 'az'
         call    betw
-        jz      regN
+        cmp     bl, 0
+        je      regN
         sub     al, 'a'
         imul    edx, edx, 26
         add     edx, eax
         inc     esi
+        mov     al, [esi]
 regN:   shl     edx, 2
         add     edx, regs
         cmp     al, ';'
         je      regSet
-        mov     ebx, [edx]
-        m_push  ebx
+        m_push  [edx]
         cmp     al, '+'
-        jne     regSet
-        inc     DWORD [edx]
+        je      regInc
+        cmp     al, '-'
+        je      regDec
+regX:   m_NEXT
+regInc: inc     DWORD [edx]
+        inc     esi
+        jmp     regX
+regDec: dec     DWORD [edx]
         inc     esi
         jmp     regX
 regSet: m_pop   eax
         mov     [edx], eax
         inc     esi
-regX: m_NEXT
+        jmp     regX
 
 ; ******************************************************************************
 ; Number input
@@ -306,8 +312,7 @@ num:    sub     al, '0'
         mov     edx, eax
         ; invoke WriteConsole, [hStdOut], isNum, 5, NULL, NULL
 n1:     mov     al, [esi]
-        mov     bl, '0'
-        mov     bh, '9'
+        mov     bx, '09'
         call    betw
         cmp     bl, 0
         je      nx
@@ -316,8 +321,7 @@ n1:     mov     al, [esi]
         add     edx, eax
         inc     esi
         jmp     n1
-nx:     ; mov     edx, '?'
-        m_push  edx
+nx:     m_push  edx
         m_NEXT
 
 ; ******************************************************************************
@@ -407,5 +411,11 @@ s0:     call   ok
 section '.mem' data readable writable
 THE_MEMORY rb 1024*1024
 MEM_END:
+regs        rb  676      
+dstackB     rb    4                ; Buffer between stack and regs
+dStack      rb   31      
+dstackE     rb    4                ; Buffer between stacks
+rStack      rb   32      
+tmpBuf3     rb    4                ; Buffer for return stack
 
 .end start
