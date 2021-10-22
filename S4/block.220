@@ -6,10 +6,10 @@ N"Count of Primes benchmark"
 ; FUNCTIONS:
 ; Q:   (n l--f)     Is Prime Number
 ; CP:  (n1--n2)     Count of Primes
-; BP:  (n--)        Benchmark
-; CPL: (n--)        Loop for multiple benchmarks
+; CPB: (n--)        Count of Primes Benchmark
+; LB:  (n--)        Loop for multiple benchmarks
 
 `Q%%S~(\\~;)%<(\;)PPGQ;`
 `CP 4c; 11 1{\ #3 :Q (c+\) PP %% >}\\c ;`
-`BP N"# primes in " #. ": " T$ :CP . T$- " (" . " ms)";`
-`CPL 256$ 1[#+# :BP]\;`
+`CPB N"# primes in " #. ": " T$ :CP . T$- " (" . " ms)";`
+`LB 256$ 1[#+# :CPB]\;`

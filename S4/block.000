@@ -2,8 +2,8 @@
 
 XR
 
-; DC: Dump the code
-`DC hD0[IC@#,96=IDC@';=&(N)];`
+; CD: Dump the code
+`CD hD0[IC@#,96=IPC@96=&(N)];`
 
 ; NB/C/D/E: print TOS to <X> width
 `NB #10<(0.).;`
@@ -34,6 +34,8 @@ XR
 ; CLS: Clear Screen (--)
 `CLS :CSI"2J"1#:GXY;`
 
-"S4 v0.0.1 - Chris Curl - https://github.com/CCurl/S4"
-NN"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
-NN"Hello."
+"S4 v0.0.1 - by Chris Curl"
+N"Source code:https://github.com/CCurl/S4"
+N"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
+N"This system has "r." registers, "f." functions, and "z." memory."
+N"Hello."
