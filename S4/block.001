@@ -1,6 +1,23 @@
 0( Block.001 - sandbox )
-; EDITOR work
-;XR
+; Working on a simple editor
+XR
+
+; KEYS:
+; ^W: (23) Home
+; ^R: (18) End
+; ^E: ( 5) Up
+; ^S: (19) Left
+; ^D: ( 4) Down
+; ^F: ( 6) Right
+; ^X: (24) Delete
+; ^V: (22) Insert
+; ^Q: (17) Quit
+
+; Key handler (k--)
+`NCL c0<(0c;)r0<(0r;)63c<(63c;)15r<(15r;)1 70:XY"("c.Br.")";`
+`KYH #19=(\c-\;)#6=(\c+\;)#4=(\r+\;)#5=(\r-\;)#23=(\0c;;)#18=(63c;;) .B;`
+`HSK K#72=(\5;)#75=(\19;)#77=(\6;)#80=(\4;);`
+`KYL 1{\K#17=(\E)#3=(\E)#224=(\:HSK):KYH:NCL 1}\;`
 
 ; REGs
 ; ea: absolute (eb eo +)
@@ -29,33 +46,29 @@
 ; SU:  Set Up
 ; GT:  Get Text
 
-20k*db;
-h t; db h;
-`DE  db dhD[I C@, IDC@';= IC@96= &(N)];`
-`CSI 27,"[";`
-`GXY 0(x y--) :CSI.";"."H";`
-`CLS :CSI "2J"1#:GXY;`
+`CD  hD0[IC@#,96=IPC@96=&(N)];`
+`NB  #10<(0.).;`
+`SI  27,"[";`
+`XY  0(x y--) :SI.";"."H";`
+`CS  :SI "2J"1#:XY;`
 
-`SU  80rw;44fg;33bg;10k*## eb;eh;ea; ;`
-`GT  :SU 0 h D[I C@ eh+ C!] 0 100[0 eh+ C!];`
-`SS  1#x;y;1#:GXY eb eh[I C@, x+ rw=(N 1x;y+\)]27,"[J":HEA;`
-`OA  eb eo + ea; ;` 
-`AO  ea eb - eo; ;`
-`OXY 0(--x y):AO eo rw S P$P;`
-`GCC :OXY:GXY;`
-`NEA ea eh<~(eh ea;) ea eb <(eb ea;);`
-`HLC fg bk:STC;`
-`HEA :NEA:GCC:HLC:EAC:CLC;`
-`CEA :CLC:GCC:EAC;`
-`MV  0(n--):CEA ea + ea; :HEA;`
-`DN  rw:MV;`
-`UP  rwV:MV;`
-`RT  1:MV;`
-`LF  1O:MV;`
-`EAC 0(--c)ea C@, ;`
-`ICH 0(c--)eh+ P t; ea t[tD C@ t- C!] ea C! SS;`
-`DCH ea eh-[I P C@ I C!] :SS;`
-`CL  1 10 :GXY;`
-h dh; t h;
+`SU  32 1024 * bs; ;`
+`GT  :SU 0 1023[0 I bs + C!] 0 h[I C@ I bs + C!];`
 
-:GT:CLS:SS:CL
+; Insert Char (c--)
+`IC 64 l * c + t;;`
+
+
+`LOC 64 * + bs + ;`
+`BSE bs 1023 + ;`
+`LC  c l :LOC ;`
+
+`GC  :LOC C@ #~(\' );`
+`RC  :LOC C! :SS ;`
+`SL  0 63 [I J :GC,];`
+`BS  1[B];`
+`SHA 6:BS 1 6[9:BS I.]N;`
+`SH  1#:GXY :SHA 5:BS 0 63[I 10 S.\]N;`
+`SS  :SH 0 15[I :NB BBB :SL 5:BS N];`
+
+:CS :SU :GT :SS
