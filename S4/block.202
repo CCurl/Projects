@@ -1,16 +1,16 @@
 0 XFL
 
-; SH: Skip Header
+; SH (--): Skip Header
 `SH 1 54[fh XFR\\ th XFR\\];`
 
-; BO: Both Open (--f)
+; BO (--f): Both Open (--f)
 `BO fh~~ th~~ &;`
 
-; RF, RT: Read From/To
+; RF, RT (--c) Read From/To
 `RF fh XFR ~(fh XFC 0fh;);`
 `RT th XFR ~(th XFC 0th;);`
 
-; CB: Compare Bytes
+; CB (--): Compare Bytes
 `CB :BO{\ br+\ :RF :RT =~(df+\) :BO};`
 
 NN"Comparing Files ... "
@@ -19,4 +19,4 @@ NN"Comparing Files ... "
 0 df; 54 br; :BO(:SH:CB)
 fh(fh XFC 0fh;)
 th(th XFC 0th;)
-Bdf." differences, "brD." bytes read"
+B df . " differences, " br D . " bytes read"

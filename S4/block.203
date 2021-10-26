@@ -3,15 +3,22 @@
 ; SH: Skip Header
 `SH 1 54[th XFR\\];`
 
-`CF th XFC 0th; ;`
-`RT th XFR ~(:CF);`
-`OTB tb#(#,)~(:CF) 0tb; nb+\;`
+; CF (--): Close File
+`CF th XFC 0 th; ;`
 
-; DF: Decode File
-`DF th{\ :RT 1&(tb bt | tb;) bt#+bt; n+6>(:OTB 0n; 1bt;) th} :OTB;`
+; OTB (b--): Output The Byte
+`OTB tb#(#, nb+\)~(:CF) 0 tb; ;`
 
-`DTW 1bt; 0n; 0nb; 0tb; :SH :DF;`
+; RTF (--c): Read The File
+`RTF th XFR ~(:CF);`
+
+; DF (--): Decode File
+`DF th{\ :RTF 1&(tb bit | tb;) bit #+ bit; n+ 6>(:OTB 0 n; 1 bit;) th} :OTB;`
+
+; DTW (--): Do The Work
+`DTW 1 bit; 0## n;nb;tb; :SH :DF;`
+
 NN"Decode File"N
-1000 #_out.bmp_#_rb_\ XFO th;
+1000 #_out.bmp_ #_rb_ \ XFO th;
 th(:DTW)
-NnbD." bytes decoded."
+N nb. " bytes decoded."

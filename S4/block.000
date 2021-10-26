@@ -34,6 +34,9 @@ XR
 ; CLS: Clear Screen (--)
 `CLS :CSI"2J"1#:GXY;`
 
+; RND (--n)
+`RND s#~(\T#s;)#17L^#13R^#5L^#s;U;`
+
 "S4 v0.0.1 - by Chris Curl"
 N"Source code:https://github.com/CCurl/S4"
 N"Reference: https://github.com/CCurl/S4/blob/main/reference.txt"
