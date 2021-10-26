@@ -1,7 +1,7 @@
-0 XFL
+N"Decode the encoded image"N
 
-; SH: Skip Header
-`SH 1 54[th XFR\\];`
+; SKH: Skip Header
+`SKH 1 54[th XFR\\];`
 
 ; CF (--): Close File
 `CF th XFC 0 th; ;`
@@ -12,11 +12,11 @@
 ; RTF (--c): Read The File
 `RTF th XFR ~(:CF);`
 
-; DF (--): Decode File
-`DF th{\ :RTF 1&(tb bit | tb;) bit #+ bit; n+ 6>(:OTB 0 n; 1 bit;) th} :OTB;`
+; DTF (--): Decode The File
+`DTF th{\ :RTF 1&(tb bit | tb; ) bit #+ bit; n+ 6>(:OTB 0 n; 1 bit; ) th} :OTB;`
 
 ; DTW (--): Do The Work
-`DTW 1 bit; 0## n;nb;tb; :SH :DF;`
+`DTW 1 bit; 0## n;nb;tb; :SKH :DTF;`
 
 NN"Decode File"N
 1000 #_out.bmp_ #_rb_ \ XFO th;
