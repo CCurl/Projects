@@ -8,3 +8,4 @@ history.txt
 /S5/S4.vcxproj.user
 MinForth.vcxproj.user
 .vs/*
+s4/asm/S4.exe

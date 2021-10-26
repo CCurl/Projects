@@ -1,12 +1,17 @@
-0(compare files)
-{fo 1000 #N;_jack.bmp_  #M;_rb_\ NM xFO F;}
-{fc F xFC 0F;}
-{to 1000 #N;_jack2.bmp_ #M;_rb_\ NM xFO T;}
-{tc T xFC 0T;}
-{sh 54[F xFR\\ T xFR\\ 1-]}
+0 XFL
 
-{cd = 0=(D+\)}
-{cb 0I; 1[\F xFR(T xFR\ :cd 1) I+\]\}
-{cf 0D; :fo:to:sh:cb:fc:tc D}
-"comparing ..."
-:cf . " differences. "
+; SH: Skip Header
+`SH 1 54[th XFR\\];`
+
+`CF th XFC 0th; ;`
+`RT th XFR ~(:CF);`
+`OTB tb#(#,)~(:CF) 0tb; nb+\;`
+
+; DF: Decode File
+`DF th{\ :RT 1&(tb bt | tb;) bt#+bt; n+6>(:OTB 0n; 1bt;) th} :OTB;`
+
+`DTW 1bt; 0n; 0nb; 0tb; :SH :DF;`
+NN"Decode File"N
+1000 #_out.bmp_#_rb_\ XFO th;
+th(:DTW)
+NnbD." bytes decoded."

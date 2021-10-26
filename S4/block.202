@@ -1,18 +1,22 @@
-0(compare files)
+0 XFL
 
-{sh 54[F xFR\\ T xFR\\ 1-]}
-{bo F0> t0> &}
-{cd = I+\ 0=(D+\)}
-{rf F(F xFR)
-{xx :bo ()}
+; SH: Skip Header
+`SH 1 54[fh XFR\\ th XFR\\];`
 
-{cb 1[\ F xFR $X; T xFR $Y; :cd F]\}
-{cf :sh:cb D}
-"comparing ..."
-1000 #_jack.bmp_ #_rb_\ xFO F;
-1000 #_jack2.bmp_#_rb_\ xFO T;
-0D;0I;
-:bo(:sh:cb)
-F(F xFC)
-T(T xFC)
-D." differences. "
+; BO: Both Open (--f)
+`BO fh~~ th~~ &;`
+
+; RF, RT: Read From/To
+`RF fh XFR ~(fh XFC 0fh;);`
+`RT th XFR ~(th XFC 0th;);`
+
+; CB: Compare Bytes
+`CB :BO{\ br+\ :RF :RT =~(df+\) :BO};`
+
+NN"Comparing Files ... "
+1000 #_in.bmp_ #_rb_\ XFO fh;
+1000 #_out.bmp_#_rb_\ XFO th;
+0 df; 54 br; :BO(:SH:CB)
+fh(fh XFC 0fh;)
+th(th XFC 0th;)
+Bdf." differences, "brD." bytes read"

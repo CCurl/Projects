@@ -1,17 +1,37 @@
-0( open/close files)
-{251 1000 #N;_jack.bmp_  #M;_rb_\ NM xFO F;}
-{252 1000 #N;_jack2.bmp_ #M;_wb_\ NM xFO T;}
-{253 FxFC 0F;}
-{254 TxFC 0T;}
+; File Encoder
+0 XFL
 
-0( 201: copy header )
-{201 1 54[F xFR (TxFW) X+\]\}
+N"File Encoder"N
 
-0( 202: copy 1 byte )
-0( this would be replaced with the encoder)
-{202 1[[\FxFR(TxFW X+\1)]]\}
-0({202 "todo"})
+; open/close files
+`OSF 1000 #nm;_file.txt_ #md;_rb_\ nm md XFO sh; ;`
+`OIF 1000 #nm;_in.bmp_   #md;_rb_\ nm md XFO ih; ;`
+`OOF 1000 #nm;_out.bmp_  #md;_wb_\ nm md XFO oh; ;`
 
-0( convert file )
-{298 0X;:251:252 1(F.bT.b) F0> T0> &(:201:202:253:254)}
-{299 "coping ... ":298"done."X." bytes"}
+`CSF sh (sh XFC 0 sh;);`
+`CIF ih (ih XFC 0 ih;);`
+`COF oh (oh XFC 0 oh;);`
+
+; NSB: Next Source Byte (--)
+; sb is the Source Byte
+`NSB 0sb; sh~(;) sh XFR (sb; ;) :CSF;`
+
+; NBT: (--1|0) Next Bit (from Source Byte)
+`NBT n+6>(0n; :NSB) sb 1 & sb 1 R sb; ;`
+
+; CB: Convert Byte (x--y)
+`CB 254 & :NBT | ;`
+
+; CPH: copy header (54 bytes)
+`CPH 1 54[ih XFR (oh XFW) nb+\]\;`
+
+; WF: Work File
+`WF 8n; 1{\ih XFR(:CB oh XFW sz+)}\;`
+
+; Do The Work
+`DTW 54sz; :OSF:OIF:OOF sh~~ ih~~ & oh~~ &(:CPH:WF:CSF:CIF:COF);`
+
+; ENF: Encode File
+`ENF "Encoding ... " :DTW "done." sz. " bytes";`
+
+:ENF
