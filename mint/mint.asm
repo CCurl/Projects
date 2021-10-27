@@ -608,11 +608,11 @@ dd cFetch                     ; # 125 (})
 dd doInv                      ; # 126 (~)
 
 
-dstackB     dd    ?           ; Buffer between stack and regs
+buf1        dd    4 dup(?)    ; Buffer
 dStack      dd   32 dup 0
-dstackE     dd    ?           ; Buffer between stacks
+buf2        dd    4 dup(?)    ; Buffer
 rStack      dd   32 dup 0
-tmpBuf3     dd    ?           ; Buffer for return stack
+buf3        dd    4 dup(?)    ; Buffer
 
 commands    dd  26 dup 0
 regs        dd  26 dup 0
