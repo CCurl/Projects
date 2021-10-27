@@ -9,3 +9,4 @@ history.txt
 MinForth.vcxproj.user
 .vs/*
 s4/asm/S4.exe
+mint/mint.exe

@@ -1,0 +1,753 @@
+format PE console
+include 'win32ax.inc'
+
+;section '.idata' data readable import
+
+; library kernel32, 'kernel32', msvcrt, 'msvcrt.dll'
+; library msvcrt, 'msvcrt.dll'
+; import kernel32, ReadConsole, 'ReadConsole', WriteConsole, 'WriteConsole', \
+;        ExitProcess, 'ExitProcess', GetStdHandle, 'GetStdHandle'
+; import msvcrt, printf, 'printf'
+
+.data
+; library crtdll, 'crtdll.dll'
+; import crtdll, printf, 'printf'
+
+hStdIn      dd  0
+hStdOut     dd  0
+okStr       db  "mint>", 0
+crlf        db  13, 10
+tib         db  128 dup ?
+outBuf      db  256 dup ?
+bytesRead   dd  0
+unkOP       db  "-unk-"
+dDepth      dd   ?
+rDepth      dd   ?
+rStackPtr   dd   ?
+fStartAddr  dd   ?
+fEndAddr    dd   ?
+fI          dd   ?
+fEndI       dd   ?
+
+
+; ******************************************************************************
+; CODE 
+; ******************************************************************************
+section '.code' code readable executable
+
+; ------------------------------------------------------------------------------
+; macros ...
+; ------------------------------------------------------------------------------
+
+CELL_SIZE equ 4
+REG1 equ eax         ; Free register #1
+REG2 equ ebx         ; Free register #2
+REG3 equ ecx         ; Free register #3
+REG4 equ edx         ; Free register #4
+TOS  equ edi         ; Top-Of-Stack
+PCIP equ esi         ; Program-Counter/Instruction-Pointer
+STKP equ ebp         ; Stack-Pointer
+
+; ------------------------------------------------------------------------------
+macro m_setTOS val
+{
+       mov TOS, val
+}
+
+macro m_push val
+{
+       inc [dDepth]
+       add STKP, CELL_SIZE
+       mov [STKP], TOS
+       m_setTOS val
+}
+
+; ------------------------------------------------------------------------------
+macro m_get2ND val
+{
+       mov val, [STKP]
+}
+macro m_set2ND val
+{
+       mov [STKP], val
+}
+
+; ------------------------------------------------------------------------------
+macro m_getTOS val
+{
+       mov val, TOS
+}
+
+macro m_drop
+{
+       dec [dDepth]
+       mov TOS, [STKP]
+       sub STKP, CELL_SIZE
+}
+
+macro m_pop val
+{
+       m_getTOS val
+       m_drop
+}
+
+; ------------------------------------------------------------------------------
+macro m_toVmAddr reg
+{
+       add reg, edx
+}
+
+macro m_fromVmAddr reg
+{
+       sub reg, edx
+}
+
+; ------------------------------------------------------------------------------
+
+macro m_rpush reg
+{
+       push TOS
+       add [rStackPtr], CELL_SIZE
+       mov TOS, [rStackPtr]
+       mov [TOS], reg
+       pop TOS
+}
+ 
+macro m_rpop reg
+{
+       push TOS
+       mov TOS, [rStackPtr]
+       mov reg, [TOS]
+       sub [rStackPtr], CELL_SIZE
+       pop TOS
+}
+
+; ******************************************************************************
+mNEXT:  cmp     [dDepth], 0
+        jge     nxtOK
+        mov     [dDepth], 0
+nxtOK:  lodsb
+        cmp     al, $7E
+        jg      s0
+        movzx   ecx, al
+        shl     ecx, 2
+        mov     ebx, [jmpTable+ecx]
+        jmp     ebx
+
+
+; ******************************************************************************
+doNop:  jmp     mNEXT
+
+; ******************************************************************************
+iToA:   mov     ecx, outBuf+16
+        mov     ebx, 0
+        mov     BYTE [ecx], 0
+i2a1:   push    ebx
+        mov     ebx, 10
+        mov     edx, 0
+        div     ebx
+        add     dl, '0'
+        dec     ecx 
+        mov     BYTE [ecx], dl
+        pop     ebx
+        inc     ebx
+        cmp     eax, 0
+        jne     i2a1
+        ret
+
+; ******************************************************************************
+regAddr: movzx   edx, al
+        sub edx, 'a'
+        shl     edx, 2
+        add     edx, regs
+        ret
+
+; ******************************************************************************
+setReg: call regAddr
+        mov [edx], ebx
+        ret
+
+; ******************************************************************************
+getReg: call    regAddr
+        mov     ebx, [edx]
+        ret
+
+; ******************************************************************************
+; register
+reg:    call    regAddr
+        m_push  edx
+        jmp     mNEXT
+
+; ******************************************************************************
+cmdAddr: movzx   edx, al
+        sub edx, 'A'
+        shl     edx, 2
+        add     edx, commands   
+        ret
+
+; ******************************************************************************
+; command
+cmd:    call    cmdAddr
+        mov     ebx, [edx]
+        cmp     ebx, 0
+        je      cmdX
+        m_rpush esi
+        mov     esi, ebx
+cmdX:   jmp     mNEXT
+
+; ******************************************************************************
+defCmd:  lodsb
+        call    cmdAddr
+        mov     [edx], esi
+        jmp     mNEXT
+
+; ******************************************************************************
+doFetch: m_getTOS   edx
+        m_setTOS    [edx]
+        jmp         mNEXT
+
+; ******************************************************************************
+doStore: m_pop  edx
+        m_pop   eax
+        mov     [edx], eax
+        jmp     mNEXT
+
+; ******************************************************************************
+cFetch: m_getTOS   edx
+        mov         TOS, [edx]
+        and         TOS, $ff
+        jmp         mNEXT
+
+; ******************************************************************************
+cStore: m_pop  edx
+        m_pop   eax
+        mov     BYTE [edx], al
+        jmp     mNEXT
+
+; ******************************************************************************
+; Number input
+num:    sub     al, '0'
+        and     eax, $FF
+        mov     edx, eax
+n1:     mov     al, [esi]
+        mov     bx, '09'
+        call    betw
+        cmp     bl, 0
+        je      nx
+        sub     al, '0'
+        imul    edx, edx, 10
+        add     edx, eax
+        inc     esi
+        jmp     n1
+nx:     m_push  edx
+        jmp     mNEXT
+
+; ******************************************************************************
+; Quote
+doQt:   lodsb
+        cmp     al, '_'
+        je      qx
+        call    p1
+        jmp     doQt
+qx:     jmp     mNEXT
+
+; ******************************************************************************
+betw:   cmp     al, bl
+        jl      betF
+        cmp     al, bh
+        jg      betF
+        mov     bl, 1
+        ret
+betF:   mov     bl, 0
+        ret
+
+; ******************************************************************************
+doFor:  m_pop   ebx
+        cmp     ebx, 0
+        je      fSkip
+        push    esi
+        mov     al, 'i'
+        call    setReg
+        jmp     mNEXT
+
+fSkip:  lodsb
+        cmp     al, ')'
+        jne     fSkip
+
+; ******************************************************************************
+doNext: mov     al, 'i'
+        call    getReg
+        dec     ebx
+        call    setReg
+        cmp     ebx, 0
+        jz      nxtX
+        mov     esi, [esp]
+        jmp     mNEXT
+nxtX:   pop     eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doI:    m_push  [fI]
+        jmp     mNEXT
+
+; ******************************************************************************
+f_UnknownOpcode:
+        ; invoke WriteConsole, [hStdOut], unkOP, 5, NULL, NULL
+        jmp s0
+
+; ******************************************************************************
+bye:    invoke  ExitProcess, 0
+
+; ******************************************************************************
+ok:
+        mov al, 13
+        call p1
+        mov al, 10
+        call p1
+        invoke WriteConsole, [hStdOut], okStr, 6, NULL, NULL
+        ret
+
+; ******************************************************************************
+doMult: m_pop   eax
+        imul    TOS, eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doSub:  m_pop   eax
+        sub     TOS, eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doAdd:  m_pop   eax
+        add     TOS, eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doMod:  m_pop   ebx
+        cmp     ebx, 0
+        je      mNEXT
+        m_pop   eax
+        mov     edx, 0
+        idiv    ebx
+        m_push  edx
+        jmp     mNEXT
+
+; ******************************************************************************
+doDiv:  m_pop   ebx
+        cmp     ebx, 0
+        je      mNEXT
+        m_pop   eax
+        mov     edx, 0
+        idiv    ebx
+        m_push  eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doAnd:  m_pop   eax
+        and     TOS, eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doOr:   m_pop   eax
+        or      TOS, eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doXOR:  m_pop   eax
+        xor     TOS, eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doNeg:  neg     TOS
+        jmp     mNEXT
+
+; ******************************************************************************
+doInv:  not     TOS
+        jmp     mNEXT
+
+; ******************************************************************************
+cmpT:   mov     TOS, 1
+        jmp     mNEXT
+
+; ******************************************************************************
+cmpF:   mov     TOS, 0
+        jmp     mNEXT
+
+; ******************************************************************************
+doEQ:   m_pop   eax
+        cmp     TOS, eax
+        je      cmpT
+        jmp     cmpF
+
+; ******************************************************************************
+doLT:   m_pop   eax
+        cmp     TOS, eax
+        jl      cmpT
+        jmp     cmpF
+
+; ******************************************************************************
+doGT:   m_pop   eax
+        cmp     TOS, TOS
+        jg      cmpT
+        jmp     cmpF
+
+; ******************************************************************************
+emit:   m_pop   eax
+        call    p1
+        jmp     mNEXT
+
+; ******************************************************************************
+doBlank: mov    al, 32
+        call    p1
+        jmp     mNEXT
+
+; ******************************************************************************
+doCrLf: mov     al, 13
+        call    p1
+        mov     al, 10
+        call    p1
+        jmp     mNEXT
+
+; ******************************************************************************
+doDot:  m_pop   eax
+        call    iToA
+        invoke  WriteConsole, [hStdOut], ecx, ebx, NULL, NULL
+        jmp     mNEXT
+
+; ******************************************************************************
+doTimer: invoke GetTickCount
+        m_push  eax
+        jmp     mNEXT
+
+; ******************************************************************************
+doDup:  m_push  TOS
+        jmp     mNEXT
+
+; ******************************************************************************
+doSwap: m_get2ND    eax
+        m_set2ND    TOS
+        m_setTOS    eax
+        jmp         mNEXT
+
+; ******************************************************************************
+doOver: m_get2ND    eax
+        m_push      eax
+        jmp         mNEXT
+
+; ******************************************************************************
+doDrop: m_drop
+        jmp         mNEXT
+
+; ******************************************************************************
+p1:     mov     [outBuf], al
+        invoke  WriteConsole, [hStdOut], outBuf, 1, NULL, NULL
+        ret
+
+; ******************************************************************************
+s_SYS_INIT:
+            ; Return stack
+            mov eax, rStack - CELL_SIZE
+            mov [rStackPtr], eax
+            mov [rDepth], 0
+            ; Data stack
+            mov STKP, dStack
+            ; PCIP = IP/PC
+            mov PCIP, THE_MEMORY
+            ret        
+
+; ******************************************************************************
+start:
+        invoke GetStdHandle, STD_INPUT_HANDLE
+        mov    [hStdIn], eax
+        
+        invoke GetStdHandle, STD_OUTPUT_HANDLE
+        mov    [hStdOut], eax
+
+        mov     ebx, THE_MEMORY
+        mov     al, 'm'
+        call    setReg
+    
+s0:     call   ok
+        invoke ReadConsole, [hStdIn], tib, 128, bytesRead, 0
+        cld
+        mov    esi, tib
+        jmp     mNEXT
+    
+        invoke ExitProcess, 0
+
+
+; ******************************************************************************
+section '.mem' data readable writable
+
+jmpTable:
+dd f_UnknownOpcode            ; # 00 ()
+dd f_UnknownOpcode            ; # 01 (☺)
+dd f_UnknownOpcode            ; # 02 (☻)
+dd f_UnknownOpcode            ; # 03 (♥)
+dd f_UnknownOpcode            ; # 04 (♦)
+dd f_UnknownOpcode            ; # 05 (♣)
+dd f_UnknownOpcode            ; # 06 (♠)
+dd f_UnknownOpcode            ; # 07 ()
+dd f_UnknownOpcode            ; # 08 ()
+dd doNop                      ; # 09 ()
+dd f_UnknownOpcode            ; # 010 ()
+dd f_UnknownOpcode            ; # 011 ()
+dd f_UnknownOpcode            ; # 012 ()
+dd f_UnknownOpcode            ; # 013 ()
+dd f_UnknownOpcode            ; # 014 ()
+dd f_UnknownOpcode            ; # 015 ()
+dd f_UnknownOpcode            ; # 016 (►)
+dd f_UnknownOpcode            ; # 017 (◄)
+dd f_UnknownOpcode            ; # 018 (↕)
+dd f_UnknownOpcode            ; # 019 (‼)
+dd f_UnknownOpcode            ; # 020 (¶)
+dd f_UnknownOpcode            ; # 021 (§)
+dd f_UnknownOpcode            ; # 022 (▬)
+dd f_UnknownOpcode            ; # 023 (↨)
+dd f_UnknownOpcode            ; # 024 (↑)
+dd f_UnknownOpcode            ; # 025 (↓)
+dd f_UnknownOpcode            ; # 026 (→)
+dd f_UnknownOpcode            ; # 027 (
+dd f_UnknownOpcode            ; # 028 (∟)
+dd f_UnknownOpcode            ; # 029 (↔)
+dd f_UnknownOpcode            ; # 030 (▲)
+dd f_UnknownOpcode            ; # 031 (▼)
+dd doNop                      ; # 032 ( )
+dd doStore                    ; # 033 (!)
+dd doDup                      ; # 034 (")
+dd doNeg                      ; # 035 (#)
+dd doSwap                     ; # 036 ($)
+dd doMod                      ; # 037 (%)
+dd doAnd                      ; # 038 (&)
+dd doDrop                     ; # 039 (')
+dd doFor                      ; # 040 (()
+dd doNext                     ; # 041 ())
+dd doMult                     ; # 042 (*)
+dd doAdd                      ; # 043 (+)
+dd emit                       ; # 044 (,)
+dd doSub                      ; # 045 (-)
+dd doDot                      ; # 046 (.)
+dd doDiv                      ; # 047 (/)
+dd num                        ; # 048 (0)
+dd num                        ; # 049 (1)
+dd num                        ; # 050 (2)
+dd num                        ; # 051 (3)
+dd num                        ; # 052 (4)
+dd num                        ; # 053 (5)
+dd num                        ; # 054 (6)
+dd num                        ; # 055 (7)
+dd num                        ; # 056 (8)
+dd num                        ; # 057 (9)
+dd f_UnknownOpcode            ; # 058 (:)
+dd f_UnknownOpcode            ; # 059 (;)
+dd doLT                       ; # 060 (<)
+dd doEQ                       ; # 061 (=)
+dd doGT                       ; # 062 (>)
+dd f_UnknownOpcode            ; # 063 (?)
+dd doFetch                    ; # 064 (@)
+dd cmd                        ; # 065 (A)
+dd cmd                        ; # 066 (B)
+dd cmd                        ; # 067 (C)
+dd cmd                        ; # 068 (D)
+dd cmd                        ; # 069 (E)
+dd cmd                        ; # 070 (F)
+dd cmd                        ; # 071 (G)
+dd cmd                        ; # 072 (H)
+dd cmd                        ; # 073 (I)
+dd cmd                        ; # 074 (J)
+dd cmd                        ; # 075 (K)
+dd cmd                        ; # 076 (L)
+dd cmd                        ; # 077 (M)
+dd cmd                        ; # 078 (N)
+dd cmd                        ; # 079 (O)
+dd cmd                        ; # 080 (P)
+dd cmd                        ; # 081 (Q)
+dd cmd                        ; # 082 (R)
+dd cmd                        ; # 083 (S)
+dd cmd                        ; # 084 (T)
+dd cmd                        ; # 085 (U)
+dd cmd                        ; # 086 (V)
+dd cmd                        ; # 087 (W)
+dd cmd                        ; # 088 (X)
+dd cmd                        ; # 089 (Y)
+dd cmd                        ; # 090 (Z)
+dd f_UnknownOpcode            ; # 091 ([)
+dd bye                        ; # 092 (\)
+dd f_UnknownOpcode            ; # 093 (])
+dd doXOR                      ; # 094 (^)
+dd doQt                       ; # 095 (_)
+dd f_UnknownOpcode            ; # 096 (`)
+dd reg                        ; # 097 (a)
+dd reg                        ; # 098 (b)
+dd reg                        ; # 099 (c)
+dd reg                        ; # 100 (d)
+dd reg                        ; # 101 (e)
+dd reg                        ; # 102 (f)
+dd reg                        ; # 103 (g)
+dd reg                        ; # 104 (h)
+dd reg                        ; # 105 (i)
+dd reg                        ; # 106 (j)
+dd reg                        ; # 107 (k)
+dd reg                        ; # 108 (l)
+dd reg                        ; # 109 (m)
+dd reg                        ; # 110 (n)
+dd reg                        ; # 111 (o)
+dd reg                        ; # 112 (p)
+dd reg                        ; # 113 (q)
+dd reg                        ; # 114 (r)
+dd reg                        ; # 115 (s)
+dd reg                        ; # 116 (t)
+dd reg                        ; # 117 (u)
+dd reg                        ; # 118 (v)
+dd reg                        ; # 119 (w)
+dd reg                        ; # 120 (x)
+dd reg                        ; # 121 (y)
+dd reg                        ; # 122 (z)
+dd cStore                     ; # 123 ({)
+dd doOr                       ; # 124 (|)
+dd cFetch                     ; # 125 (})
+dd doInv                      ; # 126 (~)
+dd f_UnknownOpcode            ; # 128 (Ç)
+dd f_UnknownOpcode            ; # 127 ()
+dd f_UnknownOpcode            ; # 129 (ü)
+dd f_UnknownOpcode            ; # 130 (é)
+dd f_UnknownOpcode            ; # 131 (â)
+dd f_UnknownOpcode            ; # 132 (ä)
+dd f_UnknownOpcode            ; # 133 (à)
+dd f_UnknownOpcode            ; # 134 (å)
+dd f_UnknownOpcode            ; # 135 (ç)
+dd f_UnknownOpcode            ; # 136 (ê)
+dd f_UnknownOpcode            ; # 137 (ë)
+dd f_UnknownOpcode            ; # 138 (è)
+dd f_UnknownOpcode            ; # 139 (ï)
+dd f_UnknownOpcode            ; # 140 (î)
+dd f_UnknownOpcode            ; # 141 (ì)
+dd f_UnknownOpcode            ; # 142 (Ä)
+dd f_UnknownOpcode            ; # 143 (Å)
+dd f_UnknownOpcode            ; # 144 (É)
+dd f_UnknownOpcode            ; # 145 (æ)
+dd f_UnknownOpcode            ; # 146 (Æ)
+dd f_UnknownOpcode            ; # 147 (ô)
+dd f_UnknownOpcode            ; # 148 (ö)
+dd f_UnknownOpcode            ; # 149 (ò)
+dd f_UnknownOpcode            ; # 150 (û)
+dd f_UnknownOpcode            ; # 151 (ù)
+dd f_UnknownOpcode            ; # 152 (ÿ)
+dd f_UnknownOpcode            ; # 153 (Ö)
+dd f_UnknownOpcode            ; # 154 (Ü)
+dd f_UnknownOpcode            ; # 155 (¢)
+dd f_UnknownOpcode            ; # 156 (£)
+dd f_UnknownOpcode            ; # 157 (¥)
+dd f_UnknownOpcode            ; # 158 (₧)
+dd f_UnknownOpcode            ; # 159 (ƒ)
+dd f_UnknownOpcode            ; # 160 (á)
+dd f_UnknownOpcode            ; # 161 (í)
+dd f_UnknownOpcode            ; # 162 (ó)
+dd f_UnknownOpcode            ; # 163 (ú)
+dd f_UnknownOpcode            ; # 164 (ñ)
+dd f_UnknownOpcode            ; # 165 (Ñ)
+dd f_UnknownOpcode            ; # 166 (ª)
+dd f_UnknownOpcode            ; # 167 (º)
+dd f_UnknownOpcode            ; # 168 (¿)
+dd f_UnknownOpcode            ; # 169 (⌐)
+dd f_UnknownOpcode            ; # 170 (¬)
+dd f_UnknownOpcode            ; # 171 (½)
+dd f_UnknownOpcode            ; # 172 (¼)
+dd f_UnknownOpcode            ; # 173 (¡)
+dd f_UnknownOpcode            ; # 174 («)
+dd f_UnknownOpcode            ; # 175 (»)
+dd f_UnknownOpcode            ; # 176 (░)
+dd f_UnknownOpcode            ; # 177 (▒)
+dd f_UnknownOpcode            ; # 178 (▓)
+dd f_UnknownOpcode            ; # 179 (│)
+dd f_UnknownOpcode            ; # 180 (┤)
+dd f_UnknownOpcode            ; # 181 (╡)
+dd f_UnknownOpcode            ; # 182 (╢)
+dd f_UnknownOpcode            ; # 183 (╖)
+dd f_UnknownOpcode            ; # 184 (╕)
+dd f_UnknownOpcode            ; # 185 (╣)
+dd f_UnknownOpcode            ; # 186 (║)
+dd f_UnknownOpcode            ; # 187 (╗)
+dd f_UnknownOpcode            ; # 188 (╝)
+dd f_UnknownOpcode            ; # 189 (╜)
+dd f_UnknownOpcode            ; # 190 (╛)
+dd f_UnknownOpcode            ; # 191 (┐)
+dd f_UnknownOpcode            ; # 192 (└)
+dd f_UnknownOpcode            ; # 193 (┴)
+dd f_UnknownOpcode            ; # 194 (┬)
+dd f_UnknownOpcode            ; # 195 (├)
+dd f_UnknownOpcode            ; # 196 (─)
+dd f_UnknownOpcode            ; # 197 (┼)
+dd f_UnknownOpcode            ; # 198 (╞)
+dd f_UnknownOpcode            ; # 199 (╟)
+dd f_UnknownOpcode            ; # 200 (╚)
+dd f_UnknownOpcode            ; # 201 (╔)
+dd f_UnknownOpcode            ; # 202 (╩)
+dd f_UnknownOpcode            ; # 203 (╦)
+dd f_UnknownOpcode            ; # 204 (╠)
+dd f_UnknownOpcode            ; # 205 (═)
+dd f_UnknownOpcode            ; # 206 (╬)
+dd f_UnknownOpcode            ; # 207 (╧)
+dd f_UnknownOpcode            ; # 208 (╨)
+dd f_UnknownOpcode            ; # 209 (╤)
+dd f_UnknownOpcode            ; # 210 (╥)
+dd f_UnknownOpcode            ; # 211 (╙)
+dd f_UnknownOpcode            ; # 212 (╘)
+dd f_UnknownOpcode            ; # 213 (╒)
+dd f_UnknownOpcode            ; # 214 (╓)
+dd f_UnknownOpcode            ; # 215 (╫)
+dd f_UnknownOpcode            ; # 216 (╪)
+dd f_UnknownOpcode            ; # 217 (┘)
+dd f_UnknownOpcode            ; # 218 (┌)
+dd f_UnknownOpcode            ; # 219 (█)
+dd f_UnknownOpcode            ; # 220 (▄)
+dd f_UnknownOpcode            ; # 221 (▌)
+dd f_UnknownOpcode            ; # 222 (▐)
+dd f_UnknownOpcode            ; # 223 (▀)
+dd f_UnknownOpcode            ; # 224 (α)
+dd f_UnknownOpcode            ; # 225 (ß)
+dd f_UnknownOpcode            ; # 226 (Γ)
+dd f_UnknownOpcode            ; # 227 (π)
+dd f_UnknownOpcode            ; # 228 (Σ)
+dd f_UnknownOpcode            ; # 229 (σ)
+dd f_UnknownOpcode            ; # 230 (µ)
+dd f_UnknownOpcode            ; # 231 (τ)
+dd f_UnknownOpcode            ; # 232 (Φ)
+dd f_UnknownOpcode            ; # 233 (Θ)
+dd f_UnknownOpcode            ; # 234 (Ω)
+dd f_UnknownOpcode            ; # 235 (δ)
+dd f_UnknownOpcode            ; # 236 (∞)
+dd f_UnknownOpcode            ; # 237 (φ)
+dd f_UnknownOpcode            ; # 238 (ε)
+dd f_UnknownOpcode            ; # 239 (∩)
+dd f_UnknownOpcode            ; # 240 (≡)
+dd f_UnknownOpcode            ; # 241 (±)
+dd f_UnknownOpcode            ; # 242 (≥)
+dd f_UnknownOpcode            ; # 243 (≤)
+dd f_UnknownOpcode            ; # 244 (⌠)
+dd f_UnknownOpcode            ; # 245 (⌡)
+dd f_UnknownOpcode            ; # 246 (÷)
+dd f_UnknownOpcode            ; # 247 (≈)
+dd f_UnknownOpcode            ; # 248 (°)
+dd f_UnknownOpcode            ; # 249 (∙)
+dd f_UnknownOpcode            ; # 250 (·)
+dd f_UnknownOpcode            ; # 251 (√)
+dd f_UnknownOpcode            ; # 252 (ⁿ)
+dd f_UnknownOpcode            ; # 253 (²)
+dd f_UnknownOpcode            ; # 254 (■)
+dd f_UnknownOpcode            ; # 255 ( )
+
+
+dstackB     dd    ?           ; Buffer between stack and regs
+dStack      dd   32 dup 0
+dstackE     dd    ?           ; Buffer between stacks
+rStack      dd   32 dup 0
+tmpBuf3     dd    ?           ; Buffer for return stack
+
+commands    dd  26 dup 0
+regs        dd  26 dup 0
+
+THE_MEMORY  rb 64*1024
+MEM_END:
+
+.end start
