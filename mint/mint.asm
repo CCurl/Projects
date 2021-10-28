@@ -1,17 +1,9 @@
+; MINT - a Minimal Interpreter
+
 format PE console
 include 'win32ax.inc'
 
-;section '.idata' data readable import
-
-; library kernel32, 'kernel32', msvcrt, 'msvcrt.dll'
-; library msvcrt, 'msvcrt.dll'
-; import kernel32, ReadConsole, 'ReadConsole', WriteConsole, 'WriteConsole', \
-;        ExitProcess, 'ExitProcess', GetStdHandle, 'GetStdHandle'
-; import msvcrt, printf, 'printf'
-
 .data
-; library crtdll, 'crtdll.dll'
-; import crtdll, printf, 'printf'
 
 hStdIn      dd  ?
 hStdOut     dd  ?
@@ -28,13 +20,11 @@ HERE1       dd  ?
 
 
 ; ******************************************************************************
-; CODE 
 ; ******************************************************************************
 section '.code' code readable executable
 
 ; ------------------------------------------------------------------------------
-; macros ...
-; ------------------------------------------------------------------------------
+; MACROS
 
 CELL_SIZE equ 4
 REG1 equ eax         ; Free register #1
@@ -45,7 +35,12 @@ TOS  equ edi         ; Top-Of-Stack
 PCIP equ esi         ; Program-Counter/Instruction-Pointer
 STKP equ ebp         ; Stack-Pointer
 
-; ------------------------------------------------------------------------------
+; ******************************************************************************
+macro m_getTOS val
+{
+       mov val, TOS
+}
+
 macro m_setTOS val
 {
        mov TOS, val
@@ -59,22 +54,18 @@ macro m_push val
        m_setTOS val
 }
 
-; ------------------------------------------------------------------------------
+; ******************************************************************************
 macro m_get2ND val
 {
        mov val, [STKP]
 }
- macro m_set2ND val
+
+macro m_set2ND val
 {
        mov [STKP], val
 }
 
-; ------------------------------------------------------------------------------
-macro m_getTOS val
-{
-       mov val, TOS
-}
-
+; ******************************************************************************
 macro m_drop
 {
        dec [dDepth]
@@ -88,8 +79,7 @@ macro m_pop val
        m_drop
 }
 
-; ------------------------------------------------------------------------------
-
+; ******************************************************************************
 rpush:  push    eax
         add     [rStackPtr], CELL_SIZE
         mov     eax, [rStackPtr]
@@ -249,20 +239,6 @@ doQt:   lodsb
 qx:     jmp     mNEXT
 
 ; ******************************************************************************
-doBTick: push   eax
-        mov    al, 'h'
-        call    getReg
-        pop     eax
-bt1:    mov     [ebx], al
-        inc     ebx
-        lodsb
-        cmp     al, '`'
-        jne     bt1
-        mov     al, 'h'
-        call    setReg
-        jmp     mNEXT
-
-; ******************************************************************************
 betw:   cmp     al, bl
         jl      betF
         cmp     al, bh
@@ -299,7 +275,6 @@ nxtX:   pop     eax
 
 ; ******************************************************************************
 f_UnknownOpcode:
-        ; invoke WriteConsole, [hStdOut], unkOP, 5, NULL, NULL
         jmp s0
 
 ; ******************************************************************************
@@ -400,16 +375,10 @@ emit:   m_pop   eax
         jmp     mNEXT
 
 ; ******************************************************************************
-doBlank: mov    al, 32
-        call    p1
-        jmp     mNEXT
-
-; ******************************************************************************
 doCrLf: mov     al, 13
         call    p1
         mov     al, 10
-        call    p1
-        ret
+        jmp    p1
 
 ; ******************************************************************************
 sDot:   push    eax
@@ -493,8 +462,6 @@ s0:     call    ok
         mov     esi, [HERE]
         jmp     mNEXT
     
-        invoke ExitProcess, 0
-
 
 ; ******************************************************************************
 section '.mem' data readable writable
