@@ -172,6 +172,9 @@ col1:   cmp     esi, [HERE1]
         cmp     al, ';'
         jne     col1
         mov     [HERE], esi
+        mov     al, 'h'
+        mov     ebx, esi
+        call    setReg
 colX:   jmp     mNEXT
 
 ; ******************************************************************************
