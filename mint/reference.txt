@@ -8,7 +8,6 @@
 *  (a b--n)       n: a*b - multiplication
 /  (a b--n)       n: a/b - integer division
 %  (a b--n)       n: a%b - modulo
-#  (a--b)         b: -a  - negate
 
 
 *** BIT MANIPULATION ***
@@ -22,7 +21,7 @@
 "  (a--a a)       Duplicate TOS                          (Forth DUP)
 '  (a b--a)       Drop TOS                               (Forth DROP)
 $  (a b--b a)     Swap top 2 stack items                 (Forth SWAP)
-???  (a b--a b a)   Push 2nd                               (Forth OVER)
+#  (a b--a b a)   Push 2nd                               (Forth OVER)
 
 
 *** MEMORY ***
