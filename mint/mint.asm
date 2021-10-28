@@ -18,7 +18,6 @@ rStackPtr   dd  ?
 HERE        dd  ?
 HERE1       dd  ?
 
-
 ; ******************************************************************************
 ; ******************************************************************************
 section '.code' code readable executable
@@ -152,10 +151,10 @@ reg:    call    regAddr
         jmp     mNEXT
 
 ; ******************************************************************************
-cmdAddr: movzx  edx, al
+fnAddr: movzx  edx, al
         sub     edx, 'A'
         shl     edx, 2
-        add     edx, commands   
+        add     edx, functions   
         ret
 
 ; ******************************************************************************
@@ -164,7 +163,7 @@ doCol:  lodsb
         call    betw
         cmp     bl, 0
         je      colX
-        call    cmdAddr
+        call    fnAddr
         mov     [edx], esi
 col1:   cmp     esi, [HERE1]
         jge     colX
@@ -183,7 +182,7 @@ doRet:  call    rpop
 
 ; ******************************************************************************
 ; command
-cmd:    call    cmdAddr
+cmd:    call    fnAddr
         mov     ebx, [edx]
         cmp     ebx, 0
         je      mNEXT
@@ -598,14 +597,13 @@ dd doOr                       ; # 124 (|)
 dd cStore                     ; # 125 (})
 dd doInv                      ; # 126 (~)
 
-
 buf1        dd    4 dup(0)    ; Buffer
 dStack      dd   32 dup 0
 buf2        dd    4 dup(0)    ; Buffer
 rStack      dd   32 dup 0
 buf3        dd    4 dup(0)    ; Buffer
 
-commands    dd  26 dup 0
+functions   dd  26 dup 0
 regs        dd  26 dup 0
 
 THE_MEMORY  rb 64*1024
