@@ -111,9 +111,18 @@ nxtOK:  cmp     esi, [HERE1]
 doNop:  jmp     mNEXT
 
 ; ******************************************************************************
-iToA:   mov     ecx, outBuf+16
-        mov     ebx, 0
+; input:        ; eax: the number to print - destroyed
+; output:       ; ecx: the start of the string
+;               ; ebx: the length of the string
+;
+iToA:   mov     ecx, outBuf+16  ; output string start
+        mov     ebx, 0          ; output length
         mov     BYTE [ecx], 0
+        push    0               ; isNegative flag
+        bt      eax, 31
+        jnc     i2a1
+        inc     BYTE [esp]
+        neg     eax
 i2a1:   push    ebx
         mov     ebx, 10
         mov     edx, 0
@@ -125,7 +134,13 @@ i2a1:   push    ebx
         inc     ebx
         cmp     eax, 0
         jne     i2a1
-        ret
+        pop     eax
+        cmp     eax, 0
+        je      i2aX
+        dec     ecx
+        mov     BYTE [ecx], '-'
+        inc     ebx
+i2aX:   ret
 
 ; ******************************************************************************
 regAddr: movzx   edx, al
@@ -385,11 +400,13 @@ doCrLf: mov     al, 13
 ; ******************************************************************************
 sDot:   push    eax
         push    ebx
+        push    ecx
         push    edx
         m_pop   eax
         call    iToA
         invoke  WriteConsole, [hStdOut], ecx, ebx, NULL, NULL
         pop     edx
+        pop     ecx
         pop     ebx
         pop     eax
         ret
