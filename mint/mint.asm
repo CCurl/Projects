@@ -13,21 +13,18 @@ include 'win32ax.inc'
 ; library crtdll, 'crtdll.dll'
 ; import crtdll, printf, 'printf'
 
-hStdIn      dd  0
-hStdOut     dd  0
+hStdIn      dd  ?
+hStdOut     dd  ?
 okStr       db  "mint>", 0
 crlf        db  13, 10
-tib         db  128 dup ?
 outBuf      db  256 dup ?
-bytesRead   dd  0
+bytesRead   dd  ?
 unkOP       db  "-unk-"
-dDepth      dd   ?
-rDepth      dd   ?
-rStackPtr   dd   ?
-fStartAddr  dd   ?
-fEndAddr    dd   ?
-fI          dd   ?
-fEndI       dd   ?
+dDepth      dd  0
+rDepth      dd  0
+rStackPtr   dd  ?
+HERE        dd  ?
+HERE1       dd  ?
 
 
 ; ******************************************************************************
@@ -67,7 +64,7 @@ macro m_get2ND val
 {
        mov val, [STKP]
 }
-macro m_set2ND val
+ macro m_set2ND val
 {
        mov [STKP], val
 }
@@ -92,47 +89,34 @@ macro m_pop val
 }
 
 ; ------------------------------------------------------------------------------
-macro m_toVmAddr reg
-{
-       add reg, edx
-}
 
-macro m_fromVmAddr reg
-{
-       sub reg, edx
-}
-
-; ------------------------------------------------------------------------------
-
-macro m_rpush reg
-{
-       push TOS
-       add [rStackPtr], CELL_SIZE
-       mov TOS, [rStackPtr]
-       mov [TOS], reg
-       pop TOS
-}
+rpush:  push    eax
+        add     [rStackPtr], CELL_SIZE
+        mov     eax, [rStackPtr]
+        mov     [eax], esi
+        pop     eax
+        ret
  
-macro m_rpop reg
-{
-       push TOS
-       mov TOS, [rStackPtr]
-       mov reg, [TOS]
-       sub [rStackPtr], CELL_SIZE
-       pop TOS
-}
+rpop:   push    eax
+        mov     eax, [rStackPtr]
+        mov     esi, [eax]
+        sub     [rStackPtr], CELL_SIZE
+        pop     eax
+        ret
 
 ; ******************************************************************************
-mNEXT:  cmp     [dDepth], 0
+mNEXT:  cmp     [dDepth], 1
         jge     nxtOK
         mov     [dDepth], 0
-nxtOK:  lodsb
+        mov     STKP, dStack
+nxtOK:  cmp     esi, [HERE1]
+        jge     s0
+        lodsb
         cmp     al, 126
         jg      s0
         movzx   edx, al
         mov     ebx, [jmpTable+edx*4]
         jmp     ebx
-
 
 ; ******************************************************************************
 doNop:  jmp     mNEXT
@@ -178,26 +162,40 @@ reg:    call    regAddr
         jmp     mNEXT
 
 ; ******************************************************************************
-cmdAddr: movzx   edx, al
-        sub edx, 'A'
+cmdAddr: movzx  edx, al
+        sub     edx, 'A'
         shl     edx, 2
         add     edx, commands   
         ret
+
+; ******************************************************************************
+doCol:  lodsb
+        mov     bx, 'AZ'
+        call    betw
+        cmp     bl, 0
+        je      colX
+        call    cmdAddr
+        mov     [edx], esi
+col1:   cmp     esi, [HERE1]
+        jge     colX
+        lodsb
+        cmp     al, ';'
+        jne     col1
+        mov     [HERE], esi
+colX:   jmp     mNEXT
+
+; ******************************************************************************
+doRet:  call    rpop
+        jmp     mNEXT
 
 ; ******************************************************************************
 ; command
 cmd:    call    cmdAddr
         mov     ebx, [edx]
         cmp     ebx, 0
-        je      cmdX
-        m_rpush esi
+        je      mNEXT
+        call    rpush
         mov     esi, ebx
-cmdX:   jmp     mNEXT
-
-; ******************************************************************************
-defCmd:  lodsb
-        call    cmdAddr
-        mov     [edx], esi
         jmp     mNEXT
 
 ; ******************************************************************************
@@ -251,6 +249,20 @@ doQt:   lodsb
 qx:     jmp     mNEXT
 
 ; ******************************************************************************
+doBTick: push   eax
+        mov    al, 'h'
+        call    getReg
+        pop     eax
+bt1:    mov     [ebx], al
+        inc     ebx
+        lodsb
+        cmp     al, '`'
+        jne     bt1
+        mov     al, 'h'
+        call    setReg
+        jmp     mNEXT
+
+; ******************************************************************************
 betw:   cmp     al, bl
         jl      betF
         cmp     al, bh
@@ -286,10 +298,6 @@ nxtX:   pop     eax
         jmp     mNEXT
 
 ; ******************************************************************************
-doI:    m_push  [fI]
-        jmp     mNEXT
-
-; ******************************************************************************
 f_UnknownOpcode:
         ; invoke WriteConsole, [hStdOut], unkOP, 5, NULL, NULL
         jmp s0
@@ -298,12 +306,8 @@ f_UnknownOpcode:
 bye:    invoke  ExitProcess, 0
 
 ; ******************************************************************************
-ok:
-        mov al, 13
-        call p1
-        mov al, 10
-        call p1
-        invoke WriteConsole, [hStdOut], okStr, 6, NULL, NULL
+ok:     call    doCrLf
+        invoke  WriteConsole, [hStdOut], okStr, 5, NULL, NULL
         ret
 
 ; ******************************************************************************
@@ -405,12 +409,22 @@ doCrLf: mov     al, 13
         call    p1
         mov     al, 10
         call    p1
-        jmp     mNEXT
+        ret
 
 ; ******************************************************************************
-doDot:  m_pop   eax
+sDot:   push    eax
+        push    ebx
+        push    edx
+        m_pop   eax
         call    iToA
         invoke  WriteConsole, [hStdOut], ecx, ebx, NULL, NULL
+        pop     edx
+        pop     ebx
+        pop     eax
+        ret
+
+; ******************************************************************************
+doDot:  call    sDot
         jmp     mNEXT
 
 ; ******************************************************************************
@@ -438,8 +452,10 @@ doDrop: m_drop
         jmp         mNEXT
 
 ; ******************************************************************************
-p1:     mov     [outBuf], al
+p1:     push eax
+        mov     [outBuf], al
         invoke  WriteConsole, [hStdOut], outBuf, 1, NULL, NULL
+        pop eax
         ret
 
 ; ******************************************************************************
@@ -450,8 +466,7 @@ s_SYS_INIT:
             mov [rDepth], 0
             ; Data stack
             mov STKP, dStack
-            ; PCIP = IP/PC
-            mov PCIP, THE_MEMORY
+            mov TOS, 0
             ret        
 
 ; ******************************************************************************
@@ -462,14 +477,20 @@ start:
         invoke GetStdHandle, STD_OUTPUT_HANDLE
         mov    [hStdOut], eax
 
+        call    s_SYS_INIT
         mov     ebx, THE_MEMORY
         mov     al, 'm'
         call    setReg
+        mov     [HERE], ebx
     
-s0:     call   ok
-        invoke ReadConsole, [hStdIn], tib, 128, bytesRead, 0
+s0:     call    ok
+        invoke  ReadConsole, [hStdIn], [HERE], 128, bytesRead, 0
+        sub     [bytesRead], 2
+        mov     ebx, [HERE]
+        add     ebx, [bytesRead]
+        mov     [HERE1], ebx
         cld
-        mov    esi, tib
+        mov     esi, [HERE]
         jmp     mNEXT
     
         invoke ExitProcess, 0
@@ -537,8 +558,8 @@ dd num                        ; # 054 (6)
 dd num                        ; # 055 (7)
 dd num                        ; # 056 (8)
 dd num                        ; # 057 (9)
-dd f_UnknownOpcode            ; # 058 (:)
-dd f_UnknownOpcode            ; # 059 (;)
+dd doCol                      ; # 058 (:)
+dd doRet                      ; # 059 (;)
 dd doLT                       ; # 060 (<)
 dd doEQ                       ; # 061 (=)
 dd doGT                       ; # 062 (>)
@@ -602,17 +623,17 @@ dd reg                        ; # 119 (w)
 dd reg                        ; # 120 (x)
 dd reg                        ; # 121 (y)
 dd reg                        ; # 122 (z)
-dd cStore                     ; # 123 ({)
+dd cFetch                     ; # 123 ({)
 dd doOr                       ; # 124 (|)
-dd cFetch                     ; # 125 (})
+dd cStore                     ; # 125 (})
 dd doInv                      ; # 126 (~)
 
 
-buf1        dd    4 dup(?)    ; Buffer
+buf1        dd    4 dup(0)    ; Buffer
 dStack      dd   32 dup 0
-buf2        dd    4 dup(?)    ; Buffer
+buf2        dd    4 dup(0)    ; Buffer
 rStack      dd   32 dup 0
-buf3        dd    4 dup(?)    ; Buffer
+buf3        dd    4 dup(0)    ; Buffer
 
 commands    dd  26 dup 0
 regs        dd  26 dup 0
