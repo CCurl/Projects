@@ -10,3 +10,6 @@ MinForth.vcxproj.user
 .vs/*
 s4/asm/S4.exe
 mint/mint.exe
+/MINT/mint/.vs/mint/v16
+/MINT/mint/Debug
+/MINT/mint/mint.vcxproj.user
