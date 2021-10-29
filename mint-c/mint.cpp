@@ -137,9 +137,6 @@ addr doNext(addr pc) {
     return pc;
 }
 
-void dumpStack(int hdr) {
-}
-
 #ifdef __DEV_BOARD__
 addr doPin(addr pc) {
     int ir = USER[pc++];
@@ -243,7 +240,9 @@ addr run(addr pc) {
 
 void ok() {
     printString("\r\nmint:(");
-    for (UCELL i = 1; i <= sys.dsp; i++) { printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]); }
+    for (UCELL i = 1; i <= sys.dsp; i++) { 
+        printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]); 
+    }
     printString(")>");
 }
 
