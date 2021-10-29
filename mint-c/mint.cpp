@@ -1,16 +1,13 @@
-// S4 - a stack VM, inspired by Sandor Schneider's STABLE - https://w3group.de/stable.html
+// MINT - A Minimal Interpreter - for details, see https://github.com/monsonite/MINT
 
 #define  _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
 
 #define CELL  long
 #define UCELL unsigned long
 #define addr  unsigned short
-// #define addr  byte *
 #define byte  unsigned char
 
 #define STK_SZ            7
@@ -18,10 +15,10 @@
 #define HERE          REG[7]
 #define NUM_REGS          26
 #define NUM_FUNCS         26
-#define USER_SZ     (16*1024)
+#define USER_SZ      (1*1024)
 
 typedef struct {
-    addr pc;
+    addr start;
     CELL from;
     CELL to;
     addr end;
@@ -118,9 +115,9 @@ addr doFor(addr pc) {
     }
     if (L < LSTACK_SZ) {
         LOOP_ENTRY_T* x = &sys.lstack[L++];
-        x->pc = pc;
-        x->to = n;
+        x->start = pc;
         x->from = 1;
+        x->to = n;
         x->end = 0;
         if (x->to < x->from) {
             push(x->to);
@@ -135,16 +132,12 @@ addr doNext(addr pc) {
     if (L < 1) { L = 0; return pc; }
     LOOP_ENTRY_T* x = &sys.lstack[L - 1];
     ++x->from;
-    if (x->from <= x->to) { x->end = pc; pc = x->pc; }
+    if (x->from <= x->to) { x->end = pc; pc = x->start; }
     else { L--; }
     return pc;
 }
 
 void dumpStack(int hdr) {
-    if (hdr) { printStringF("\r\nSTACK: size: %d ", STK_SZ); }
-    printString("(");
-    for (UCELL i = 1; i <= sys.dsp; i++) { printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]); }
-    printString(")");
 }
 
 #ifdef __DEV_BOARD__
@@ -249,9 +242,9 @@ addr run(addr pc) {
 }
 
 void ok() {
-    printString("\r\nmint:");
-    dumpStack(0);
-    printString(">");
+    printString("\r\nmint:(");
+    for (UCELL i = 1; i <= sys.dsp; i++) { printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]); }
+    printString(")>");
 }
 
 void rtrim(char *cp) {
