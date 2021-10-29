@@ -13,3 +13,8 @@ mint/mint.exe
 /MINT/mint/.vs/mint/v16
 /MINT/mint/Debug
 /MINT/mint/mint.vcxproj.user
+/mint-c/.vs/mint/v16
+/mint-c/Debug
+/mint-c/x64/Debug
+/mint-c/mint.vcxproj.user
+/mint-c/Release

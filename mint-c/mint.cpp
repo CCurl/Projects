@@ -1,5 +1,7 @@
 // S4 - a stack VM, inspired by Sandor Schneider's STABLE - https://w3group.de/stable.html
 
+#define  _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +10,7 @@
 #define CELL  long
 #define UCELL unsigned long
 #define addr  unsigned short
+// #define addr  byte *
 #define byte  unsigned char
 
 #define STK_SZ            7
@@ -60,11 +63,11 @@ void vmInit() {
     for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
-    REG['g' - 'a'] = (CELL)&sys.reg[0];
-    REG['k' - 'a'] = 1000;
+    REG['r' - 'a'] = (CELL)&sys.reg[0];
     REG['s' - 'a'] = (CELL)&sys;
     REG['u' - 'a'] = (CELL)&sys.user[0];
     REG['z' - 'a'] = USER_SZ;
+    USER[HERE++] = ';';
 }
 
 void setCell(byte* to, CELL val) {
@@ -95,12 +98,12 @@ void printStringF(const char* fmt, ...) {
 
 addr doDefineFunction(addr pc, char nm) {
     CELL fn = nm - 'A';
-    USER[HERE++] = ':';
-    USER[HERE++] = nm;
-    FUNC[fn] = (addr)HERE;
-    while (USER[pc]) { 
-        USER[HERE++] = USER[pc++]; 
-        if (USER[pc-1] == ';') { return pc; }
+    FUNC[fn] = (addr)pc;
+    while (USER[pc++]) { 
+        if (USER[pc-1] == ';') {
+            HERE = pc;
+            return pc; 
+        }
     }
     isError = 1;
     printString("-dfErr-");
@@ -166,21 +169,18 @@ addr doPin(addr pc) {
 #endif
 
 addr run(addr pc) {
-    CELL t1, t2;
+    CELL t1;
     isError = 0;
     while (!isError && (0 < pc)) {
         byte ir = USER[pc++];
         switch (ir) {
         case 0: return -1;
-        case ' ': while (USER[pc] == ' ') { pc++; }      break;  // 32
-        case '!': t2 = pop(); setCell((byte *)t2, pop()); break;  // 33
-        case '_': while ((pc < USER_SZ) && (USER[pc] != '_')) {
-            printChar(USER[pc++]);
-        } ++pc;
-            break;
-        case '"': push(T);                      break;  // 35 (DUP)
+        case ' ': while (USER[pc] == ' ') { pc++; }       break;  // 32
+        case '!': setCell((byte*)N, T); DROP2;  break;  // 33
+        case '"': push(T);                      break;  // 34 (DUP)
+        case '#': push(N);                      break;  // 35 (OVER)
         case '$': t1 = N; N = T; T = t1;        break;  // 36 (SWAP)
-        case '#': push(N);                      break;  // 37 (OVER)
+        case '%': t1 = pop(); T %= t1;          break;  // 37
         case '&': t1 = pop(); T &= t1;          break;  // 38
         case '\'': push(USER[pc++]);            break;  // 39
         case '(': pc = doFor(pc);               break;  // 40
@@ -194,7 +194,7 @@ addr run(addr pc) {
             if (t1) { T /= t1; }
             else { printString("-zeroDiv-"); isError = 1; }
             break;
-        case '0': case '1': case '2': case '3': case '4':   // 48-57
+        case '0': case '1': case '2': case '3': case '4':     // 48-57
         case '5': case '6': case '7': case '8': case '9':
             push(ir - '0');
             t1 = USER[pc] - '0';
@@ -202,17 +202,17 @@ addr run(addr pc) {
                 T = (T * 10) + t1;
                 t1 = USER[++pc] - '0';
             } break;
-        case ':': ir = USER[pc++];
+        case ':': ir = USER[pc++];                            // 58
             if (BetweenI(ir, 'A', 'Z')) {
                 pc = doDefineFunction(pc, ir);
-            } break;
-        case ';': if (sys.rsp < 1) { sys.rsp = 0;  return pc; }
-                pc = rpop();                           break;  // 59
-        case '<': t1 = pop(); T = T < t1 ? 1 : 0;     break;  // 60
-        case '=': t1 = pop(); T = T == t1 ? 1 : 0;     break;  // 61
-        case '>': t1 = pop(); T = T > t1 ? 1 : 0;     break;  // 62
-        case '?': /* FREE */                           break;  // 63
-        case '@': T = getCell((byte *)T);               break;  // 64
+            } else { isError = 1; }
+            break;
+        case ';': pc = rpop();                        break;  // 59
+        case '<': t1 = pop(); T = T <  t1 ? 1 : 0;    break;  // 60
+        case '=': t1 = pop(); T = T == t1 ? 1 : 0;    break;  // 61
+        case '>': t1 = pop(); T = T >  t1 ? 1 : 0;    break;  // 62
+        case '?': /* FREE */                          break;  // 63
+        case '@': T = getCell((byte *)T);             break;  // 64
         case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
         case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
         case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
@@ -222,11 +222,15 @@ addr run(addr pc) {
                 rpush(pc);
                 pc = FUNC[t1];
             } break;
-        case '[':                       break;  //  91
-        case '\\': isBye = 1;                          break;  //  92
-        case ']':                  break;  //  93
-        case '^': t1 = pop(); T ^= t1;                 break;  //  94
-        case '`': break;
+        case '[':                                       break;  //  91
+        case '\\': isBye = 1;                           break;  //  92
+        case ']':                                       break;  //  93
+        case '^': t1 = pop(); T ^= t1;                  break;  //  94
+        case '_': while ((pc < USER_SZ) && (USER[pc] != '_')) { // 95
+            printChar(USER[pc++]);
+        } ++pc;
+            break;
+        case '`':                                       break; // 96
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
@@ -234,21 +238,15 @@ addr run(addr pc) {
         case 'y': case 'z': 
             push((CELL)&REG[ir-'a']);  
             break;
-        case '{':                   break;  // 123
+        case '{': T = *(char *)T;                      break;  // 123
         case '|': t1 = pop(); T |= t1;                 break;  // 124
-        case '}':                 break;  // 125
-        case '~': T = (T) ? 0 : 1;                     break;  // 126
+        case '}': *(byte*)T = (byte)N; DROP2;          break;  // 125
+        case '~': T = ~T;                              break;  // 126
         }
     }
     if (isError && ((CELL)pc < HERE)) { REG[4] = pc; }
     return pc;
 }
-
-void setCodeByte(addr loc, char ch) {
-    if ((0 <= loc) && (loc < USER_SZ)) { USER[loc] = ch; }
-}
-
-CELL regVal(int regNum) { return REG[regNum]; }
 
 void ok() {
     printString("\r\nmint:");
@@ -256,21 +254,30 @@ void ok() {
     printString(">");
 }
 
-void executeString(addr loc, const char* txt) {
-    addr x = loc;
-    while (*txt) { setCodeByte(x++, *(txt++)); }
-    setCodeByte(x, 0);
-    run(loc);
+void rtrim(char *cp) {
+    char* x = cp;
+    while (*x) { ++x; }
+    --x;
+    while (*x && (*x < 32) && (cp <= x)) { *(x--) = 0; }
+}
+
+void doHistory(char* str) {
+    FILE* fp = fopen("history.txt", "at");
+    if (fp) {
+        fputs(str, fp);
+        fclose(fp);
+    }
 }
 
 void loop() {
-    char tib[100];
-    addr nTib = (addr)USER_SZ - 100;
+    addr here = (addr)HERE;
+    char *tib = (char *)&USER[here];
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
     if (fgets(tib, 100, fp) == tib) {
-        // if (fp == stdin) { doHistory(tib); }
-        executeString(nTib, tib);
+        if (fp == stdin) { doHistory(tib); }
+        rtrim(tib);
+        run(here);
         return;
     }
     if (input_fp) {
@@ -280,6 +287,7 @@ void loop() {
 }
 
 int main(int argc, char** argv) {
+    vmInit();
     while (!isBye) { loop(); }
     return 0;
 }
