@@ -176,7 +176,7 @@ addr run(addr pc) {
         switch (ir) {
         case 0: return -1;
         case ' ': while (USER[pc] == ' ') { pc++; }       break;  // 32
-        case '!': setCell((byte*)N, T); DROP2;  break;  // 33
+        case '!': setCell((byte*)T, N); DROP2;  break;  // 33
         case '"': push(T);                      break;  // 34 (DUP)
         case '#': push(N);                      break;  // 35 (OVER)
         case '$': t1 = N; N = T; T = t1;        break;  // 36 (SWAP)
