@@ -13,6 +13,7 @@
 #define STK_SZ            7
 #define LSTACK_SZ         4
 #define HERE          REG[7]
+#define INDEX         REG[8]
 #define NUM_REGS          26
 #define NUM_FUNCS         26
 #define USER_SZ      (1*1024)
@@ -116,13 +117,13 @@ addr doFor(addr pc) {
     if (L < LSTACK_SZ) {
         LOOP_ENTRY_T* x = &sys.lstack[L++];
         x->start = pc;
-        x->from = 1;
+        INDEX = x->from = 0;
         x->to = n;
         x->end = 0;
         if (x->to < x->from) {
             push(x->to);
             x->to = x->from;
-            x->from = pop();
+            INDEX = x->from = pop();
         }
     }
     return pc;
@@ -131,8 +132,8 @@ addr doFor(addr pc) {
 addr doNext(addr pc) {
     if (L < 1) { L = 0; return pc; }
     LOOP_ENTRY_T* x = &sys.lstack[L - 1];
-    ++x->from;
-    if (x->from <= x->to) { x->end = pc; pc = x->start; }
+    INDEX = ++x->from;
+    if (x->from < x->to) { x->end = pc; pc = x->start; }
     else { L--; }
     return pc;
 }
