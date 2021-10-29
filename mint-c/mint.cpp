@@ -35,6 +35,7 @@ struct {
     LOOP_ENTRY_T lstack[LSTACK_SZ];
 } sys;
 
+CELL t1;
 byte isBye = 0, isError = 0;
 char buf[100];
 FILE* input_fp;
@@ -138,8 +139,8 @@ addr doNext(addr pc) {
     return pc;
 }
 
-#ifdef __DEV_BOARD__
 addr doPin(addr pc) {
+#ifdef __DEV_BOARD__
     int ir = USER[pc++];
     CELL pin = pop(), val = 0;
     switch (ir) {
@@ -155,12 +156,26 @@ addr doPin(addr pc) {
         if (ir == 'A') { analogWrite(pin, val); }
         break;
     }
+#endif
     return pc;
 }
-#endif
+
+addr doExt(addr pc) {
+    byte ir = USER[pc++];
+    switch (ir) {
+    case '!': *(byte*)T = (byte)N; DROP2;          break;
+    case '@': T = *(char*)T;                       break;
+    // case 'F': return doFile(pc);
+    // case 'P': return doPin(pc);
+    default: 
+        printString("-ext-");
+        isError = 1;
+    }
+
+    return pc;
+}
 
 addr run(addr pc) {
-    CELL t1;
     isError = 0;
     while (!isError && (0 < pc)) {
         byte ir = USER[pc++];
@@ -221,7 +236,7 @@ addr run(addr pc) {
             printChar(USER[pc++]);
         } ++pc;
             break;
-        case '`':                                       break; // 96
+        case '`': pc = doExt(pc);                       break; // 96
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
@@ -229,9 +244,9 @@ addr run(addr pc) {
         case 'y': case 'z': 
             push((CELL)&REG[ir-'a']);  
             break;
-        case '{': T = *(char *)T;                      break;  // 123
+        case '{':                                      break;  // 123
         case '|': t1 = pop(); T |= t1;                 break;  // 124
-        case '}': *(byte*)T = (byte)N; DROP2;          break;  // 125
+        case '}':                                      break;  // 125
         case '~': T = ~T;                              break;  // 126
         }
     }
