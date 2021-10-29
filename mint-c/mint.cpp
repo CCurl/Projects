@@ -10,9 +10,10 @@
 
 #define CELL   long
 #define UCELL  unsigned long
-#define USHORT unsigned long
-#define addr   USHORT
+#define SHORT  short
+#define USHORT unsigned short
 #define byte   unsigned char
+#define addr   byte *
 
 #define STK_SZ            7
 #define LSTACK_SZ         4
@@ -66,11 +67,12 @@ void vmInit() {
     for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
+    REG['h' - 'a'] = (CELL)&sys.user[0];
     REG['r' - 'a'] = (CELL)&sys.reg[0];
     REG['s' - 'a'] = (CELL)&sys;
     REG['u' - 'a'] = (CELL)&sys.user[0];
     REG['z' - 'a'] = USER_SZ;
-    USER[HERE++] = ';';
+    *((byte *)HERE++) = ';';
 }
 
 void setCell(byte* to, CELL val) {
@@ -102,9 +104,9 @@ void printStringF(const char* fmt, ...) {
 addr doDefineFunction(addr pc, char nm) {
     CELL fn = nm - 'A';
     FUNC[fn] = (addr)pc;
-    while (USER[pc++]) { 
-        if (USER[pc-1] == ';') {
-            HERE = pc;
+    while (*(pc++)) { 
+        if (*(pc-1) == ';') {
+            HERE = (CELL) pc;
             return pc; 
         }
     }
@@ -116,7 +118,7 @@ addr doDefineFunction(addr pc, char nm) {
 addr doFor(addr pc) {
     CELL n = pop();
     if (n == 0) {
-        while (USER[pc++] != ')') {}
+        while (*(pc++) != ')') {}
         return pc;
     }
     if (L < LSTACK_SZ) {
@@ -145,30 +147,30 @@ addr doNext(addr pc) {
 
 addr doPin(addr pc) {
 #ifdef __DEV_BOARD__
-    int ir = USER[pc++];
+    int ir = *(pc++);
     CELL pin = pop(), val = 0;
     switch (ir) {
     case 'I': pinMode(pin, INPUT);         break;
     case 'U': pinMode(pin, INPUT_PULLUP);  break;
     case 'O': pinMode(pin, OUTPUT);        break;
-    case 'R': ir = USER[pc++];
+    case 'R': ir = *(pc++);
         if (ir == 'D') { push(digitalRead(pin)); }
         if (ir == 'A') { push(analogRead(pin)); }
         break;
-    case 'W': ir = USER[pc++]; val = pop();
+    case 'W': ir = *(pc++); val = pop();
         if (ir == 'D') { digitalWrite(pin, val); }
         if (ir == 'A') { analogWrite(pin, val); }
         break;
     }
 #else
     isError = 1;
-    printString("-noPin-");
+    printString("-notBoard-");
 #endif
     return pc;
 }
 
 addr doExt(addr pc) {
-    byte ir = USER[pc++];
+    byte ir = *(pc++);
     switch (ir) {
     case '!': *(byte*)T = (byte)N; DROP2;          break;
     case '@': T = *(char*)T;                       break;
@@ -185,17 +187,17 @@ addr doExt(addr pc) {
 addr run(addr pc) {
     isError = 0;
     while (!isError && (0 < pc)) {
-        byte ir = USER[pc++];
+        byte ir = *(pc++);
         switch (ir) {
-        case 0: return -1;
-        case ' ': while (USER[pc] == ' ') { pc++; }       break;  // 32
+        case 0: return pc;
+        case ' ': while (*(pc) == ' ') { pc++; }       break;  // 32
         case '!': setCell((byte*)T, N); DROP2;  break;  // 33
         case '"': push(T);                      break;  // 34 (DUP)
         case '#': push(N);                      break;  // 35 (OVER)
         case '$': t1 = N; N = T; T = t1;        break;  // 36 (SWAP)
         case '%': t1 = pop(); T %= t1;          break;  // 37
         case '&': t1 = pop(); T &= t1;          break;  // 38
-        case '\'': push(USER[pc++]);            break;  // 39
+        case '\'': push(*(pc++));            break;  // 39
         case '(': pc = doFor(pc);               break;  // 40
         case ')': pc = doNext(pc);              break;  // 41
         case '*': t1 = pop(); T *= t1;          break;  // 42
@@ -210,12 +212,12 @@ addr run(addr pc) {
         case '0': case '1': case '2': case '3': case '4':     // 48-57
         case '5': case '6': case '7': case '8': case '9':
             push(ir - '0');
-            t1 = USER[pc] - '0';
+            t1 = *(pc) - '0';
             while (BetweenI(t1, 0, 9)) {
                 T = (T * 10) + t1;
-                t1 = USER[++pc] - '0';
+                t1 = *(++pc) - '0';
             } break;
-        case ':': ir = USER[pc++];                            // 58
+        case ':': ir = *(pc++);                            // 58
             if (BetweenI(ir, 'A', 'Z')) {
                 pc = doDefineFunction(pc, ir);
             } else { isError = 1; }
@@ -239,8 +241,8 @@ addr run(addr pc) {
         case '\\': isBye = 1;                           break;  //  92
         case ']':                                       break;  //  93
         case '^': t1 = pop(); T ^= t1;                  break;  //  94
-        case '_': while ((pc < USER_SZ) && (USER[pc] != '_')) { // 95
-            printChar(USER[pc++]);
+        case '_': while (*(pc) != '_') { // 95
+            printChar(*(pc++));
         } ++pc;
             break;
         case '`': pc = doExt(pc);                       break; // 96
@@ -257,7 +259,7 @@ addr run(addr pc) {
         case '~': T = ~T;                              break;  // 126
         }
     }
-    if (isError && ((CELL)pc < HERE)) { REG[4] = pc; }
+    if (isError && ((CELL)pc < HERE)) { REG[4] = (CELL)pc; }
     return pc;
 }
 
@@ -285,14 +287,13 @@ void doHistory(char* str) {
 }
 
 void loop() {
-    addr here = (addr)HERE;
-    char *tib = (char *)&USER[here];
+    char *tib = (char *)HERE;
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
     if (fgets(tib, 100, fp) == tib) {
         if (fp == stdin) { doHistory(tib); }
         rtrim(tib);
-        run(here);
+        run((byte *)tib);
         return;
     }
     if (input_fp) {
