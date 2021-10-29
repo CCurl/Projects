@@ -5,10 +5,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define CELL  long
-#define UCELL unsigned long
-#define addr  unsigned short
-#define byte  unsigned char
+#define CELL   long
+#define UCELL  unsigned long
+#define USHORT unsigned long
+#define addr   USHORT
+#define byte   unsigned char
 
 #define STK_SZ            7
 #define LSTACK_SZ         4
@@ -26,12 +27,12 @@ typedef struct {
 } LOOP_ENTRY_T;
 
 struct {
-    UCELL dsp, rsp, lsp;
-    CELL  reg[NUM_REGS];
-    byte  user[USER_SZ];
-    addr  func[NUM_FUNCS];
-    CELL  dstack[STK_SZ + 1];
-    addr  rstack[STK_SZ + 1];
+    USHORT dsp, rsp, lsp;
+    CELL   reg[NUM_REGS];
+    byte   user[USER_SZ];
+    addr   func[NUM_FUNCS];
+    CELL   dstack[STK_SZ + 1];
+    addr   rstack[STK_SZ + 1];
     LOOP_ENTRY_T lstack[LSTACK_SZ];
 } sys;
 
