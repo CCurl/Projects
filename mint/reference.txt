@@ -1,0 +1,71 @@
+************************************
+*    MINT Reference                *
+************************************
+
+*** ARITHMETIC ***
++  (a b--n)       n: a+b - addition
+-  (a b--n)       n: a-b - subtraction
+*  (a b--n)       n: a*b - multiplication
+/  (a b--n)       n: a/b - integer division
+%  (a b--n)       n: a%b - modulo
+
+
+*** BIT MANIPULATION ***
+&  (a b--n)       and
+|  (a b--n)       or
+^  (a b--n)       xor
+~  (n1--n2)       com (e.e - 1011 => 0100)
+
+
+*** STACK ***
+"  (a--a a)       Duplicate TOS                          (Forth DUP)
+'  (a b--a)       Drop TOS                               (Forth DROP)
+$  (a b--b a)     Swap top 2 stack items                 (Forth SWAP)
+#  (a b--a b a)   Push 2nd                               (Forth OVER)
+
+
+*** MEMORY ***
+{     (a--n)      Fetch byte n from address a
+}     (n a--)     Store byte n  to  address a
+@     (a--n)      Fetch CELL from address a
+!     (n a--)     Store CELL n to address a
+
+
+*** REGISTERS ***
+  NOTES: A register name is a lowercase character: [a..z]
+      Register initial values:
+         - h: HERE **special**
+         - i: loop index **special**
+         - m: start of USER memory
+         - All other registers are set to 0
+r   (--n)         r: the address of register r
+
+
+*** FUNCTIONS ***
+            NOTES: 1) A function name is 1 uppercase character: [A..Z]
+:X (--)         Define function X until the first ';'
+;  (--)         Return from routine: PC = rpop()
+                  NOTE: returning while inside of a loop is not supported; behavior will be undefined.
+                  NOTE: outside of ``, ';' can be used to comment out the rest of the line
+
+
+*** INPUT/OUTPUT ***
+.     (N--)       Output N as decimal number
+,     (N--)       Output N as character (Forth EMIT)
+?     (--n)       n: 1=> a char is available, 0=>no char available
+_     (--)        Output characters until the next '_'
+0..9  (--n)       Scan DECIMAL number until non digit
+                     to specify multiple values, separate them by space (4711 3333)
+                     to enter a negative number, use 'V' (eg - '490V')
+
+
+*** CONDITIONS/LOOPS/FLOW CONTROL ***
+<   (a b--f)     f: (a < b) ? 1 : 0;
+=   (a b--f)     f: (a = b) ? 1 : 0;
+>   (a b--f)     f: (a > b) ? 1 : 0;
+(   N(--)        loop/if. Store N to i. If i 0, skip to first ')'.
+)   (--)         until/if. Decrement i. If i <> 0, jump to previous '('.
+
+
+*** OTHER ***
+\    (--)        Exit MINT
