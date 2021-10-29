@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+// #define __DEV_BOARD__
+// #include <Arduino.h>
+
 #define CELL   long
 #define UCELL  unsigned long
 #define USHORT unsigned long
@@ -157,6 +160,9 @@ addr doPin(addr pc) {
         if (ir == 'A') { analogWrite(pin, val); }
         break;
     }
+#else
+    isError = 1;
+    printString("-noPin-");
 #endif
     return pc;
 }
@@ -167,9 +173,9 @@ addr doExt(addr pc) {
     case '!': *(byte*)T = (byte)N; DROP2;          break;
     case '@': T = *(char*)T;                       break;
     // case 'F': return doFile(pc);
-    // case 'P': return doPin(pc);
+    case 'P': return doPin(pc);
     default: 
-        printString("-ext-");
+        printString("-noExt-");
         isError = 1;
     }
 
