@@ -47,7 +47,7 @@ CELL getCell(byte* from) {
 
 void dumpStack() {
     for (UCELL i = 1; i <= sys.dsp; i++) {
-        printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]);
+        printStringF("%s%ld", (i > 1 ? " " : ""), (long)sys.dstack[i]);
     }
 }
 
@@ -99,7 +99,10 @@ addr doNext(addr pc) {
     LOOP_ENTRY_T* x = &sys.lstack[LSP - 1];
     INDEX = ++x->from;
     if (x->from < x->to) { x->end = pc; pc = x->start; }
-    else { LSP--; }
+    else { 
+        LSP--;
+        if (0 < LSP) { INDEX = sys.lstack[LSP - 1].from; }
+    }
     return pc;
 }
 
@@ -138,7 +141,7 @@ addr run(addr pc) {
         case '+': t1 = pop(); T += t1;          break;  // 43
         case ',': printChar((char)pop());       break;  // 44
         case '-': t1 = pop(); T -= t1;          break;  // 45
-        case '.': printStringF("%ld", pop());   break;  // 46
+        case '.': printStringF("%ld", (long)pop());    break;  // 46
         case '/': t1 = pop();                           // 47
             if (t1) { T /= t1; }
             else { printString("-zeroDiv-"); isError = 1; }

@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#define STK_SZ        8
+#define LSTACK_SZ     4
+#define USER_SZ     (1*1024)
+#define NUM_REGS     26
+#define NUM_FUNCS    26
+
 #define CELL        long
 #define UCELL       unsigned CELL
 #define CELL_SZ     4
@@ -10,12 +16,6 @@
 #define USHORT      unsigned short
 #define byte        unsigned char
 #define addr        byte *
-
-#define STK_SZ        8
-#define LSTACK_SZ     4
-#define NUM_REGS     26
-#define NUM_FUNCS    26
-#define USER_SZ     (1*1024)
 
 #define REG        sys.reg
 #define USER       sys.user
@@ -51,6 +51,8 @@ extern SYS_T sys;
 extern byte isBye;
 
 extern void vmInit();
+extern CELL pop();
+extern void push(CELL);
 extern addr run(addr);
 extern addr doPin(addr);
 extern addr doFile(addr);
