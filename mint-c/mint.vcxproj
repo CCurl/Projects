@@ -140,6 +140,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="mint.cpp" />
+    <ClCompile Include="pc-main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mint.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="history.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="block-001.src" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

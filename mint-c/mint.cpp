@@ -1,60 +1,11 @@
 // MINT - A Minimal Interpreter - for details, see https://github.com/monsonite/MINT
 
-#define  _CRT_SECURE_NO_WARNINGS
+#include "mint.h"
 
-#include <stdio.h>
-#include <stdarg.h>
-
-// #define __DEV_BOARD__
-// #include <Arduino.h>
-
-#define CELL   long
-#define UCELL  unsigned long
-#define SHORT  short
-#define USHORT unsigned short
-#define byte   unsigned char
-#define addr   byte *
-
-#define STK_SZ            7
-#define LSTACK_SZ         4
-#define HERE          REG[7]
-#define INDEX         REG[8]
-#define NUM_REGS          26
-#define NUM_FUNCS         26
-#define USER_SZ      (1*1024)
-
-typedef struct {
-    addr start;
-    CELL from;
-    CELL to;
-    addr end;
-} LOOP_ENTRY_T;
-
-struct {
-    USHORT dsp, rsp, lsp;
-    CELL   reg[NUM_REGS];
-    byte   user[USER_SZ];
-    addr   func[NUM_FUNCS];
-    CELL   dstack[STK_SZ + 1];
-    addr   rstack[STK_SZ + 1];
-    LOOP_ENTRY_T lstack[LSTACK_SZ];
-} sys;
-
+SYS_T sys;
 CELL t1;
 byte isBye = 0, isError = 0;
 char buf[100];
-FILE* input_fp;
-
-#define REG        sys.reg
-#define USER       sys.user
-#define FUNC       sys.func
-#define T          sys.dstack[sys.dsp]
-#define N          sys.dstack[sys.dsp-1]
-#define R          sys.rstack[sys.rsp]
-#define L          sys.lsp
-#define DROP1      pop()
-#define DROP2      pop(); pop()
-#define BetweenI(n, x, y) ((x <= n) && (n <= y))
 
 inline void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 inline CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
@@ -78,20 +29,27 @@ void vmInit() {
 void setCell(byte* to, CELL val) {
     *(to++) = (val) & 0xff;
     *(to++) = (val >> 8) & 0xff;
+#if CELL_SZ == 4
     *(to++) = (val >> 16) & 0xff;
     *(to) = (val >> 24) & 0xff;
+#endif
 }
 
 CELL getCell(byte* from) {
     CELL val = *(from++);
     val |= (*from++) << 8;
+#if CELL_SZ == 4
     val |= (*from++) << 16;
     val |= (*from) << 24;
+#endif
     return val;
 }
 
-void printChar(const char c) { printf("%c", c); }
-void printString(const char* str) { printf("%s", str); }
+void dumpStack() {
+    for (UCELL i = 1; i <= sys.dsp; i++) {
+        printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]);
+    }
+}
 
 void printStringF(const char* fmt, ...) {
     va_list args;
@@ -121,8 +79,8 @@ addr doFor(addr pc) {
         while (*(pc++) != ')') {}
         return pc;
     }
-    if (L < LSTACK_SZ) {
-        LOOP_ENTRY_T* x = &sys.lstack[L++];
+    if (LSP < LSTACK_SZ) {
+        LOOP_ENTRY_T* x = &sys.lstack[LSP++];
         x->start = pc;
         INDEX = x->from = 0;
         x->to = n;
@@ -137,35 +95,11 @@ addr doFor(addr pc) {
 }
 
 addr doNext(addr pc) {
-    if (L < 1) { L = 0; return pc; }
-    LOOP_ENTRY_T* x = &sys.lstack[L - 1];
+    if (LSP < 1) { LSP = 0; return pc; }
+    LOOP_ENTRY_T* x = &sys.lstack[LSP - 1];
     INDEX = ++x->from;
     if (x->from < x->to) { x->end = pc; pc = x->start; }
-    else { L--; }
-    return pc;
-}
-
-addr doPin(addr pc) {
-#ifdef __DEV_BOARD__
-    int ir = *(pc++);
-    CELL pin = pop(), val = 0;
-    switch (ir) {
-    case 'I': pinMode(pin, INPUT);         break;
-    case 'U': pinMode(pin, INPUT_PULLUP);  break;
-    case 'O': pinMode(pin, OUTPUT);        break;
-    case 'R': ir = *(pc++);
-        if (ir == 'D') { push(digitalRead(pin)); }
-        if (ir == 'A') { push(analogRead(pin)); }
-        break;
-    case 'W': ir = *(pc++); val = pop();
-        if (ir == 'D') { digitalWrite(pin, val); }
-        if (ir == 'A') { analogWrite(pin, val); }
-        break;
-    }
-#else
-    isError = 1;
-    printString("-notBoard-");
-#endif
+    else { LSP--; }
     return pc;
 }
 
@@ -174,18 +108,18 @@ addr doExt(addr pc) {
     switch (ir) {
     case '!': *(byte*)T = (byte)N; DROP2;          break;
     case '@': T = *(char*)T;                       break;
-    // case 'F': return doFile(pc);
+    case 'F': return doFile(pc);
     case 'P': return doPin(pc);
     default: 
         printString("-noExt-");
         isError = 1;
     }
-
     return pc;
 }
 
 addr run(addr pc) {
     isError = 0;
+    LSP = 0;
     while (!isError && (0 < pc)) {
         byte ir = *(pc++);
         switch (ir) {
@@ -197,7 +131,7 @@ addr run(addr pc) {
         case '$': t1 = N; N = T; T = t1;        break;  // 36 (SWAP)
         case '%': t1 = pop(); T %= t1;          break;  // 37
         case '&': t1 = pop(); T &= t1;          break;  // 38
-        case '\'': push(*(pc++));            break;  // 39
+        case '\'': DROP1;                       break;  // 39
         case '(': pc = doFor(pc);               break;  // 40
         case ')': pc = doNext(pc);              break;  // 41
         case '*': t1 = pop(); T *= t1;          break;  // 42
@@ -241,7 +175,7 @@ addr run(addr pc) {
         case '\\': isBye = 1;                           break;  //  92
         case ']':                                       break;  //  93
         case '^': t1 = pop(); T ^= t1;                  break;  //  94
-        case '_': while (*(pc) != '_') { // 95
+        case '_': while (*(pc) != '_') {                        // 95
             printChar(*(pc++));
         } ++pc;
             break;
@@ -261,49 +195,4 @@ addr run(addr pc) {
     }
     if (isError && ((CELL)pc < HERE)) { REG[4] = (CELL)pc; }
     return pc;
-}
-
-void ok() {
-    printString("\r\nmint:(");
-    for (UCELL i = 1; i <= sys.dsp; i++) { 
-        printStringF("%s%ld", (i > 1 ? " " : ""), sys.dstack[i]); 
-    }
-    printString(")>");
-}
-
-void rtrim(char *cp) {
-    char* x = cp;
-    while (*x) { ++x; }
-    --x;
-    while (*x && (*x < 32) && (cp <= x)) { *(x--) = 0; }
-}
-
-void doHistory(char* str) {
-    FILE* fp = fopen("history.txt", "at");
-    if (fp) {
-        fputs(str, fp);
-        fclose(fp);
-    }
-}
-
-void loop() {
-    char *tib = (char *)HERE;
-    FILE* fp = (input_fp) ? input_fp : stdin;
-    if (fp == stdin) { ok(); }
-    if (fgets(tib, 100, fp) == tib) {
-        if (fp == stdin) { doHistory(tib); }
-        rtrim(tib);
-        run((byte *)tib);
-        return;
-    }
-    if (input_fp) {
-        fclose(input_fp);
-        input_fp = NULL; // input_pop();
-    }
-}
-
-int main(int argc, char** argv) {
-    vmInit();
-    while (!isBye) { loop(); }
-    return 0;
 }
