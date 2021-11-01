@@ -34,6 +34,16 @@ void rtrim(char *cp) {
     while (*x && (*x < 32) && (cp <= x)) { *(x--) = 0; }
 }
 
+void loadCode(const char* src) {
+    addr here = (addr)HERE;
+    addr tib = here;
+    while (*src) {
+        *(tib++) = *(src++);
+    }
+    *tib = 0;
+    run(here);
+}
+
 void doHistory(char* str) {
     FILE* fp = fopen("history.txt", "at");
     if (fp) {
@@ -43,13 +53,13 @@ void doHistory(char* str) {
 }
 
 void loop() {
-    char *tib = (char *)HERE;
+    char buf[128];
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
-    if (fgets(tib, 100, fp) == tib) {
-        if (fp == stdin) { doHistory(tib); }
-        rtrim(tib);
-        run((byte *)tib);
+    if (fgets(buf, 100, fp) == buf) {
+        if (fp == stdin) { doHistory(buf); }
+        rtrim(buf);
+        loadCode(buf);
         return;
     }
     if (input_fp) {
@@ -60,6 +70,9 @@ void loop() {
 
 int main(int argc, char** argv) {
     vmInit();
+    loadCode(":B32,;:N13,10,;");
+    loadCode(":R26(i@97+,Bi@4*r@+@.N);");
+    loadCode(":Ch@u@-\"._ bytes_(i@u@+`@\"58=(N),);");
     while (!isBye) { loop(); }
     return 0;
 }

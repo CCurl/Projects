@@ -73,7 +73,7 @@ void handleChar(char c) {
   if (c == 13) {
     printString(tib);
     printChar(' ');
-    run(tib);
+    run((addr)tib);
     ok();
     tib = 0;
   }

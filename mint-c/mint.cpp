@@ -3,9 +3,10 @@
 #include "mint.h"
 
 SYS_T sys;
-CELL t1;
-byte isBye = 0, isError = 0;
+byte ir, isBye = 0, isError = 0;
 char buf[100];
+addr pc;
+CELL t1;
 
 inline void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 inline CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
@@ -18,12 +19,12 @@ void vmInit() {
     for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
+    REG['f' - 'a'] = (CELL)&sys.func[0];
     REG['h' - 'a'] = (CELL)&sys.user[0];
     REG['r' - 'a'] = (CELL)&sys.reg[0];
     REG['s' - 'a'] = (CELL)&sys;
     REG['u' - 'a'] = (CELL)&sys.user[0];
     REG['z' - 'a'] = USER_SZ;
-    *((byte *)HERE++) = ';';
 }
 
 void setCell(byte* to, CELL val) {
@@ -59,25 +60,35 @@ void printStringF(const char* fmt, ...) {
     printString(buf);
 }
 
-addr doDefineFunction(addr pc, char nm) {
-    CELL fn = nm - 'A';
-    FUNC[fn] = (addr)pc;
-    while (*(pc++)) { 
-        if (*(pc-1) == ';') {
-            HERE = (CELL) pc;
-            return pc; 
+void skipTo(byte to, byte nest) {
+    byte c = 1, qc = '_', inQt = 0;
+    while (*pc) {
+        if (*pc == to) { --c; }
+        if (c == 0) { return; }
+        if ((nest) && (*pc == nest)) { ++c; }
+        if (*pc == qc) { 
+            inQt = inQt ? 0 : 1;
+            inQt ? ++c : --c;
         }
+        ++pc;
     }
     isError = 1;
-    printString("-dfErr-");
-    return 0;
 }
 
-addr doFor(addr pc) {
+void doDefineFunction() {
+    CELL fn = ir - 'A';
+    FUNC[fn] = pc;
+    skipTo(';', 0);
+    HERE = (CELL)(++pc);
+    if (isError) { printString("-dfErr-"); }
+}
+
+void doFor() {
     CELL n = pop();
     if (n == 0) {
-        while (*(pc++) != ')') {}
-        return pc;
+        skipTo(')','(');
+        ++pc;
+        return;
     }
     if (LSP < LSTACK_SZ) {
         LOOP_ENTRY_T* x = &sys.lstack[LSP++];
@@ -91,7 +102,6 @@ addr doFor(addr pc) {
             INDEX = x->from = pop();
         }
     }
-    return pc;
 }
 
 addr doNext(addr pc) {
@@ -106,25 +116,25 @@ addr doNext(addr pc) {
     return pc;
 }
 
-addr doExt(addr pc) {
-    byte ir = *(pc++);
+void doExt() {
+    ir = *(pc++);
     switch (ir) {
-    case '!': *(byte*)T = (byte)N; DROP2;          break;
-    case '@': T = *(char*)T;                       break;
-    case 'F': return doFile(pc);
-    case 'P': return doPin(pc);
+    case '!': *(byte*)T = (byte)N; DROP2;          return;
+    case '@': T = *(char*)T;                       return;
+    case 'F': pc = doFile(pc);                     return;
+    case 'P': pc = doPin(pc);                      return;
     default: 
         printString("-noExt-");
         isError = 1;
     }
-    return pc;
 }
 
-addr run(addr pc) {
+addr run(addr start) {
     isError = 0;
+    pc = start;
     LSP = 0;
     while (!isError && (0 < pc)) {
-        byte ir = *(pc++);
+        ir = *(pc++);
         switch (ir) {
         case 0: return pc;
         case ' ': while (*(pc) == ' ') { pc++; }       break;  // 32
@@ -135,7 +145,7 @@ addr run(addr pc) {
         case '%': t1 = pop(); T %= t1;          break;  // 37
         case '&': t1 = pop(); T &= t1;          break;  // 38
         case '\'': DROP1;                       break;  // 39
-        case '(': pc = doFor(pc);               break;  // 40
+        case '(': doFor();                      break;  // 40
         case ')': pc = doNext(pc);              break;  // 41
         case '*': t1 = pop(); T *= t1;          break;  // 42
         case '+': t1 = pop(); T += t1;          break;  // 43
@@ -156,7 +166,7 @@ addr run(addr pc) {
             } break;
         case ':': ir = *(pc++);                            // 58
             if (BetweenI(ir, 'A', 'Z')) {
-                pc = doDefineFunction(pc, ir);
+                doDefineFunction();
             } else { isError = 1; }
             break;
         case ';': pc = rpop();                        break;  // 59
@@ -182,7 +192,7 @@ addr run(addr pc) {
             printChar(*(pc++));
         } ++pc;
             break;
-        case '`': pc = doExt(pc);                       break; // 96
+        case '`': doExt();                              break; // 96
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
