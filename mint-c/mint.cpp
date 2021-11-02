@@ -4,7 +4,7 @@
 
 SYS_T sys;
 byte ir, isBye = 0, isError = 0;
-char buf[100];
+static char buf[100];
 addr pc;
 CELL t1;
 
@@ -120,12 +120,10 @@ void doExt() {
     ir = *(pc++);
     switch (ir) {
     case '!': *(byte*)T = (byte)N; DROP2;          return;
+    case '\'': push(*(pc++));                      return;
     case '@': T = *(char*)T;                       return;
-    case 'F': pc = doFile(pc);                     return;
-    case 'P': pc = doPin(pc);                      return;
     default: 
-        printString("-noExt-");
-        isError = 1;
+        pc = doCustom(ir, pc);
     }
 }
 
@@ -137,21 +135,21 @@ addr run(addr start) {
         ir = *(pc++);
         switch (ir) {
         case 0: return pc;
-        case ' ': while (*(pc) == ' ') { pc++; }       break;  // 32
-        case '!': setCell((byte*)T, N); DROP2;  break;  // 33
-        case '"': push(T);                      break;  // 34 (DUP)
-        case '#': push(N);                      break;  // 35 (OVER)
-        case '$': t1 = N; N = T; T = t1;        break;  // 36 (SWAP)
-        case '%': t1 = pop(); T %= t1;          break;  // 37
-        case '&': t1 = pop(); T &= t1;          break;  // 38
-        case '\'': DROP1;                       break;  // 39
-        case '(': doFor();                      break;  // 40
-        case ')': pc = doNext(pc);              break;  // 41
-        case '*': t1 = pop(); T *= t1;          break;  // 42
-        case '+': t1 = pop(); T += t1;          break;  // 43
-        case ',': printChar((char)pop());       break;  // 44
-        case '-': t1 = pop(); T -= t1;          break;  // 45
-        case '.': printStringF("%ld", (long)pop());    break;  // 46
+        case ' ': while (*(pc) == ' ') { pc++; }     break;  // 32
+        case '!': setCell((byte*)T, N); DROP2;       break;  // 33
+        case '"': push(T);                           break;  // 34 (DUP)
+        case '#': push(N);                           break;  // 35 (OVER)
+        case '$': t1 = N; N = T; T = t1;             break;  // 36 (SWAP)
+        case '%': t1 = pop(); T %= t1;               break;  // 37
+        case '&': t1 = pop(); T &= t1;               break;  // 38
+        case '\'': DROP1;                            break;  // 39
+        case '(': doFor();                           break;  // 40
+        case ')': pc = doNext(pc);                   break;  // 41
+        case '*': t1 = pop(); T *= t1;               break;  // 42
+        case '+': t1 = pop(); T += t1;               break;  // 43
+        case ',': printChar((char)pop());            break;  // 44
+        case '-': t1 = pop(); T -= t1;               break;  // 45
+        case '.': printStringF("%ld", (long)pop());  break;  // 46
         case '/': t1 = pop();                           // 47
             if (t1) { T /= t1; }
             else { printString("-zeroDiv-"); isError = 1; }
@@ -169,12 +167,12 @@ addr run(addr start) {
                 doDefineFunction();
             } else { isError = 1; }
             break;
-        case ';': pc = rpop();                        break;  // 59
-        case '<': t1 = pop(); T = T <  t1 ? 1 : 0;    break;  // 60
-        case '=': t1 = pop(); T = T == t1 ? 1 : 0;    break;  // 61
-        case '>': t1 = pop(); T = T >  t1 ? 1 : 0;    break;  // 62
-        case '?': /* FREE */                          break;  // 63
-        case '@': T = getCell((byte *)T);             break;  // 64
+        case ';': pc = rpop();                         break;  // 59
+        case '<': t1 = pop(); T = T <  t1 ? 1 : 0;     break;  // 60
+        case '=': t1 = pop(); T = T == t1 ? 1 : 0;     break;  // 61
+        case '>': t1 = pop(); T = T >  t1 ? 1 : 0;     break;  // 62
+        case '?': /* FREE */                           break;  // 63
+        case '@': T = getCell((byte *)T);              break;  // 64
         case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
         case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
         case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
@@ -184,15 +182,15 @@ addr run(addr start) {
                 rpush(pc);
                 pc = FUNC[t1];
             } break;
-        case '[':                                       break;  //  91
-        case '\\': isBye = 1;                           break;  //  92
-        case ']':                                       break;  //  93
-        case '^': t1 = pop(); T ^= t1;                  break;  //  94
-        case '_': while (*(pc) != '_') {                        // 95
+        case '[':                                      break;  //  91
+        case '\\': isBye = 1;                          break;  //  92
+        case ']':                                      break;  //  93
+        case '^': t1 = pop(); T ^= t1;                 break;  //  94
+        case '_': while (*(pc) != '_') {                       // 95
             printChar(*(pc++));
         } ++pc;
             break;
-        case '`': doExt();                              break; // 96
+        case '`': doExt();                             break; // 96
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':

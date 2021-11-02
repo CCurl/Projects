@@ -12,8 +12,7 @@
 #define CELL        long
 #define UCELL       unsigned CELL
 #define CELL_SZ     4
-#define SHORT       short
-#define USHORT      unsigned short
+#define ushort      unsigned short
 #define byte        unsigned char
 #define addr        byte *
 
@@ -38,7 +37,7 @@ typedef struct {
 } LOOP_ENTRY_T;
 
 typedef struct {
-    USHORT dsp, rsp, lsp;
+    ushort dsp, rsp, lsp;
     CELL   reg[NUM_REGS];
     byte   user[USER_SZ];
     addr   func[NUM_FUNCS];
@@ -49,13 +48,13 @@ typedef struct {
 
 extern SYS_T sys;
 extern byte isBye;
+extern byte isError;
 
 extern void vmInit();
 extern CELL pop();
 extern void push(CELL);
 extern addr run(addr);
-extern addr doPin(addr);
-extern addr doFile(addr);
+extern addr doCustom(byte, addr);
 extern void printChar(const char);
 extern void printString(const char*);
 extern void printStringF(const char*, ...);

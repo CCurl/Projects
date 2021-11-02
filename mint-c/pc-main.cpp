@@ -4,20 +4,53 @@
 
 #define  _CRT_SECURE_NO_WARNINGS
 
+#include <Windows.h>
 #include "mint.h"
 
 FILE* input_fp;
+byte fdsp = 0;
+FILE* fstack[STK_SZ];
+static char buf[256];
+static CELL t1;
+
+inline void fpush(FILE *v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
+inline FILE *fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
 
 void printChar(const char c) { printf("%c", c); }
 void printString(const char* str) { printf("%s", str); }
 
-addr doFile(addr pc) {
-    printString("-notImpl-");
+addr doBlock(addr pc) {
+    t1 = *(pc++);
+    switch (t1) {
+    case 'C': if (T) {
+            if ((FILE*)T == input_fp) { input_fp = fpop(); }
+            fclose((FILE*)pop());
+        } break;
+    case 'L': if (input_fp) { fpush(input_fp); }
+        sprintf(buf, "block-%03ld.src", pop());
+        input_fp = fopen(buf, "rb");
+        break;
+    case 'O': sprintf(buf, "block-%03ld.src", pop());
+        push((CELL)fopen(buf, "wb"));
+        break;
+    case 'o': sprintf(buf, "block-%03ld.src", pop());
+        push((CELL)fopen(buf, "wb"));
+        break;
+    }
     return pc;
 }
 
-addr doPin(addr pc) {
-    printString("-noPin-");
+addr doCustom(byte ir, addr pc) {
+    switch (ir) {
+    case 'B': pc = doBlock(pc);        break;
+    case 'N': printString("-noNano-");
+        isError = 1;                   break;
+    case 'T': push(GetTickCount());    break;
+    case 'W': Sleep(pop());            break;
+    default:
+        isError = 1;
+        printString("-notExt-");
+    }
     return pc;
 }
 
@@ -53,7 +86,6 @@ void doHistory(char* str) {
 }
 
 void loop() {
-    char buf[128];
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
     if (fgets(buf, 100, fp) == buf) {
@@ -64,15 +96,13 @@ void loop() {
     }
     if (input_fp) {
         fclose(input_fp);
-        input_fp = NULL; // input_pop();
+        input_fp = fpop(); // input_pop();
     }
 }
 
 int main(int argc, char** argv) {
     vmInit();
-    loadCode(":B32,;:N13,10,;");
-    loadCode(":R26(i@97+,Bi@4*r@+@.N);");
-    loadCode(":Ch@u@-\"._ bytes_(i@u@+`@\"58=(N),);");
+    loadCode("1`BL");
     while (!isBye) { loop(); }
     return 0;
 }

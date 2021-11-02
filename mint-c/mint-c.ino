@@ -46,6 +46,21 @@ addr doPin(addr pc) {
     return pc;
 }
 
+addr doCustom(byte ir, addr pc) {
+    switch (ir) {
+    case 'P': pc = doPin(pc);          break;
+    case 'N': push(nanos());           break;
+    case 'T': push(millis());          break;
+    case 'W': delay(pop());            break;
+    default:
+        isError = 1;
+        printString("-noExt-");
+    }
+    return pc;
+}
+
+
+
 void ok() {
     printString("\r\nmint:(");
     dumpStack();
