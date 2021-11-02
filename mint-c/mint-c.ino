@@ -49,7 +49,7 @@ addr doPin(addr pc) {
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
     case 'P': pc = doPin(pc);          break;
-    case 'N': push(nanos());           break;
+    case 'M': push(micros());          break;
     case 'T': push(millis());          break;
     case 'W': delay(pop());            break;
     default:
