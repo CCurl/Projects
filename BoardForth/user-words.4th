@@ -24,7 +24,7 @@ pc definitions
 
 : _t0 27 emit '[' emit ;
 : gotoXY _t0 (.) ';' emit (.) 'H' emit ;
-: cls _t0 ." 2J" 0 dup gotoXY ;
+: cls _t0 ." 2J" 1 dup gotoXY ;
 
 all definitions
 marker
