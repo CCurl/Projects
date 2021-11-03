@@ -34,7 +34,7 @@ addr doBlock(addr pc) {
         push((CELL)fopen(buf, "wb"));
         break;
     case 'o': sprintf(buf, "block-%03ld.src", pop());
-        push((CELL)fopen(buf, "wb"));
+        push((CELL)fopen(buf, "rb"));
         break;
     }
     return pc;
