@@ -1,0 +1,45 @@
+N"File Steganographer"N
+
+; open files
+:OS `BOR sh!;        ; Source File
+:OI `BOR ih!;        ; Input File
+:OO `BOW oh!;        ; Output File
+
+; close files
+:CS sh@ (sh@ `BC 0 sh!);   ; Source File
+:CI ih@ (ih@ `BC 0 ih!);   ; Input File
+:CO oh@ (oh@ `BC 0 oh!);   ; Output File
+
+; Read/Write the files
+:RI ih@ `BR;
+:RS sh@ `BR;
+:WO oh@ `BW \;
+
+; AO (--f) All open?
+:AO sh@ 0=("-sh-"0;) ih@ 0=("-ih-"0;) oh@ 0=("-oh-"0;) 1;
+
+; NS (--) -  Next Source Byte, sb is the Source Byte
+:NS 0 sb! sh@(RS 0=(CS) sb!);
+
+:PP #@1+$!;
+
+; NB (--1|0) - Next Bit (From the Source)
+:NB bn PP bn@ 6>(0 bn! NS) sb@ 2 / $ sb!;
+
+; CH (--): Copy Header (54 bytes)
+:CH 1 54[RI (WO) sz PP];
+
+; PB (b--) - Process One Byte
+:PB 254 & NB | WO sz PP ;
+
+; WF (--): Work The File
+:WF 0 sz! CH 8 bn! 1{\RI(PB 1)};
+
+; EF (--) - Encode File
+:EF "Encoding ... " WF "done. Output is " sz@ . " bytes";
+
+31 OI 
+32 OS 
+33 OO 
+AO (EF)
+CS CI CO
