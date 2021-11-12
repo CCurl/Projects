@@ -1,14 +1,19 @@
-N"Decode the encoded image"N
+N"Decode ihe encoded image"N
 
 1`BL
 
-; Open, close, read the file
-:OF `BOR th!;
-:CF th@ (th@ `BC) 0 th!;
-:RF th@`BR 0=(CF);
+; Open, close, read input
+:IO `BOR ih!;
+:IC ih@ (ih@ `BC) 0 ih!;
+:IR ih@`BR 0=(CF);
+
+; Open, close, write output
+:OO `BOW oh!;
+:OC oh@ (oh@ `BC) 0 oh!;
+:OW oh@ (oh@ `BW \;),;
 
 ; SH: Skip BMP Header
-:SH 1 54[RF\];
+:SH 1 54[IR\];
 
 ; PP - var++ 
 :PP #@1+$!;
@@ -16,16 +21,18 @@ N"Decode the encoded image"N
 ; LS - var = LeftShift(var)
 :LS #@#+$!;
 
-; OB (--): Output The Byte
-:OB tb@ 0=(CF;) tb@ , 0 tb! nb PP;
+; OB (--): Output the Byte
+:OB tb@ 0=(IC;) tb@ OW 0 tb! nb PP;
 
-; PF (--): Process The File
-:PF th@{\ RF 1 & (tb@ bt@ | tb!) bt LS bn PP bn@ 6>(OB 0 bn! 1 bt!) th@} OB;
+; PF (--): Process the File
+:PF ih@{\ IR 1 & (tb@ bt@ | tb!) bt LS bt@ 127>(OB 1 bt!) ih@} OB;
 
 ; Do the Work
 :DW 0 tb! 0 bn! 1 bt! SH PF;
 
 ; DF (b--) Decode block file b
-:DF 0(b--)0 nb! OF th@(DW CF);
+:DF 0(b--)0 nb! ih@(DW IC OC);
 
-33 DF N N "File size: " nb@ .
+33 IO
+; 32 OO
+DF N N "File size: " nb@ .
