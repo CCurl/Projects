@@ -1,4 +1,5 @@
-N"The Mandelbrot Set"
+
+1`BL
 
 ; Registers:
 ; a: temp 1
@@ -6,8 +7,6 @@ N"The Mandelbrot Set"
 ; c: temp 3
 ; d: temp 4
 ; j: MB loop counter
-; m: X loop increment
-; n: X loop increment
 ; t: count of iterations
 ; x: Y pos
 ; y: X pos
@@ -18,12 +17,12 @@ N"The Mandelbrot Set"
 ; O: output
 ; X: loop for X axis
 ; Y: loop for Y axis
-; M: main, loop for Y axis
+; M: main
 
 :C t@1+t! a@#*s@`/c! b@#*s@`/d! c@d@+k@>(j@m!;) a@b@*100`/y@+b! c@d@-x@+a! j@1+j!;
 :L 0a!0b!0j!s@m!1{\Cj@m@<};
 :O Lj@40+#126>(\32),;
-:X 490`-x! 1 190[  O x@ m@+x!];
-:Y 340`-y! 1  70[N X y@ n@+y!];
-:M 0t! `T Y `T$- N t@." iterations, " . " ms";
-4 m! 10 n! 200 s! 1000000 k! M
+:X 490`-x!1 150[  O x@ 5+x!];
+:Y 340`-y!1  58[N X y@ 12+y!];
+:M N"The Mandelbrot Set"N 0t! `T Y `T$- N t@." iterations, " . " ms";
+200 s! 1000000 k! M

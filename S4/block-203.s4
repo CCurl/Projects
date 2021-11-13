@@ -1,0 +1,31 @@
+N"Decode the encoded image"N
+
+1`BL
+
+; Open, close, read the file
+:OF `BOR th!;
+:CF th@ (th@ `BC) 0 th!;
+:RF th@`BR 0=(CF);
+
+; SH: Skip BMP Header
+:SH 1 54[RF\];
+
+; PP - var++ 
+:PP #@1+$!;
+
+; LS - var = LeftShift(var)
+:LS #@#+$!;
+
+; OB (--): Output The Byte
+:OB tb@ 0=(CF;) tb@ , 0 tb! nb PP;
+
+; PF (--): Process The File
+:PF th@{\ RF 1 & (tb@ bt@ | tb!) bt LS bn PP bn@ 6>(OB 0 bn! 1 bt!) th@} OB;
+
+; Do the Work
+:DW 0 tb! 0 bn! 1 bt! SH PF;
+
+; DF (b--) Decode block file b
+:DF 0(b--)0 nb! OF th@(DW CF);
+
+33 DF N N "File size: " nb@ .
