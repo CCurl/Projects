@@ -1,22 +1,12 @@
 format PE console
 include 'win32ax.inc'
 
-;section '.idata' data readable import
-
-; library kernel32, 'kernel32', msvcrt, 'msvcrt.dll'
-; library msvcrt, 'msvcrt.dll'
-; import kernel32, ReadConsole, 'ReadConsole', WriteConsole, 'WriteConsole', \
-;        ExitProcess, 'ExitProcess', GetStdHandle, 'GetStdHandle'
-; import msvcrt, printf, 'printf'
-
 .data
-; library crtdll, 'crtdll.dll'
-; import crtdll, printf, 'printf'
 
 hStdIn      dd  0
 hStdOut     dd  0
 hello       db  "hello.", 0
-okStr       db  "s4:()>", 0
+okStr       db  13, 10, "s4:()>", 0
 dotStr      db  "%ld", 0
 crlf        db  13, 10
 tib         db  128 dup ?
@@ -25,6 +15,8 @@ bytesRead   dd  0
 unkOP       db  "-unk-"
 isNum       db  "-num-"
 isReg       db  "-reg-"
+skipErr     db  "-skip-"
+createErr   db  "-create-"
 rDepth      dd   ?
 rStackPtr   dd   ?
 fStartAddr  dd   ?
@@ -95,18 +87,6 @@ macro m_pop val
 }
 
 ; ------------------------------------------------------------------------------
-macro m_toVmAddr reg
-{
-       add reg, edx
-}
-
-macro m_fromVmAddr reg
-{
-       sub reg, edx
-}
-
-; ------------------------------------------------------------------------------
-
 macro m_rpush reg
 {
        push TOS
@@ -125,20 +105,8 @@ macro m_rpop reg
        pop TOS
 }
 
-; -------------------------------------------------------------------------------------
-macro m_NEXT
-{
-        lodsb
-        cmp   al, $7E
-        jg    s0
-        movzx ecx, al
-        shl   ecx, 2
-        mov   ebx, [jmpTable+ecx]
-        jmp   ebx
-}
-
 ; ******************************************************************************
-doNop:  m_NEXT
+doNop:  jmp     s4Next
 
 ; ******************************************************************************
 iToA:   mov     ecx, outBuf+16
@@ -159,7 +127,8 @@ i2a1:   push    ebx
 
 ; ******************************************************************************
 ; register
-reg:    sub     al, 'a'
+doRegister:
+        sub     al, 'a'
         and     eax, $ff
         mov     edx, eax
 reg1:   mov     al, [esi]
@@ -171,27 +140,109 @@ reg1:   mov     al, [esi]
         imul    edx, edx, 26
         add     edx, eax
         inc     esi
-        mov     al, [esi]
 regN:   shl     edx, 2
         add     edx, regs
-        cmp     al, ';'
-        je      regSet
-        m_push  [edx]
-        cmp     al, '+'
-        je      regInc
-        cmp     al, '-'
-        je      regDec
-regX:   m_NEXT
-regInc: inc     DWORD [edx]
+        m_push  edx
+regX:   jmp     s4Next
+
+; ******************************************************************************
+; function
+doFunction:
+        sub     al, 'A'
+        mov     edx, eax
+fun1:   mov     al, [esi]
+        mov     bx, 'AZ'
+        call    betw
+        cmp     bl, 0
+        je      funN
         inc     esi
-        jmp     regX
-regDec: dec     DWORD [edx]
+        sub     al, 'A'
+        imul    edx, edx, 26
+        add     edx, eax
+funN:   shl     edx, 2
+        add     edx, funcs
+        mov     ebx, [edx]
+        cmp     ebx, 0
+        je      funX
+        m_rpush esi
+        mov     esi, ebx
+funX:   jmp     s4Next
+
+
+; ******************************************************************************
+; skip to BL
+skipTo:
+        mov     al, [esi]
+        cmp     al, 32
+        jl      skpE
         inc     esi
-        jmp     regX
-regSet: m_pop   eax
-        mov     [edx], eax
+        cmp     al, bl
+        je      skpX
+sk0:    cmp     al, '('
+        jne     sk1
+        mov     al, ')'
+        jmp     skpRec
+sk1:    cmp     al, '['
+        jne     sk2
+        mov     al, ']'
+        jmp     skpRec
+sk2:    cmp     al, '"'
+        je      skpRec
+sk3:    cmp     al, 39
+        jne     sk4
         inc     esi
-        jmp     regX
+        jmp     skipTo
+sk4:    cmp     al, '{'
+        jne     sk5
+        mov     al, '}'
+        jmp     skpRec
+sk5:    jmp     skipTo
+
+skpRec: push    ebx
+        mov     bl, al
+        call    skipTo
+        pop     ebx
+
+skpA:   jmp     skipTo
+        
+skpE:   invoke  WriteConsole, [hStdOut], skipErr, 6, NULL, NULL
+skpX:   ret
+
+; ******************************************************************************
+; create function: :XX ...;
+doCreate:
+        lodsb
+        and     eax, $ff
+        mov     bx, 'AZ'
+        call    betw
+        cmp     bl, 0
+        je      crE
+        sub     al, 'A'
+        inc     esi
+        mov     edx, eax
+        mov     al, [esi]
+        mov     bx, 'AZ'
+        call    betw
+        cmp     bl, 0
+        je      crN
+        sub     al, 'A'
+        inc     esi
+        imul    edx, edx, 26
+        add     edx, eax
+crN:    shl     edx, 2
+        add     edx, funcs
+        mov     [edx], esi
+        mov     bl, ';'
+        call    skipTo
+        jmp     s4Next
+        
+crE:    invoke  WriteConsole, [hStdOut], createErr, 8, NULL, NULL
+        jmp     s4Next
+
+; ******************************************************************************
+doReturn:
+        m_rpop  esi
+        jmp     s4Next
 
 ; ******************************************************************************
 ; Number input
@@ -209,7 +260,7 @@ n1:     mov     al, [esi]
         inc     esi
         jmp     n1
 nx:     m_push  edx
-        m_NEXT
+        jmp     s4Next
 
 ; ******************************************************************************
 ; Quote
@@ -219,7 +270,7 @@ qt:     lodsb
         call    p1
         jmp     qt
 qx:     inc     esi
-        m_NEXT
+        jmp     s4Next
 
 ; ******************************************************************************
 betw:   cmp     al, bl
@@ -259,7 +310,14 @@ doI:    m_push  [fI]
         jmp     s4Next
 
 ; ******************************************************************************
-s4Next: m_NEXT
+s4Next: lodsb
+        cmp     al, $7E
+        jg      s0
+        ; call    p1
+        movzx   ecx, al
+        shl     ecx, 2
+        mov     ebx, [jmpTable+ecx]
+        jmp     ebx
 
 ; ******************************************************************************
 f_UnknownOpcode:
@@ -271,11 +329,7 @@ bye:    invoke  ExitProcess, 0
 
 ; ******************************************************************************
 ok:
-        mov al, 13
-        call p1
-        mov al, 10
-        call p1
-        invoke WriteConsole, [hStdOut], okStr, 6, NULL, NULL
+        invoke WriteConsole, [hStdOut], okStr, 8, NULL, NULL
         ret
 
 ; ******************************************************************************
@@ -300,13 +354,6 @@ emit:   m_pop   eax
 
 ; ******************************************************************************
 doBlank: mov    al, 32
-        call    p1
-        jmp     s4Next
-
-; ******************************************************************************
-doCrLf: mov     al, 13
-        call    p1
-        mov     al, 10
         call    p1
         jmp     s4Next
 
@@ -341,39 +388,47 @@ doDrop: m_drop
         jmp         s4Next
 
 ; ******************************************************************************
-p1:     mov     [outBuf], al
+p1:     push    eax
+        mov     [outBuf], al
         invoke  WriteConsole, [hStdOut], outBuf, 1, NULL, NULL
+        pop     eax
         ret
 
 ; ******************************************************************************
 s_SYS_INIT:
-            ; Return stack
-            mov eax, rStack - CELL_SIZE
-            mov [rStackPtr], eax
-            mov [rDepth], 0
-            ; Data stack
-            mov STKP, dStack
-            ; PCIP = IP/PC
-            mov PCIP, THE_MEMORY
-            ret        
+        ; Return stack
+        mov     eax, rStack - CELL_SIZE
+        mov     [rStackPtr], eax
+        mov     [rDepth], 0
+        ; Data stack
+        mov     STKP, dStack
+        ; PCIP = IP/PC
+        mov     PCIP, THE_MEMORY
+        ret        
 
 ; ******************************************************************************
 start:
-        invoke GetStdHandle, STD_INPUT_HANDLE
-        mov    [hStdIn], eax
+        invoke  GetStdHandle, STD_INPUT_HANDLE
+        mov     [hStdIn], eax
         
-        invoke GetStdHandle, STD_OUTPUT_HANDLE
-        mov    [hStdOut], eax
+        invoke  GetStdHandle, STD_OUTPUT_HANDLE
+        mov     [hStdOut], eax
     
-        invoke WriteConsole, [hStdOut], hello, 6, NULL, NULL
+        invoke  WriteConsole, [hStdOut], hello, 6, NULL, NULL
 
-s0:     call   ok
-        invoke ReadConsole, [hStdIn], tib, 128, bytesRead, 0
+s0:     call    ok
+        mov     eax, rStack - CELL_SIZE
+        mov     [rStackPtr], eax
+        mov     [rDepth], 0
+        cmp     STKP, dStack
+        jl      s0R
+        mov     STKP, dStack
+s0R:    invoke  ReadConsole, [hStdIn], tib, 128, bytesRead, 0
         cld
-        mov    esi, tib
-        m_NEXT
+        mov     esi, tib
+        jmp     s4Next
     
-        invoke ExitProcess, 0
+        invoke  ExitProcess, 0
 
 
 ; ******************************************************************************
@@ -438,71 +493,71 @@ dd num                        ; # 054 (6)
 dd num                        ; # 055 (7)
 dd num                        ; # 056 (8)
 dd num                        ; # 057 (9)
-dd f_UnknownOpcode            ; # 058 (:)
-dd f_UnknownOpcode            ; # 059 (;)
+dd doCreate                   ; # 058 (:)
+dd doReturn                   ; # 059 (;)
 dd f_UnknownOpcode            ; # 060 (<)
 dd f_UnknownOpcode            ; # 061 (=)
 dd f_UnknownOpcode            ; # 062 (>)
 dd f_UnknownOpcode            ; # 063 (?)
 dd f_UnknownOpcode            ; # 064 (@)
-dd f_UnknownOpcode            ; # 065 (A)
-dd doBlank                    ; # 066 (B)
-dd f_UnknownOpcode            ; # 067 (C)
-dd f_UnknownOpcode            ; # 068 (D)
-dd f_UnknownOpcode            ; # 069 (E)
-dd f_UnknownOpcode            ; # 070 (F)
-dd f_UnknownOpcode            ; # 071 (G)
-dd f_UnknownOpcode            ; # 072 (H)
-dd doI                        ; # 073 (I)
-dd f_UnknownOpcode            ; # 074 (J)
-dd f_UnknownOpcode            ; # 075 (K)
-dd f_UnknownOpcode            ; # 076 (L)
-dd f_UnknownOpcode            ; # 077 (M)
-dd doCrLf                     ; # 078 (N)
-dd f_UnknownOpcode            ; # 079 (O)
-dd f_UnknownOpcode            ; # 080 (P)
-dd f_UnknownOpcode            ; # 081 (Q)
-dd f_UnknownOpcode            ; # 082 (R)
-dd f_UnknownOpcode            ; # 083 (S)
-dd doTimer                    ; # 084 (T)
-dd f_UnknownOpcode            ; # 085 (U)
-dd f_UnknownOpcode            ; # 086 (V)
-dd f_UnknownOpcode            ; # 087 (W)
-dd bye                        ; # 088 (X)
-dd f_UnknownOpcode            ; # 089 (Y)
-dd f_UnknownOpcode            ; # 090 (Z)
+dd doFunction                 ; # 065 (A)
+dd doFunction                 ; # 066 (B)
+dd doFunction                 ; # 067 (C)
+dd doFunction                 ; # 068 (D)
+dd doFunction                 ; # 069 (E)
+dd doFunction                 ; # 070 (F)
+dd doFunction                 ; # 071 (G)
+dd doFunction                 ; # 072 (H)
+dd doFunction                 ; # 073 (I)
+dd doFunction                 ; # 074 (J)
+dd doFunction                 ; # 075 (K)
+dd doFunction                 ; # 076 (L)
+dd doFunction                 ; # 077 (M)
+dd doFunction                 ; # 078 (N)
+dd doFunction                 ; # 079 (O)
+dd doFunction                 ; # 080 (P)
+dd doFunction                 ; # 081 (Q)
+dd doFunction                 ; # 082 (R)
+dd doFunction                 ; # 083 (S)
+dd doFunction                 ; # 084 (T)
+dd doFunction                 ; # 085 (U)
+dd doFunction                 ; # 086 (V)
+dd doFunction                 ; # 087 (W)
+dd doFunction                 ; # 088 (X)
+dd doFunction                 ; # 089 (Y)
+dd doFunction                 ; # 090 (Z)
 dd doFor                      ; # 091 ([)
 dd doDrop                     ; # 092 (\)
 dd doNext                     ; # 093 (])
 dd f_UnknownOpcode            ; # 094 (^)
 dd f_UnknownOpcode            ; # 095 (_)
 dd f_UnknownOpcode            ; # 096 (`)
-dd reg                        ; # 097 (a)
-dd reg                        ; # 098 (b)
-dd reg                        ; # 099 (c)
-dd reg                        ; # 100 (d)
-dd reg                        ; # 101 (e)
-dd reg                        ; # 102 (f)
-dd reg                        ; # 103 (g)
-dd reg                        ; # 104 (h)
-dd reg                        ; # 105 (i)
-dd reg                        ; # 106 (j)
-dd reg                        ; # 107 (k)
-dd reg                        ; # 108 (l)
-dd reg                        ; # 109 (m)
-dd reg                        ; # 110 (n)
-dd reg                        ; # 111 (o)
-dd reg                        ; # 112 (p)
-dd reg                        ; # 113 (q)
-dd reg                        ; # 114 (r)
-dd reg                        ; # 115 (s)
-dd reg                        ; # 116 (t)
-dd reg                        ; # 117 (u)
-dd reg                        ; # 118 (v)
-dd reg                        ; # 119 (w)
-dd reg                        ; # 120 (x)
-dd reg                        ; # 121 (y)
-dd reg                        ; # 122 (z)
+dd doRegister                 ; # 097 (a)
+dd doRegister                 ; # 098 (b)
+dd doRegister                 ; # 099 (c)
+dd doRegister                 ; # 100 (d)
+dd doRegister                 ; # 101 (e)
+dd doRegister                 ; # 102 (f)
+dd doRegister                 ; # 103 (g)
+dd doRegister                 ; # 104 (h)
+dd doRegister                 ; # 105 (i)
+dd doRegister                 ; # 106 (j)
+dd doRegister                 ; # 107 (k)
+dd doRegister                 ; # 108 (l)
+dd doRegister                 ; # 109 (m)
+dd doRegister                 ; # 110 (n)
+dd doRegister                 ; # 111 (o)
+dd doRegister                 ; # 112 (p)
+dd doRegister                 ; # 113 (q)
+dd doRegister                 ; # 114 (r)
+dd doRegister                 ; # 115 (s)
+dd doRegister                 ; # 116 (t)
+dd doRegister                 ; # 117 (u)
+dd doRegister                 ; # 118 (v)
+dd doRegister                 ; # 119 (w)
+dd doRegister                 ; # 120 (x)
+dd doRegister                 ; # 121 (y)
+dd doRegister                 ; # 122 (z)
 dd f_UnknownOpcode            ; # 123 ({)
 dd f_UnknownOpcode            ; # 124 (|)
 dd f_UnknownOpcode            ; # 125 (})
