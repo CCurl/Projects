@@ -1,9 +1,4 @@
-:N13,10,;
-"S4 - v0.0.2 - Chris Curl"N
-"This system has "g@." registers, "n@." functions, and "z@." bytes user memory."N
-"Hello"N
-`r
-0(info)
+`R
 :N 13,10,;
 :D u@h@1-[i@`@#,';=(i@1+`@':=(13,10,))];
 :R 0 25[i@4*r@+@#(13,10,i@'a+," ".1)\];
@@ -15,6 +10,10 @@
 :HL 256#*`/$ HW HW;
 
 ; Binary output
-:BD 255&128`/$.64`/$.32`/$.16`/$.8`/$.4`/$.2`/$..;
+:BD 255&128 1 8[$%`/$.$2/]\\;
 :BW 256`/$ BD BD;
 :BL 256#*`/$ BW BW;
+
+"S4 - v0.0.2 - Chris Curl"N
+"This system has "g@." registers, "n@." functions, and "z@." bytes user memory."N
+"Hello"N
