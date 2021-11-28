@@ -35,6 +35,12 @@ void cComma(byte x) {
     *(HERE++) = x;
 }
 
+void wComma(CELL x) {
+    // p(",");
+    setWord(HERE, x);
+    HERE += 2;
+}
+
 void comma(CELL x) {
     // p(",");
     setCell(HERE, x);
@@ -58,6 +64,15 @@ DICT_T *find(char *word) {
         ++dp;
     }
     return NULL;
+}
+
+void words() {
+    DICT_T *dp = (DICT_T *)LAST;
+    while ((addr)dp < DICT_END) {
+        printString(dp->name);
+        printString(" ");
+        ++dp;
+    }
 }
 
 bool isNum(char *word) {
@@ -112,7 +127,7 @@ void parse(char *line) {
                     byte *x = dp->XT;
                     while (*x != ';') { cComma(*x); x++; }
                 } else {
-                    cComma(5);
+                    cComma('5');
                     comma((CELL)dp->XT);
                 }
             }
@@ -121,10 +136,13 @@ void parse(char *line) {
         if (isNum(wd)) {
             if (STATE) {
                 if ((T & 0xFF) == T) {
-                    cComma(1);
+                    cComma('1');
                     cComma(pop());
+                } else if ((T & 0xFFFF) == T) {
+                    cComma('2');
+                    wComma(pop());
                 } else {
-                    cComma(4);
+                    cComma('4');
                     comma(pop());
                 }
             }
@@ -143,11 +161,8 @@ void parse(char *line) {
             STATE = 0;
             continue;
         }
-        if (strEquals(wd, "dd")) {
-            for (addr i = USER; i < HERE; i++) {
-                printStringF(" %d", *i);
-            }
-            STATE = 0;
+        if (strEquals(wd, "words")) {
+            words();
             continue;
         }
         printStringF("[%s]??", wd);

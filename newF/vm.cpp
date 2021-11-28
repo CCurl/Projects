@@ -7,6 +7,7 @@ byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc;
 CELL t1;
+CELL INDEX;
 
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
@@ -20,17 +21,7 @@ inline LOOP_ENTRY_T *ldrop() { if (0 < LSP) { --LSP; } return lAt(); }
 
 void vmInit() {
     sys.dsp = sys.rsp = sys.lsp = 0;
-    for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
-    for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
-    REG['f' - 'a'] = (CELL)&sys.func[0];
-    REG['g' - 'a'] = NUM_REGS;
-    REG['h' - 'a'] = (CELL)&sys.user[0];
-    REG['n' - 'a'] = NUM_FUNCS;
-    REG['r' - 'a'] = (CELL)&sys.reg[0];
-    REG['s' - 'a'] = (CELL)&sys;
-    REG['u' - 'a'] = (CELL)&sys.user[0];
-    REG['z' - 'a'] = USER_SZ;
 }
 
 void setCell(addr to, CELL val) {
@@ -56,6 +47,15 @@ CELL getCell(addr from) {
     val = *((CELL*)from);
 #endif
     return val;
+}
+
+void setWord(addr to, CELL val) {
+    *(to+1) = (byte)(val >> 8);
+    *(to) = (byte)(val);
+}
+
+CELL getWord(addr from) {
+    return (*(from+1) << 8) | (*from);
 }
 
 void dumpStack() {
@@ -148,11 +148,6 @@ addr run(addr start) {
     while (!isError && pc) {
         ir = *(pc++);
         switch (ir) {
-        case 0: return pc;
-        case 1: push(*(pc++));                          break;
-        case 4: push(getCell(pc)); pc += CELL_SZ;       break;
-        case 5: rpush(pc+CELL_SZ);                      // NO BREAK!
-        case 6: pc = (addr)getCell(pc);                 break;
         case ' ': while (*(pc) == ' ') { pc++; }        break;  // 32
         case '!': setCell((byte*)T, N); DROP2;          break;  // 33
         case '"': while (*(pc) != ir) { printChar(*(pc++)); };  // 34
@@ -172,13 +167,13 @@ addr run(addr start) {
         case '/': if (T) { N /= T; DROP1; }                     // 47
                 else { isError = 1;  printString("-0div-"); }
                 break;
-        case '0': case '1': case '2': case '3': case '4':       // 48-57
-        case '5': case '6': case '7': case '8': case '9':
-            push(ir - '0'); ir = *(pc);
-            while (BetweenI(ir, '0', '9')) {
-                T = (T * 10) + (ir - '0');
-                ir = *(++pc);
-            } break;
+        case '1': push(*(pc++));                          break;
+        case '2': push(getWord(pc)); pc += 2;             break;
+        case '4': push(getCell(pc)); pc += CELL_SZ;       break;
+        case '5': rpush(pc+CELL_SZ);                      // NO BREAK!
+        case '6': pc = (addr)getCell(pc);                 break;
+        case '7': ir = *(pc++); if (pop()) { pc += ir; }  break;
+            break;
         case ':': 
             break;
         case ';': pc = rpop();                          break;  // 59
@@ -188,23 +183,13 @@ addr run(addr start) {
         case '?': /* FREE */                            break;  // 63
         case '@': T = getCell((byte*)T);                break;  // 64
         case 'A': case 'B': case 'C': case 'D': case 'E':       // 65-90
-        case 'F': case 'G': case 'H': case 'I': case 'J':
+        case 'F': case 'G': case 'H':                   break;
+        case 'I': push((CELL)&INDEX);                   break;
+        case 'J':
         case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
         case 'Q': case 'R': case 'S': case 'T': case 'U':
         case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            t1 = ir - 'A';
-            if (BetweenI(*pc, 'A', 'Z') && (26 < NUM_FUNCS)) {
-                t1 = AddIt(t1, *(pc++), 'A', NUM_FUNCS);
-                if (BetweenI(*pc, 'A', 'Z') && ((26*26) < NUM_FUNCS)) {
-                    t1 = AddIt(t1, *(pc++), 'A', NUM_FUNCS);
-                }
-            }
-            isError = (NUM_FUNCS <= t1);
-            if (isError) { printString("-funcNum-"); }
-            else if (FUNC[t1]) {
-                if (*pc != ';') { rpush(pc); }
-                pc = FUNC[t1];
-            } break;
+            break;
         case '[': doFor();                              break;  // 91
         case '\\': DROP1;                               break;  // 92
         case ']': doNext();                             break;  // 93
@@ -216,16 +201,7 @@ addr run(addr start) {
         case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': 
         case 'q': case 'r': case 's': case 't': case 'u': 
         case 'v': case 'w': case 'x': case 'y': case 'z': 
-            t1 = ir - 'a';
-            if (BetweenI(*pc, 'a', 'z') && (26 < NUM_REGS)) {
-                t1 = AddIt(t1, *(pc++), 'a', NUM_REGS);
-                if (BetweenI(*pc, 'a', 'z') && ((26*26) < NUM_REGS)) {
-                    t1 = AddIt(t1, *(pc++), 'a', NUM_REGS);
-                }
-            }
-            isError = (t1 < NUM_REGS) ? 0 : 1;
-            if (isError) { printString("-regNum-"); }
-            else { push((CELL)&REG[t1]); }              break;
+            break;
         case '{': if (T) { lpush()->start = pc; }               // 123
                 else { DROP1;  skipTo('}'); }
             break;
@@ -234,6 +210,7 @@ addr run(addr start) {
                 else { lAt()->end = pc; pc = lAt()->start; }
             break;
         case '~': T = ~T;                               break;  // 126
+        default: printStringF("-inv:%d-", ir); isError = 1;
         }
     }
     return pc;

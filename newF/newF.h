@@ -12,11 +12,8 @@
 #define addr        byte *
 #define DENTRY_SZ   sizeof(DICT_T)
 
-#define REG        sys.reg
 #define USER       sys.user
-#define FUNC       sys.func
 // #define HERE       REG[7]
-#define INDEX      REG[8]
 #define T          sys.dstack[sys.dsp]
 #define N          sys.dstack[sys.dsp-1]
 #define R          sys.rstack[sys.rsp]
@@ -38,8 +35,6 @@ typedef struct {
     CELL   dstack[STK_SZ + 1];
     addr   rstack[STK_SZ + 1];
     LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
-    addr   func[NUM_FUNCS];
-    CELL   reg[NUM_REGS];
 } SYS_T;
 
 typedef struct{
@@ -69,4 +64,6 @@ extern void dumpStack();
 extern void parse(char *);
 extern void setCell(addr to, CELL val);
 extern CELL getCell(addr from);
+extern void setWord(addr to, CELL val);
+extern CELL getWord(addr from);
 

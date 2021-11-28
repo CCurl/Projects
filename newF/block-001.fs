@@ -21,13 +21,30 @@
 : xor [ '^' c, ] ; inline
 : 0=  [ '_' c, ] ; inline
 
+: -  [ '-' c, ] ; inline
+: *  [ '*' c, ] ; inline
+: /  [ '/' c, ] ; inline
+: /mod  [ '`' c, '/' c, ] ; inline
+
+: 1-  1 - ; inline
+: 1+  1 + ; inline
+
 : emit [ ',' c, ] ; inline
 : space 32 emit ; inline
 : . space [ '.' c, ] ; inline
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
-: i [ 'i' c, ] ; inline
+: i [ 'I' c, ] ; inline
+
+: if   '(' c, ; immediate
+: then ')' c, ; immediate
 
 : bye [ '`' c, 'q' c, ] ;
+
+
+: type 1 for dup i @ + c@ emit next drop ;
+
+: dd here 1- user for i @ c@ . next ;
+: df user here 1- user - type ;
 
