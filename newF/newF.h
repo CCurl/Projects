@@ -33,13 +33,13 @@ typedef struct {
 } LOOP_ENTRY_T;
 
 typedef struct {
+    byte   user[USER_SZ];
     ushort dsp, rsp, lsp, u1;
     CELL   dstack[STK_SZ + 1];
     addr   rstack[STK_SZ + 1];
     LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
     addr   func[NUM_FUNCS];
     CELL   reg[NUM_REGS];
-    byte   user[USER_SZ];
 } SYS_T;
 
 typedef struct{
@@ -55,6 +55,7 @@ extern byte isError;
 extern addr HERE;
 
 extern void vmInit();
+extern void forthInit();
 extern CELL pop();
 extern void push(CELL);
 extern addr create(addr);
@@ -66,3 +67,6 @@ extern void printString(const char*);
 extern void printStringF(const char*, ...);
 extern void dumpStack();
 extern void parse(char *);
+extern void setCell(addr to, CELL val);
+extern CELL getCell(addr from);
+

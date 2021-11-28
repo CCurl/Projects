@@ -7,15 +7,9 @@ byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc;
 CELL t1;
-addr HERE;
-addr LAST;
-addr DICT_END;
-CELL STATE;
-CELL BASE;
 
-void p(const char *x) { printString(x); }
-void push(CELL v) { p("1"); if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
-CELL pop() { p("0"); return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
+void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
+CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
 
 inline void rpush(addr v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
 inline addr rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
@@ -37,19 +31,6 @@ void vmInit() {
     REG['s' - 'a'] = (CELL)&sys;
     REG['u' - 'a'] = (CELL)&sys.user[0];
     REG['z' - 'a'] = USER_SZ;
-    HERE = &sys.user[0];
-    LAST = HERE + USER_SZ;
-    DICT_END = LAST-1;
-    *(CELL *)LAST = 0;
-    STATE = 0;
-    BASE = 10;
-    char src[64];
-    sprintf(src, ": (here) %ld ;", (CELL)&HERE);        parse(src);
-    sprintf(src, ": (last) %ld ;", (CELL)&LAST);        parse(src);
-    sprintf(src, ": base %ld ;", (CELL)&BASE);          parse(src);
-    sprintf(src, ": state %ld ;", (CELL)&STATE);        parse(src);
-    sprintf(src, ": user %ld ;", (CELL)&sys.user[0]);   parse(src);
-    sprintf(src, ": user_sz %ld ;", (CELL)USER_SZ);     parse(src);
 }
 
 void setCell(addr to, CELL val) {
@@ -170,7 +151,7 @@ addr run(addr start) {
         case 0: return pc;
         case 1: push(*(pc++));                          break;
         case 4: push(getCell(pc)); pc += CELL_SZ;       break;
-        case 5: rpush(pc);                              // NO BREAK!
+        case 5: rpush(pc+CELL_SZ);                      // NO BREAK!
         case 6: pc = (addr)getCell(pc);                 break;
         case ' ': while (*(pc) == ' ') { pc++; }        break;  // 32
         case '!': setCell((byte*)T, N); DROP2;          break;  // 33
@@ -257,121 +238,3 @@ addr run(addr start) {
     }
     return pc;
 }
-
-bool strEquals(const char *str1, const char *str2) {
-    while (*str1 && *str2) {
-        if (*str1 != *str2) { return 0; }
-        ++str1;
-        ++str2;
-    }
-    return (*str1 == *str2) ? 1 : 0;
-}
-
-int strlen(const char *x) {
-    int l = 0;
-    while (*x) { ++x; ++l; }
-    return l;
-}
-
-void strcpy(char *t, const char *f) {
-    while (*f) { *(t++) = *(f++); }
-    *t = 0;
-}
-
-void cComma(byte x) {
-    p("c,");
-    *(HERE++) = x;
-}
-
-void comma(CELL x) {
-    p(",");
-    setCell(HERE, x);
-    HERE += CELL_SZ;
-}
-
-void create(const char *word) {
-    DICT_T *dp = (DICT_T *)LAST;
-    --dp;
-    dp->XT = HERE;
-    dp->flags = 0;
-    dp->len = strlen(word);
-    strcpy(dp->name, word);
-    LAST = (addr)dp;
-    printStringF("\n%s created at %p, XT=%p", word, dp, dp->XT);
-}
-
-DICT_T *find(char *word) {
-    DICT_T *dp = (DICT_T *)LAST;
-    while ((addr)dp < DICT_END) {
-        if (strEquals(dp->name, word)) { return dp;  }
-        ++dp;
-    }
-    return NULL;
-}
-
-bool isNum(char *word) {
-    push(0);
-    while (*word) {
-        if (*word == ' ') { return 1; }
-        if ((*word < '0') || ('9' < *word)) {
-            pop();
-            return 0;
-        }
-        T = (T*BASE)+(*word-'0');
-        word++;
-    }
-    return 1;
-}
-
-char *getWord(char *line, char *word) {
-    char *x = word;
-    while (*line == ' ') { ++line; }
-    while ((*line) && (*line != ' ')) {
-        *(word++) = *(line++);
-    }
-    *word = 0;
-    // p("-"); p(x); p("-");
-    return line;
-}
-
-void parse(char *line) {
-    p("\n"); p(line);
-    char wd[32];
-    while (1) {
-        line = getWord(line, wd);
-        if (wd[0] == 0) {
-            return;
-        }
-        DICT_T *dp = find(wd);
-        if (dp) {
-            if ((STATE == 0) || (dp->flags == 2)) {
-                run(dp->XT);
-            } else {
-                cComma(5);
-                comma((CELL)dp->XT);
-            }
-            continue;
-        }
-        if (isNum(wd)) {
-            if (STATE) {
-                cComma(4);
-                comma(pop());
-            }
-            continue;
-        }
-        if (strEquals(wd, ":")) {
-            line = getWord(line, wd);
-            if (wd[0]) {
-                create(wd);
-                STATE = 1;
-            }
-            continue;
-        }
-        if (strEquals(wd, ";")) {
-            cComma(';');
-            STATE = 0;
-            continue;
-        }
-    }
-}
-

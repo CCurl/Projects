@@ -147,7 +147,9 @@ void loop() {
 
 int main(int argc, char** argv) {
     vmInit();
+    forthInit();
     input_fp = fopen("block-001.fs", "rt");
+    
     while (!isBye) { loop(); }
     return 0;
 }
