@@ -26,6 +26,10 @@
 : /  [ '/' c, ] ; inline
 : /mod  [ '`' c, '/' c, ] ; inline
 
+: =  [ '=' c, ] ; inline
+: <  [ '<' c, ] ; inline
+: >  [ '>' c, ] ; inline
+
 : 1-  1 - ; inline
 : 1+  1 + ; inline
 

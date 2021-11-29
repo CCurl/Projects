@@ -7,6 +7,8 @@ addr DICT_END;
 CELL STATE;
 CELL BASE;
 
+#define INLINE    0x01
+#define IMMEDIATE 0x02
 
 void p(const char *x) { printString(x); }
 
@@ -72,9 +74,20 @@ void words() {
         printString("");
         printStringF("\n%08ld:", (long)dp->XT);
         for (addr i = dp->XT; *i != ';'; i++) {
-            printStringF(" %d", *i);
+            char c = *i;
+            if (BetweenI(c, 33, 126)) {
+                if (c == '2') { printStringF(" 2 (%ld)", getWord(i+1)); i += 2; }
+                else if (c == '4') { printStringF(" 4 (%ld)", getCell(i+1)); i += CELL_SZ; }
+                else if (c == '5') { printStringF(" CALL (%ld)", getCell(i+1)); i += CELL_SZ; }
+                else if (c == '6') { printStringF(" JUMP (%ld)", getCell(i+1)); break; }
+                else printStringF(" %c", c);
+            } else {
+                printStringF(" (%d)", c);
+            }
         }
         printStringF("; %s", dp->name);
+        if (dp->flags & INLINE) { printStringF(" (INLINE)"); }
+        if (dp->flags & IMMEDIATE) { printStringF(" (IMMEDIATE)"); }
         ++dp;
     }
 }
@@ -125,12 +138,12 @@ void parse(char *line) {
         lastWasCall = 0;
         if (dp) {
             // printStringF("found\n");
-            if ((STATE == 0) || (dp->flags == 2)) {
+            if ((STATE == 0) || (dp->flags == IMMEDIATE)) {
                 // printStringF("... call XT=%ld\n", (long)dp->XT);
                 run(dp->XT);
                 // printStringF("back\n");
             } else {
-                if (dp->flags == 1) {
+                if (dp->flags == INLINE) {
                     byte *x = dp->XT;
                     while (*x != ';') { cComma(*x); x++; }
                 } else {
@@ -201,9 +214,9 @@ void forthInit() {
     sprintf(src, ": base %ld ;",    (CELL)&BASE);      parse(src);
     sprintf(src, ": state %ld ;",   (CELL)&STATE);     parse(src);
     sprintf(src, ": user %ld ;",    (CELL)USER);       parse(src);
-    sprintf(src, ": user-sz %ld ;", (CELL)USER_SZ);    parse(src);
-    sprintf(src, ": cell %ld ;",    (CELL)CELL_SZ);    parse(src);
-    sprintf(src, ": addr %ld ;",    (CELL)sizeof(addr));    parse(src);
+    sprintf(src, ": user-sz %ld ;", (CELL)USER_SZ);    parse(src); LAST->flags = INLINE;
+    sprintf(src, ": cell %ld ;", (CELL)CELL_SZ);       parse(src); LAST->flags = INLINE;
+    sprintf(src, ": addr %ld ;", (CELL)sizeof(addr));  parse(src); LAST->flags = INLINE;
     prim("swap", "$");
     prim("over", "%");
     prim("@", "@");
@@ -212,4 +225,3 @@ void forthInit() {
     prim("c!", "`!");
     prim("+", "+");
 }
-
