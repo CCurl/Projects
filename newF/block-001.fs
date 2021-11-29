@@ -34,8 +34,10 @@
 : 1+  1 + ; inline
 
 : emit [ ',' c, ] ; inline
-: space 32 emit ; inline
-: . space [ '.' c, ] ; inline
+: bl 32 ; inline
+: space bl emit ; inline
+: (.) [ '.' c, ] ; inline
+: . (.) space ; inline
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
@@ -44,11 +46,18 @@
 : if   '(' c, ; immediate
 : then ')' c, ; immediate
 
+: begin '{' c, ; immediate
+: while '}' c, ; immediate
+
 : bye [ '`' c, 'q' c, ] ;
 
-
+: count dup 1+ swap c@ ;
 : type 1 for dup c@ emit 1+ next drop ;
 
 : print-ch dup 0= if drop '.' then emit ;
 : dd user here 1- for i @ c@ . next ;
 : df user here 1- for i @ c@ print-ch next ;
+
+: user-end user user-sz + 1- ;
+: .w dup cell + 1+ count type space ;
+: words last 1 begin drop .w dentry-sz + dup user-end < while drop ;

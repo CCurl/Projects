@@ -68,7 +68,7 @@ DICT_T *find(char *word) {
     return NULL;
 }
 
-void words() {
+void wordsl() {
     DICT_T *dp = (DICT_T *)LAST;
     while ((addr)dp < DICT_END) {
         printString("");
@@ -186,8 +186,8 @@ void parse(char *line) {
             STATE = 0;
             continue;
         }
-        if (strEquals(wd, "words")) {
-            words();
+        if (strEquals(wd, "wordsl")) {
+            wordsl();
             continue;
         }
         printStringF("[%s]??", wd);
@@ -209,14 +209,15 @@ void forthInit() {
     LAST = (DICT_T *)(DICT_END);
     STATE = 0;
     BASE = 10;
-    sprintf(src, ": (here) %ld ;",  (CELL)&HERE);      parse(src);
-    sprintf(src, ": (last) %ld ;",  (CELL)&LAST);      parse(src);
-    sprintf(src, ": base %ld ;",    (CELL)&BASE);      parse(src);
-    sprintf(src, ": state %ld ;",   (CELL)&STATE);     parse(src);
-    sprintf(src, ": user %ld ;",    (CELL)USER);       parse(src);
-    sprintf(src, ": user-sz %ld ;", (CELL)USER_SZ);    parse(src); LAST->flags = INLINE;
-    sprintf(src, ": cell %ld ;", (CELL)CELL_SZ);       parse(src); LAST->flags = INLINE;
-    sprintf(src, ": addr %ld ;", (CELL)sizeof(addr));  parse(src); LAST->flags = INLINE;
+    sprintf(src, ": cell %ld ;",      (CELL)CELL_SZ);         parse(src); LAST->flags = INLINE;
+    sprintf(src, ": addr %ld ;",      (CELL)sizeof(addr));    parse(src); LAST->flags = INLINE;
+    sprintf(src, ": dentry-sz %ld ;", (CELL)sizeof(DICT_T));  parse(src); LAST->flags = INLINE;
+    sprintf(src, ": user-sz %ld ;",   (CELL)USER_SZ);         parse(src); LAST->flags = INLINE;
+    sprintf(src, ": (here) %ld ;",    (CELL)&HERE);           parse(src);
+    sprintf(src, ": (last) %ld ;",    (CELL)&LAST);           parse(src);
+    sprintf(src, ": base %ld ;",      (CELL)&BASE);           parse(src);
+    sprintf(src, ": state %ld ;",     (CELL)&STATE);          parse(src);
+    sprintf(src, ": user %ld ;",      (CELL)USER);            parse(src);
     prim("swap", "$");
     prim("over", "%");
     prim("@", "@");
