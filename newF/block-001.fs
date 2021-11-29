@@ -2,7 +2,7 @@
 : last (last) @ ;
 
 : immediate 2 last addr + c! ;
-: inline 1 last addr + c! ;
+: inline    1 last addr + c! ;
 
 : [ 0 state ! ; immediate
 : ] 1 state ! ;
@@ -43,8 +43,8 @@
 : bye [ '`' c, 'q' c, ] ;
 
 
-: type 1 for dup i @ + c@ emit next drop ;
+: type 1 for dup c@ emit 1+ next drop ;
 
-: dd here 1- user for i @ c@ . next ;
-: df user here 1- user - type ;
-
+: print-ch dup 0= if drop '.' then emit ;
+: dd user here 1- for i @ c@ . next ;
+: df user here 1- for i @ c@ print-ch next ;

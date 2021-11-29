@@ -19,3 +19,7 @@ mint/mint.exe
 /mint-c/mint.vcxproj.user
 /mint-c/Release
 /newF/newF
+/newF/.vs/newF/v16
+/newF/Debug
+/newF/Release
+/newF/x64/Debug

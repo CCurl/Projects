@@ -19,13 +19,13 @@ bool strEquals(const char *str1, const char *str2) {
     return (*str1 == *str2) ? 1 : 0;
 }
 
-int strlen(const char *x) {
+int strLen(const char *x) {
     int l = 0;
     while (*x) { ++x; ++l; }
     return l;
 }
 
-void strcpy(char *t, const char *f) {
+void strCpy(char *t, const char *f) {
     while (*f) { *(t++) = *(f++); }
     *t = 0;
 }
@@ -51,8 +51,8 @@ void create(const char *word) {
     DICT_T *dp = LAST-1;
     dp->XT = HERE;
     dp->flags = 0;
-    dp->len = strlen(word);
-    strcpy(dp->name, word);
+    dp->len = strLen(word);
+    strCpy(dp->name, word);
     LAST = dp;
     // printStringF("\n%s created at %p, XT=%ld", word, dp, (long)dp->XT);
 }
@@ -69,8 +69,12 @@ DICT_T *find(char *word) {
 void words() {
     DICT_T *dp = (DICT_T *)LAST;
     while ((addr)dp < DICT_END) {
-        printString(dp->name);
-        printString(" ");
+        printString("");
+        printStringF("\n%08ld:", (long)dp->XT);
+        for (addr i = dp->XT; *i != ';'; i++) {
+            printStringF(" %d", *i);
+        }
+        printStringF("; %s", dp->name);
         ++dp;
     }
 }
@@ -109,6 +113,7 @@ char *getWord(char *line, char *word) {
 void parse(char *line) {
     // p("\n"); p(line);
     char wd[32];
+    int lastWasCall = 0;
     while (1) {
         line = getWord(line, wd);
         if (wd[0] == 0) {
@@ -116,6 +121,8 @@ void parse(char *line) {
         }
         // p("-"); p(wd); p("-");
         DICT_T *dp = find(wd);
+        int lwc = lastWasCall;
+        lastWasCall = 0;
         if (dp) {
             // printStringF("found\n");
             if ((STATE == 0) || (dp->flags == 2)) {
@@ -129,6 +136,7 @@ void parse(char *line) {
                 } else {
                     cComma('5');
                     comma((CELL)dp->XT);
+                    lastWasCall = 1;
                 }
             }
             continue;
@@ -137,7 +145,7 @@ void parse(char *line) {
             if (STATE) {
                 if ((T & 0xFF) == T) {
                     cComma('1');
-                    cComma(pop());
+                    cComma((byte)pop());
                 } else if ((T & 0xFFFF) == T) {
                     cComma('2');
                     wComma(pop());
@@ -157,7 +165,11 @@ void parse(char *line) {
             continue;
         }
         if (strEquals(wd, ";")) {
-            cComma(';');
+            if (lwc) {
+                *(HERE - CELL_SZ - 1) = '6';
+            } else {
+                cComma(';');
+            }
             STATE = 0;
             continue;
         }
@@ -188,7 +200,7 @@ void forthInit() {
     sprintf(src, ": (last) %ld ;",  (CELL)&LAST);      parse(src);
     sprintf(src, ": base %ld ;",    (CELL)&BASE);      parse(src);
     sprintf(src, ": state %ld ;",   (CELL)&STATE);     parse(src);
-    sprintf(src, ": user %ld ;",    (CELL)HERE);       parse(src);
+    sprintf(src, ": user %ld ;",    (CELL)USER);       parse(src);
     sprintf(src, ": user-sz %ld ;", (CELL)USER_SZ);    parse(src);
     sprintf(src, ": cell %ld ;",    (CELL)CELL_SZ);    parse(src);
     sprintf(src, ": addr %ld ;",    (CELL)sizeof(addr));    parse(src);
