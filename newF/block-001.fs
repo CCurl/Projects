@@ -41,13 +41,13 @@
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
-: i [ 'I' c, ] ; inline
+: i    [ 'I' c, ] ; inline
 
-: if   '(' c, ; immediate
-: then ')' c, ; immediate
+: if   [ '(' c, ] ; inline
+: then [ ')' c, ] ; inline
 
-: begin '{' c, ; immediate
-: while '}' c, ; immediate
+: begin [ '{' c, ] ; inline
+: while [ '}' c, ] ; inline
 
 : bye [ '`' c, 'q' c, ] ;
 
@@ -58,6 +58,5 @@
 : dd user here 1- for i @ c@ . next ;
 : df user here 1- for i @ c@ print-ch next ;
 
-: user-end user user-sz + 1- ;
 : .w dup cell + 1+ count type space ;
 : words last 1 begin drop .w dentry-sz + dup user-end < while drop ;
