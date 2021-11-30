@@ -34,7 +34,4 @@ protected:
 public:
 	afx_msg void OnBnClickedGo();
 	CStatic mfcWorld;
-
-	Critter critters[100];
-	int numCritters = 100;
 };

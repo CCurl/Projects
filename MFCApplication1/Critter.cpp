@@ -9,7 +9,7 @@ void Critter::doOutput(int type) {
 }
 
 void Critter::Think() {
-		for (int i = 0; i < numConnections; i++) {
+	for (int i = 0; i < numConnections; i++) {
 			CONN_T *x = &connection[i];
 	}
 }
