@@ -58,5 +58,6 @@
 : dd user here 1- for i @ c@ . next ;
 : df user here 1- for i @ c@ print-ch next ;
 
+: num-words user-end 1+ last - dentry-sz / ;
 : .w dup cell + 1+ count type space ;
-: words last 1 begin drop .w dentry-sz + dup user-end < while drop ;
+: words last num-words 1 for .w dentry-sz + next drop ;
