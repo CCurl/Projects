@@ -20,23 +20,43 @@ void Critter::CreateRandom(int xPos, int yPos, Brain* brain) {
 double Critter::getInput(byte type) {
 	// TRACE("critter.getInput (%d)\n", n->type);
 	switch (type) {
-	case 1: break;
-	case 2: break;
-	case 3: break;
+	case 0: return abs(sin(rand()));
+	case 1: return abs(sin(rand()));
+	case 2: return abs(sin(rand()));
+	case 3: return abs(sin(rand()));
+	case 4: return abs(sin(rand()));
+	case 5: return abs(sin(rand()));
+	case 6: return abs(sin(rand()));
+	case 7: return abs(sin(rand()));
+	case 8: return abs(sin(rand()));
+	case 9: return abs(sin(rand()));
+	case 10: return abs(sin(rand()));
+	case 12: return abs(sin(rand()));
+	case 13: return abs(sin(rand()));
+	case 14: return abs(sin(rand()));
+	case 15: return abs(sin(rand()));
 	default: break;
 	}
 	return 0;
 }
 
 void Critter::doOutput(byte type, int signalStrength) {
-	// TRACE("critter.doOutput(%d)\n", n->type);
+	TRACE("critter.doOutput(%d)\n", type);
 	switch (type) {
-	case 0: break;
-	case 1: break;
-	case 2: break;
-	case 3: break;
+	case 0: x += 0; y += 1;  break; // N
+	case 1: x += 1; y += 1;  break; // NE
+	case 2: x += 1; y += 0;  break; // E
+	case 3: x += 1; y -= 1;  break; // SE
+	case 4: x += 0; y -= 1;  break; // S
+	case 5: x -= 1; y -= 1;  break; // SW
+	case 6: x -= 1; y += 0;  break; // W
+	case 7: x -= 1; y += 1;  break; // NW
 	default: break;
 	}
+	if (x < 0) { x = 0; }
+	if (y < 0) { y = 0; }
+	if (128 < x) { x = 128; }
+	if (128 < y) { y = 128; }
 }
 
 NEURON_T* Brain::getSourceNeuron(byte neuronId) {
@@ -55,8 +75,8 @@ void Brain::doInput(Critter* critter, CONN_T* conn) {
 	NEURON_T* f = getSourceNeuron(conn->src);
 	NEURON_T* t = getSinkNeuron(conn->sink);
 	double v = 0;
-	if (IS_INPUT(f->id)) {
-		v = critter->getInput(NEURON_ID(f->id));
+	if (IS_INPUT(conn->src)) {
+		v = critter->getInput(NEURON_ID(conn->src));
 	}
 	else {
 		v = tanh(f->sum);
@@ -68,11 +88,13 @@ void Brain::doOutput(Critter* critter, CONN_T* conn) {
 	NEURON_T* t = getSinkNeuron(conn->sink);
 	// t->sum == 0 means do nothing
 	if (t->sum != 0) {
-		double v = tanh(t->sum);
+		double s = tanh(t->sum);
+		int p = (int)(s*100);
+		int r = rand() / 328;
 		// In case there are multiple connections to this neuron
 		t->sum = 0;
-		if (0.01 < v) {
-			critter->doOutput(NEURON_ID(conn->sink), (int)(v * 100));
+		if (r < s) {
+			critter->doOutput(NEURON_ID(conn->sink), p);
 		}
 	}
 }
@@ -96,21 +118,29 @@ void Brain::OneStep(Critter * critter) {
 	}
 }
 
-void Brain::Init(int numI, int numH, int numO, int numC) {
-	numNeurons = numI + numH + numO;
-	numInputs = numI;
-	numOutputs = numO;
+void Brain::Init(int numH, int numC) {
 	numHidden = numH;
 	numConnections = numC;
 }
 
-byte Brain::getRandomNeuronID() {
-	return rand() & 0xff;
+byte Brain::getRandomNeuronID(bool isInput) {
+	int type = 0x80, id = 0;
+	int pct = (numHidden * 100) / numConnections;
+	bool isHidden = (rand()/328) < pct;
+	if (isHidden) {
+		type = 0;
+		id = rand() % numHidden;
+	}
+	else {
+		type = 0x80;
+		id = rand() % (isInput ? MAX_INPUT : MAX_OUTPUT);
+	}
+	return type | id;
 }
 
 void Brain::createRandomConnection(CONN_T *pC) {
-	pC->src = getRandomNeuronID();
-	pC->sink = getRandomNeuronID();
+	pC->src = getRandomNeuronID(true);
+	pC->sink = getRandomNeuronID(false);
 	pC->wt = rand();
 	if (rand() < 16000) { pC->wt = -pC->wt; }
 	pC->weight = pC->wt / 8000.0;

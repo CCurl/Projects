@@ -18,6 +18,10 @@ typedef struct {
 #define IS_OUTPUT(id)   (NEURON_TYPE(id) != 0)
 #define IS_HIDDEN(id)   (NEURON_TYPE(id) == 0)
 
+#define MAX_INPUT       16
+#define MAX_HIDDEN      16
+#define MAX_OUTPUT      16
+
 class Brain;
 
 class Critter
@@ -28,7 +32,7 @@ public:
 	static Critter* At(int index);
 
 	int x, y, heading;
-	CONN_T connection[64];
+	CONN_T connection[512];
 	void CreateRandom(int x, int y, Brain *brain);
 	CONN_T* getConnection(int index) { return &connection[index]; }
 	double getInput(byte type);
@@ -38,22 +42,21 @@ public:
 class Brain
 {
 public:
-	int numNeurons;
 	int numConnections;
 	int numInputs;
 	int numHidden;
 	int numOutputs;
-	NEURON_T input[128];
-	NEURON_T hidden[128];
-	NEURON_T output[128];
+	NEURON_T input[MAX_INPUT];
+	NEURON_T hidden[MAX_HIDDEN];
+	NEURON_T output[MAX_OUTPUT];
 
-	void Init(int numI, int numH, int numO, int numC);
+	void Init(int numH, int numC);
 	void OneStep(Critter *critter);
 	void doInput(Critter * critter, CONN_T *conn);
 	void doOutput(Critter * critter, CONN_T *conn);
 	NEURON_T *getSourceNeuron(byte id);
 	NEURON_T *getSinkNeuron(byte id);
-	byte getRandomNeuronID();
+	byte getRandomNeuronID(bool isInput);
 	int CopyBit(int bit, int bitPos);
 	int CopyBits(unsigned long bits, int num);
 	void CopyConnection(CONN_T* f, CONN_T* t);
