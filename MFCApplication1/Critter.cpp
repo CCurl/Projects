@@ -8,18 +8,12 @@ Critter* Critter::At(int index) {
 	return &critters[index];
 }
 
-void Critter::CreateRandom(int xPos, int yPos, Brain *brain) {
+void Critter::CreateRandom(int xPos, int yPos, Brain* brain) {
 	x = xPos;
 	y = yPos;
 	heading = rand() % 8;
 	for (int i = 0; i < brain->numConnections; i++) {
-		CONN_T* pC = &connection[i];
-		pC->src = brain->getRandomNeuronID();
-		pC->sink = brain->getRandomNeuronID();
-		double w = rand();
-		if (rand() < 16000) { w = -w; }
-		pC->weight = w / 8000;
-		TRACE("%02x, %02x, %g\n", pC->src, pC->sink, pC->weight);
+		brain->createRandomConnection(getConnection(i));
 	}
 }
 
@@ -77,7 +71,7 @@ void Brain::doOutput(Critter* critter, CONN_T* conn) {
 		double v = tanh(t->sum);
 		// In case there are multiple connections to this neuron
 		t->sum = 0;
-		if (0.05 < v) {
+		if (0.01 < v) {
 			critter->doOutput(NEURON_ID(conn->sink), (int)(v * 100));
 		}
 	}
@@ -85,22 +79,17 @@ void Brain::doOutput(Critter* critter, CONN_T* conn) {
 
 void Brain::OneStep(Critter * critter) {
 	for (int i = 0; i < numConnections; i++) {
-		CONN_T* pC = &critter->connection[i];
+		CONN_T* pC = critter->getConnection(i);
 		getSourceNeuron(pC->src)->sum = 0;
 		getSinkNeuron(pC->sink)->sum = 0;
 	}
 
-	// TEMP
-	critter->x = rand() % 100;
-	critter->y = rand() % 100;
-
 	for (int i = 0; i < numConnections; i++) {
-		CONN_T * pC = &critter->connection[i];
-		doInput(critter, pC);
+		doInput(critter, critter->getConnection(i));
 	}
 
 	for (int i = 0; i < numConnections; i++) {
-		CONN_T* pC = &critter->connection[i];
+		CONN_T* pC = critter->getConnection(i);
 		if (IS_OUTPUT(pC->sink)) {
 			doOutput(critter, pC);
 		}
@@ -117,4 +106,38 @@ void Brain::Init(int numI, int numH, int numO, int numC) {
 
 byte Brain::getRandomNeuronID() {
 	return rand() & 0xff;
+}
+
+void Brain::createRandomConnection(CONN_T *pC) {
+	pC->src = getRandomNeuronID();
+	pC->sink = getRandomNeuronID();
+	pC->wt = rand();
+	if (rand() < 16000) { pC->wt = -pC->wt; }
+	pC->weight = pC->wt / 8000.0;
+	// TRACE("%02x, %02x, %g\n", pC->src, pC->sink, pC->weight);
+}
+
+int Brain::CopyBit(int bits, int bitPos) {
+	int bit = (bits & bitPos);
+	if (rand() < 35) {
+		return bit ? 0 : bitPos;
+	}
+	return bit;
+}
+
+int Brain::CopyBits(unsigned long bits, int num) {
+	unsigned long ret = 0;
+	int bitPos = 1;
+	for (int i = 0; i < num; i++) {
+		ret |= CopyBit(bits, bitPos);
+		bitPos = (bitPos << 1);
+	}
+	return (int)ret;
+}
+
+void Brain::CopyConnection(CONN_T* f, CONN_T* t) {
+	t->src = (byte)CopyBits(f->src, 8);
+	t->sink = (byte)CopyBits(f->sink, 8);
+	t->wt = (short)CopyBits(f->wt, 16);
+	t->weight = t->wt / 8000.0;
 }

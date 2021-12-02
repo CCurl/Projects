@@ -3,6 +3,7 @@
 typedef struct {
 	byte src;
 	byte sink;
+	short wt;
 	double weight;
 } CONN_T;
 
@@ -29,6 +30,7 @@ public:
 	int x, y, heading;
 	CONN_T connection[64];
 	void CreateRandom(int x, int y, Brain *brain);
+	CONN_T* getConnection(int index) { return &connection[index]; }
 	double getInput(byte type);
 	void doOutput(byte type, int signalStrength);
 };
@@ -52,9 +54,14 @@ public:
 	NEURON_T *getSourceNeuron(byte id);
 	NEURON_T *getSinkNeuron(byte id);
 	byte getRandomNeuronID();
+	int CopyBit(int bit, int bitPos);
+	int CopyBits(unsigned long bits, int num);
+	void CopyConnection(CONN_T* f, CONN_T* t);
+	void createRandomConnection(CONN_T *pC);
 };
 
 class World {
 public:
 	int sz_x, sz_y;
+	byte entity[500][500];
 };
