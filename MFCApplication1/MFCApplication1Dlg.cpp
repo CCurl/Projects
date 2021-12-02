@@ -129,6 +129,8 @@ void CMFCApplication1Dlg::OnBnClickedGo()
 	COLORREF c = RGB(255, 255, 255);
 	dc->FillSolidRect(0, 0, 300, 300, c);
 	for (int i = 0; i < Critter::numCritters; i++) {
+		Critter::At(i)->x = rand() % 128; // TEMP
+		Critter::At(i)->y = rand() % 128; // TEMP
 		PaintCritter(dc, Critter::At(i));
 	}
 
