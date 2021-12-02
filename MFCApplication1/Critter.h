@@ -1,20 +1,60 @@
 #pragma once
+
 typedef struct {
-	byte type;
-	byte from;
-	byte to;
-	byte weight;
+	byte src;
+	byte sink;
+	double weight;
 } CONN_T;
+
+typedef struct {
+	byte id;
+	double sum;
+} NEURON_T;
+
+#define NEURON_TYPE(id) (id & 0x80)
+#define NEURON_ID(id)   (id & 0x7f)
+#define IS_INPUT(id)    (NEURON_TYPE(id) != 0)
+#define IS_OUTPUT(id)   (NEURON_TYPE(id) != 0)
+#define IS_HIDDEN(id)   (NEURON_TYPE(id) == 0)
+
+class Brain;
 
 class Critter
 {
-	static Critter critters[10000];
-	static int numCritters;
-	int numConnections;
 public:
+	static Critter critters[1000];
+	static int numCritters;
+	static Critter* At(int index);
+
 	int x, y, heading;
 	CONN_T connection[64];
-	void Think();
-	int getInput(int type);
-	void doOutput(int type);
+	void CreateRandom(int x, int y, Brain *brain);
+	double getInput(byte type);
+	void doOutput(byte type, int signalStrength);
+};
+
+class Brain
+{
+public:
+	int numNeurons;
+	int numConnections;
+	int numInputs;
+	int numHidden;
+	int numOutputs;
+	NEURON_T input[128];
+	NEURON_T hidden[128];
+	NEURON_T output[128];
+
+	void Init(int numI, int numH, int numO, int numC);
+	void OneStep(Critter *critter);
+	void doInput(Critter * critter, CONN_T *conn);
+	void doOutput(Critter * critter, CONN_T *conn);
+	NEURON_T *getSourceNeuron(byte id);
+	NEURON_T *getSinkNeuron(byte id);
+	byte getRandomNeuronID();
+};
+
+class World {
+public:
+	int sz_x, sz_y;
 };

@@ -32,6 +32,11 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	void PaintCritter(CDC* dc, Critter* p, int oldX, int oldY);
 	afx_msg void OnBnClickedGo();
+	void InitWorld();
+	void OneStep(CDC* dc);
 	CStatic mfcWorld;
+	Brain brain;
+	int maxX, maxY;
 };
