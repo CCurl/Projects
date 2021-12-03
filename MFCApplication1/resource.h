@@ -9,9 +9,10 @@
 #define IDC_WORLD                       1002
 #define IDC_InitWorld                   1003
 #define IDC_NUMHIDDEN                   1005
-#define IDC_NUMOUTPUT                   1006
 #define IDC_NUMCRITTERS                 1007
 #define IDC_NUMCONNECTIONS              1008
+#define IDC_NUMCRITTERS2                1009
+#define IDC_NUMSTEPS                    1009
 
 // Next default values for new objects
 // 

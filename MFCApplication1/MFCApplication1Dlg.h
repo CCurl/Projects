@@ -33,15 +33,17 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	void PaintCritter(CDC* dc, Critter* p);
-	void PaintCritters(CDC* dc);
+	void PaintCritters(bool ClearFirst);
 	afx_msg void OnBnClickedGo();
 	void InitWorld();
 	void OneStep();
 	CStatic mfcWorld;
 	Brain brain;
+	World world;
 	int maxX, maxY;
 	int m_numCritters;
 	int m_numHidden;
 	afx_msg void OnBnClickedInitworld();
 	int m_numConnections;
+	int m_numSteps;
 };

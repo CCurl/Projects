@@ -9,8 +9,9 @@ Critter* Critter::At(int index) {
 }
 
 void Critter::CreateRandom(int xPos, int yPos, Brain* brain) {
-	x = xPos;
-	y = yPos;
+	MoveTo(0, 0);
+	RememberLoc();
+	MoveTo(xPos, yPos);
 	heading = rand() % 8;
 	for (int i = 0; i < brain->numConnections; i++) {
 		brain->createRandomConnection(getConnection(i));

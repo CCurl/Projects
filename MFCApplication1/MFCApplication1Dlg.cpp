@@ -19,6 +19,7 @@ CMFCApplication1Dlg::CMFCApplication1Dlg(CWnd* pParent /*=nullptr*/)
 	, m_numCritters(0)
 	, m_numHidden(0)
 	, m_numConnections(0)
+	, m_numSteps(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	maxX = 0;
@@ -31,6 +32,7 @@ void CMFCApplication1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_NUMCRITTERS, m_numCritters);
 	DDX_Text(pDX, IDC_NUMHIDDEN, m_numHidden);
 	DDX_Text(pDX, IDC_NUMCONNECTIONS, m_numConnections);
+	DDX_Text(pDX, IDC_NUMSTEPS, m_numSteps);
 }
 
 BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
@@ -56,6 +58,7 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	m_numHidden = 2;
 	m_numConnections = 10;
 	m_numCritters = 100;
+	m_numSteps = 10000;
 	UpdateData(0);
 	InitWorld();
 
@@ -67,11 +70,12 @@ void CMFCApplication1Dlg::InitWorld() {
 	brain.Init(m_numHidden, m_numConnections);
 	maxX = 128;
 	maxY = 128;
-	for (int i = 0; i < Critter::numCritters; i++) {
+	for (int i = 1; i <= Critter::numCritters; i++) {
 		int x = rand() % maxX;
 		int y = rand() % maxY;
 		Critter* pC = Critter::At(i);
 		pC->CreateRandom(x, y, &brain);
+		world.SetEntityAt(x, y, i);
 	}
 }
 
@@ -110,52 +114,66 @@ HCURSOR CMFCApplication1Dlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CMFCApplication1Dlg::PaintCritter(CDC* dc, Critter *p) {
+void PaintBlock(CDC* dc, int x, int y, COLORREF c) {
 	int sz = 4;
-	int x = p->x * sz;
-	int y = p->y * sz;
+	x *= sz;
+	y *= sz;
 	for (int xi = 0; xi < sz; xi++) {
 		for (int yi = 0; yi < sz; yi++) {
-			dc->SetPixel(x + xi, y + yi, RGB(0, 0, 0));
+			dc->SetPixel(x + xi, y + yi, c);
 		}
+	}
+}
+
+void CMFCApplication1Dlg::PaintCritter(CDC* dc, Critter* p) {
+	if ((p->x != p->lX) && (p->y != p->lY)  ) {
+		PaintBlock(dc, p->lX, p->lY, 0xFFFFFF);
+		PaintBlock(dc, p->x, p->y, 0x000000);
+		p->RememberLoc();
 	}
 }
 
 void CMFCApplication1Dlg::OneStep() {
 	TRACE("OneStep\n");
-	for (int i = 0; i < Critter::numCritters; i++) {
+	for (int i = 1; i <= Critter::numCritters; i++) {
 		brain.OneStep(Critter::At(i));
 	}
 }
 
-void CMFCApplication1Dlg::PaintCritters(CDC* dc) {
-	COLORREF c = RGB(255, 255, 255);
-	dc->FillSolidRect(0, 0, 516, 516, c);
-	for (int i = 0; i < Critter::numCritters; i++) {
-		// Critter::At(i)->x = rand() % 128; // TEMP
-		// Critter::At(i)->y = rand() % 128; // TEMP
-		PaintCritter(dc, Critter::At(i));
-	}
-}
-
-void CMFCApplication1Dlg::OnBnClickedGo() {
-	UpdateData();
-
+void CMFCApplication1Dlg::PaintCritters(bool ClearFirst) {
 	CDC* dc = mfcWorld.GetDC();
 	HGDIOBJ prevSel = dc->SelectObject(mfcWorld.GetBitmap());
 
-	for (int i = 0; i < 100; i++) {
-		OneStep();
-		PaintCritters(dc);
+	if (ClearFirst) {
+		COLORREF c = RGB(255, 255, 255);
+		dc->FillSolidRect(0, 0, 516, 516, c);
 	}
 
-	PaintCritters(dc);
+	for (int i = 1; i <= Critter::numCritters; i++) {
+		PaintCritter(dc, Critter::At(i));
+	}
+
 	dc->SelectObject(prevSel);
 }
 
+void CMFCApplication1Dlg::OnBnClickedGo() {
+	// OnBnClickedInitworld();
+	UpdateData();
+
+	for (int i = 1; i <= m_numSteps; i++) {
+		OneStep();
+		if ((i % 100) == 0) {
+			PaintCritters(false);
+		}
+	}
+
+	PaintCritters(false);
+}
 
 void CMFCApplication1Dlg::OnBnClickedInitworld()
 {
 	UpdateData();
 	InitWorld();
+	world.Init();
+	PaintCritters(true);
 }

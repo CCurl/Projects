@@ -22,6 +22,9 @@ typedef struct {
 #define MAX_HIDDEN      16
 #define MAX_OUTPUT      16
 
+#define WORLD_SZX       256
+#define WORLD_SZY       256
+
 class Brain;
 
 class Critter
@@ -31,12 +34,14 @@ public:
 	static int numCritters;
 	static Critter* At(int index);
 
-	int x, y, heading;
+	int x, y, lX, lY, heading;
 	CONN_T connection[512];
 	void CreateRandom(int x, int y, Brain *brain);
 	CONN_T* getConnection(int index) { return &connection[index]; }
 	double getInput(byte type);
 	void doOutput(byte type, int signalStrength);
+	void RememberLoc() { lX = x; lY = y; }
+	void MoveTo(int X, int Y) { x = X; y = Y; }
 };
 
 class Brain
@@ -66,5 +71,11 @@ public:
 class World {
 public:
 	int sz_x, sz_y;
-	byte entity[500][500];
+	int entity[WORLD_SZX][WORLD_SZY];
+	void Init() { memset(&entity, 0, sizeof(entity)); }
+	int EntityAt(byte x, byte y) { return entity[x][y]; }
+	void SetEntityAt(byte x, byte y, int E) { entity[x][y] = E; }
+	bool IsCritter(int E) { return (E & 0x0FFF) != 0; }
+	int CritterID(int E) { return E & 0x0FFF; }
+	int CritterAt(byte x, byte y) { return CritterID(EntityAt(y, y)); }
 };
