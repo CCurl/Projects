@@ -18,14 +18,37 @@ typedef struct {
 #define IS_OUTPUT(id)   (NEURON_TYPE(id) != 0)
 #define IS_HIDDEN(id)   (NEURON_TYPE(id) == 0)
 
+#define RAND100         (rand() / 328)
+
 #define MAX_INPUT       16
 #define MAX_HIDDEN      16
-#define MAX_OUTPUT      16
+#define MAX_OUTPUT      8
 
 #define WORLD_SZX       256
 #define WORLD_SZY       256
 
+#define WSX             WORLD_SZX
+#define WSY             WORLD_SZY
+#define MX(x, sz)       (x&(sz-1))
+#define RAND(mx)        (rand() % mx)
+
 class Brain;
+class World;
+	World *TheWorld();
+
+class World {
+public:
+	static World theWorld;
+	byte sz_x, sz_y;
+	int entity[WORLD_SZX][WORLD_SZY];
+	void Init() { memset(&entity, 0, sizeof(entity)); }
+	void SetSize(byte X, byte Y) { sz_x = MX(X, WSX); sz_y = MX(Y, WSY); }
+	int EntityAt(byte x, byte y) { return entity[MX(x, WSX)][MX(y, WSY)]; }
+	void SetEntityAt(byte x, byte y, int E) { entity[MX(x, WSX)][MX(y, WSY)] = E; }
+	bool IsCritter(int E) { return (E & 0x0FFF) != 0; }
+	int CritterID(int E) { return E & 0x0FFF; }
+	int CritterAt(byte x, byte y) { return CritterID(EntityAt(y, y)); }
+};
 
 class Critter
 {
@@ -34,14 +57,17 @@ public:
 	static int numCritters;
 	static Critter* At(int index);
 
-	int x, y, lX, lY, heading;
+	int id;
+	byte x, y, lX, lY, heading;
 	CONN_T connection[512];
-	void CreateRandom(int x, int y, Brain *brain);
-	CONN_T* getConnection(int index) { return &connection[index]; }
+	void CreateRandom(int ID, byte x, byte y, Brain *brain);
+	CONN_T* ConnectionAt(int index) { return &connection[index]; }
 	double getInput(byte type);
 	void doOutput(byte type, int signalStrength);
 	void RememberLoc() { lX = x; lY = y; }
-	void MoveTo(int X, int Y) { x = X; y = Y; }
+	void MoveTo(byte X, byte Y);
+	bool CanMoveTo(byte X, byte Y);
+	void DumpConnecton(int i);
 };
 
 class Brain
@@ -66,16 +92,5 @@ public:
 	int CopyBits(unsigned long bits, int num);
 	void CopyConnection(CONN_T* f, CONN_T* t);
 	void createRandomConnection(CONN_T *pC);
-};
-
-class World {
-public:
-	int sz_x, sz_y;
-	int entity[WORLD_SZX][WORLD_SZY];
-	void Init() { memset(&entity, 0, sizeof(entity)); }
-	int EntityAt(byte x, byte y) { return entity[x][y]; }
-	void SetEntityAt(byte x, byte y, int E) { entity[x][y] = E; }
-	bool IsCritter(int E) { return (E & 0x0FFF) != 0; }
-	int CritterID(int E) { return E & 0x0FFF; }
-	int CritterAt(byte x, byte y) { return CritterID(EntityAt(y, y)); }
+	void DumpConnectons(Critter* c);
 };

@@ -33,6 +33,7 @@ void CMFCApplication1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_NUMHIDDEN, m_numHidden);
 	DDX_Text(pDX, IDC_NUMCONNECTIONS, m_numConnections);
 	DDX_Text(pDX, IDC_NUMSTEPS, m_numSteps);
+	DDX_Check(pDX, IDC_CHECK1, m_isReset);
 }
 
 BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
@@ -66,16 +67,23 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 }
 
 void CMFCApplication1Dlg::InitWorld() {
+	World* w = TheWorld();
 	Critter::numCritters = m_numCritters;
 	brain.Init(m_numHidden, m_numConnections);
+	w->Init();
 	maxX = 128;
 	maxY = 128;
+	w->SetSize(maxX, maxY);
 	for (int i = 1; i <= Critter::numCritters; i++) {
-		int x = rand() % maxX;
-		int y = rand() % maxY;
+		int x = RAND(maxX);
+		int y = RAND(maxY);
+		while (w->EntityAt(x, y)) {
+			x = RAND(maxX);
+			y = RAND(maxY);
+		}
 		Critter* pC = Critter::At(i);
-		pC->CreateRandom(x, y, &brain);
-		world.SetEntityAt(x, y, i);
+		pC->CreateRandom(i, x, y, &brain);
+		w->SetEntityAt(x, y, i);
 	}
 }
 
@@ -157,12 +165,14 @@ void CMFCApplication1Dlg::PaintCritters(bool ClearFirst) {
 }
 
 void CMFCApplication1Dlg::OnBnClickedGo() {
-	// OnBnClickedInitworld();
 	UpdateData();
+	if (m_isReset) {
+		OnBnClickedInitworld();
+	}
 
 	for (int i = 1; i <= m_numSteps; i++) {
 		OneStep();
-		if ((i % 100) == 0) {
+		if ((i % 10) == 0) {
 			PaintCritters(false);
 		}
 	}
@@ -174,6 +184,5 @@ void CMFCApplication1Dlg::OnBnClickedInitworld()
 {
 	UpdateData();
 	InitWorld();
-	world.Init();
 	PaintCritters(true);
 }

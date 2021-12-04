@@ -39,11 +39,11 @@ public:
 	void OneStep();
 	CStatic mfcWorld;
 	Brain brain;
-	World world;
 	int maxX, maxY;
 	int m_numCritters;
 	int m_numHidden;
 	afx_msg void OnBnClickedInitworld();
 	int m_numConnections;
 	int m_numSteps;
+	BOOL m_isReset;
 };
