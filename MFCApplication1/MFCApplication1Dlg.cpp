@@ -59,7 +59,7 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	m_numHidden = 2;
 	m_numConnections = 10;
 	m_numCritters = 100;
-	m_numSteps = 10000;
+	m_numSteps = 100;
 	UpdateData(0);
 	InitWorld();
 
@@ -172,8 +172,9 @@ void CMFCApplication1Dlg::OnBnClickedGo() {
 
 	for (int i = 1; i <= m_numSteps; i++) {
 		OneStep();
-		if ((i % 10) == 0) {
+		if ((i % 4) == 0) {
 			PaintCritters(false);
+			Sleep(66);
 		}
 	}
 

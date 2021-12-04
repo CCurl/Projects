@@ -5,7 +5,7 @@ World World::theWorld;
 Critter Critter::critters[1000];
 int Critter::numCritters;
 
-World* TheWorld() { return &World::theWorld; }
+inline World* TheWorld() { return &World::theWorld; }
 
 Critter* Critter::At(int index) {
 	return &critters[index];
@@ -46,10 +46,11 @@ double Critter::getInput(byte type) {
 
 void Critter::MoveTo(byte X, byte Y) {
 	if (CanMoveTo(X, Y)) { 
-		x = X; 
+		TheWorld()->SetEntityAt(x, y, 0);
+		x = X;
 		y = Y; 
 		TheWorld()->SetEntityAt(x, y, id);
-		TheWorld()->SetEntityAt(lX, lY, 0);
+		// RememberLoc();
 	}
 }
 
