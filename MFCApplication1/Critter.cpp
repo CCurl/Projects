@@ -15,7 +15,7 @@ void Critter::CreateRandom(int ID, byte xPos, byte yPos, Brain* brain) {
 	id = ID;
 	x = y = lX = lY = 0;
 	MoveTo(xPos, yPos);
-	heading = RAND(8);
+	SetHeading(RAND(8));
 	for (int i = 0; i < brain->numConnections; i++) {
 		brain->createRandomConnection(ConnectionAt(i));
 	}
@@ -67,14 +67,24 @@ bool Critter::CanMoveTo(byte X, byte Y) {
 void Critter::doOutput(byte type, int signalStrength) {
 	// TRACE("critter.doOutput(%d)\n", type);
 	switch (type) {
-	case 0: MoveTo(x + 0, y + 1);  break; // N
-	case 1: MoveTo(x + 1, y + 1);  break; // NE
-	case 2: MoveTo(x + 1, y + 0);  break; // E
-	case 3: MoveTo(x + 1, y - 1);  break; // SE
-	case 4: MoveTo(x + 0, y - 1);  break; // S
-	case 5: MoveTo(x - 1, y - 1);  break; // SW
-	case 6: MoveTo(x - 1, y + 0);  break; // W
-	case 7: MoveTo(x - 1, y + 1);  break; // NW
+	case  0: MoveTo(x + 0, y + 1);  break; // N
+	case  1: MoveTo(x + 1, y + 1);  break; // NE
+	case  2: MoveTo(x + 1, y + 0);  break; // E
+	case  3: MoveTo(x + 1, y - 1);  break; // SE
+	case  4: MoveTo(x + 0, y - 1);  break; // S
+	case  5: MoveTo(x - 1, y - 1);  break; // SW
+	case  6: MoveTo(x - 1, y + 0);  break; // W
+	case  7: MoveTo(x - 1, y + 1);  break; // NW
+	case  8: doOutput(heading, 0);  break;
+	case  9: SetHeading(0);      break;
+	case 10: SetHeading(1);      break;
+	case 11: SetHeading(2);      break;
+	case 12: SetHeading(3);      break;
+	case 13: SetHeading(3);      break;
+	case 14: SetHeading(4);      break;
+	case 15: SetHeading(5);      break;
+	case 16: SetHeading(6);      break;
+	case 17: SetHeading(7);      break;
 	default: break;
 	}
 	if (x < 0) { x = 0; }

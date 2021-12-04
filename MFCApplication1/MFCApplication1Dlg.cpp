@@ -60,6 +60,7 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	m_numConnections = 10;
 	m_numCritters = 100;
 	m_numSteps = 100;
+	m_isReset = TRUE;
 	UpdateData(0);
 	InitWorld();
 

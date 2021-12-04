@@ -22,7 +22,7 @@ typedef struct {
 
 #define MAX_INPUT       16
 #define MAX_HIDDEN      16
-#define MAX_OUTPUT      8
+#define MAX_OUTPUT      18
 
 #define WORLD_SZX       256
 #define WORLD_SZY       256
@@ -59,6 +59,7 @@ public:
 
 	int id;
 	byte x, y, lX, lY, heading;
+	void SetHeading(byte d) { heading = d & 0x07; doOutput(heading, 0);  }
 	CONN_T connection[512];
 	void CreateRandom(int ID, byte x, byte y, Brain *brain);
 	CONN_T* ConnectionAt(int index) { return &connection[index]; }
