@@ -1,44 +1,150 @@
 #include "pch.h"
 #include "Critter.h"
 
-World World::theWorld;
-Critter Critter::critters[1000];
-int Critter::numCritters;
+World theWorld;
+Brain theBrain;
+Critter critters[MAX_CRITTERS];
+int numCritters;
 
-inline World* TheWorld() { return &World::theWorld; }
+inline World* TheWorld() { return &theWorld; }
+inline Brain* TheBrain() { return &theBrain; }
 
-Critter* Critter::At(int index) {
+Critter* CritterAt(int index) {
 	return &critters[index];
 }
 
-void Critter::CreateRandom(int ID, byte xPos, byte yPos, Brain* brain) {
+bool isCritterAt(byte x, byte y) {
+	return (theWorld.EntityAt(x, y) & CRITTER_MASK) != 0;
+}
+
+double numCrittersNearby(byte X, byte Y, byte dist) {
+	int num = 0;
+	World* w = TheWorld();
+	byte sX = max((int)X-dist, 0);
+	byte sY = max((int)Y-dist, 0);
+	byte eX = min(X + dist, w->sz_x);
+	byte eY = min(Y + dist, w->sz_y);
+	for (int x = sX; x < eX; x++) {
+		for (int y = sY; y < eY; y++) {
+			num += (isCritterAt(x, y)) ? 1 : 0;
+		}
+	}
+	return ((double)num-2) / ((double)dist*10);
+}
+
+double nearNorth(byte X, byte Y) {
+	double sz = TheWorld()->sz_y;
+	return Y / sz;
+}
+
+double nearSouth(byte X, byte Y) {
+	double sz = TheWorld()->sz_y;
+	return (sz - Y) / sz;
+}
+
+double nearWest(byte X, byte Y) {
+	double sz = TheWorld()->sz_x;
+	return X / sz;
+}
+
+double nearEast(byte X, byte Y) {
+	double sz = TheWorld()->sz_x;
+	return (sz - X) / sz;
+}
+
+void selectCritter(Critter *c, int which) {
+	World* w = TheWorld();
+	switch (which) {
+	case 1: c->health = (c->x < 25) ? 1 : 0;
+		break;
+	case 2: c->health = ((w->sz_x - 25) < c->x) ? 1 : 0;
+		break;
+	}
+}
+
+void copyCritter(Critter* t, Critter* f) {
+	World* w = TheWorld();
+	t->health = 1;
+	while ((t->x + t->y) == 0) {
+		int x = RAND(w->sz_x);
+		int y = RAND(w->sz_y);
+		t->MoveTo(x, y);
+	}
+}
+
+
+Critter* nextAlive(int start) {
+	for (int i = start + 1; i <= numCritters; i++) {
+		Critter* c = CritterAt(i);
+		if (c->health) { return c; }
+	}
+	return NULL;
+}
+
+void nextGeneration() {
+	World* w = TheWorld();
+	w->Init();
+	Critter* a = nextAlive(0);
+	for (int i = 1; i <= numCritters; i++) {
+		Critter* c = CritterAt(i);
+		c->x = c->y = 0;
+		c->RememberLoc();
+		while ((c->x + c->y) == 0) {
+			c->MoveTo(RAND(w->sz_x), RAND(w->sz_y));
+		}
+
+		if (c->health == 0) {
+			if (a) {
+				c->CreateDescendent(a);
+				a = nextAlive(a->id);
+			}
+			else {
+				c->CreateRandom(c->id);
+			}
+		}
+		c->health = 100;
+	}
+}
+
+void selectCritters(int which) {
+	for (int i = 1; i <= numCritters; i++) {
+		selectCritter(CritterAt(i), which);
+	}
+}
+
+void Critter::CreateDescendent(Critter *parent) {
+	World *w = TheWorld();
+	x = y = lX = lY = 0;
+	while ((x + y) == 0) {
+		MoveTo(RAND(w->sz_x), RAND(w->sz_y));
+	}
+	SetHeading(RAND(8));
+	for (int i = 0; i < theBrain.numConnections; i++) {
+		CopyConnection(ConnectionAt(i), parent->ConnectionAt(i));
+	}
+}
+
+void Critter::CreateRandom(int ID) {
+	World* w = TheWorld();
 	id = ID;
 	x = y = lX = lY = 0;
-	MoveTo(xPos, yPos);
+	while ((x + y) == 0) {
+		MoveTo(RAND(w->sz_x), RAND(w->sz_y));
+	}
 	SetHeading(RAND(8));
-	for (int i = 0; i < brain->numConnections; i++) {
-		brain->createRandomConnection(ConnectionAt(i));
+	for (int i = 0; i < theBrain.numConnections; i++) {
+		createRandomConnection(ConnectionAt(i));
 	}
 }
 
 double Critter::getInput(byte type) {
 	// TRACE("critter.getInput (%d)\n", n->type);
 	switch (type) {
-	case 0: return abs(sin(rand()));
-	case 1: return abs(sin(rand()));
-	case 2: return abs(sin(rand()));
-	case 3: return abs(sin(rand()));
-	case 4: return abs(sin(rand()));
-	case 5: return abs(sin(rand()));
-	case 6: return abs(sin(rand()));
-	case 7: return abs(sin(rand()));
-	case 8: return abs(sin(rand()));
-	case 9: return abs(sin(rand()));
-	case 10: return abs(sin(rand()));
-	case 12: return abs(sin(rand()));
-	case 13: return abs(sin(rand()));
-	case 14: return abs(sin(rand()));
-	case 15: return abs(sin(rand()));
+	case 0: return nearNorth(x, y);
+	case 1: return nearEast(x, y);
+	case 2: return nearSouth(x, y);
+	case 3: return nearWest(x, y);
+	case 4: return numCrittersNearby(x, y, 1);
 	default: break;
 	}
 	return 0;
@@ -46,11 +152,10 @@ double Critter::getInput(byte type) {
 
 void Critter::MoveTo(byte X, byte Y) {
 	if (CanMoveTo(X, Y)) { 
-		TheWorld()->SetEntityAt(x, y, 0);
+		if (x && y) { TheWorld()->SetEntityAt(x, y, 0); }
 		x = X;
 		y = Y; 
 		TheWorld()->SetEntityAt(x, y, id);
-		// RememberLoc();
 	}
 }
 
@@ -96,8 +201,8 @@ void Critter::doOutput(byte type, int signalStrength) {
 void Critter::DumpConnecton(int i) {
 	CString x;
 	CONN_T* c = ConnectionAt(i);
-	x.Format("(%d,%d) -> (%d,%d)", NEURON_TYPE(c->src), NEURON_ID(c->src),
-		NEURON_TYPE(c->sink), NEURON_ID(c->sink));
+	x.Format("(%d,%d) -> (%d,%d)", CONN_TYPE(c->src), CONN_ID(c->src),
+		CONN_TYPE(c->sink), CONN_ID(c->sink));
 	TRACE("%s\n", x);
 }
 
@@ -105,23 +210,23 @@ void Brain::DumpConnectons(Critter* c) {
 	for (int i = 0; i < numConnections; i++) { c->DumpConnecton(i); }
 }
 
-NEURON_T* Brain::getSourceNeuron(byte neuronId) {
-	byte type = NEURON_TYPE(neuronId);
-	byte id = NEURON_ID(neuronId);
-	return (type) ? &input[id] : &hidden[id];
+NEURON_T* getSourceNeuron(C_T c) {
+	byte type = CONN_TYPE(c);
+	byte id = CONN_ID(c);
+	return (type == INPUT_NEURON) ? &theBrain.input[id] : &theBrain.hidden[id];
 }
 
-NEURON_T* Brain::getSinkNeuron(byte neuronId) {
-	byte type = NEURON_TYPE(neuronId);
-	byte id = NEURON_ID(neuronId);
-	return (type) ? &output[id] : &hidden[id];
+NEURON_T* getSinkNeuron(C_T c) {
+	byte type = CONN_TYPE(c);
+	byte id = CONN_ID(c);
+	return (type == OUTPUT_NEURON) ? &theBrain.output[id] : &theBrain.hidden[id];
 }
 
-void Brain::doInput(Critter* critter, CONN_T* conn) {
+void doInput(Critter* critter, CONN_T* conn) {
 	NEURON_T* t = getSinkNeuron(conn->sink);
 	double v = 0;
 	if (IS_INPUT(conn->src)) {
-		v = critter->getInput(NEURON_ID(conn->src));
+		v = critter->getInput(CONN_ID(conn->src));
 	}
 	else {
 		v = tanh(getSourceNeuron(conn->src)->sum);
@@ -129,7 +234,7 @@ void Brain::doInput(Critter* critter, CONN_T* conn) {
 	t->sum += (v * conn->weight);
 }
 
-void Brain::doOutput(Critter* critter, CONN_T* conn) {
+void doOutput(Critter* critter, CONN_T* conn) {
 	NEURON_T* t = getSinkNeuron(conn->sink);
 	// t->sum == 0 means do nothing
 	if (t->sum != 0) {
@@ -139,7 +244,7 @@ void Brain::doOutput(Critter* critter, CONN_T* conn) {
 		// In case there are multiple connections to this neuron
 		t->sum = 0;
 		if (r < p) {
-			critter->doOutput(NEURON_ID(conn->sink), p);
+			critter->doOutput(CONN_ID(conn->sink), p);
 		}
 	}
 }
@@ -168,31 +273,41 @@ void Brain::Init(int numH, int numC) {
 	numConnections = numC;
 }
 
-byte Brain::getRandomNeuronID(bool isInput) {
-	int type = 0x80, id = 0;
-	int pct = (numHidden * 100) / numConnections;
+void setRandomSource(CONN_T* c) {
+	int pct = (theBrain.numHidden * 100) / theBrain.numConnections;
 	bool isHidden = RAND100 < pct;
 	if (isHidden) {
-		type = 0;
-		id = RAND(numHidden);
+		c->src.type = HIDDEN_NEURON;
+		c->src.id = RAND(theBrain.numHidden);
 	}
 	else {
-		type = 0x80;
-		id = RAND((isInput ? MAX_INPUT : MAX_OUTPUT));
+		c->src.type = INPUT_NEURON;
+		c->src.id = RAND(MAX_INPUT);
 	}
-	return type | id;
 }
 
-void Brain::createRandomConnection(CONN_T *pC) {
-	pC->src = getRandomNeuronID(true);
-	pC->sink = getRandomNeuronID(false);
+void setRandomSink(CONN_T* c) {
+	int pct = (theBrain.numHidden * 100) / theBrain.numConnections;
+	bool isHidden = RAND100 < pct;
+	if (isHidden) {
+		c->sink.type = HIDDEN_NEURON;
+		c->sink.id = RAND(theBrain.numHidden);
+	}
+	else {
+		c->sink.type = OUTPUT_NEURON;
+		c->sink.id = RAND(MAX_OUTPUT);
+	}
+}
+
+void createRandomConnection(CONN_T *pC) {
+	setRandomSource(pC);
+	setRandomSink(pC);
 	pC->wt = rand();
 	if (RAND100 < 40) { pC->wt = -pC->wt; }
 	pC->weight = pC->wt / 8000.0;
-	// TRACE("%02x, %02x, %g\n", pC->src, pC->sink, pC->weight);
 }
 
-int Brain::CopyBit(int bits, int bitPos) {
+int CopyBit(int bits, int bitPos) {
 	int bit = (bits & bitPos);
 	if (rand() < 35) {
 		return bit ? 0 : bitPos;
@@ -200,7 +315,7 @@ int Brain::CopyBit(int bits, int bitPos) {
 	return bit;
 }
 
-int Brain::CopyBits(unsigned long bits, int num) {
+int CopyBits(unsigned long bits, int num) {
 	unsigned long ret = 0;
 	int bitPos = 1;
 	for (int i = 0; i < num; i++) {
@@ -210,9 +325,15 @@ int Brain::CopyBits(unsigned long bits, int num) {
 	return (int)ret;
 }
 
-void Brain::CopyConnection(CONN_T* f, CONN_T* t) {
-	t->src = (byte)CopyBits(f->src, 8);
-	t->sink = (byte)CopyBits(f->sink, 8);
+void CopyConnection(CONN_T* f, CONN_T* t) {
+	t->src.type = (byte)CopyBits(f->src.type, 1);
+	t->src.id = (byte)CopyBits(f->src.id, 8);
+	t->sink.type = (byte)CopyBits(f->sink.type, 1);
+	t->sink.id = (byte)CopyBits(f->sink.id, 8);
 	t->wt = (short)CopyBits(f->wt, 16);
 	t->weight = t->wt / 8000.0;
+}
+
+int World::EntityAt(byte x, byte y) {
+	return entity[MX(x, WSX)][MX(y, WSY)]; 
 }

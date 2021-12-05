@@ -38,7 +38,6 @@ public:
 	void InitWorld();
 	void OneStep();
 	CStatic mfcWorld;
-	Brain brain;
 	int maxX, maxY;
 	int m_numCritters;
 	int m_numHidden;

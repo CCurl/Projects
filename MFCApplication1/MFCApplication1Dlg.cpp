@@ -69,22 +69,15 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 
 void CMFCApplication1Dlg::InitWorld() {
 	World* w = TheWorld();
-	Critter::numCritters = m_numCritters;
-	brain.Init(m_numHidden, m_numConnections);
+	numCritters = m_numCritters;
+	TheBrain()->Init(m_numHidden, m_numConnections);
 	w->Init();
 	maxX = 128;
 	maxY = 128;
 	w->SetSize(maxX, maxY);
-	for (int i = 1; i <= Critter::numCritters; i++) {
-		int x = RAND(maxX);
-		int y = RAND(maxY);
-		while (w->EntityAt(x, y)) {
-			x = RAND(maxX);
-			y = RAND(maxY);
-		}
-		Critter* pC = Critter::At(i);
-		pC->CreateRandom(i, x, y, &brain);
-		w->SetEntityAt(x, y, i);
+	for (int i = 1; i <= numCritters; i++) {
+		Critter* pC = CritterAt(i);
+		pC->CreateRandom(i);
 	}
 }
 
@@ -144,8 +137,8 @@ void CMFCApplication1Dlg::PaintCritter(CDC* dc, Critter* p) {
 
 void CMFCApplication1Dlg::OneStep() {
 	TRACE("OneStep\n");
-	for (int i = 1; i <= Critter::numCritters; i++) {
-		brain.OneStep(Critter::At(i));
+	for (int i = 1; i <= numCritters; i++) {
+		TheBrain()->OneStep(CritterAt(i));
 	}
 }
 
@@ -158,8 +151,8 @@ void CMFCApplication1Dlg::PaintCritters(bool ClearFirst) {
 		dc->FillSolidRect(0, 0, 516, 516, c);
 	}
 
-	for (int i = 1; i <= Critter::numCritters; i++) {
-		PaintCritter(dc, Critter::At(i));
+	for (int i = 1; i <= numCritters; i++) {
+		PaintCritter(dc, CritterAt(i));
 	}
 
 	dc->SelectObject(prevSel);
@@ -173,13 +166,13 @@ void CMFCApplication1Dlg::OnBnClickedGo() {
 
 	for (int i = 1; i <= m_numSteps; i++) {
 		OneStep();
-		if ((i % 4) == 0) {
+		//if ((i % 5) == 0) {
 			PaintCritters(false);
-			Sleep(66);
-		}
+			Sleep(100);
+		// }
 	}
 
-	PaintCritters(false);
+	// PaintCritters(false);
 }
 
 void CMFCApplication1Dlg::OnBnClickedInitworld()
