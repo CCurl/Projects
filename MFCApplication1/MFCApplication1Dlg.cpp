@@ -34,6 +34,7 @@ void CMFCApplication1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_NUMCONNECTIONS, m_numConnections);
 	DDX_Text(pDX, IDC_NUMSTEPS, m_numSteps);
 	DDX_Check(pDX, IDC_CHECK1, m_isReset);
+	DDX_Text(pDX, IDC_SELECT_ID, m_selectId);
 }
 
 BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
@@ -41,6 +42,9 @@ BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_GO, &CMFCApplication1Dlg::OnBnClickedGo)
 	ON_BN_CLICKED(IDC_InitWorld, &CMFCApplication1Dlg::OnBnClickedInitworld)
+	ON_BN_CLICKED(IDC_REGEN, &CMFCApplication1Dlg::OnBnClickedRegen)
+	ON_BN_CLICKED(IDC_SELECT, &CMFCApplication1Dlg::OnBnClickedSelect)
+	ON_BN_CLICKED(IDCANCEL, &CMFCApplication1Dlg::OnBnClickedCancel)
 END_MESSAGE_MAP()
 
 
@@ -59,8 +63,9 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	m_numHidden = 2;
 	m_numConnections = 10;
 	m_numCritters = 100;
-	m_numSteps = 100;
-	m_isReset = TRUE;
+	m_numSteps = 10;
+	m_selectId = 1;
+	m_isReset = FALSE;
 	UpdateData(0);
 	InitWorld();
 
@@ -70,14 +75,15 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 void CMFCApplication1Dlg::InitWorld() {
 	World* w = TheWorld();
 	numCritters = m_numCritters;
+	CrittersInit();
 	TheBrain()->Init(m_numHidden, m_numConnections);
 	w->Init();
-	maxX = 128;
-	maxY = 128;
+	maxX = 100;
+	maxY = 100;
 	w->SetSize(maxX, maxY);
 	for (int i = 1; i <= numCritters; i++) {
 		Critter* pC = CritterAt(i);
-		pC->CreateRandom(i);
+		pC->CreateRandom();
 	}
 }
 
@@ -128,11 +134,15 @@ void PaintBlock(CDC* dc, int x, int y, COLORREF c) {
 }
 
 void CMFCApplication1Dlg::PaintCritter(CDC* dc, Critter* p) {
+	if (p->health == 0) {
+		p->x = p->y = 0;
+	}
 	if ((p->x != p->lX) && (p->y != p->lY)  ) {
 		PaintBlock(dc, p->lX, p->lY, 0xFFFFFF);
-		PaintBlock(dc, p->x, p->y, 0x000000);
+		PaintBlock(dc, p->x, p->y, p->color);
 		p->RememberLoc();
 	}
+
 }
 
 void CMFCApplication1Dlg::OneStep() {
@@ -166,10 +176,10 @@ void CMFCApplication1Dlg::OnBnClickedGo() {
 
 	for (int i = 1; i <= m_numSteps; i++) {
 		OneStep();
-		//if ((i % 5) == 0) {
+		if ((i % 10) == 0) {
 			PaintCritters(false);
 			Sleep(100);
-		// }
+		}
 	}
 
 	// PaintCritters(false);
@@ -180,4 +190,28 @@ void CMFCApplication1Dlg::OnBnClickedInitworld()
 	UpdateData();
 	InitWorld();
 	PaintCritters(true);
+}
+
+
+void CMFCApplication1Dlg::OnBnClickedRegen()
+{
+	UpdateData();
+	// TheWorld()->SelectCritters(m_selectId);
+	TheWorld()->Regenerate();
+	PaintCritters(true);
+}
+
+
+void CMFCApplication1Dlg::OnBnClickedSelect()
+{
+	UpdateData();
+	TheWorld()->SelectCritters(m_selectId);
+	PaintCritters(true);
+}
+
+
+void CMFCApplication1Dlg::OnBnClickedCancel()
+{
+	// TODO: Add your control notification handler code here
+	dumpCritters();
 }

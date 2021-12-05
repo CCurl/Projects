@@ -1,10 +1,14 @@
 #include "pch.h"
 #include "Critter.h"
 
+#define EACH_CRITTER(v) for (int v = 0; v <= numCritters; v++)
+#define EACH_CONN(v) for (int v = 0; v <= numConnections; v++)
+
 World theWorld;
 Brain theBrain;
 Critter critters[MAX_CRITTERS];
-int numCritters;
+int numCritters, numConnections, numHidden;
+FILE* output_fp = NULL;
 
 inline World* TheWorld() { return &theWorld; }
 inline Brain* TheBrain() { return &theBrain; }
@@ -13,11 +17,22 @@ Critter* CritterAt(int index) {
 	return &critters[index];
 }
 
+void CrittersInit() {
+	EACH_CRITTER(ci) {
+		Critter *c = CritterAt(ci);
+		c->id = ci;
+		c->x = c->y = 0;
+		c->health = 100;
+		c->RememberLoc();
+		c->color = RGB(RAND(255), RAND(255), RAND(255));
+	}
+}
+
 bool isCritterAt(byte x, byte y) {
 	return (theWorld.EntityAt(x, y) & CRITTER_MASK) != 0;
 }
 
-double numCrittersNearby(byte X, byte Y, byte dist) {
+double crittersNearby(byte X, byte Y, byte dist) {
 	int num = 0;
 	World* w = TheWorld();
 	byte sX = max((int)X-dist, 0);
@@ -29,7 +44,7 @@ double numCrittersNearby(byte X, byte Y, byte dist) {
 			num += (isCritterAt(x, y)) ? 1 : 0;
 		}
 	}
-	return ((double)num-2) / ((double)dist*10);
+	return ((double)num) / ((double)dist*9);
 }
 
 double nearNorth(byte X, byte Y) {
@@ -52,13 +67,22 @@ double nearEast(byte X, byte Y) {
 	return (sz - X) / sz;
 }
 
+#define BETWEEN(x, a, b) ((a <= x) && (x <= b))
+
 void selectCritter(Critter *c, int which) {
+	if (c->health == 0) { return; }
 	World* w = TheWorld();
 	switch (which) {
-	case 1: c->health = (c->x < 25) ? 1 : 0;
+	case 1: c->health = (c->x < 10) ? 1 : 0;
 		break;
-	case 2: c->health = ((w->sz_x - 25) < c->x) ? 1 : 0;
+	case 2: c->health = (90 < c->x) ? 1 : 0;
 		break;
+	case 3: c->health = BETWEEN(c->x, 40, 60) ? 1 : 0;
+		break;
+	}
+	c->lX = c->lY = 0;
+	if (c->health == 0) {
+		c->x = c->y = 0;
 	}
 }
 
@@ -99,7 +123,7 @@ void nextGeneration() {
 				a = nextAlive(a->id);
 			}
 			else {
-				c->CreateRandom(c->id);
+				c->CreateRandom();
 			}
 		}
 		c->health = 100;
@@ -113,26 +137,20 @@ void selectCritters(int which) {
 }
 
 void Critter::CreateDescendent(Critter *parent) {
-	World *w = TheWorld();
-	x = y = lX = lY = 0;
-	while ((x + y) == 0) {
-		MoveTo(RAND(w->sz_x), RAND(w->sz_y));
-	}
 	SetHeading(RAND(8));
-	for (int i = 0; i < theBrain.numConnections; i++) {
+	for (int i = 0; i < numConnections; i++) {
 		CopyConnection(ConnectionAt(i), parent->ConnectionAt(i));
 	}
 }
 
-void Critter::CreateRandom(int ID) {
+void Critter::CreateRandom() {
 	World* w = TheWorld();
-	id = ID;
 	x = y = lX = lY = 0;
 	while ((x + y) == 0) {
 		MoveTo(RAND(w->sz_x), RAND(w->sz_y));
 	}
 	SetHeading(RAND(8));
-	for (int i = 0; i < theBrain.numConnections; i++) {
+	for (int i = 0; i < numConnections; i++) {
 		createRandomConnection(ConnectionAt(i));
 	}
 }
@@ -144,7 +162,7 @@ double Critter::getInput(byte type) {
 	case 1: return nearEast(x, y);
 	case 2: return nearSouth(x, y);
 	case 3: return nearWest(x, y);
-	case 4: return numCrittersNearby(x, y, 1);
+	case 4: return crittersNearby(x, y, 1);
 	default: break;
 	}
 	return 0;
@@ -164,6 +182,8 @@ bool Critter::CanMoveTo(byte X, byte Y) {
 	World* w = TheWorld();
 	if (w->sz_x < X) return false;
 	if (w->sz_y < Y) return false;
+	if (X == 0) return false;
+	if (Y == 0) return false;
 	if (TheWorld()->EntityAt(X, Y)) return false;
 	return true;
 }
@@ -198,16 +218,26 @@ void Critter::doOutput(byte type, int signalStrength) {
 	if (128 < y) { y = 128; }
 }
 
-void Critter::DumpConnecton(int i) {
+void dumpConnecton(CONN_T *c) {
 	CString x;
-	CONN_T* c = ConnectionAt(i);
-	x.Format("(%d,%d) -> (%d,%d)", CONN_TYPE(c->src), CONN_ID(c->src),
+	fprintf(output_fp, "    (%d,%d,%d) -> (%d,%d)\n", CONN_TYPE(c->src), CONN_ID(c->src), c->wt,
 		CONN_TYPE(c->sink), CONN_ID(c->sink));
-	TRACE("%s\n", x);
 }
 
-void Brain::DumpConnectons(Critter* c) {
-	for (int i = 0; i < numConnections; i++) { c->DumpConnecton(i); }
+void dumpConnectons(Critter* c) {
+	EACH_CONN(ni) {
+		dumpConnecton(c->ConnectionAt(ni));
+	}
+}
+
+void dumpCritters() {
+	output_fp = fopen("critters.txt", "wt");
+	EACH_CRITTER(ci) {
+		Critter* c = CritterAt(ci);
+		fprintf(output_fp, "critter %d\n", c->id);
+		dumpConnectons(c);
+	}
+	fclose(output_fp);
 }
 
 NEURON_T* getSourceNeuron(C_T c) {
@@ -250,17 +280,17 @@ void doOutput(Critter* critter, CONN_T* conn) {
 }
 
 void Brain::OneStep(Critter * critter) {
-	for (int i = 0; i < numConnections; i++) {
+	EACH_CONN(i) {
 		CONN_T* pC = critter->ConnectionAt(i);
 		getSourceNeuron(pC->src)->sum = 0;
 		getSinkNeuron(pC->sink)->sum = 0;
 	}
 
-	for (int i = 0; i < numConnections; i++) {
+	EACH_CONN(i) {
 		doInput(critter, critter->ConnectionAt(i));
 	}
 
-	for (int i = 0; i < numConnections; i++) {
+	EACH_CONN(i) {
 		CONN_T* pC = critter->ConnectionAt(i);
 		if (IS_OUTPUT(pC->sink)) {
 			doOutput(critter, pC);
@@ -274,11 +304,11 @@ void Brain::Init(int numH, int numC) {
 }
 
 void setRandomSource(CONN_T* c) {
-	int pct = (theBrain.numHidden * 100) / theBrain.numConnections;
+	int pct = (numHidden * 100) / numConnections;
 	bool isHidden = RAND100 < pct;
 	if (isHidden) {
 		c->src.type = HIDDEN_NEURON;
-		c->src.id = RAND(theBrain.numHidden);
+		c->src.id = RAND(numHidden);
 	}
 	else {
 		c->src.type = INPUT_NEURON;
@@ -287,11 +317,11 @@ void setRandomSource(CONN_T* c) {
 }
 
 void setRandomSink(CONN_T* c) {
-	int pct = (theBrain.numHidden * 100) / theBrain.numConnections;
+	int pct = (numHidden * 100) / numConnections;
 	bool isHidden = RAND100 < pct;
 	if (isHidden) {
 		c->sink.type = HIDDEN_NEURON;
-		c->sink.id = RAND(theBrain.numHidden);
+		c->sink.id = RAND(numHidden);
 	}
 	else {
 		c->sink.type = OUTPUT_NEURON;
@@ -325,7 +355,7 @@ int CopyBits(unsigned long bits, int num) {
 	return (int)ret;
 }
 
-void CopyConnection(CONN_T* f, CONN_T* t) {
+void CopyConnection(CONN_T* t, CONN_T* f) {
 	t->src.type = (byte)CopyBits(f->src.type, 1);
 	t->src.id = (byte)CopyBits(f->src.id, 8);
 	t->sink.type = (byte)CopyBits(f->sink.type, 1);
@@ -336,4 +366,12 @@ void CopyConnection(CONN_T* f, CONN_T* t) {
 
 int World::EntityAt(byte x, byte y) {
 	return entity[MX(x, WSX)][MX(y, WSY)]; 
+}
+
+void World::SelectCritters(int criteria) {
+	selectCritters(criteria);
+}
+
+void World::Regenerate() {
+	nextGeneration();
 }

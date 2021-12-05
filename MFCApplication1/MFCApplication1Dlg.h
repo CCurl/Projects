@@ -45,4 +45,8 @@ public:
 	int m_numConnections;
 	int m_numSteps;
 	BOOL m_isReset;
+	afx_msg void OnBnClickedRegen();
+	afx_msg void OnBnClickedSelect();
+	int m_selectId;
+	afx_msg void OnBnClickedCancel();
 };
