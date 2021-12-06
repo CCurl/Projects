@@ -45,14 +45,20 @@ typedef struct {
 #define CRITTER_MASK     0x7FFF
 #define OBSTACLE_MASK    0x8000
 
-//class Brain;
-//class World;
+extern int CopyBit(int bit, int bitPos);
+extern int CopyBits(unsigned long bits, int num);
+extern void CopyConnection(CONN_T* f, CONN_T* t);
+extern void createRandomConnection(CONN_T* pC);
+extern bool isCritterAt(byte x, byte y);
+extern void selectCritters(int which);
+extern void dumpCritters();
+extern void nextGeneration();
 
 class World {
 public:
 	byte sz_x, sz_y, select_id;
 	int entity[WORLD_SZX][WORLD_SZY];
-	void Init() { memset(&entity, 0, sizeof(entity)); }
+	void Init() { memset(&entity, 0xEA, sizeof(entity)); }
 	void SetSize(byte X, byte Y) { sz_x = MX(X, WSX); sz_y = MX(Y, WSY); }
 	int EntityAt(byte x, byte y);
 	void SetEntityAt(byte x, byte y, int E) { entity[MX(x, WSX)][MX(y, WSY)] = E; }
@@ -61,7 +67,7 @@ public:
 	int CritterAt(byte x, byte y) { return CritterID(EntityAt(y, y)); }
 	bool inBounds(byte x, byte y) { return CritterID(EntityAt(y, y)); }
 	void SelectCritters(int criteria);
-	void Regenerate();
+	void Regenerate() { nextGeneration(); }
 };
 
 class Critter
@@ -73,7 +79,7 @@ public:
 	void SetHeading(byte d) { heading = d & 0x07; doOutput(heading, 0);  }
 	CONN_T connection[50];
 	void CreateRandom();
-	void CreateDescendent(Critter *parent);
+	void BecomeDescendent(Critter *parent);
 	CONN_T* ConnectionAt(int index) { return &connection[index]; }
 	double getInput(byte type);
 	void doOutput(byte type, int signalStrength);
@@ -110,11 +116,3 @@ extern int numHidden;
 extern void CrittersInit();
 extern Critter* CritterAt(int index);
 
-extern int CopyBit(int bit, int bitPos);
-extern int CopyBits(unsigned long bits, int num);
-extern void CopyConnection(CONN_T* f, CONN_T* t);
-extern void createRandomConnection(CONN_T* pC);
-extern bool isCritterAt(byte x, byte y);
-extern void selectCritters(int which);
-extern void dumpCritters();
-extern void nextGeneration();

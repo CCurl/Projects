@@ -62,8 +62,8 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	// TODO: Add extra initialization here
 	m_numHidden = 2;
 	m_numConnections = 10;
-	m_numCritters = 100;
-	m_numSteps = 10;
+	m_numCritters = 5;
+	m_numSteps = 100;
 	m_selectId = 1;
 	m_isReset = FALSE;
 	UpdateData(0);
@@ -81,7 +81,7 @@ void CMFCApplication1Dlg::InitWorld() {
 	maxX = 100;
 	maxY = 100;
 	w->SetSize(maxX, maxY);
-	for (int i = 1; i <= numCritters; i++) {
+	for (int i = 0; i < numCritters; i++) {
 		Critter* pC = CritterAt(i);
 		pC->CreateRandom();
 	}
@@ -134,15 +134,15 @@ void PaintBlock(CDC* dc, int x, int y, COLORREF c) {
 }
 
 void CMFCApplication1Dlg::PaintCritter(CDC* dc, Critter* p) {
+	COLORREF cr = p->color;
 	if (p->health == 0) {
-		p->x = p->y = 0;
+		p->x = p->y = 0; cr = RGB(255, 255, 255);
 	}
 	if ((p->x != p->lX) && (p->y != p->lY)  ) {
-		PaintBlock(dc, p->lX, p->lY, 0xFFFFFF);
-		PaintBlock(dc, p->x, p->y, p->color);
+		if ((p->lX) && (p->lY)) { PaintBlock(dc, p->lX, p->lY, RGB(255,255,255)); }
+		PaintBlock(dc, p->x, p->y, cr);
 		p->RememberLoc();
 	}
-
 }
 
 void CMFCApplication1Dlg::OneStep() {
@@ -161,7 +161,7 @@ void CMFCApplication1Dlg::PaintCritters(bool ClearFirst) {
 		dc->FillSolidRect(0, 0, 516, 516, c);
 	}
 
-	for (int i = 1; i <= numCritters; i++) {
+	for (int i = 0; i < numCritters; i++) {
 		PaintCritter(dc, CritterAt(i));
 	}
 

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Critter.h"
 
-#define EACH_CRITTER(v) for (int v = 0; v <= numCritters; v++)
+#define EACH_CRITTER(v) for (int v = 0; v < numCritters; v++)
 #define EACH_CONN(v) for (int v = 0; v <= numConnections; v++)
 
 World theWorld;
@@ -24,7 +24,7 @@ void CrittersInit() {
 		c->x = c->y = 0;
 		c->health = 100;
 		c->RememberLoc();
-		c->color = RGB(RAND(255), RAND(255), RAND(255));
+		c->color = RGB(RAND(200)+50, RAND(200)+50, RAND(200)+50);
 	}
 }
 
@@ -70,17 +70,17 @@ double nearEast(byte X, byte Y) {
 #define BETWEEN(x, a, b) ((a <= x) && (x <= b))
 
 void selectCritter(Critter *c, int which) {
+	c->lX = c->lY = 0;
 	if (c->health == 0) { return; }
 	World* w = TheWorld();
 	switch (which) {
-	case 1: c->health = (c->x < 10) ? 1 : 0;
+	case 1: c->health = (c->x < 10) ? 100 : 0;
 		break;
-	case 2: c->health = (90 < c->x) ? 1 : 0;
+	case 2: c->health = (90 < c->x) ? 100 : 0;
 		break;
-	case 3: c->health = BETWEEN(c->x, 40, 60) ? 1 : 0;
+	case 3: c->health = BETWEEN(c->x, 40, 60) ? 100 : 0;
 		break;
 	}
-	c->lX = c->lY = 0;
 	if (c->health == 0) {
 		c->x = c->y = 0;
 	}
@@ -98,7 +98,7 @@ void copyCritter(Critter* t, Critter* f) {
 
 
 Critter* nextAlive(int start) {
-	for (int i = start + 1; i <= numCritters; i++) {
+	for (int i = start; i < numCritters; i++) {
 		Critter* c = CritterAt(i);
 		if (c->health) { return c; }
 	}
@@ -109,7 +109,7 @@ void nextGeneration() {
 	World* w = TheWorld();
 	w->Init();
 	Critter* a = nextAlive(0);
-	for (int i = 1; i <= numCritters; i++) {
+	EACH_CRITTER(i) {
 		Critter* c = CritterAt(i);
 		c->x = c->y = 0;
 		c->RememberLoc();
@@ -119,8 +119,8 @@ void nextGeneration() {
 
 		if (c->health == 0) {
 			if (a) {
-				c->CreateDescendent(a);
-				a = nextAlive(a->id);
+				c->BecomeDescendent(a);
+				a = nextAlive(a->id+1);
 			}
 			else {
 				c->CreateRandom();
@@ -131,14 +131,14 @@ void nextGeneration() {
 }
 
 void selectCritters(int which) {
-	for (int i = 1; i <= numCritters; i++) {
+	EACH_CRITTER(i) {
 		selectCritter(CritterAt(i), which);
 	}
 }
 
-void Critter::CreateDescendent(Critter *parent) {
+void Critter::BecomeDescendent(Critter *parent) {
 	SetHeading(RAND(8));
-	for (int i = 0; i < numConnections; i++) {
+	EACH_CONN(i) {
 		CopyConnection(ConnectionAt(i), parent->ConnectionAt(i));
 	}
 }
@@ -365,13 +365,10 @@ void CopyConnection(CONN_T* t, CONN_T* f) {
 }
 
 int World::EntityAt(byte x, byte y) {
-	return entity[MX(x, WSX)][MX(y, WSY)]; 
+	int e = entity[MX(x, WSX)][MX(y, WSY)]; 
+	if (e == 0xEAEAEAEA) { return 0; }
 }
 
 void World::SelectCritters(int criteria) {
 	selectCritters(criteria);
-}
-
-void World::Regenerate() {
-	nextGeneration();
 }
