@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Critter.h"
 
-#define EACH_CRITTER(v) for (int v = 0; v < numCritters; v++)
-#define EACH_CONN(v) for (int v = 0; v <= numConnections; v++)
+#define EACH_CRITTER(v) for (int v = 1; v <= numCritters; v++)
+#define EACH_CONN(v) for (int v = 0; v < numConnections; v++)
 
 World theWorld;
 Brain theBrain;
@@ -24,7 +24,7 @@ void CrittersInit() {
 		c->x = c->y = 0;
 		c->health = 100;
 		c->RememberLoc();
-		c->color = RGB(RAND(200)+50, RAND(200)+50, RAND(200)+50);
+		c->color = RGB(RAND(255), RAND(255), RAND(255));
 	}
 }
 
@@ -96,9 +96,8 @@ void copyCritter(Critter* t, Critter* f) {
 	}
 }
 
-
 Critter* nextAlive(int start) {
-	for (int i = start; i < numCritters; i++) {
+	for (int i = start; i <= numCritters; i++) {
 		Critter* c = CritterAt(i);
 		if (c->health) { return c; }
 	}
@@ -176,7 +175,6 @@ void Critter::MoveTo(byte X, byte Y) {
 		TheWorld()->SetEntityAt(x, y, id);
 	}
 }
-
 
 bool Critter::CanMoveTo(byte X, byte Y) {
 	World* w = TheWorld();
@@ -350,23 +348,22 @@ int CopyBits(unsigned long bits, int num) {
 	int bitPos = 1;
 	for (int i = 0; i < num; i++) {
 		ret |= CopyBit(bits, bitPos);
-		bitPos = (bitPos << 1);
+		bitPos *= 2;
 	}
 	return (int)ret;
 }
 
 void CopyConnection(CONN_T* t, CONN_T* f) {
-	t->src.type = (byte)CopyBits(f->src.type, 1);
+	t->src.type = (byte)CopyBits(f->src.type, 2);
 	t->src.id = (byte)CopyBits(f->src.id, 8);
-	t->sink.type = (byte)CopyBits(f->sink.type, 1);
+	t->sink.type = (byte)CopyBits(f->sink.type, 2);
 	t->sink.id = (byte)CopyBits(f->sink.id, 8);
 	t->wt = (short)CopyBits(f->wt, 16);
 	t->weight = t->wt / 8000.0;
 }
 
 int World::EntityAt(byte x, byte y) {
-	int e = entity[MX(x, WSX)][MX(y, WSY)]; 
-	if (e == 0xEAEAEAEA) { return 0; }
+	return entity[x][y]; 
 }
 
 void World::SelectCritters(int criteria) {

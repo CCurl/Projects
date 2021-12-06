@@ -58,7 +58,7 @@ class World {
 public:
 	byte sz_x, sz_y, select_id;
 	int entity[WORLD_SZX][WORLD_SZY];
-	void Init() { memset(&entity, 0xEA, sizeof(entity)); }
+	void Init() { memset(&entity, 0x00, sizeof(entity)); }
 	void SetSize(byte X, byte Y) { sz_x = MX(X, WSX); sz_y = MX(Y, WSY); }
 	int EntityAt(byte x, byte y);
 	void SetEntityAt(byte x, byte y, int E) { entity[MX(x, WSX)][MX(y, WSY)] = E; }

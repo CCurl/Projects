@@ -81,7 +81,7 @@ void CMFCApplication1Dlg::InitWorld() {
 	maxX = 100;
 	maxY = 100;
 	w->SetSize(maxX, maxY);
-	for (int i = 0; i < numCritters; i++) {
+	for (int i = 1; i <= numCritters; i++) {
 		Critter* pC = CritterAt(i);
 		pC->CreateRandom();
 	}
@@ -135,11 +135,12 @@ void PaintBlock(CDC* dc, int x, int y, COLORREF c) {
 
 void CMFCApplication1Dlg::PaintCritter(CDC* dc, Critter* p) {
 	COLORREF cr = p->color;
+	COLORREF bg = RGB(255, 255, 255);
 	if (p->health == 0) {
-		p->x = p->y = 0; cr = RGB(255, 255, 255);
+		p->x = p->y = 0; cr = bg;
 	}
 	if ((p->x != p->lX) && (p->y != p->lY)  ) {
-		if ((p->lX) && (p->lY)) { PaintBlock(dc, p->lX, p->lY, RGB(255,255,255)); }
+		if ((p->lX) && (p->lY)) { PaintBlock(dc, p->lX, p->lY, bg); }
 		PaintBlock(dc, p->x, p->y, cr);
 		p->RememberLoc();
 	}
@@ -161,7 +162,7 @@ void CMFCApplication1Dlg::PaintCritters(bool ClearFirst) {
 		dc->FillSolidRect(0, 0, 516, 516, c);
 	}
 
-	for (int i = 0; i < numCritters; i++) {
+	for (int i = 1; i <= numCritters; i++) {
 		PaintCritter(dc, CritterAt(i));
 	}
 
