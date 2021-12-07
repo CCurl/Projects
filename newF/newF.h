@@ -9,10 +9,11 @@
 #define CELL_SZ     sizeof(CELL)
 #define ushort      unsigned short
 #define byte        unsigned char
-#define addr        byte *
 #define DENTRY_SZ   sizeof(DICT_T)
+typedef byte* addr;
 
 #define USER       sys.user
+#define VAR        sys.var
 // #define HERE       REG[7]
 #define T          sys.dstack[sys.dsp]
 #define N          sys.dstack[sys.dsp-1]
@@ -31,6 +32,7 @@ typedef struct {
 
 typedef struct {
     byte   user[USER_SZ];
+    byte   var[VARS_SZ];
     ushort dsp, rsp, lsp, u1;
     CELL   dstack[STK_SZ + 1];
     addr   rstack[STK_SZ + 1];

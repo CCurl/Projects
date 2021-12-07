@@ -15,18 +15,16 @@
 
 #ifdef __PC__
   #define STK_SZ          16
-  #define LSTACK_SZ       8
-  #define USER_SZ        (256*1024)
-  #define NUM_REGS       (26*26*26)
-  #define NUM_FUNCS      (26*26*26)
+  #define LSTACK_SZ       16
+  #define USER_SZ        (64*1024)
+  #define VARS_SZ        (64*1024)
 #else
   /* Dev Board */
   #define _NEEDS_ALIGN_   1
   #define STK_SZ          8
   #define LSTACK_SZ       4
-  #define USER_SZ        (20*1024)
-  #define NUM_REGS       (26*26)
-  #define NUM_FUNCS      (26*26)
+  #define USER_SZ        (16*1024)
+  #define VARS_SZ        (4*1024)
   #define __SERIAL__      1
   #define mySerial        Serial
   #define ILED            13

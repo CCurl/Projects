@@ -1,5 +1,6 @@
-: here (here) @ ;
-: last (last) @ ;
+: here  (here)  @ ;
+: vhere (vhere) @ ;
+: last  (last)  @ ;
 
 : immediate 2 last addr + c! ;
 : inline    1 last addr + c! ;
@@ -40,13 +41,16 @@
 : 1-  [ 'M' c, ] ; inline
 : 1+  [ 'P' c, ] ; inline
 
+: allot (vhere) +! ;
+: cells cell * ; inline
+
 : emit [ ',' c, ] ; inline
 : bl 32 ;           inline
 : space bl emit ;   inline
 : (.) [ '.' c, ] ;  inline
 : . (.) space ;     inline
 : cr 13 emit 10 emit ;
-
+: ? @ . ;
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
@@ -77,3 +81,5 @@
 : words last num-words 1 for .w dentry-sz + next drop ;
 
 : load [ '`' c, 'B' c, 'L' c, ] ; inline
+
+999 load
