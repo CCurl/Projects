@@ -47,27 +47,28 @@ void printString(const char* str) { printf("%s", str); }
 
 addr doBlock(addr pc) {
     t1 = *(pc++);
+    char tmp[16];
     switch (t1) {
     case 'C': if (T) {
             if ((FILE*)T == input_fp) { input_fp = fpop(); }
             fclose((FILE*)pop());
         } break;
     case 'L': if (input_fp) { fpush(input_fp); }
-        sprintf(buf, "block-%03ld.s4", pop());
-        input_fp = fopen(buf, "rb");
+        sprintf(tmp, "block-%03ld.fs", pop());
+        input_fp = fopen(tmp, "rb");
         break;
-    case 'O': sprintf(buf, "block-%03ld.s4", pop());
+    case 'O': sprintf(tmp, "block-%03ld.fs", pop());
         t1 = *(pc++);
         if (t1 == 'R') {
-            push((CELL)fopen(buf, "rb"));
+            push((CELL)fopen(tmp, "rb"));
         } else if (t1 == 'W') {
-            push((CELL)fopen(buf, "wb"));
+            push((CELL)fopen(tmp, "wb"));
         }
         break;
     case 'R': t1 = pop();
         if (t1) {
-            t2 = fread(buf, 1, 1, (FILE *)t1);
-            push(t2 ? buf[0] : 0);
+            t2 = fread(tmp, 1, 1, (FILE *)t1);
+            push(t2 ? tmp[0] : 0);
             push(t2);
         } else {
             push(0);
@@ -76,8 +77,8 @@ addr doBlock(addr pc) {
         break;
     case 'W': t1 = pop(); t2 = pop();
         if (t1) {
-            buf[0] = (char)t2;
-            t2 = fwrite(buf, 1, 1, (FILE *)t1);
+            tmp[0] = (char)t2;
+            t2 = fwrite(tmp, 1, 1, (FILE *)t1);
             push(t2 ? 1 : 0);
         }
         break;

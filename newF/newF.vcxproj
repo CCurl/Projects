@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="block-001.fs" />
+    <None Include="block-999.fs" />
     <None Include="make" />
     <None Include="newF.ino" />
     <None Include="README.md" />

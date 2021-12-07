@@ -6,8 +6,7 @@ SYS_T sys;
 byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc;
-CELL t1, t, n;
-CELL INDEX;
+CELL t, n, INDEX;
 
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
@@ -147,16 +146,16 @@ addr run(addr start) {
         case '"': while (*(pc) != ir) { printChar(*(pc++)); };  // 34
                 ++pc; break;
         case '#': push(T);                              break;  // 35 (DUP)
-        case '$': t1 = N; N = T; T = t1;                break;  // 36 (SWAP)
+        case '$': t = N; N = T; T = t;                  break;  // 36 (SWAP)
         case '%': push(N);                              break;  // 37 (OVER)
-        case '&': t1 = pop(); T &= t1;                  break;  // 38
+        case '&': t = pop(); T &= t;                    break;  // 38
         case '\'': push(*(pc++));                       break;  // 39
         case '(': doIf();                               break;  // 40
         case ')': /* endIf() */                         break;  // 41
-        case '*': t1 = pop(); T *= t1;                  break;  // 42
-        case '+': t1 = pop(); T += t1;                  break;  // 43
+        case '*': t = pop(); T *= t;                    break;  // 42
+        case '+': t = pop(); T += t;                    break;  // 43
         case ',': printChar((char)pop());               break;  // 44
-        case '-': t1 = pop(); T -= t1;                  break;  // 45
+        case '-': t = pop(); T -= t;                    break;  // 45
         case '.': printStringF("%ld", (CELL)pop());     break;  // 46
         case '/': if (T) { N /= T; DROP1; }                     // 47
                 else { isError = 1;  printString("-0div-"); }
@@ -164,38 +163,38 @@ addr run(addr start) {
         case '1': push(*(pc++));                          break;
         case '2': push(getWord(pc)); pc += 2;             break;
         case '4': push(getCell(pc)); pc += CELL_SZ;       break;
-        case '5': rpush(pc+CELL_SZ);                      // NO BREAK!
-        case '6': pc = (addr)getCell(pc);                 break;
+        case '5': rpush(pc+CELL_SZ);                      // CALL - NO BREAK!
+        case '6': pc = (addr)getCell(pc);                 break;  // JUMP
         case '7': ir = *(pc++); if (pop()) { pc += ir; }  break;
             break;
         case ':': 
             break;
         case ';': pc = rpop();                          break;  // 59
-        case '<': t1 = pop(); T = T < t1 ? 1 : 0;       break;  // 60
-        case '=': t1 = pop(); T = T == t1 ? 1 : 0;      break;  // 61
-        case '>': t1 = pop(); T = T > t1 ? 1 : 0;       break;  // 62
-        case '?': /* FREE */                            break;  // 63
+        case '<': t = pop(); T = (T  < t) ? 1 : 0;      break;  // 60
+        case '=': t = pop(); T = (T == t) ? 1 : 0;      break;  // 61
+        case '>': t = pop(); T = (T  > t) ? 1 : 0;      break;  // 62
+        case '?': break;                                        // 63
         case '@': T = getCell((byte*)T);                break;  // 64
         case 'A': break;
         case 'B': break;
         case 'C': *(byte *)T = (byte)N; DROP2;          break;
-        case 'D': if (T) { N = N % T; DROP1; }
+        case 'D': if (T) { N = N % T; DROP1; }                  // MODULO
             else { printString("-0div-"); isError= 1; } break;
         case 'E': break;
         case 'F': break;
         case 'G': break;
         case 'H': break;
-        case 'I': push((CELL)&INDEX);                   break;
+        case 'I': push((CELL)&INDEX);                   break; // I
         case 'J': break;
         case 'K': break;
-        case 'L': N = (N<<T); DROP1;                    break;
+        case 'L': t = pop(); T = (T << t);              break;
         case 'M': --T;                                  break;
         case 'N': T = -T;                               break;
         case 'O': break;
         case 'P': ++T;                                  break;
         case 'Q': break;
-        case 'R': N = (N>>T); DROP1;                    break;
-        case 'S': t = T; n = N; 
+        case 'R': t = pop(); T = (T >> t);              break;
+        case 'S': t = T; n = N;                                 // /MOD
             if (t == 0) { isError = 1; printString("-0div-"); }
             else { N = (n / t); T = (n % t); }          break;
         case 'T': break;
@@ -208,7 +207,7 @@ addr run(addr start) {
         case '[': doFor();                              break;  // 91
         case '\\': DROP1;                               break;  // 92
         case ']': doNext();                             break;  // 93
-        case '^': t1 = pop(); T ^= t1;                  break;  // 94
+        case '^': t = pop(); T ^= t;                    break;  // 94
         case '_': T = (T) ? 0 : 1;                      break;  // 95
         case '`': doExt();                              break;  // 96
         case 'a': break;
@@ -238,7 +237,7 @@ addr run(addr start) {
         case 'y': break;
         case 'z': break;
         case '{': lpush()->start = pc;                  break;
-        case '|': t1 = pop(); T |= t1;                  break;  // 124
+        case '|': t = pop(); T |= t;                    break;  // 124
         case '}': if (pop() == 0) { ldrop(); }                  // 125
                 else { lAt()->end = pc; pc = lAt()->start; }
             break;

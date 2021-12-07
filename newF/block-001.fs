@@ -41,10 +41,12 @@
 : 1+  [ 'P' c, ] ; inline
 
 : emit [ ',' c, ] ; inline
-: bl 32 ; inline
-: space bl emit ; inline
-: (.) [ '.' c, ] ; inline
-: . (.) space ; inline
+: bl 32 ;           inline
+: space bl emit ;   inline
+: (.) [ '.' c, ] ;  inline
+: . (.) space ;     inline
+: cr 13 emit 10 emit ;
+
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
@@ -73,3 +75,5 @@
 : num-words user-end 1+ last - dentry-sz / ;
 : .w dup cell + 1+ count type space ;
 : words last num-words 1 for .w dentry-sz + next drop ;
+
+: load [ '`' c, 'B' c, 'L' c, ] ; inline
