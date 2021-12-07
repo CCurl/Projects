@@ -1,4 +1,4 @@
-// S4 - A Minimal Interpreter
+// vm - A minimal forth VM
 
 #include "newF.h"
 
@@ -6,7 +6,7 @@ SYS_T sys;
 byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc;
-CELL t1;
+CELL t1, t, n;
 CELL INDEX;
 
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
@@ -85,12 +85,6 @@ void skipTo(byte to) {
     isError = 1;
 }
 
-int AddIt(CELL n, char c, char f, int m) {
-    n = (n * 26) + (c - f);
-    if (m <= n) { isError = 1; }
-    return n;
-}
-
 void doIf() {
     CELL n = pop();
     if (n == 0) {
@@ -121,18 +115,18 @@ void doNext() {
     }
 }
 
+CELL doRand() {
+    static CELL seed = 0;
+    if (seed == 0) { seed = getSeed(); }
+    seed ^= (seed << 13);
+    seed ^= (seed >> 17);
+    seed ^= (seed << 5);
+    return (seed < 0) ? -seed : seed;
+}
+
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case '!': *(byte*)T = (byte)N; DROP2;          return;
-    case '-': T = -T;                              return;
-    case '/': if (T) { t1 = T; T = N % t1; N /= t1; }
-        else { isError = 1; printString("-0div-"); }
-        return;
-    case '%': if (T) { N %= T; DROP1; }
-        else { isError = 1; printString("-0div-"); }
-        return;
-    case '@': T = *(byte*)T;                       return;
     case 'C': rpush(pc);                        // fall thru to 'J'
     case 'J': pc = (addr)pop();                    return;
     case 'R': vmInit();                            return;
@@ -182,31 +176,70 @@ addr run(addr start) {
         case '>': t1 = pop(); T = T > t1 ? 1 : 0;       break;  // 62
         case '?': /* FREE */                            break;  // 63
         case '@': T = getCell((byte*)T);                break;  // 64
-        case 'A': case 'B': case 'C': case 'D': case 'E':       // 65-90
-        case 'F': case 'G': case 'H':                   break;
+        case 'A': break;
+        case 'B': break;
+        case 'C': *(byte *)T = (byte)N; DROP2;          break;
+        case 'D': if (T) { N = N % T; DROP1; }
+            else { printString("-0div-"); isError= 1; } break;
+        case 'E': break;
+        case 'F': break;
+        case 'G': break;
+        case 'H': break;
         case 'I': push((CELL)&INDEX);                   break;
-        case 'J':
-        case 'K': case 'L': case 'M': case 'N': case 'O': case 'P':
-        case 'Q': case 'R': case 'S': case 'T': case 'U':
-        case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            break;
+        case 'J': break;
+        case 'K': break;
+        case 'L': N = (N<<T); DROP1;                    break;
+        case 'M': --T;                                  break;
+        case 'N': T = -T;                               break;
+        case 'O': break;
+        case 'P': ++T;                                  break;
+        case 'Q': break;
+        case 'R': N = (N>>T); DROP1;                    break;
+        case 'S': t = T; n = N; 
+            if (t == 0) { isError = 1; printString("-0div-"); }
+            else { N = (n / t); T = (n % t); }          break;
+        case 'T': break;
+        case 'U': T = (T < 0) ? -T : T;                 break;
+        case 'V': break;
+        case 'W': break;
+        case 'X': break;
+        case 'Y': break;
+        case 'Z': break;
         case '[': doFor();                              break;  // 91
         case '\\': DROP1;                               break;  // 92
         case ']': doNext();                             break;  // 93
         case '^': t1 = pop(); T ^= t1;                  break;  // 94
         case '_': T = (T) ? 0 : 1;                      break;  // 95
         case '`': doExt();                              break;  // 96
-        case 'a': case 'b': case 'c': case 'd': case 'e':       // 97-122
-        case 'f': case 'g': case 'h': case 'i': case 'j': 
-        case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': 
-        case 'q': case 'r': case 's': case 't': case 'u': 
-        case 'v': case 'w': case 'x': case 'y': case 'z': 
-            break;
-        case '{': if (T) { lpush()->start = pc; }               // 123
-                else { DROP1;  skipTo('}'); }
-            break;
+        case 'a': break;
+        case 'b': break;
+        case 'c': T = *(byte *)T;                       break;
+        case 'd': break;
+        case 'e': break;
+        case 'f': break;
+        case 'g': break;
+        case 'h': break;
+        case 'i': break;
+        case 'j': break;
+        case 'k': break;
+        case 'l': break;
+        case 'm': break;
+        case 'n': break;
+        case 'o': break;
+        case 'p': break;
+        case 'q': break;
+        case 'r': push(doRand()); break;
+        case 's': break;
+        case 't': break;
+        case 'u': break;
+        case 'v': break;
+        case 'w': break;
+        case 'x': break;
+        case 'y': break;
+        case 'z': break;
+        case '{': lpush()->start = pc;                  break;
         case '|': t1 = pop(); T |= t1;                  break;  // 124
-        case '}': if (!T) { ldrop(); DROP1; }                   // 125
+        case '}': if (pop() == 0) { ldrop(); }                  // 125
                 else { lAt()->end = pc; pc = lAt()->start; }
             break;
         case '~': T = ~T;                               break;  // 126

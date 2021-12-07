@@ -20,18 +20,25 @@
 : or  [ '|' c, ] ; inline
 : xor [ '^' c, ] ; inline
 : 0=  [ '_' c, ] ; inline
+: <<  [ 'L' c, ] ; inline
+: >>  [ 'R' c, ] ; inline
 
-: -  [ '-' c, ] ; inline
-: *  [ '*' c, ] ; inline
-: /  [ '/' c, ] ; inline
-: /mod  [ '`' c, '/' c, ] ; inline
+: -     [ '-' c, ] ; inline
+: *     [ '*' c, ] ; inline
+: /     [ '/' c, ] ; inline
+: /mod  [ 'S' c, ] ; inline
+: mod   [ 'D' c, ] ; inline
 
 : =  [ '=' c, ] ; inline
 : <  [ '<' c, ] ; inline
 : >  [ '>' c, ] ; inline
 
-: 1-  1 - ; inline
-: 1+  1 + ; inline
+: abs    [ 'U' c, ] ; inline
+: negate [ 'N' c, ] ; inline
+: rand   [ 'r' c, ] ; inline
+
+: 1-  [ 'M' c, ] ; inline
+: 1+  [ 'P' c, ] ; inline
 
 : emit [ ',' c, ] ; inline
 : bl 32 ; inline
@@ -43,13 +50,18 @@
 : next [ ']' c, ] ; inline
 : i    [ 'I' c, ] ; inline
 
-: if   [ '(' c, ] ; inline
-: then [ ')' c, ] ; inline
+: if    [ '(' c, ] ; inline
+: then  [ ')' c, ] ; inline
+: leave [ ';' c, ] ; inline
 
 : begin [ '{' c, ] ; inline
 : while [ '}' c, ] ; inline
+: until 0= while   ; inline
 
 : bye [ '`' c, 'q' c, ] ;
+
+: execute [ '`' c, 'J' c, ] ; inline
+: timer   [ '`' c, 'T' c, ] ; inline
 
 : count dup 1+ swap c@ ;
 : type 1 for dup c@ emit 1+ next drop ;

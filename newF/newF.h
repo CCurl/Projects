@@ -41,7 +41,7 @@ typedef struct{
     addr XT;
     byte flags;
     byte len;
-    char name[18];
+    char name[14];
 } DICT_T;
 
 extern SYS_T sys;
@@ -66,4 +66,5 @@ extern void setCell(addr to, CELL val);
 extern CELL getCell(addr from);
 extern void setWord(addr to, CELL val);
 extern CELL getWord(addr from);
+extern CELL getSeed();
 

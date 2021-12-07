@@ -54,6 +54,10 @@ void comma(CELL x) {
     HERE += CELL_SZ;
 }
 
+CELL getSeed() {
+    return (CELL)GetTickCount();
+}
+
 void create(const char *word) {
     DICT_T *dp = LAST-1;
     dp->XT = HERE;
@@ -227,8 +231,8 @@ void forthInit() {
     prim("swap", "$");
     prim("over", "%");
     prim("@", "@");
-    prim("c@", "`@");
+    prim("c@", "c");
     prim("!", "!");
-    prim("c!", "`!");
+    prim("c!", "C");
     prim("+", "+");
 }
