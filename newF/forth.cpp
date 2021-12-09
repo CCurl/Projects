@@ -106,21 +106,40 @@ void wordsl() {
     }
 }
 
+#define isBetween(x, a, b) ((a <= x) && (x <= b))
+
+int isDigit(char c, int base) {
+    if ((base == 2) && isBetween(c, '0', '1')) { return c - '0'; }
+    if ((10 <= base) && isBetween(c, '0', '9')) { return c - '0'; }
+    if ((base == 16) && isBetween(c, 'a', 'f')) { return c - 'a' + 10; }
+    if ((base == 16) && isBetween(c, 'A', 'F')) { return c - 'A' + 10; }
+    return -1;
+}
+
 bool isNum(char *word) {
+    int base = BASE, isNeg = 0;
     push(0);
-    if ( (word[0] == '\'') && (word[2] == '\'') && (word[3] == 0) ) {
+    if ((word[0] == '\'') && (word[2] == '\'') && (word[3] == 0)) {
         T = word[1];
         return 1;
     }
+
+    if (word[0] == '$') { base = 16; ++word; }
+    if (word[0] == '#') { base = 10; ++word; }
+    if (word[0] == '%') { base =  2; ++word; }
+    if ((word[0] == '-') && (base == 10)) { isNeg = 1; ++word; }
+
     while (*word) {
         if (*word == ' ') { return 1; }
-        if ((*word < '0') || ('9' < *word)) {
+        int d = isDigit(*word, base);
+        if (d < 0) {
             pop();
             return 0;
         }
-        T = (T*BASE)+(*word-'0');
+        T = (T*base)+d;
         word++;
     }
+    if (isNeg) { T = -T; }
     return 1;
 }
 

@@ -54,10 +54,10 @@ addr doBlock(addr pc) {
             fclose((FILE*)pop());
         } break;
     case 'L': if (input_fp) { fpush(input_fp); }
-        sprintf(tmp, "block-%03ld.fs", pop());
+        sprintf(tmp, "block-%03ld.4th", pop());
         input_fp = fopen(tmp, "rb");
         break;
-    case 'O': sprintf(tmp, "block-%03ld.fs", pop());
+    case 'O': sprintf(tmp, "block-%03ld.4th", pop());
         t1 = *(pc++);
         if (t1 == 'R') {
             push((CELL)fopen(tmp, "rb"));
@@ -149,7 +149,7 @@ void loop() {
 int main(int argc, char** argv) {
     vmInit();
     forthInit();
-    input_fp = fopen("block-001.fs", "rt");
+    input_fp = fopen("block-001.4th", "rt");
     
     while (!isBye) { loop(); }
     return 0;

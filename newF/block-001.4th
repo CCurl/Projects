@@ -45,11 +45,11 @@
 : cells cell * ; inline
 
 : emit [ ',' c, ] ; inline
-: bl 32 ;           inline
+: bl $20 ;           inline
 : space bl emit ;   inline
 : (.) [ '.' c, ] ;  inline
 : . (.) space ;     inline
-: cr 13 emit 10 emit ;
+: cr #13 emit #10 emit ;
 : ? @ . ;
 
 : for  [ '[' c, ] ; inline
@@ -82,4 +82,4 @@
 
 : load [ '`' c, 'B' c, 'L' c, ] ; inline
 
-999 load
+#999 load

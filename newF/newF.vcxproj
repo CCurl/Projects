@@ -146,8 +146,8 @@
     <Text Include="history.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="block-001.fs" />
-    <None Include="block-999.fs" />
+    <None Include="block-001.4th" />
+    <None Include="block-999.4th" />
     <None Include="make" />
     <None Include="newF.ino" />
     <None Include="README.md" />

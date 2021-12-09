@@ -2,9 +2,9 @@
 cr ." Start of block-999 ... "
 
 variable abc
-1234 abc !
+#1234 abc !
 
-4321 constant def
+#4321 constant def
 
 value ghj
 
