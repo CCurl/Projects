@@ -1,5 +1,5 @@
 // This is block-999.fs
-." Start of block-999"
+cr ." Start of block-999 ... "
 
 variable abc
 1234 abc !
@@ -15,4 +15,4 @@ ghj .
 def abc @ + 1- (ghj) !
 ghj .
 
-." End of block-999"
+." end of block-999" cr

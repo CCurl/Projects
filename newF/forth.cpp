@@ -1,6 +1,6 @@
 #include "newF.h"
 
-addr HERE, VHERE, USER_END;
+addr HERE, VHERE, VHERE_T, USER_END;
 DICT_T *LAST;
 CELL BASE, STATE;
 
@@ -32,6 +32,15 @@ int strLen(const char *x) {
 void strCpy(char *t, const char *f) {
     while (*f) { *(t++) = *(f++); }
     *t = 0;
+}
+
+void vCComma(byte x) {
+    *(VHERE++) = x;
+}
+
+void vComma(CELL x) {
+    setCell(VHERE, x);
+    VHERE += CELL_SZ;
 }
 
 void cComma(byte x) {
@@ -128,6 +137,7 @@ void parse(char *line) {
     BOOL isError = FALSE;
     BOOL lastWasCall = FALSE;
     while ((TRUE) && (!isError)) {
+        if (VHERE_T < VHERE) { VHERE_T = VHERE; }
         line = getWord(line, wd);
         if (wd[0] == 0) { return; }
         if (strEquals(wd, "//")) { return; }
@@ -170,6 +180,7 @@ void parse(char *line) {
             if (wd[0]) {
                 create(wd);
                 STATE = 1;
+                VHERE_T = VHERE;
             }
             continue;
         }
@@ -220,6 +231,34 @@ void parse(char *line) {
                 cComma(PUSH_L);
                 comma((CELL)x);
                 cComma(';');
+            }
+            continue;
+        }
+        if (strEquals(wd, ".\"")) {
+            line++;
+            if (STATE) {
+                cComma('"');
+                while ((*line) && (*line != '"')) { cComma(*(line++)); }
+                cComma('"');
+            }
+            else {
+                while ((*line) && (*line != '"')) { printChar(*(line++)); }
+            }
+            ++line;
+            continue;
+        }
+        if (strEquals(wd, "\"")) {
+            addr lenAddr = VHERE_T;
+            push((CELL)lenAddr);
+            *(VHERE_T++) = 0;
+            line++;
+            while ((*line) && (*line != '"')) { *(VHERE_T++) = *(line++); ++(*lenAddr); }
+            *(VHERE_T++) = 0;
+            ++line;
+            if (STATE) {
+                cComma(PUSH_L);
+                comma((CELL)pop());
+                VHERE = VHERE_T;
             }
             continue;
         }
