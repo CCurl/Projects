@@ -6,11 +6,12 @@ CELL BASE, STATE;
 
 #define INLINE    0x01
 #define IMMEDIATE 0x02
-#define PUSH_C    '1'
-#define PUSH_W    '2'
-#define PUSH_L    '4'
-#define CALL      '5'
-#define JUMP      '6'
+#define PUSH_C    1
+#define PUSH_W    2
+#define PUSH_L    4
+#define CALL      5
+#define JUMP      6
+#define BRANCH0   7
 
 void p(const char *x) { printString(x); }
 
@@ -88,14 +89,15 @@ void wordsl() {
         for (addr i = dp->XT; i < to; i++) {
             char c = *i;
             if (BetweenI(c, 33, 126)) {
-                if (c == PUSH_C) { printStringF("1(push %ld)", getWord(i+1)); i += 1; }
-                else if (c == PUSH_W) { printStringF("2(push %ld)", getWord(i+1)); i += 2; }
-                else if (c == PUSH_L) { printStringF("4(push %ld)", getCell(i+1)); i += CELL_SZ; }
-                else if (c == CALL)   { printStringF("5(call %ld)", getCell(i+1)); i += CELL_SZ; }
-                else if (c == JUMP)   { printStringF("6(jump %ld)", getCell(i+1)); break; }
-                else printStringF("%c", c);
+                printStringF("%c", c);
             } else {
                 printStringF("(%d)", c);
+                if (c == PUSH_C) { printStringF("(push %ld)", *(i + 1)); i += 1; }
+                else if (c == PUSH_W) { printStringF("(push %ld)", getWord(i + 1)); i += 2; }
+                else if (c == PUSH_L) { printStringF("(push %ld)", getCell(i + 1)); i += CELL_SZ; }
+                else if (c == CALL) { printStringF("(call %ld)", getCell(i + 1)); i += CELL_SZ; }
+                else if (c == JUMP) { printStringF("(jump %ld)", getCell(i + 1)); break; }
+                else if (c == BRANCH0) { printStringF("(0branch %ld)", *(i + 1)); i += 1;  }
             }
         }
         if (dp->flags & INLINE) { printStringF("    (INLINE)"); }

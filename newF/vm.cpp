@@ -141,6 +141,13 @@ addr run(addr start) {
     while (!isError && pc) {
         ir = *(pc++);
         switch (ir) {
+        case 1: push(*(pc++));                          break;
+        case 2: push(getWord(pc)); pc += 2;             break;
+        case 4: push(getCell(pc)); pc += CELL_SZ;       break;
+        case 5: rpush(pc + CELL_SZ);                      // CALL - NO BREAK!
+        case 6: pc = (addr)getCell(pc);                 break;  // JUMP
+        case 7: ir = *(pc++); if (pop()) { pc += ir; }  break;  // 0BRANCH
+            break;
         case ' ': while (*(pc) == ' ') { pc++; }        break;  // 32
         case '!': setCell((byte*)T, N); DROP2;          break;  // 33
         case '"': while (*(pc) != ir) { printChar(*(pc++)); };  // 34
@@ -160,13 +167,6 @@ addr run(addr start) {
         case '/': if (T) { N /= T; DROP1; }                     // 47
                 else { isError = 1;  printString("-0div-"); }
                 break;
-        case '1': push(*(pc++));                          break;
-        case '2': push(getWord(pc)); pc += 2;             break;
-        case '4': push(getCell(pc)); pc += CELL_SZ;       break;
-        case '5': rpush(pc+CELL_SZ);                      // CALL - NO BREAK!
-        case '6': pc = (addr)getCell(pc);                 break;  // JUMP
-        case '7': ir = *(pc++); if (pop()) { pc += ir; }  break;
-            break;
         case ':': 
             break;
         case ';': pc = rpop();                          break;  // 59
