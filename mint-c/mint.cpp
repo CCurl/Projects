@@ -62,11 +62,11 @@ void printStringF(const char* fmt, ...) {
 
 void skipTo(byte to) {
     while (*pc) {
-        if (*pc == to) { ++pc; return; }
-        if (*pc == '`') { ++pc; skipTo('`'); }
-        if (*pc == '(') { skipTo(')'); }
-        if (*pc == '[') { skipTo(']'); }
-        ++pc;
+        char c = *(pc++);
+        if (c == to) { return; }
+        if (c == '`') { skipTo('`'); }
+        if (c == '(') { skipTo(')'); }
+        if (c == '[') { skipTo(']'); }
     }
     isError = 1;
 }
@@ -114,7 +114,8 @@ addr doNext(addr pc) {
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    default: 
+    case 'Q': isBye = 1; break;
+    default:
         pc = doCustom(ir, pc);
     }
 }
