@@ -12,5 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="block-001.src" />
+    <None Include="block-002.src" />
+    <None Include="mint-c.ino" />
   </ItemGroup>
 </Project>
