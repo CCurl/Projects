@@ -5,9 +5,10 @@
 
 #define STK_SZ        8
 #define LSTACK_SZ     4
-#define USER_SZ     (16*1024)
-#define NUM_REGS     26
+#define USER_SZ     (32*1024)
+#define NUM_REGS     52
 #define NUM_FUNCS    26
+#define VARS_OFFSET (16*1024)
 
 #define CELL        long
 #define UCELL       unsigned CELL
@@ -19,8 +20,10 @@
 #define REG        sys.reg
 #define USER       sys.user
 #define FUNC       sys.func
-#define HERE       REG[7]
-#define INDEX      REG[8]
+#define HERE       REG[33]  // 26 + 'h'-'a'
+#define VHERE      REG[47]  // 26 + 'v'-'a'
+#define INDEX_I    REG[34]  // 26 + 'i'-'a'
+#define INDEX_J    REG[35]  // 26 + 'j'-'a'
 #define T          sys.dstack[sys.dsp]
 #define N          sys.dstack[sys.dsp-1]
 #define R          sys.rstack[sys.rsp]

@@ -19,12 +19,8 @@ void vmInit() {
     for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
-    REG['f' - 'a'] = (CELL)&sys.func[0];
-    REG['h' - 'a'] = (CELL)&sys.user[0];
-    REG['r' - 'a'] = (CELL)&sys.reg[0];
-    REG['s' - 'a'] = (CELL)&sys;
-    REG['u' - 'a'] = (CELL)&sys.user[0];
-    REG['z' - 'a'] = USER_SZ;
+    HERE = (CELL)&sys.user[0];
+    VHERE = (CELL)&sys.user[VARS_OFFSET];
 }
 
 void setCell(byte* to, CELL val) {
@@ -88,13 +84,13 @@ void doFor() {
     if (LSP < LSTACK_SZ) {
         LOOP_ENTRY_T* x = &sys.lstack[LSP++];
         x->start = pc;
-        INDEX = x->from = 0;
+        x->from = 0;
         x->to = n;
         x->end = 0;
         if (x->to < x->from) {
             push(x->to);
             x->to = x->from;
-            INDEX = x->from = pop();
+            x->from = pop();
         }
     }
 }
@@ -102,19 +98,33 @@ void doFor() {
 addr doNext(addr pc) {
     if (LSP < 1) { LSP = 0; return pc; }
     LOOP_ENTRY_T* x = &sys.lstack[LSP - 1];
-    INDEX = ++x->from;
+    ++x->from;
     if (x->from < x->to) { x->end = pc; pc = x->start; }
-    else { 
-        LSP--;
-        if (0 < LSP) { INDEX = sys.lstack[LSP - 1].from; }
-    }
+    else { LSP--; }
     return pc;
 }
 
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case 'Q': isBye = 1; break;
+    case '0': push((CELL)&sys.dstack[0]);          break;
+    case '1': push((CELL)HERE);                    break;
+    case '2': push((CELL)&sys.user[0]);            break;
+    case '3': push((CELL)&sys.reg[0]);             break;
+    case '4': push((CELL)0);                       break;
+    case '5': push((CELL)&sys.func[0]);            break;
+    case '6': push((CELL)&sys.user[VARS_OFFSET]);  break;
+    case 'Q': isBye = 1;                      break;
+    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+    case 'g': case 'h': case 'k': case 'l':
+    case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
+    case 's': case 't': case 'u': case 'v': case 'w': case 'x':
+    case 'y': case 'z': t1 = 26 + (ir - 'a');
+        push((CELL)&REG[t1]);                      break;
+    case 'i': case 'j': t1 = LSP - ((ir == 'i') ? 1 : 2);
+        if (t1 < 0) { isError = 1; }
+        else { push((CELL)&sys.lstack[t1].from); }
+        break;
     default:
         pc = doCustom(ir, pc);
     }
