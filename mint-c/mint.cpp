@@ -60,16 +60,12 @@ void printStringF(const char* fmt, ...) {
     printString(buf);
 }
 
-void skipTo(byte to, byte nest) {
-    byte c = 1, qc = '_', inQt = 0;
+void skipTo(byte to) {
     while (*pc) {
-        if (*pc == to) { --c; }
-        if (c == 0) { return; }
-        if ((nest) && (*pc == nest)) { ++c; }
-        if (*pc == qc) { 
-            inQt = inQt ? 0 : 1;
-            inQt ? ++c : --c;
-        }
+        if (*pc == to) { ++pc; return; }
+        if (*pc == '`') { ++pc; skipTo('`'); }
+        if (*pc == '(') { skipTo(')'); }
+        if (*pc == '[') { skipTo(']'); }
         ++pc;
     }
     isError = 1;
@@ -78,16 +74,15 @@ void skipTo(byte to, byte nest) {
 void doDefineFunction() {
     CELL fn = ir - 'A';
     FUNC[fn] = pc;
-    skipTo(';', 0);
-    HERE = (CELL)(++pc);
+    skipTo(';');
+    HERE = (CELL)(pc);
     if (isError) { printString("-dfErr-"); }
 }
 
 void doFor() {
     CELL n = pop();
     if (n == 0) {
-        skipTo(')','(');
-        ++pc;
+        skipTo(')');
         return;
     }
     if (LSP < LSTACK_SZ) {
@@ -119,9 +114,6 @@ addr doNext(addr pc) {
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case '!': *(byte*)T = (byte)N; DROP2;          return;
-    case '\'': push(*(pc++));                      return;
-    case '@': T = *(char*)T;                       return;
     default: 
         pc = doCustom(ir, pc);
     }
@@ -138,23 +130,23 @@ addr run(addr start) {
         case ' ': while (*(pc) == ' ') { pc++; }     break;  // 32
         case '!': setCell((byte*)T, N); DROP2;       break;  // 33
         case '"': push(T);                           break;  // 34 (DUP)
-        case '#': push(N);                           break;  // 35 (OVER)
+        case '#':  /* pc = doHex() */                break;  // 35
         case '$': t1 = N; N = T; T = t1;             break;  // 36 (SWAP)
-        case '%': t1 = pop(); T %= t1;               break;  // 37
+        case '%': push(N);                           break;  // 37 (OVER)
         case '&': t1 = pop(); T &= t1;               break;  // 38
         case '\'': DROP1;                            break;  // 39
         case '(': doFor();                           break;  // 40
         case ')': pc = doNext(pc);                   break;  // 41
         case '*': t1 = pop(); T *= t1;               break;  // 42
         case '+': t1 = pop(); T += t1;               break;  // 43
-        case ',': printChar((char)pop());            break;  // 44
+        case ',': printStringF("%lx", pop());        break;  // 44
         case '-': t1 = pop(); T -= t1;               break;  // 45
-        case '.': printStringF("%ld", (long)pop());  break;  // 46
-        case '/': t1 = pop();                           // 47
+        case '.': printStringF("%ld", pop());        break;  // 46
+        case '/': t1 = pop();                                // 47
             if (t1) { T /= t1; }
             else { printString("-zeroDiv-"); isError = 1; }
             break;
-        case '0': case '1': case '2': case '3': case '4':     // 48-57
+        case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9':
             push(ir - '0');
             t1 = *(pc) - '0';
@@ -162,7 +154,7 @@ addr run(addr start) {
                 T = (T * 10) + t1;
                 t1 = *(++pc) - '0';
             } break;
-        case ':': ir = *(pc++);                            // 58
+        case ':': ir = *(pc++);                                // 58
             if (BetweenI(ir, 'A', 'Z')) {
                 doDefineFunction();
             } else { isError = 1; }
@@ -182,15 +174,14 @@ addr run(addr start) {
                 rpush(pc);
                 pc = FUNC[t1];
             } break;
-        case '[':                                      break;  //  91
-        case '\\': isBye = 1;                          break;  //  92
-        case ']':                                      break;  //  93
-        case '^': t1 = pop(); T ^= t1;                 break;  //  94
-        case '_': while (*(pc) != '_') {                       // 95
-            printChar(*(pc++));
-        } ++pc;
-            break;
-        case '`': doExt();                             break; // 96
+        case '[': /*pc = doArray(pc); */               break;  // 91
+        case '\\': doExt();                            break;  // 92
+        case ']': /* close of array */                 break;  // 93
+        case '^': t1 = pop(); T ^= t1;                 break;  // 94
+        case '_': T = -T;                              break;  // 95
+        case '`': while (*pc  && *pc != ir) {                  // 96
+            printChar(*(pc++)); 
+        } pc++;                                        break;
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'g': case 'h': case 'i': case 'j': case 'k': case 'l':
         case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
@@ -198,9 +189,9 @@ addr run(addr start) {
         case 'y': case 'z': 
             push((CELL)&REG[ir-'a']);  
             break;
-        case '{':                                      break;  // 123
+        case '{': T *= 2;                              break;  // 123
         case '|': t1 = pop(); T |= t1;                 break;  // 124
-        case '}':                                      break;  // 125
+        case '}': T /= 2;                              break;  // 125
         case '~': T = ~T;                              break;  // 126
         }
     }
