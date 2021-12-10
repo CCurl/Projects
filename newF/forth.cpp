@@ -1,6 +1,7 @@
 #include "newF.h"
 
 addr HERE, VHERE, VHERE_T, USER_END;
+char pad[64], *toIn;
 DICT_T *LAST;
 CELL BASE, STATE;
 
@@ -62,20 +63,20 @@ CELL getSeed() {
     return (CELL)GetTickCount();
 }
 
-void create(const char *word) {
+void create(const char *pad) {
     DICT_T *dp = LAST-1;
     dp->XT = HERE;
     dp->flags = 0;
-    dp->len = strLen(word);
-    strCpy(dp->name, word);
+    dp->len = strLen(pad);
+    strCpy(dp->name, pad);
     LAST = dp;
     // printStringF("\n%s created at %p, XT=%ld", word, dp, (long)dp->XT);
 }
 
-DICT_T *find(char *word) {
+DICT_T *find(char *pad) {
     DICT_T *dp = (DICT_T *)LAST;
     while ((addr)dp < USER_END) {
-        if (strEquals(dp->name, word)) { return dp;  }
+        if (strEquals(dp->name, pad)) { return dp;  }
         ++dp;
     }
     return NULL;
@@ -116,56 +117,55 @@ int isDigit(char c, int base) {
     return -1;
 }
 
-bool isNum(char *word) {
+bool isNum(char *pad) {
     int base = BASE, isNeg = 0;
     push(0);
-    if ((word[0] == '\'') && (word[2] == '\'') && (word[3] == 0)) {
-        T = word[1];
+    if ((pad[0] == '\'') && (pad[2] == '\'') && (pad[3] == 0)) {
+        T = pad[1];
         return 1;
     }
 
-    if (word[0] == '$') { base = 16; ++word; }
-    if (word[0] == '#') { base = 10; ++word; }
-    if (word[0] == '%') { base =  2; ++word; }
-    if ((word[0] == '-') && (base == 10)) { isNeg = 1; ++word; }
+    if (pad[0] == '$') { base = 16; ++pad; }
+    if (pad[0] == '#') { base = 10; ++pad; }
+    if (pad[0] == '%') { base =  2; ++pad; }
+    if ((pad[0] == '-') && (base == 10)) { isNeg = 1; ++pad; }
 
-    while (*word) {
-        if (*word == ' ') { return 1; }
-        int d = isDigit(*word, base);
+    while (*pad) {
+        if (*pad == ' ') { return 1; }
+        int d = isDigit(*pad, base);
         if (d < 0) {
             pop();
             return 0;
         }
         T = (T*base)+d;
-        word++;
+        pad++;
     }
     if (isNeg) { T = -T; }
     return 1;
 }
 
-char *getWord(char *line, char *word) {
-    char *x = word;
+char *getWord(char *line, char *wd) {
     while (*line == ' ') { ++line; }
     while ((*line) && (*line != ' ')) {
-        *(word++) = *(line++);
+        *(wd++) = *(line++);
     }
-    *word = 0;
+    *wd = 0;
     return line;
 }
 
 void parse(char *line) {
-    char wd[32];
+    toIn = line;
     BOOL isError = FALSE;
     BOOL lastWasCall = FALSE;
     while ((TRUE) && (!isError)) {
         if (VHERE_T < VHERE) { VHERE_T = VHERE; }
-        line = getWord(line, wd);
-        if (wd[0] == 0) { return; }
-        if (strEquals(wd, "//")) { return; }
-        if (strEquals(wd, "\\")) { return; }
+        toIn = getWord(toIn, pad);
+        if (pad[0] == 0) { return; }
+        if (strEquals(pad, "//")) { return; }
+        if (strEquals(pad, "\\")) { return; }
         BOOL lwc = lastWasCall;
         lastWasCall = FALSE;
-        DICT_T* dp = find(wd);
+        DICT_T* dp = find(pad);
         if (dp) {
             if ((STATE == 0) || (dp->flags & IMMEDIATE)) {
                 run(dp->XT);
@@ -181,7 +181,7 @@ void parse(char *line) {
             }
             continue;
         }
-        if (isNum(wd)) {
+        if (isNum(pad)) {
             if (STATE) {
                 if ((T & 0xFF) == T) {
                     cComma(PUSH_C);
@@ -196,39 +196,39 @@ void parse(char *line) {
             }
             continue;
         }
-        if (strEquals(wd, ":") && (STATE == 0)) {
-            line = getWord(line, wd);
-            if (wd[0]) {
-                create(wd);
+        if (strEquals(pad, ":") && (STATE == 0)) {
+            toIn = getWord(toIn, pad);
+            if (pad[0]) {
+                create(pad);
                 STATE = 1;
                 VHERE_T = VHERE;
             }
             continue;
         }
-        if (strEquals(wd, ";") && (STATE == 1)) {
+        if (strEquals(pad, ";") && (STATE == 1)) {
             if (lwc) { *(HERE-CELL_SZ-1) = JUMP; } 
             else { cComma(';'); }
             STATE = 0;
             continue;
         }
-        if (strEquals(wd, "wordsl") && (STATE == 0)) {
+        if (strEquals(pad, "wordsl") && (STATE == 0)) {
             wordsl();
             continue;
         }
-        if (strEquals(wd, "constant") && (STATE == 0)) {
-            line = getWord(line, wd);
-            if (wd[0]) {
-                create(wd);
+        if (strEquals(pad, "constant") && (STATE == 0)) {
+            toIn = getWord(toIn, pad);
+            if (pad[0]) {
+                create(pad);
                 cComma(PUSH_L);
                 comma(pop());
                 cComma(';');
             }
             continue;
         }
-        if (strEquals(wd, "variable") && (STATE == 0)) {
-            line = getWord(line, wd);
-            if (wd[0]) {
-                create(wd);
+        if (strEquals(pad, "variable") && (STATE == 0)) {
+            toIn = getWord(toIn, pad);
+            if (pad[0]) {
+                create(pad);
                 cComma(PUSH_L);
                 comma((CELL)VHERE);
                 cComma(';');
@@ -237,17 +237,17 @@ void parse(char *line) {
             }
             continue;
         }
-        if (strEquals(wd, "value") && (STATE == 0)) {
-            line = getWord(line, wd);
-            if (wd[0]) {
-                create(wd);
+        if (strEquals(pad, "value") && (STATE == 0)) {
+            toIn = getWord(toIn, pad);
+            if (pad[0]) {
+                create(pad);
                 cComma(PUSH_L);
                 addr x = HERE;
                 comma(0);
                 cComma(';');
 
                 char wd2[16];
-                sprintf(wd2, "(%s)", wd);
+                sprintf(wd2, "(%s)", pad);
                 create(wd2);
                 cComma(PUSH_L);
                 comma((CELL)x);
@@ -255,27 +255,27 @@ void parse(char *line) {
             }
             continue;
         }
-        if (strEquals(wd, ".\"")) {
-            line++;
+        if (strEquals(pad, ".\"")) {
+            toIn++;
             if (STATE) {
                 cComma('"');
-                while ((*line) && (*line != '"')) { cComma(*(line++)); }
+                while ((*toIn) && (*toIn != '"')) { cComma(*(toIn++)); }
                 cComma('"');
             }
             else {
-                while ((*line) && (*line != '"')) { printChar(*(line++)); }
+                while ((*toIn) && (*toIn != '"')) { printChar(*(toIn++)); }
             }
-            ++line;
+            ++toIn;
             continue;
         }
-        if (strEquals(wd, "\"")) {
+        if (strEquals(pad, "\"")) {
             addr lenAddr = VHERE_T;
             push((CELL)lenAddr);
             *(VHERE_T++) = 0;
-            line++;
-            while ((*line) && (*line != '"')) { *(VHERE_T++) = *(line++); ++(*lenAddr); }
+            toIn++;
+            while ((*toIn) && (*toIn != '"')) { *(VHERE_T++) = *(toIn++); ++(*lenAddr); }
             *(VHERE_T++) = 0;
-            ++line;
+            ++toIn;
             if (STATE) {
                 cComma(PUSH_L);
                 comma((CELL)pop());
@@ -283,7 +283,7 @@ void parse(char *line) {
             }
             continue;
         }
-        printStringF("'%s'??", wd);
+        printStringF("'%s'??", pad);
         isError = 1;
     }
 }
@@ -315,6 +315,8 @@ void forthInit() {
     sprintf(src, ": user %ld ;",      (CELL)USER);            parse(src);    LAST->flags = INLINE;
     sprintf(src, ": vars %ld ;",      (CELL)VAR);             parse(src);    LAST->flags = INLINE;
     sprintf(src, ": user-end %ld ;",  (CELL)USER_END);        parse(src);    LAST->flags = INLINE;
+    sprintf(src, ": >in %ld ;",       (CELL)&toIn);           parse(src);    LAST->flags = INLINE;
+    sprintf(src, ": pad %ld ;",       (CELL)pad);             parse(src);    LAST->flags = INLINE;
     prim("swap", "$");
     prim("over", "%");
     prim("@", "@");

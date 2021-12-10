@@ -10,6 +10,7 @@
 
 : +! swap over @ + swap ! ;
 : c, here c! 1 (here) +! ;
+: , here ! cell (here) +! ;
 
 : dup  [ '#' c, ] ; inline
 : drop [ '\' c, ] ; inline
@@ -60,9 +61,10 @@
 : then  [ ')' c, ] ; inline
 : leave [ ';' c, ] ; inline
 
-: begin [ '{' c, ] ; inline
-: while [ '}' c, ] ; inline
-: until 0= while   ; inline
+: begin  [ '{' c, ] ; inline
+: while  [ '}' c, ] ; inline
+: until 0= while    ; inline
+: again 1 while    ; inline
 
 : bye [ '`' c, 'q' c, ] ;
 
@@ -71,6 +73,7 @@
 
 : count dup 1+ swap c@ ;
 : type 1 for dup c@ emit 1+ next drop ;
+: ztype begin dup c@ emit 1+ dup c@ while drop ;
 
 : print-ch dup 0= if drop '.' then emit ;
 : dd user here 1- for i @ c@ . next ;
