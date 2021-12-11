@@ -69,7 +69,8 @@
 : begin  [ '{' c, ] ; inline
 : while  [ '}' c, ] ; inline
 : until 0= while    ; inline
-: again  1 while    ; inline
+: again 1  while    ; inline
+: break  [ 'X' c, ] ; inline
 
 : execute [ '`' c, 'J' c, ] ; inline
 : timer   [ '`' c, 'T' c, ] ; inline

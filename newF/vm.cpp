@@ -201,7 +201,11 @@ addr run(addr start) {
         case 'U': T = (T < 0) ? -T : T;                 break;
         case 'V': break;
         case 'W': break;
-        case 'X': break;
+        case 'X': if (LSP) {
+            t = (CELL)sys.lstack[--LSP].end;
+            if (t) { pc = (addr)t; }
+            else { skipTo('}'); }
+        } break;
         case 'Y': break;
         case 'Z': break;
         case '[': doFor();                              break;  // 91
