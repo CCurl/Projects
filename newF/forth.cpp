@@ -3,7 +3,7 @@
 addr HERE, VHERE, VHERE_T, USER_END;
 char pad[64], *toIn;
 DICT_T *LAST;
-CELL BASE, STATE;
+CELL STATE;
 
 #define INLINE    0x01
 #define IMMEDIATE 0x02

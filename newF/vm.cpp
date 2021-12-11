@@ -6,7 +6,7 @@ SYS_T sys;
 byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc;
-CELL t, n, INDEX;
+CELL t, n, INDEX, BASE;
 
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
@@ -20,6 +20,7 @@ inline LOOP_ENTRY_T *ldrop() { if (0 < LSP) { --LSP; } return lAt(); }
 
 void vmInit() {
     sys.dsp = sys.rsp = sys.lsp = 0;
+    BASE = 10;
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
 }
 
@@ -57,18 +58,38 @@ CELL getWord(addr from) {
     return (*(from+1) << 8) | (*from);
 }
 
-void dumpStack() {
-    for (UCELL i = 1; i <= sys.dsp; i++) {
-        printStringF("%s%ld", (i > 1 ? " " : ""), (CELL)sys.dstack[i]);
-    }
-}
-
 void printStringF(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
     printString(buf);
+}
+
+void doUDot(UCELL x, CELL base) {
+    char pad[96], *cp = &pad[95];
+    *cp = 0;
+    do {
+        CELL b = (x % base) + '0';
+        if ('9' < b) { b += 7; }
+        *(--cp) = (byte)b;
+        x /= base;
+    } while (x);
+    printString(cp);
+}
+
+void doDot(CELL x, CELL base) {
+    if (base == 10) {
+        if (x < 0) { printChar('-'); x = -x; }
+    }
+    doUDot((UCELL)x, base);
+}
+
+void dumpStack() {
+    for (UCELL i = 1; i <= sys.dsp; i++) {
+        if (1 < i) { printChar(' '); }
+        doDot(sys.dstack[i], BASE);
+    }
 }
 
 void skipTo(byte to) {
@@ -163,7 +184,7 @@ addr run(addr start) {
         case '+': t = pop(); T += t;                    break;  // 43
         case ',': printChar((char)pop());               break;  // 44
         case '-': t = pop(); T -= t;                    break;  // 45
-        case '.': printStringF("%ld", (CELL)pop());     break;  // 46
+        case '.': doDot((CELL)pop(), BASE);             break;  // 46
         case '/': if (T) { N /= T; DROP1; }                     // 47
                 else { isError = 1;  printString("-0div-"); }
                 break;

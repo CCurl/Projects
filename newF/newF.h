@@ -50,6 +50,7 @@ extern SYS_T sys;
 extern byte isBye;
 extern byte isError;
 extern addr HERE;
+extern CELL BASE;
 
 extern void vmInit();
 extern void forthInit();
