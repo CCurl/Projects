@@ -1,18 +1,10 @@
 // This is block-999.fs
-cr ." Start of block-999 ... "
 
-variable abc
-#1234 abc !
+cr ." Block 001 - System setup"
+cr ." Block 002 - Sandbox"
+cr ." Block 100 - Screen words (cls, goto-xy, set-color, ...)"
+cr ." Block 999 - This file"
 
-#4321 constant def
-
-value ghj
-
-abc ?
-def .
-ghj .
-
-def abc @ + 1- (ghj) !
-ghj .
-
-." end of block-999" cr
+cr cr ." newF - v0.0.1 - Chris Curl"
+cr ." user size: " user-sz (.) ." , free: " last here - .
+cr ." GitHub: https://github.com/CCurl/Projects"

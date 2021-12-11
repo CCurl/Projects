@@ -284,6 +284,7 @@ void parse(char *line) {
             continue;
         }
         printStringF("'%s'??", pad);
+        STATE = 0;
         isError = 1;
     }
 }
