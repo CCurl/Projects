@@ -85,6 +85,10 @@
 : .w dup cell + 1+ count type space ;
 : words last num-words 1 for .w dentry-sz + next drop ;
 
+: hex $10 base ! ;
+: decimal #10 base ! ;
+: binary %10 base ! ;
+
 : load [ '`' c, 'B' c, 'L' c, ] ; inline
 
 variable fg-sv 2 cells allot
