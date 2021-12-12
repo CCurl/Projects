@@ -47,6 +47,13 @@
 : negate [ 'N' c, ] ; inline
 : rand   [ 'r' c, ] ; inline
 
+: <r [ 'K' c, '<' c, ] ; inline
+: r> [ 'K' c, '>' c, ] ; inline
+: r@ [ 'K' c, '@' c, ] ; inline
+
+: rot  <r swap r> swap ;
+: -rot swap <r swap r> ;
+
 : 1-  [ 'M' c, ] ; inline
 : 1+  [ 'P' c, ] ; inline
 : 2+ 1+ 1+ ;       inline

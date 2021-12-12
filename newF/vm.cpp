@@ -11,8 +11,8 @@ CELL t, n, INDEX, BASE;
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
 
-inline void rpush(addr v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
-inline addr rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
+inline void rpush(CELL v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
+inline CELL rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
 
 #define lAt() (&sys.lstack[LSP])
 inline LOOP_ENTRY_T* lpush() { if (LSP < STK_SZ) { ++LSP; } return lAt(); }
@@ -147,7 +147,7 @@ CELL doRand() {
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case 'C': rpush(pc);                        // fall thru to 'J'
+    case 'C': rpush((CELL)pc);                // fall thru to 'J'
     case 'J': pc = (addr)pop();                    return;
     case 'R': vmInit();                            return;
     default:
@@ -165,7 +165,7 @@ addr run(addr start) {
         case 1: push(*(pc++));                          break;
         case 2: push(getWord(pc)); pc += 2;             break;
         case 4: push(getCell(pc)); pc += CELL_SZ;       break;
-        case 5: rpush(pc + CELL_SZ);                      // CALL - NO BREAK!
+        case 5: rpush((CELL)pc + CELL_SZ);        // CALL - NO BREAK!
         case 6: pc = (addr)getCell(pc);                 break;  // JUMP
         case 7: ir = *(pc++); if (pop()) { pc += ir; }  break;  // 0BRANCH
             break;
@@ -190,7 +190,7 @@ addr run(addr start) {
                 break;
         case ':': 
             break;
-        case ';': pc = rpop();                          break;  // 59
+        case ';': pc = (addr)rpop();                    break;  // 59
         case '<': t = pop(); T = (T  < t) ? 1 : 0;      break;  // 60
         case '=': t = pop(); T = (T == t) ? 1 : 0;      break;  // 61
         case '>': t = pop(); T = (T  > t) ? 1 : 0;      break;  // 62
@@ -207,7 +207,12 @@ addr run(addr start) {
         case 'H': break;
         case 'I': push((CELL)&INDEX);                   break; // I
         case 'J': break;
-        case 'K': break;
+        case 'K': switch (*(pc++)) {
+            case '<': rpush(pop());  break;
+            case '>': push(rpop()); break;
+            case '@': push(R); break;
+            default: isError = 1;
+            } break;
         case 'L': t = pop(); T = (T << t);              break;
         case 'M': --T;                                  break;
         case 'N': T = -T;                               break;

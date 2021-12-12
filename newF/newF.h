@@ -37,7 +37,7 @@ typedef struct {
     byte   var[VARS_SZ];
     ushort dsp, rsp, lsp, u1;
     CELL   dstack[STK_SZ + 1];
-    addr   rstack[STK_SZ + 1];
+    CELL   rstack[STK_SZ + 1];
     LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
 } SYS_T;
 
