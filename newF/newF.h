@@ -4,13 +4,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define CELL        long
-#define UCELL       unsigned CELL
+typedef long CELL;
+typedef unsigned long UCELL;
+typedef unsigned short ushort;
+typedef unsigned char byte;
+typedef byte *addr;
+
 #define CELL_SZ     sizeof(CELL)
-#define ushort      unsigned short
-#define byte        unsigned char
+#define ADDR_SZ     sizeof(addr)
 #define DENTRY_SZ   sizeof(DICT_T)
-typedef byte* addr;
 
 #define USER       sys.user
 #define VAR        sys.var

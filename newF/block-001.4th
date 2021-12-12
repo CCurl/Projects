@@ -46,25 +46,27 @@
 
 : 1-  [ 'M' c, ] ; inline
 : 1+  [ 'P' c, ] ; inline
+: 2+ 1+ 1+ ;       inline
+: 2* 1 << ;        inline
 
 : allot (vhere) +! ;
 : cells cell * ; inline
 
 : emit [ ',' c, ] ; inline
+: (.) [ '.' c, ] ;  inline
 : bl $20 ;          inline
 : space bl emit ;   inline
-: (.) [ '.' c, ] ;  inline
 : . (.) space ;     inline
-: cr #13 emit #10 emit ;
 : ? @ . ;           inline
+: cr #13 emit #10 emit ;
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
-: i    [ 'I' c, ] ; inline
+: (i)  [ 'I' c, ] ; inline
+: i    (i) @      ; inline
 
 : if    [ '(' c, ] ; inline
 : then  [ ')' c, ] ; inline
-: leave [ ';' c, ] ; inline
 
 : begin  [ '{' c, ] ; inline
 : while  [ '}' c, ] ; inline
@@ -75,12 +77,13 @@
 : execute [ '`' c, 'J' c, ] ; inline
 : timer   [ '`' c, 'T' c, ] ; inline
 
-: count dup 1+ swap c@ ;
+: count dup 1+ swap c@ ;      inline
 : type 1 for dup c@ emit 1+ next drop ;
 : ztype begin dup c@ emit 1+ dup c@ while drop ;
 
-: dump for i @ c@ . next ;
-: dump-ch for i @ c@ dup 0= if drop '.' then emit next ;
+: dump for i c@ . next ;
+: print-ch dup 0= if drop '.' then emit ;
+: dump-ch for i c@ dup print-ch emit next ;
 
 : num-words user-end 1+ last - dentry-sz / ;
 : .w dup cell + 1+ count type space ;
@@ -93,8 +96,8 @@
 : load [ '`' c, 'B' c, 'L' c, ] ; inline
 
 variable fg-sv 2 cells allot
-: marker here fg-sv ! last fg-sv cell + ! vhere fg-sv 2 cells + ! ;
-: forget fg-sv @ (here) ! fg-sv cell + @ (last) ! fg-sv 2 cells + @ (vhere) ! ;
+: marker fg-sv here over ! cell + last over ! cell + vhere swap ! ;
+: forget fg-sv dup @ (here) ! cell + dup @ (last) ! cell + @ (vhere) ! ;
 : help 999 load ;
 
 marker 
