@@ -145,8 +145,8 @@ bool isNum(char *pad) {
 }
 
 char *getWord(char *line, char *wd) {
-    while (*line == ' ') { ++line; }
-    while ((*line) && (*line != ' ')) {
+    while ((*line == 9) || (*line == ' ')) { ++line; }
+    while (' ' < *line) {
         *(wd++) = *(line++);
     }
     *wd = 0;
