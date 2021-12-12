@@ -141,7 +141,7 @@ CELL doRand() {
     seed ^= (seed << 13);
     seed ^= (seed >> 17);
     seed ^= (seed << 5);
-    return (seed < 0) ? -seed : seed;
+    return seed;
 }
 
 void doExt() {
@@ -221,7 +221,7 @@ addr run(addr start) {
         case 'T': break;
         case 'U': T = (T < 0) ? -T : T;                 break;
         case 'V': break;
-        case 'W': break;
+        case 'W': setWord((addr)T, N); DROP2;           break;
         case 'X': if (LSP) {
             t = (CELL)sys.lstack[--LSP].end;
             if (t) { pc = (addr)t; }
@@ -252,12 +252,12 @@ addr run(addr start) {
         case 'o': break;
         case 'p': break;
         case 'q': break;
-        case 'r': push(doRand()); break;
+        case 'r': push(doRand());                       break;
         case 's': break;
         case 't': break;
         case 'u': break;
         case 'v': break;
-        case 'w': break;
+        case 'w': T = getWord((addr)T);                 break;
         case 'x': break;
         case 'y': break;
         case 'z': break;

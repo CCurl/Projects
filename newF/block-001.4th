@@ -14,6 +14,9 @@
 
 : bye [ '`' c, 'q' c, ] ;
 
+: w!   [ 'W' c, ] ; inline
+: w@   [ 'w' c, ] ; inline
+
 : dup  [ '#' c, ] ; inline
 : drop [ '\' c, ] ; inline
 : over [ '%' c, ] ; inline
@@ -56,7 +59,7 @@
 : (.) [ '.' c, ] ;  inline
 : bl $20 ;          inline
 : space bl emit ;   inline
-: . (.) space ;     inline
+: . space (.) ;     inline
 : ? @ . ;           inline
 : cr #13 emit #10 emit ;
 
