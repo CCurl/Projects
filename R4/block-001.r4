@@ -1,0 +1,22 @@
+1:13,10,;
+"R4 - v0.0.2 - Chris Curl"1C
+"This system has "6r@." registers, "13r@." functions, and "25r@." bytes user memory."1C
+"Hello"1C
+xXR
+0(info)
+1:20r@7r@1-[Ic@#,59=(13,10,)];
+2:0 6r@1-[Ir@(I#.": "r@.13C)];
+3:0 25[If@(I.": "If@4C13C)];
+4:#200+[Ic@#,59=(I200+8r!)];
+13:13,10,;
+
+0(; HEX output)
+0(:HX #9>(7+)'0+,;)
+0(:HD 16`/$HX HX;)
+0(:HW 256`/$ HD HD;)
+0(:HL 256#*`/$ HW HW;)
+
+0(; Binary output)
+0(:BD 255&128 1 8[$%`/$.$2/]\\;)
+0(:BW 256`/$ BD BD;)
+0(:BL 256#*`/$ BW BW;)

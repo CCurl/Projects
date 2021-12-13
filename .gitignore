@@ -13,11 +13,11 @@ mint/mint.exe
 /MINT/mint/.vs/mint/v16
 /MINT/mint/Debug
 /MINT/mint/mint.vcxproj.user
-/mint-c/.vs/mint/v16
+/mint-c/.vs
 /mint-c/Debug
-/mint-c/x64/Debug
-/mint-c/mint.vcxproj.user
+/mint-c/x64
 /mint-c/Release
+/mint-c/mint.vcxproj.user
 /newF/newF
 /newF/.vs/newF/v16
 /newF/Debug
@@ -26,3 +26,8 @@ mint/mint.exe
 /MFCApplication1/Debug
 /MFCApplication1/Release
 MFCApplication1/MFCApplication1.aps
+/R4/.vs
+/R4/Debug
+/R4/Release
+/R4/x64
+/R4/R4.vcxproj.user
