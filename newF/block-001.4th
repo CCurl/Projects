@@ -12,11 +12,19 @@
 : c, here c! 1 (here) +! ;
 : , here ! cell (here) +! ;
 
+: bye [ '`' c, 'q' c, ] ;
+
+: w!   [ 'W' c, ] ; inline
+: w@   [ 'w' c, ] ; inline
+
 : dup  [ '#' c, ] ; inline
 : drop [ '\' c, ] ; inline
 : over [ '%' c, ] ; inline
-: nip swap drop ; inline
-: tuck swap over ; inline
+
+: nip   swap drop ; inline
+: tuck  swap over ; inline
+: 2dup  over over ; inline
+: 2drop drop drop ; inline
 
 : and [ '&' c, ] ; inline
 : or  [ '|' c, ] ; inline
@@ -39,50 +47,68 @@
 : negate [ 'N' c, ] ; inline
 : rand   [ 'r' c, ] ; inline
 
+: <r [ 'K' c, '<' c, ] ; inline
+: r> [ 'K' c, '>' c, ] ; inline
+: r@ [ 'K' c, '@' c, ] ; inline
+
+: rot  <r swap r> swap ;
+: -rot swap <r swap r> ;
+
 : 1-  [ 'M' c, ] ; inline
 : 1+  [ 'P' c, ] ; inline
+: 2+ 1+ 1+ ;       inline
+: 2* 1 << ;        inline
 
 : allot (vhere) +! ;
 : cells cell * ; inline
 
 : emit [ ',' c, ] ; inline
-: bl $20 ;           inline
-: space bl emit ;   inline
 : (.) [ '.' c, ] ;  inline
-: . (.) space ;     inline
+: bl $20 ;          inline
+: space bl emit ;   inline
+: . space (.) ;     inline
+: ? @ . ;           inline
 : cr #13 emit #10 emit ;
-: ? @ . ;
 
 : for  [ '[' c, ] ; inline
 : next [ ']' c, ] ; inline
-: i    [ 'I' c, ] ; inline
+: (i)  [ 'I' c, ] ; inline
+: i    (i) @      ; inline
 
 : if    [ '(' c, ] ; inline
 : then  [ ')' c, ] ; inline
-: leave [ ';' c, ] ; inline
 
 : begin  [ '{' c, ] ; inline
 : while  [ '}' c, ] ; inline
 : until 0= while    ; inline
-: again 1 while    ; inline
-
-: bye [ '`' c, 'q' c, ] ;
+: again 1  while    ; inline
+: break  [ 'X' c, ] ; inline
 
 : execute [ '`' c, 'J' c, ] ; inline
 : timer   [ '`' c, 'T' c, ] ; inline
 
-: count dup 1+ swap c@ ;
+: count dup 1+ swap c@ ;      inline
 : type 1 for dup c@ emit 1+ next drop ;
 : ztype begin dup c@ emit 1+ dup c@ while drop ;
 
+: dump for i c@ . next ;
 : print-ch dup 0= if drop '.' then emit ;
-: dd user here 1- for i @ c@ . next ;
-: df user here 1- for i @ c@ print-ch next ;
+: dump-ch for i c@ dup print-ch emit next ;
 
 : num-words user-end 1+ last - dentry-sz / ;
 : .w dup cell + 1+ count type space ;
 : words last num-words 1 for .w dentry-sz + next drop ;
 
+: hex     $10 base ! ; inline
+: decimal #10 base ! ; inline
+: binary  %10 base ! ; inline
+
 : load [ '`' c, 'B' c, 'L' c, ] ; inline
 
-#999 load
+variable fg-sv 2 cells allot
+: marker fg-sv here over ! cell + last over ! cell + vhere swap ! ;
+: forget fg-sv dup @ (here) ! cell + dup @ (last) ! cell + @ (vhere) ! ;
+: help 999 load ;
+
+marker 
+help

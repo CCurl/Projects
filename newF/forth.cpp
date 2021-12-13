@@ -1,9 +1,9 @@
 #include "newF.h"
 
 addr HERE, VHERE, VHERE_T, USER_END;
-char pad[64], *toIn;
+char pad[96], *toIn;
 DICT_T *LAST;
-CELL BASE, STATE;
+CELL STATE;
 
 #define INLINE    0x01
 #define IMMEDIATE 0x02
@@ -145,8 +145,8 @@ bool isNum(char *pad) {
 }
 
 char *getWord(char *line, char *wd) {
-    while (*line == ' ') { ++line; }
-    while ((*line) && (*line != ' ')) {
+    while ((*line == 9) || (*line == ' ')) { ++line; }
+    while (' ' < *line) {
         *(wd++) = *(line++);
     }
     *wd = 0;
@@ -206,9 +206,13 @@ void parse(char *line) {
             continue;
         }
         if (strEquals(pad, ";") && (STATE == 1)) {
-            if (lwc) { *(HERE-CELL_SZ-1) = JUMP; } 
+            if (lwc) { *(HERE-CELL_SZ-1) = JUMP; }
             else { cComma(';'); }
             STATE = 0;
+            continue;
+        }
+        if (strEquals(pad, "leave")) {
+            if (STATE) { cComma(';'); }
             continue;
         }
         if (strEquals(pad, "wordsl") && (STATE == 0)) {
@@ -284,6 +288,7 @@ void parse(char *line) {
             continue;
         }
         printStringF("'%s'??", pad);
+        STATE = 0;
         isError = 1;
     }
 }
@@ -304,16 +309,17 @@ void forthInit() {
     STATE = 0;
     BASE = 10;
     sprintf(src, ": cell %ld ;",      (CELL)CELL_SZ);         parse(src);    LAST->flags = INLINE;
-    sprintf(src, ": addr %ld ;",      (CELL)sizeof(addr));    parse(src);    LAST->flags = INLINE;
+    sprintf(src, ": addr %ld ;",      (CELL)ADDR_SZ);         parse(src);    LAST->flags = INLINE;
     sprintf(src, ": dentry-sz %ld ;", (CELL)sizeof(DICT_T));  parse(src);    LAST->flags = INLINE;
+    sprintf(src, ": user %ld ;",      (CELL)USER);            parse(src);    LAST->flags = INLINE;
     sprintf(src, ": user-sz %ld ;",   (CELL)USER_SZ);         parse(src);    LAST->flags = INLINE;
+    sprintf(src, ": vars %ld ;",      (CELL)VAR);             parse(src);    LAST->flags = INLINE;
+    sprintf(src, ": vars-sz %ld ;",   (CELL)VARS_SZ);         parse(src);    LAST->flags = INLINE;
     sprintf(src, ": (here) %ld ;",    (CELL)&HERE);           parse(src);    LAST->flags = INLINE;
     sprintf(src, ": (vhere) %ld ;",   (CELL)&VHERE);          parse(src);    LAST->flags = INLINE;
     sprintf(src, ": (last) %ld ;",    (CELL)&LAST);           parse(src);    LAST->flags = INLINE;
     sprintf(src, ": base %ld ;",      (CELL)&BASE);           parse(src);    LAST->flags = INLINE;
     sprintf(src, ": state %ld ;",     (CELL)&STATE);          parse(src);    LAST->flags = INLINE;
-    sprintf(src, ": user %ld ;",      (CELL)USER);            parse(src);    LAST->flags = INLINE;
-    sprintf(src, ": vars %ld ;",      (CELL)VAR);             parse(src);    LAST->flags = INLINE;
     sprintf(src, ": user-end %ld ;",  (CELL)USER_END);        parse(src);    LAST->flags = INLINE;
     sprintf(src, ": >in %ld ;",       (CELL)&toIn);           parse(src);    LAST->flags = INLINE;
     sprintf(src, ": pad %ld ;",       (CELL)pad);             parse(src);    LAST->flags = INLINE;

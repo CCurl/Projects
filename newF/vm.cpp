@@ -6,13 +6,13 @@ SYS_T sys;
 byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc;
-CELL t, n, INDEX;
+CELL t, n, INDEX, BASE;
 
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
 
-inline void rpush(addr v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
-inline addr rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
+inline void rpush(CELL v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
+inline CELL rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
 
 #define lAt() (&sys.lstack[LSP])
 inline LOOP_ENTRY_T* lpush() { if (LSP < STK_SZ) { ++LSP; } return lAt(); }
@@ -20,6 +20,7 @@ inline LOOP_ENTRY_T *ldrop() { if (0 < LSP) { --LSP; } return lAt(); }
 
 void vmInit() {
     sys.dsp = sys.rsp = sys.lsp = 0;
+    BASE = 10;
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
 }
 
@@ -57,18 +58,38 @@ CELL getWord(addr from) {
     return (*(from+1) << 8) | (*from);
 }
 
-void dumpStack() {
-    for (UCELL i = 1; i <= sys.dsp; i++) {
-        printStringF("%s%ld", (i > 1 ? " " : ""), (CELL)sys.dstack[i]);
-    }
-}
-
 void printStringF(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
     printString(buf);
+}
+
+void doUDot(UCELL x, CELL base) {
+    char pad[96], *cp = &pad[95];
+    *cp = 0;
+    do {
+        CELL b = (x % base) + '0';
+        if ('9' < b) { b += 7; }
+        *(--cp) = (byte)b;
+        x /= base;
+    } while (x);
+    printString(cp);
+}
+
+void doDot(CELL x, CELL base) {
+    if (base == 10) {
+        if (x < 0) { printChar('-'); x = -x; }
+    }
+    doUDot((UCELL)x, base);
+}
+
+void dumpStack() {
+    for (UCELL i = 1; i <= sys.dsp; i++) {
+        if (1 < i) { printChar(' '); }
+        doDot(sys.dstack[i], BASE);
+    }
 }
 
 void skipTo(byte to) {
@@ -120,13 +141,13 @@ CELL doRand() {
     seed ^= (seed << 13);
     seed ^= (seed >> 17);
     seed ^= (seed << 5);
-    return (seed < 0) ? -seed : seed;
+    return seed;
 }
 
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case 'C': rpush(pc);                        // fall thru to 'J'
+    case 'C': rpush((CELL)pc);                // fall thru to 'J'
     case 'J': pc = (addr)pop();                    return;
     case 'R': vmInit();                            return;
     default:
@@ -144,7 +165,7 @@ addr run(addr start) {
         case 1: push(*(pc++));                          break;
         case 2: push(getWord(pc)); pc += 2;             break;
         case 4: push(getCell(pc)); pc += CELL_SZ;       break;
-        case 5: rpush(pc + CELL_SZ);                      // CALL - NO BREAK!
+        case 5: rpush((CELL)pc + CELL_SZ);        // CALL - NO BREAK!
         case 6: pc = (addr)getCell(pc);                 break;  // JUMP
         case 7: ir = *(pc++); if (pop()) { pc += ir; }  break;  // 0BRANCH
             break;
@@ -163,13 +184,13 @@ addr run(addr start) {
         case '+': t = pop(); T += t;                    break;  // 43
         case ',': printChar((char)pop());               break;  // 44
         case '-': t = pop(); T -= t;                    break;  // 45
-        case '.': printStringF("%ld", (CELL)pop());     break;  // 46
+        case '.': doDot((CELL)pop(), BASE);             break;  // 46
         case '/': if (T) { N /= T; DROP1; }                     // 47
                 else { isError = 1;  printString("-0div-"); }
                 break;
         case ':': 
             break;
-        case ';': pc = rpop();                          break;  // 59
+        case ';': pc = (addr)rpop();                    break;  // 59
         case '<': t = pop(); T = (T  < t) ? 1 : 0;      break;  // 60
         case '=': t = pop(); T = (T == t) ? 1 : 0;      break;  // 61
         case '>': t = pop(); T = (T  > t) ? 1 : 0;      break;  // 62
@@ -186,7 +207,12 @@ addr run(addr start) {
         case 'H': break;
         case 'I': push((CELL)&INDEX);                   break; // I
         case 'J': break;
-        case 'K': break;
+        case 'K': switch (*(pc++)) {
+            case '<': rpush(pop());  break;
+            case '>': push(rpop()); break;
+            case '@': push(R); break;
+            default: isError = 1;
+            } break;
         case 'L': t = pop(); T = (T << t);              break;
         case 'M': --T;                                  break;
         case 'N': T = -T;                               break;
@@ -200,8 +226,12 @@ addr run(addr start) {
         case 'T': break;
         case 'U': T = (T < 0) ? -T : T;                 break;
         case 'V': break;
-        case 'W': break;
-        case 'X': break;
+        case 'W': setWord((addr)T, N); DROP2;           break;
+        case 'X': if (LSP) {
+            t = (CELL)sys.lstack[--LSP].end;
+            if (t) { pc = (addr)t; }
+            else { skipTo('}'); }
+        } break;
         case 'Y': break;
         case 'Z': break;
         case '[': doFor();                              break;  // 91
@@ -227,12 +257,12 @@ addr run(addr start) {
         case 'o': break;
         case 'p': break;
         case 'q': break;
-        case 'r': push(doRand()); break;
+        case 'r': push(doRand());                       break;
         case 's': break;
         case 't': break;
         case 'u': break;
         case 'v': break;
-        case 'w': break;
+        case 'w': T = getWord((addr)T);                 break;
         case 'x': break;
         case 'y': break;
         case 'z': break;

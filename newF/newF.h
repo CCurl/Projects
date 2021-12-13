@@ -4,13 +4,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define CELL        long
-#define UCELL       unsigned CELL
+typedef long CELL;
+typedef unsigned long UCELL;
+typedef unsigned short ushort;
+typedef unsigned char byte;
+typedef byte *addr;
+
 #define CELL_SZ     sizeof(CELL)
-#define ushort      unsigned short
-#define byte        unsigned char
+#define ADDR_SZ     sizeof(addr)
 #define DENTRY_SZ   sizeof(DICT_T)
-typedef byte* addr;
 
 #define USER       sys.user
 #define VAR        sys.var
@@ -35,7 +37,7 @@ typedef struct {
     byte   var[VARS_SZ];
     ushort dsp, rsp, lsp, u1;
     CELL   dstack[STK_SZ + 1];
-    addr   rstack[STK_SZ + 1];
+    CELL   rstack[STK_SZ + 1];
     LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
 } SYS_T;
 
@@ -50,6 +52,7 @@ extern SYS_T sys;
 extern byte isBye;
 extern byte isError;
 extern addr HERE;
+extern CELL BASE;
 
 extern void vmInit();
 extern void forthInit();
