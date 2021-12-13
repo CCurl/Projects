@@ -1,46 +1,39 @@
-S4 examples:
+R4 examples:
 
 ; To enter a comment: 
     0( here is a comment )
     ; here is another comment
   
-;   if (c) { print("Yes") } else { print("No") }
-    c@#("Yes")_("No")
+;   if (r3) { print("Yes") } else { print("No") }
+    3r@#("Yes")_("No")
 
- ; x = (a == b) ? c : d;
-    a@b@=#(c@$)_(d@)x!;
+ ; r10 = (r1 == r2) ? r3 : r4;
+    1r@2r@=#(3r@$)_(4r@)10r!;
 
 ; To make sure F < T
-     S4 code:             %%>($)
-     Forth equivalent:    OVER OVER > IF SWAP THEN
-     C equivalent:        if (f > t) { int x = f; f = t; t = x; }
+     %%>($)
 
-; To do something (in this case, execute LP) n times:
-    n@ 1[LP]
+; To do something (in this case, call f19) r3 times:
+    3r@ 1[19C]
 
 ; To print numbers from F to T:
-    S4 code:             1 10[i@.32,]
+    R4 code:             1 10[I." "]
     Forth equivalent:    f t FOR I . NEXT
     C equivalent:        for (int i = F; i <= T; i)) { printf("%d ", i); }
 
 ; One way to copy N bytes from A to B
-    :PP 0(a--)$%@1+$!;
-    :CPY d! s! 1[s@ `@ d@ `! sPP dPP];     ; Define function CPY
+    11:0(a--)r$%@1+$!;                        ; Define f11 (INCREMENT REG a)
+    71:2r! 1r! 1[1r@c@ 2r@c! 1 11C 2 11C];     ; Define f71 (COPY)
     n@ a@ b@ CPY
 
-; One way to copy N longs from A to B (N A B--)
-    :PS 0(n a--)$%@+$!;
-    :CPY d! s! 1[s@@ d@! 4sPS 4dPS];       ; Define function CPY
-    n@ a@ b@ :CPY
-
 ; A simple benchmark for a 100 million FOR loop:
-    100 1000#** `T$ 1[] `T$-." ms"
+    100 1000#** xT$ 1[] xT$-." ms"
 
-; A simple benchmark for a 100 million WHILE loop:
-    100 1000#** `T$ {1-} `T$-." ms"
+; A simple benchmark for a 100 million WHILE/DECREMENT loop:
+    100 1000#** xT$ {1-} xT$-." ms"
 
 ; Define a function to display the currently defined code:
-    :DC u@h@1-[i@`@#58=(13,10,),];
+    1:20r@7r@1-[Ic@#,59=(13,10,)];
 
-; To exit S4:
-    ``
+; To exit R4:
+    xq
