@@ -1,17 +1,16 @@
-; Block.777
+; Block-777.r4
 
-1`BL
-N"Count of primes"
+; r3:               Register for count of primes
+; f14: (n l--f)     Is Prime Number routine
+; f12: (n1--n2)     Count of Primes routine
+; f11: (n--)        Benchmark routine
+; f10: (n--)        Loop for multiple benchmarks
 
-; c:              Register for count of primes
-; P: (n l--f)     Is Prime Number routine
-; C: (n1--n2)     Count of Primes routine
-; B: (n--)        Benchmark routine
-; L: (n--)        Loop for multiple benchmarks
+1xBL
+14:{%%S_(\\_w)%<(\w)PP};
+12:4 3r!11[I3 14C(3ri)8ri]3r@;
+11:E"# primes in "#." - "xT$12C.xT$-" (" . " ms)";
+10:256$1[#+#11C]\;
 
-:P%%`/_(\\_;)%<(\;)2+P;
-:C 4c! 11[i@3P(c@1+c!)i@1+i!]c@;
-:B N"# primes in "#." - "`T$C.`T$- " (" . " ms)";
-:L 256$1[#+#B]\;
-
-10 L
+E"Count of primes"
+10 10C
