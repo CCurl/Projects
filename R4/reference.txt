@@ -7,9 +7,8 @@
 -   (a b--n)      n: a-b - subtraction
 *   (a b--n)      n: a*b - multiplication
 /   (a b--q)      q: a/b - division
-'%  (a b--r)      r: a%b - modulo
-'-  (a--b)        b: -a  - negate
-'/  (a b--q r)    q: div(a,b), r: modulo(a,b) - /MOD
+M  (a b--r)       r: a%b - modulo
+S  (a b--q r)     q: div(a,b), r: modulo(a,b) - /MOD
 
 
 *** BIT MANIPULATION ***
@@ -24,6 +23,12 @@
 \  (a b--a)       Drop TOS                  (Forth DROP)
 $  (a b--b a)     Swap top 2 stack items    (Forth SWAP)
 %  (a b--a b a)   Push 2nd                  (Forth OVER)
+D  (a--b)         b: a-1                    (Decrement)
+P  (a--b)         b: a+1                    (Increment)
+N  (a--b)         b: -a                     (Negate)
+A  (a--b)         b: abs(a)                 (Absolute value)
+L  (a n--b)       b: a << n                 (Left-Shift)
+R  (a n--b)       b: a >> n                 (Right-Shift)
 
 
 *** MEMORY ***
@@ -31,6 +36,8 @@ $  (a b--b a)     Swap top 2 stack items    (Forth SWAP)
 !     (n a--)     Store CELL n  to  address a
 c@    (a--n)      Fetch BYTE n from address a
 c!    (n a--)     Store BYTE n  to  address a
+d     (a--)       Decrement CELL at address a
+p     (a--)       Increment CELL at address a
 
 
 *** REGISTERS ***
@@ -51,7 +58,8 @@ r     (n--a)      a: address of register #n.
 :     (n--)       Define function #n. Copy chars to (HERE++) until closing ';'.
 C     (n--)       Call function #n.
 ;     (--)        Return: PC = rpop()
-        NOTE: returning while inside of a loop is not supported; behavior will be undefined.
+        NOTE: Returning while inside of a loop is not supported; behavior will be undefined. 
+              Use 'w' or 'l' to exit the loop.
         NOTE: outside of ':...;', ';' can be used to comment out the rest of the line
 f@    (n--a)      n: function #, a: address where the function starts
 f!    (n a--)     n: function #, a: address where the function starts
@@ -61,6 +69,8 @@ f!    (n a--)     n: function #, a: address where the function starts
 .     (N--)       Output N as decimal number
 ,     (N--)       Output N as character (Forth EMIT)
 "     (--)        Output characters until the next '"'
+B     (--)        Output a single SPACE (32,)
+E     (--)        Output a single NEWLINE (13,10,)
 0..9  (--n)       Scan DECIMAL number n until non digit
                      to specify multiple values, separate them by space (4711 3333)
                      to enter a negative number, use "negate" (eg - 490`-)
@@ -76,14 +86,16 @@ _     (x--f)      f: (x = 0) ? 1 : 0; (logical NOT)
 [     (F T--)     FOR: start a For/Next loop. if (T < F), swap T and F
 I     (--n)       n: the index of the current FOR loop
 8r    (--a)       a: address of the INDEX register
+l     (--)        EXIT for loop
 ]     (--)        NEXT: increment index (I) and loop if (I <= T)
 {     (f--f)      BEGIN: if (f == 0) skip to matching '}'
+w     (--)        EXIT while loop
 }     (f--f?)     WHILE: if (f != 0) jump to matching '{' else drop f and continue
 (     (f--)       if (f != 0), execute code in '()', else skip to matching ')'
 
 
 *** OTHER ***
-xBL   (n--)       PC: Load code from file (block-nnn.src). This can be nested.
+xBL   (n--)       PC: Load code from file (Block-nnn.r4). This can be nested.
 xBC   (h--)       PC: Block close
 xBOR  (--h)       PC: Block open (read)
 xBOW  (--h)       PC: Block open (write)
@@ -97,7 +109,9 @@ xPRA  (p--n)      Arduino: pin read analog  (n = analogRead(p))
 xPRD  (p--n)      Arduino: pin read digital (n = digitalRead(p))
 xPWA  (n p--)     Arduino: pin write analog  (analogWrite(p, n))
 xPWD  (n p--)     Arduino: pin write digital (digitalWrite(p, n))
+xR    (--)        Reset R4
 xT    (--n)       Time (Arduino: millis(), Windows: GetTickCount())
 xN    (--n)       Time (Arduino: micros(), Windows: N/A)
 xW    (n--)       Wait (Arduino: delay(),  Windows: Sleep())
-xq    (--)        PC: Exit S4
+xr    (--r)       r: a random number
+xq    (--)        PC: Exit R4

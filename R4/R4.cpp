@@ -121,16 +121,6 @@ void loopExit(char c) {
     else { skipTo(c); }
 }
 
-void doExt() {
-    ir = *(pc++);
-    switch (ir) {
-    case 'r': push(rand());                        return;
-    case 'X': if (*pc == 'R') { ++pc; vmInit(); }  return;
-    default:
-        pc = doCustom(ir, pc);
-    }
-}
-
 int isHexNum(char a) {
     if (BetweenI(a, '0', '9')) { return a - '0'; }
     if (BetweenI(a, 'A', 'F')) { return a - 'A' + 10; }
@@ -140,6 +130,16 @@ int isHexNum(char a) {
 int dbz(CELL x) {
     if (x == 0) { isError = 1; printString("-0div-"); return 1; }
     return 0;
+}
+
+void doExt() {
+    ir = *(pc++);
+    switch (ir) {
+    case 'r': push(rand());                        return;
+    case 'X': if (*pc == 'R') { ++pc; vmInit(); }  return;
+    default:
+        pc = doCustom(ir, pc);
+    }
 }
 
 addr run(addr start) {
@@ -185,22 +185,23 @@ addr run(addr start) {
         case '>': t1 = pop(); T = T > t1 ? 1 : 0;                  break;  // 62
         case '?': /* FREE */                                       break;  // 63
         case '@': T = getCell((byte*)T);                           break;  // 64
-        case 'A':                                                  break;
+        case 'A': if (T < 0) { T = -T; }                           break;
         case 'B': printChar(' ');                                  break;
         case 'C': t1 = pop();
             if (BetweenI(t1, 0, NUM_FUNCS - 1) && FUNC[t1]) {
                 if (*pc != ';') { rpush(pc); }
                 pc = FUNC[t1];
             } break;
-        case 'D':                                                  break;
+        case 'D': --T;                                             break;
         case 'E': printString("\r\n");                             break;
         case 'F':                                                  break;
         case 'G':                                                  break;
         case 'H':                                                  break;
         case 'I': push(INDEX);                                     break;
-        case 'J': case 'K':                                        break;
+        case 'J':                                                  break;
+        case 'K':                                                  break;
         case 'L': t1 = pop(); T = (T << t1);                       break;
-        case 'M': --T;                                             break;
+        case 'M': if (!dbz(T)) { t1 = pop(); T %= t1; }            break;
         case 'N': T = -T;                                          break;
         case 'O':                                                  break;
         case 'P': ++T;                                             break;
@@ -208,7 +209,7 @@ addr run(addr start) {
         case 'R': t1 = pop(); T = (T >> t1);                       break;
         case 'S': if (!dbz(T)) { t1 = T; T = N % t1; N /= t1; }    break;  // /MOD
         case 'T':                                                  break;
-        case 'U': if (T < 0) { T = -T; }                           break;
+        case 'U':                                                  break;
         case 'V':                                                  break;
         case 'W':                                                  break;
         case 'X':                                                  break;
@@ -238,14 +239,14 @@ addr run(addr start) {
                 if (t1 < 0) { break; }
                 T = (T * 16) + t1; ++pc;
             } break;
-        case 'i': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;
+        case 'i':                                                  break;
         case 'j':                                                  break;
         case 'k':                                                  break;
         case 'l': loopExit(']');                                   break;
-        case 'm': if (!dbz(T)) { t1 = pop(); T %= t1; }            break;
+        case 'm':                                                  break;
         case 'n':                                                  break;
         case 'o':                                                  break;
-        case 'p':                                                  break;
+        case 'p': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;
         case 'q':                                                  break;
         case 'r': if (BetweenI(T, 0, NUM_REGS-1)) { T = (CELL)&REG[T]; }
             else { printString("-reg#-");  isError = 1; }

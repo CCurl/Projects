@@ -16,24 +16,21 @@ R4 examples:
 ; To do something (in this case, call f19) r3 times:
     3r@ 1[19C]
 
-; To print numbers from F to T:
-    R4 code:             1 10[I." "]
-    Forth equivalent:    f t FOR I . NEXT
-    C equivalent:        for (int i = F; i <= T; i)) { printf("%d ", i); }
+; To print the ASCII chars from 33 to 126:
+    33 126[I.BI,E]
 
 ; One way to copy N bytes from A to B
-    11:0(a--)r$%@1+$!;                        ; Define f11 (INCREMENT REG a)
-    71:2r! 1r! 1[1r@c@ 2r@c! 1 11C 2 11C];     ; Define f71 (COPY)
+    71:2r! 1r! 1[1r@c@ 2r@c! 1rp 2rp];     ; Define f71 (COPY)
     n@ a@ b@ CPY
 
 ; A simple benchmark for a 100 million FOR loop:
     100 1000#** xT$ 1[] xT$-." ms"
 
 ; A simple benchmark for a 100 million WHILE/DECREMENT loop:
-    100 1000#** xT$ {1-} xT$-." ms"
+    100 1000#** xT$ {D} xT$-." ms"
 
 ; Define a function to display the currently defined code:
-    1:20r@7r@1-[Ic@#,59=(13,10,)];
+    1:20r@7r@D[Ic@#,59=(E)];
 
 ; To exit R4:
     xq

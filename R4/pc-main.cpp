@@ -53,10 +53,10 @@ addr doBlock(addr pc) {
             fclose((FILE*)pop());
         } break;
     case 'L': if (input_fp) { fpush(input_fp); }
-        sprintf(buf, "block-%03ld.r4", pop());
+        sprintf(buf, "Block-%03ld.r4", pop());
         input_fp = fopen(buf, "rb");
         break;
-    case 'O': sprintf(buf, "block-%03ld.r4", pop());
+    case 'O': sprintf(buf, "Block-%03ld.r4", pop());
         t1 = *(pc++);
         if (t1 == 'R') {
             push((CELL)fopen(buf, "rb"));
