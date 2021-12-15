@@ -127,9 +127,10 @@ int isHexNum(char a) {
     return -1;
 }
 
-inline int dbz(CELL x) { return (x == 0); }
-inline int isReg(CELL x) { return BetweenI(x, 0, NUM_REGS-1); }
-inline int isFunc(CELL x) { return BetweenI(x, 0, NUM_FUNCS-1); }
+int dbz(CELL x) {
+    if (x == 0) { isError = 1; printString("-0div-"); return 1; }
+    return 0;
+}
 
 void doExt() {
     ir = *(pc++);
@@ -209,7 +210,7 @@ addr run(addr start) {
         case 'S': if (!dbz(T)) { t1 = T; T = N % t1; N /= t1; }    break;  // /MOD
         case 'T':                                                  break;
         case 'U':                                                  break;
-        case 'V': if(isReg(T)) { REG[T] = N; DROP2; }              break;
+        case 'V':                                                  break;
         case 'W':                                                  break;
         case 'X':                                                  break;
         case 'Y':                                                  break;
@@ -247,11 +248,13 @@ addr run(addr start) {
         case 'o':                                                  break;
         case 'p': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;
         case 'q':                                                  break;
-        case 'r': if (isReg(T)) { T = (CELL)&REG[T]; }             break;
+        case 'r': if (BetweenI(T, 0, NUM_REGS-1)) { T = (CELL)&REG[T]; }
+            else { printString("-reg#-");  isError = 1; }
+            break;
         case 's':                                                  break;
         case 't':                                                  break;
         case 'u':                                                  break;
-        case 'v': if (isReg(T)) { T = REG[T]; }                    break;
+        case 'v':                                                  break;
         case 'w': loopExit('}');                                   break;
         case 'x': doExt();                                         break;
         case 'y':                                                  break;
