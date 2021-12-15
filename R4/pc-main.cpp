@@ -33,14 +33,14 @@ void delay(UCELL ms) {
 }
 #endif
 
-FILE* input_fp;
-byte fdsp = 0;
-FILE* fstack[STK_SZ+1];
+static FILE* input_fp;
+static byte fdsp = 0;
+static FILE* fstack[STK_SZ+1];
 static char buf[256];
 static CELL t1, t2;
 
-void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
-FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
+static void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
+static FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
 
 void printChar(const char c) { printf("%c", c); }
 void printString(const char* str) { printf("%s", str); }

@@ -7,19 +7,28 @@ byte ir, isBye = 0, isError = 0;
 static char buf[24];
 addr pc;
 CELL n1, t1;
-
 void push(CELL v) { if (sys.dsp < STK_SZ) { sys.dstack[++sys.dsp] = v; } }
 CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
 
 inline void rpush(addr v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
 inline addr rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
 
+static double fstack[STK_SZ+1];
+static int fsp = 0;
+
+#define fT fstack[fsp]
+#define fN fstack[fsp-1]
+#define fDROP1 fpop()
+#define fDROP2 fpop(); fpop();
+static void fpush(double v) { if (fsp < STK_SZ) { fstack[++fsp] = v; } }
+static double fpop() { return (fsp) ? fstack[fsp--] : 0; }
+
 #define lAt() (&sys.lstack[LSP])
 inline LOOP_ENTRY_T* lpush() { if (LSP < STK_SZ) { ++LSP; } return lAt(); }
 inline LOOP_ENTRY_T *ldrop() { if (0 < LSP) { --LSP; } return lAt(); }
 
 void vmInit() {
-    sys.dsp = sys.rsp = sys.lsp = 0;
+    sys.dsp = sys.rsp = sys.lsp = fsp = 0;
     for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
@@ -127,9 +136,23 @@ int isHexNum(char a) {
     return -1;
 }
 
-int isOk(int exp, const char *msg) {
+int isOk(int exp, const char* msg) {
     isError = (exp == 0); if (isError) { printString(msg); }
     return (isError == 0);
+}
+
+void doFloat() {
+    switch (*(pc++)) {
+    case 'x': fpush(pop());                                    return;
+    case '+': fN += fT; fDROP1;                                 return;
+    case '-': fN -= fT; fDROP1;                                 return;
+    case '*': fN *= fT; fDROP1;                                 return;
+    case '/': if (isOk(fT!=0, "-0div-")) { fN /= fT; fDROP1; }  return;
+    case '.': printStringF("%g", fpop());                       return;
+    default:
+        isError = 1;
+        printStringF("-flt(%d)-", sizeof(double));
+    }
 }
 
 void doExt() {
@@ -194,7 +217,7 @@ addr run(addr start) {
             } break;
         case 'D': --T;                                             break;
         case 'E': printString("\r\n");                             break;
-        case 'F':                                                  break;
+        case 'F': doFloat();                                       break;
         case 'G':                                                  break;
         case 'H':                                                  break;
         case 'I': push(INDEX);                                     break;
