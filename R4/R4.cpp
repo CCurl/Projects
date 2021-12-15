@@ -13,15 +13,15 @@ CELL pop() { return (sys.dsp) ? sys.dstack[sys.dsp--] : 0; }
 inline void rpush(addr v) { if (sys.rsp < STK_SZ) { sys.rstack[++sys.rsp] = v; } }
 inline addr rpop() { return (sys.rsp) ? sys.rstack[sys.rsp--] : 0; }
 
-static double fstack[STK_SZ+1];
+static float fstack[STK_SZ+1];
 static int fsp = 0;
 
 #define fT fstack[fsp]
 #define fN fstack[fsp-1]
 #define fDROP1 fpop()
 #define fDROP2 fpop(); fpop();
-static void fpush(double v) { if (fsp < STK_SZ) { fstack[++fsp] = v; } }
-static double fpop() { return (fsp) ? fstack[fsp--] : 0; }
+static void fpush(float v) { if (fsp < STK_SZ) { fstack[++fsp] = v; } }
+static float fpop() { return (fsp) ? fstack[fsp--] : 0; }
 
 #define lAt() (&sys.lstack[LSP])
 inline LOOP_ENTRY_T* lpush() { if (LSP < STK_SZ) { ++LSP; } return lAt(); }
@@ -142,8 +142,10 @@ int isOk(int exp, const char* msg) {
 }
 
 void doFloat() {
+    addr x;
     switch (*(pc++)) {
-    case 'x': fpush(pop());                                    return;
+    case '<': fpush((float)pop());                              return;
+    case '>': x = (addr)&fT; push(*(CELL*)x); fpop();           return;
     case '+': fN += fT; fDROP1;                                 return;
     case '-': fN -= fT; fDROP1;                                 return;
     case '*': fN *= fT; fDROP1;                                 return;
@@ -151,7 +153,7 @@ void doFloat() {
     case '.': printStringF("%g", fpop());                       return;
     default:
         isError = 1;
-        printStringF("-flt(%d)-", sizeof(double));
+        printStringF("-flt(%d)-", sizeof(fT));
     }
 }
 
