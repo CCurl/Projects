@@ -23,6 +23,7 @@
 #define DROP1      pop()
 #define DROP2      pop(); pop()
 #define BetweenI(n, x, y) (((x) <= (n)) && ((n) <= (y)))
+#define isReg(n) ((0 <= (n)) && ((n) < NUM_REGS))
 
 typedef struct {
     addr start;

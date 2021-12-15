@@ -127,9 +127,9 @@ int isHexNum(char a) {
     return -1;
 }
 
-int dbz(CELL x) {
-    if (x == 0) { isError = 1; printString("-0div-"); return 1; }
-    return 0;
+int isOk(int exp, const char *msg) {
+    isError = (exp == 0); if (isError) { printString(msg); }
+    return (isError == 0);
 }
 
 void doExt() {
@@ -165,7 +165,7 @@ addr run(addr start) {
         case ',': printChar((char)pop());                          break;  // 44
         case '-': t1 = pop(); T -= t1;                             break;  // 45
         case '.': printStringF("%ld", (CELL)pop());                break;  // 46
-        case '/': if (!dbz(T)) { N /= T; DROP1; }                  break;  // 47
+        case '/': if (isOk(T, "-0div-")) { N /= T; DROP1; }        break;  // 47
         case '0': case '1': case '2': case '3': case '4':                  // 48-57
         case '5': case '6': case '7': case '8': case '9':
             push(ir - '0'); ir = *(pc);
@@ -185,7 +185,7 @@ addr run(addr start) {
         case '>': t1 = pop(); T = T > t1 ? 1 : 0;                  break;  // 62
         case '?': /* FREE */                                       break;  // 63
         case '@': T = getCell((byte*)T);                           break;  // 64
-        case 'A': if (T < 0) { T = -T; }                           break;
+        case 'A': if (T < 0) { T = -T; }                           break;  // ABS
         case 'B': printChar(' ');                                  break;
         case 'C': t1 = pop();
             if (BetweenI(t1, 0, NUM_FUNCS - 1) && FUNC[t1]) {
@@ -201,13 +201,14 @@ addr run(addr start) {
         case 'J':                                                  break;
         case 'K':                                                  break;
         case 'L': t1 = pop(); T = (T << t1);                       break;
-        case 'M': if (!dbz(T)) { t1 = pop(); T %= t1; }            break;
+        case 'M': if (isOk(T, "-0div-")) { t1 = pop(); T %= t1; }  break;
         case 'N': T = -T;                                          break;
         case 'O':                                                  break;
         case 'P': ++T;                                             break;
         case 'Q':                                                  break;
         case 'R': t1 = pop(); T = (T >> t1);                       break;
-        case 'S': if (!dbz(T)) { t1 = T; T = N % t1; N /= t1; }    break;  // /MOD
+        case 'S': if (T) { t1 = T; T = N % t1; N /= t1; }        // /MOD
+                else { isError = 1; printString("-0div-"); }       break;
         case 'T':                                                  break;
         case 'U':                                                  break;
         case 'V':                                                  break;
@@ -248,13 +249,11 @@ addr run(addr start) {
         case 'o':                                                  break;
         case 'p': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;
         case 'q':                                                  break;
-        case 'r': if (BetweenI(T, 0, NUM_REGS-1)) { T = (CELL)&REG[T]; }
-            else { printString("-reg#-");  isError = 1; }
-            break;
+        case 'r': if (isOk(isReg(T), "-reg-")) { T = (CELL)&REG[T]; } break;
         case 's':                                                  break;
         case 't':                                                  break;
         case 'u':                                                  break;
-        case 'v':                                                  break;
+        case 'v': if (isOk(isReg(T), "-reg-")) { T = REG[T]; }     break;
         case 'w': loopExit('}');                                   break;
         case 'x': doExt();                                         break;
         case 'y':                                                  break;

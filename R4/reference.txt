@@ -23,8 +23,8 @@ S  (a b--q r)     q: div(a,b), r: modulo(a,b) - /MOD
 \  (a b--a)       Drop TOS                  (Forth DROP)
 $  (a b--b a)     Swap top 2 stack items    (Forth SWAP)
 %  (a b--a b a)   Push 2nd                  (Forth OVER)
-D  (a--b)         b: a-1                    (Decrement)
-P  (a--b)         b: a+1                    (Increment)
+D  (a--b)         b: a-1                    (Decrement --)
+P  (a--b)         b: a+1                    (Increment ++)
 N  (a--b)         b: -a                     (Negate)
 A  (a--b)         b: abs(a)                 (Absolute value)
 L  (a n--b)       b: a << n                 (Left-Shift)
@@ -36,8 +36,8 @@ R  (a n--b)       b: a >> n                 (Right-Shift)
 !     (n a--)     Store CELL n  to  address a
 c@    (a--n)      Fetch BYTE n from address a
 c!    (n a--)     Store BYTE n  to  address a
-d     (a--)       Decrement CELL at address a
-p     (a--)       Increment CELL at address a
+d     (a--)       Decrement CELL at address a (a--)
+p     (a--)       Increment CELL at address a (a++)
 
 
 *** REGISTERS ***
@@ -50,6 +50,7 @@ p     (a--)       Increment CELL at address a
          - 25: Size of USER area
          - All other registers are set to 0
 r     (n--a)      a: address of register #n.
+v     (n--v)      v: value of register #n.
 
 
 *** FUNCTIONS ***
