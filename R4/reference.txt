@@ -49,8 +49,9 @@ p     (a--)       Increment CELL at address a
          - 20: Start of USER area
          - 25: Size of USER area
          - All other registers are set to 0
-r     (n--a)      a: address of register #n.
-
+r     (n--a)      n: address of register #n.
+V     (v r--)     Set register #n to v.
+v     (n--v)      n: a register number, v: value of register #n
 
 *** FUNCTIONS ***
         NOTES: 1) Functions are referred to by the number on TOS when ':' or 'C' is encountered.
@@ -109,9 +110,9 @@ xPRA  (p--n)      Arduino: pin read analog  (n = analogRead(p))
 xPRD  (p--n)      Arduino: pin read digital (n = digitalRead(p))
 xPWA  (n p--)     Arduino: pin write analog  (analogWrite(p, n))
 xPWD  (n p--)     Arduino: pin write digital (digitalWrite(p, n))
-xR    (--)        Reset R4
+xXR   (--)        Reset R4
 xT    (--n)       Time (Arduino: millis(), Windows: GetTickCount())
 xN    (--n)       Time (Arduino: micros(), Windows: N/A)
 xW    (n--)       Wait (Arduino: delay(),  Windows: Sleep())
 xr    (--r)       r: a random number
-xq    (--)        PC: Exit R4
+xQ    (--)        PC: Exit R4
