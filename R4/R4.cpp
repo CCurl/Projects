@@ -130,17 +130,6 @@ void loopExit(char c) {
     else { skipTo(c); }
 }
 
-int isBase10(char a) {
-    if (BetweenI(a, '0', '9')) { return a - '0'; }
-    return -1;
-}
-
-int isBase16(char a) {
-    if (BetweenI(a, '0', '9')) { return a - '0'; }
-    if (BetweenI(a, 'A', 'F')) { return a - 'A' + 10; }
-    return -1;
-}
-
 int isOk(int exp, const char* msg) {
     isError = (exp == 0); if (isError) { printString(msg); }
     return (isError == 0);
@@ -163,10 +152,11 @@ void doFloat() {
 }
 
 CELL getDecimal() {
-    CELL x = 0, d = isBase10(*pc);
-    while (0 <= d) {
-        x = (x * 10) + d;
-        d = isBase10(*(++pc));
+    CELL x = 0;
+    while (*pc) {
+        int d = BetweenI(*pc, '0', '9') ? (*pc) - '0' : -1;
+        if (0 <= d) { x = (x * 10) + d; ++pc; }
+        else { return x; }
     }
     return x;
 }
@@ -257,7 +247,7 @@ addr run(addr start) {
                 else { isError = 1; printString("-0div-"); }       break;
         case 'T':                                                  break;
         case 'U':                                                  break;
-        case 'V': if (isRegNum()) { REG[T] = N; DROP2; }           break;
+        case 'V':                                                  break;
         case 'W':                                                  break;
         case 'X':                                                  break;
         case 'Y':                                                  break;
@@ -279,7 +269,8 @@ addr run(addr start) {
         case 'f':                                                  break;
         case 'g':                                                  break;
         case 'h': push(0); while (1) {
-                t1 = isBase16(*(pc));
+                t1 = BetweenI(*pc,'0','9') ? (*pc)-'0' : -1;
+                t1 = BetweenI(*pc,'A','F') ? (*pc)-'A'+10 : t1;
                 if (t1 < 0) { break; }
                 T = (T * 16) + t1; ++pc;
             } break;
@@ -292,8 +283,8 @@ addr run(addr start) {
         case 'o':                                                  break;
         case 'p': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;
         case 'q':                                                  break;
-        case 'r': if (isRegNum()) { T = REG[T]; }                    break;
-        case 's':                                                  break;
+        case 'r': if (isRegNum()) { T = REG[T]; }                  break;
+        case 's': if (isRegNum()) { REG[T] = N; DROP2; }           break;
         case 't':                                                  break;
         case 'u':                                                  break;
         case 'v':                                                  break;

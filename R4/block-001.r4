@@ -14,6 +14,4 @@ xXR
 22:h100 S$ C21 C21;
 24:h100#* S$ C22 C22;
 
-"R4 - v0.0.2 - Chris Curl"E
-"This system has "r6." registers, "r13." functions, and "r25." bytes user memory."E
-"Hello"E
+999:999xBL; C999

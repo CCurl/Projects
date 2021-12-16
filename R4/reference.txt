@@ -1,5 +1,5 @@
 ************************************
-*     S4 Reference                 *
+*     R4 Reference                 *
 ************************************
 
 *** ARITHMETIC ***
@@ -9,6 +9,13 @@
 /   (a b--q)      q: a/b - division
 M  (a b--r)       r: a%b - modulo
 S  (a b--q r)     q: div(a,b), r: modulo(a,b) - /MOD
+F< (n--)          Float: data -> float stack
+F> (n--)          Float: float -> data stack
+F+ (a b--n)       Float: add
+F- (a b--n)       Float: subtract
+F* (a b--n)       Float: multiply
+F/ (a b--n)       Float: divide
+F. (n--)          Float: print top of fload stack
 
 
 *** BIT MANIPULATION ***
@@ -19,10 +26,10 @@ S  (a b--q r)     q: div(a,b), r: modulo(a,b) - /MOD
 
 
 *** STACK ***
-#  (a--a a)       Duplicate TOS             (Forth DUP)
-\  (a b--a)       Drop TOS                  (Forth DROP)
-$  (a b--b a)     Swap top 2 stack items    (Forth SWAP)
-%  (a b--a b a)   Push 2nd                  (Forth OVER)
+#  (a--a a)       Duplicate TOS             (DUP)
+\  (a b--a)       Drop TOS                  (DROP)
+$  (a b--b a)     Swap top 2 stack items    (SWAP)
+%  (a b--a b a)   Push 2nd                  (OVER)
 D  (a--b)         b: a-1                    (Decrement --)
 P  (a--b)         b: a+1                    (Increment ++)
 N  (a--b)         b: -a                     (Negate)
@@ -41,23 +48,22 @@ p     (a--)       Increment CELL at address a (a++)
 
 
 *** REGISTERS ***
-  NOTES: 1) Registers are referred to by the number on TOS when 'r' is encountered.
-         2) The number of registers is controlled by the NUM_REGS #define in "config.h"
-      Register initial values:
-         -  7: Start of USER area (**special** HERE)
-         -  8: Loop index (**special**)
-         - 20: Start of USER area
-         - 25: Size of USER area
-         - All other registers are set to 0
+  NOTES: 1) The number of registers is controlled by the NUM_REGS #define in "config.h"
+         2) Register initial values:
+            -  7: Start of USER area (**special** HERE)
+            -  8: Loop index (**special**)
+            - 20: Start of USER area
+            - 25: Size of USER area
+            - All other registers are set to 0
 rX     (--v)      v: value of register #X.
-aX     (n--a)     a: address of register #X.
-VX.....(v--)      v: value to store in register #X.
+a      (n--a)     a: address of register #X.
+sX     (v--)      v: value to store in register #X.
 
 *** FUNCTIONS ***
-        NOTES: 1) Functions are referred to by the number on TOS when ':' or 'C' is encountered.
-               2) The number of functions is controlled by the NUM_FUNCS #define in "config.h"
+  NOTES: 1) Functions are referred to by the number on TOS when ':' or 'C' is encountered.
+         2) The number of functions is controlled by the NUM_FUNCS #define in "config.h"
 :     (n--)       Define function #n. Copy chars to (HERE++) until closing ';'.
-C     (n--)       Call function #n.
+Cn    (--)        Call function #n.
 ;     (--)        Return: PC = rpop()
         NOTE: Returning while inside of a loop is not supported; behavior will be undefined. 
               Use 'w' or 'l' to exit the loop.
@@ -67,8 +73,8 @@ f!    (n a--)     n: function #, a: address where the function starts
 
 
 *** INPUT/OUTPUT ***
-.     (N--)       Output N as decimal number
-,     (N--)       Output N as character (Forth EMIT)
+.     (N--)       Output N as a decimal number
+,     (N--)       Output N as a character (Forth EMIT)
 "     (--)        Output characters until the next '"'
 B     (--)        Output a single SPACE (32,)
 E     (--)        Output a single NEWLINE (13,10,)
@@ -79,14 +85,14 @@ hXXX  (--n)       Scan HEX number n until non hex-digit ([0-9,A-F] only ... NOT 
 'x    (--n)       n: the ASCII value of x
 
 
-*** CONDITIONS/LOOPS/FLOW CONTROL ***
+*** LOGICAL/CONDITIONS/LOOPS/FLOW CONTROL ***
 <     (a b--f)    f: (a < b) ? 1 : 0;
 =     (a b--f)    f: (a = b) ? 1 : 0;
 >     (a b--f)    f: (a > b) ? 1 : 0;
 _     (x--f)      f: (x = 0) ? 1 : 0; (logical NOT)
 [     (F T--)     FOR: start a For/Next loop. if (T < F), swap T and F
 I     (--n)       n: the index of the current FOR loop
-8r    (--a)       a: address of the INDEX register
+8a    (--a)       a: address of the INDEX register
 l     (--)        EXIT for loop
 ]     (--)        NEXT: increment index (I) and loop if (I <= T)
 {     (f--f)      BEGIN: if (f == 0) skip to matching '}'

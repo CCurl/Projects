@@ -8,7 +8,7 @@ R4 examples:
     r3#("Yes")_("No")
 
  ; r10 = (r1 == r2) ? r3 : r4;
-    r1 r2=#(r3$)_(r4)V10;
+    r1 r2=#(r3$)_(r4)s10;
 
 ; To make sure F < T
      %%>($)
@@ -20,7 +20,7 @@ R4 examples:
     33 126[I.BI,E]
 
 ; One way to copy N bytes from A to B
-    71:V2 V1 1[r1c@ r2c! 1ap 2ap];     ; Define f71 (COPY)
+    71:s2 s1 1[r1 c@ r2 c! 1ap 2ap];     ; Define f71 (COPY)
     N A B C71
 
 ; A simple benchmark for a 100 million FOR loop:
