@@ -5,7 +5,7 @@ xXR
 
 0:0(Screen Stuff);
 10:27,"[";
-11:C10$.59,."H";   0(GotoXY: [x y--])
+11:C10.59,."H";    0(GotoXY: [x y--])
 12:C10"2J"1#C11;   0(Clear Screen)
 13:C10.59,."m";    0(Set Color [fg bg--])
 14:37 40C13;       0(Clear Color)
