@@ -133,7 +133,7 @@ void doHistory(char* str) {
 void loop() {
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { ok(); }
-    if (fgets(buf, 100, fp) == buf) {
+    if (fgets(buf, sizeof(buf), fp) == buf) {
         if (fp == stdin) { doHistory(buf); }
         rtrim(buf);
         loadCode(buf);

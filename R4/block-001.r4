@@ -3,6 +3,16 @@ xXR
 1:xIU xIH D[Ic@#,59=(E)];
 2:0 xIR D[Ia@(I.": "Ia@.E)];
 
+0:0(Screen Stuff);
+10:27,"[";
+11:C10$.59,."H";   0(GotoXY: [x y--])
+12:C10"2J"1#C11;   0(Clear Screen)
+13:C10.59,."m";    0(Set Color [fg bg--])
+14:37 40C13;       0(Clear Color)
+0:0( To list the colors: );
+15:30 37[E I s10  40  47[I s11 r10 r11 C13 " (",r10.59,r11.") "] C14];
+16:90 97[E I s10 100 107[I s11 r10 r11 C13 " (",r10.59,r11.") "] C14];
+
 0(HEX output)
 161:#9>(7+)'0+,;
 162:16 S$ C161 C161;)

@@ -6,9 +6,12 @@
 ; c: temp 3
 ; d: temp 4
 ; j: MB loop counter
+; k: threshold
+; m: MB loop max
+; s: scaling factor
 ; t: count of iterations
-; x: Y pos
-; y: X pos
+; x: X pos
+; y: Y pos
 
 ; Functions:
 ; C: mandelbrot calc
