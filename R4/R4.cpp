@@ -130,7 +130,12 @@ void loopExit(char c) {
     else { skipTo(c); }
 }
 
-int isHexNum(char a) {
+int isBase10(char a) {
+    if (BetweenI(a, '0', '9')) { return a - '0'; }
+    return -1;
+}
+
+int isBase16(char a) {
     if (BetweenI(a, '0', '9')) { return a - '0'; }
     if (BetweenI(a, 'A', 'F')) { return a - 'A' + 10; }
     return -1;
@@ -155,6 +160,27 @@ void doFloat() {
         isError = 1;
         printStringF("-flt(%d)-", sizeof(fT));
     }
+}
+
+CELL getDecimal() {
+    CELL x = 0, d = isBase10(*pc);
+    while (0 <= d) {
+        x = (x * 10) + d;
+        d = isBase10(*(++pc));
+    }
+    return x;
+}
+
+int isRegNum() {
+    push(getDecimal());
+    if (!isReg(T)) { printString("-reg#-"); isError = 1; }
+    return (isError == 0);
+}
+
+int isFuncNum() {
+    push(getDecimal());
+    if (!isFunc(T)) { printString("-func#-"); isError = 1; }
+    return (isError == 0);
 }
 
 void doExt() {
@@ -193,11 +219,7 @@ addr run(addr start) {
         case '/': if (isOk(T, "-0div-")) { N /= T; DROP1; }        break;  // 47
         case '0': case '1': case '2': case '3': case '4':                  // 48-57
         case '5': case '6': case '7': case '8': case '9':
-            push(ir - '0'); ir = *(pc);
-            while (BetweenI(ir, '0', '9')) {
-                T = (T * 10) + (ir - '0');
-                ir = *(++pc);
-            } break;
+            pc--; push(getDecimal());                              break;
         case ':': if (BetweenI(T, 0, NUM_FUNCS - 1)) {
                 FUNC[pop()] = pc;
                 skipTo(';');
@@ -212,10 +234,9 @@ addr run(addr start) {
         case '@': T = getCell((byte*)T);                           break;  // 64
         case 'A': if (T < 0) { T = -T; }                           break;  // ABS
         case 'B': printChar(' ');                                  break;
-        case 'C': t1 = pop();
-            if (BetweenI(t1, 0, NUM_FUNCS - 1) && FUNC[t1]) {
+        case 'C': if (isFuncNum() && FUNC[T]) {
                 if (*pc != ';') { rpush(pc); }
-                pc = FUNC[t1];
+                pc = FUNC[pop()];
             } break;
         case 'D': --T;                                             break;
         case 'E': printString("\r\n");                             break;
@@ -236,7 +257,7 @@ addr run(addr start) {
                 else { isError = 1; printString("-0div-"); }       break;
         case 'T':                                                  break;
         case 'U':                                                  break;
-        case 'V':                                                  break;
+        case 'V': if (isRegNum()) { REG[T] = N; DROP2; }           break;
         case 'W':                                                  break;
         case 'X':                                                  break;
         case 'Y':                                                  break;
@@ -247,7 +268,7 @@ addr run(addr start) {
         case '^': t1 = pop(); T ^= t1;                             break;  // 94
         case '_': T = (T) ? 0 : 1;                                 break;  // 95
         case '`':                                                  break;  // 96
-        case 'a':                                                  break;
+        case 'a': if (isReg(T)) { T = (CELL)&REG[T]; }             break;
         case 'b':                                                  break;
         case 'c': ir = *(pc++);
             if (ir == '@') { T = *(byte*)T; }
@@ -255,13 +276,10 @@ addr run(addr start) {
             break;
         case 'd': setCell((addr)T, getCell((addr)T) - 1); DROP1;   break;
         case 'e':                                                  break;
-        case 'f': ir = *(pc++);
-            if (ir == '@') { T = (CELL)FUNC[T]; }
-            if (ir == '!') { FUNC[T] = (addr)N; DROP2; }
-            break;
+        case 'f':                                                  break;
         case 'g':                                                  break;
         case 'h': push(0); while (1) {
-                t1 = isHexNum(*(pc));
+                t1 = isBase16(*(pc));
                 if (t1 < 0) { break; }
                 T = (T * 16) + t1; ++pc;
             } break;
@@ -274,11 +292,11 @@ addr run(addr start) {
         case 'o':                                                  break;
         case 'p': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;
         case 'q':                                                  break;
-        case 'r': if (isOk(isReg(T), "-reg-")) { T = (CELL)&REG[T]; } break;
+        case 'r': if (isRegNum()) { T = REG[T]; }                    break;
         case 's':                                                  break;
         case 't':                                                  break;
         case 'u':                                                  break;
-        case 'v': if (isOk(isReg(T), "-reg-")) { T = REG[T]; }     break;
+        case 'v':                                                  break;
         case 'w': loopExit('}');                                   break;
         case 'x': doExt();                                         break;
         case 'y':                                                  break;

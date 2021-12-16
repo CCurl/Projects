@@ -1,19 +1,19 @@
 xXR
 0(info)
-1:20v7vD[Ic@#,59=(E)];
-2:0 6vD[Iv(I.": "Iv.E)];
+1:r20r7D[Ic@#,59=(E)];
+2:0 r6D[Ia@(I.": "Ia@.E)];
 
 0(HEX output)
 161:#9>(7+)'0+,;
-162:16 S$ 161C 161C;)
-164:256 S$ 162C 162C;)
-168:256#* S$ 164C 164C;)
+162:16 S$ C161 C161;)
+164:256 S$ C162 C162;)
+168:256#* S$ C164 C164;)
 
 0(; Binary output)
 21:hFF&h80 1 8[$%S$.$1R]\\;)
-22:h100 S$ 21C 21C;
-24:h100#* S$ 22C 22C;
+22:h100 S$ C21 C21;
+24:h100#* S$ C22 C22;
 
 "R4 - v0.0.2 - Chris Curl"E
-"This system has "6v." registers, "13v." functions, and "25v." bytes user memory."E
+"This system has "r6." registers, "r13." functions, and "r25." bytes user memory."E
 "Hello"E

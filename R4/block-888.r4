@@ -1,28 +1,31 @@
 N"The Mandelbrot Set"
 
 ; Registers:
-; a: temp 1
-; b: temp 2
-; c: temp 3
-; d: temp 4
-; j: MB loop counter
-; t: count of iterations
-; x: Y pos
-; y: X pos
+; 1: temp 1 (a)
+; 2: temp 2 (b)
+; 3: temp 3 (c)
+; 4: temp 4 (d)
+; 5: MB loop counter (j)
+; 6: count of iterations (t)
+; 7: X pos (y)
+; 9: Y pos (x)
+; 10: threshold (k)
+; 11: ??? (m)
+; 12: ??? (s)
 
 ; Functions:
-; C: mandelbrot calc
-; L: main MB loop 
-; O: output
-; X: loop for X axis
-; Y: loop for Y axis
-; M: main, loop for Y axis
+; 5: mandelbrot calc
+; 6: main MB loop 
+; 7: output
+; 8: loop for X axis
+; 9: loop for Y axis
+; 99: main, loop for Y axis
 
 1`BL
-:C t@1+t! a@#*s@/c! b@#*s@/d! c@d@+k@>(j@m!;) a@b@*100/y@+b! c@d@-x@+a! j@1+j!;
-:L 0a!0b!0j!s@m!1{\Cj@m@<};
-:O Lj@40+#126>(\32),;
-:X 490`-x!1 95[  O x@ 8+x!];
-:Y 340`-y!1 35[N X y@20+y!];
-:M 0t! `T Y `T$- N t@." iterations, " . " ms";
-200 s! 1000000 k! M
+5:6rp 1v#*12v/3r! 2v#*12v/4r! 3v4v+10>(5v11r!;) 1v2v*100/9v+2r! 3v4v-8v+1r! 5vp;
+6:0 1r!0 2r! 0 5r! 12v 13r! 1{\ 5C 5v 13v <};
+7:6C 5v 40 + '~ >(\32),;
+8:490N 7r! 1 95[   7C 7v 8+7r!];
+9:340N 9r! 1 35[E 8C 9v20+9r!];
+99:0 6r! xT 9C xT$- 6v." iterations, " . " ms";
+200 12r! 1000000 10r! 99C

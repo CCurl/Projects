@@ -24,6 +24,7 @@
 #define DROP2      pop(); pop()
 #define BetweenI(n, x, y) (((x) <= (n)) && ((n) <= (y)))
 #define isReg(n) ((0 <= (n)) && ((n) < NUM_REGS))
+#define isFunc(n) ((0 <= (n)) && ((n) < NUM_FUNCS))
 
 typedef struct {
     addr start;

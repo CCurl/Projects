@@ -17,8 +17,8 @@
   #define STK_SZ          16
   #define LSTACK_SZ       16
   #define USER_SZ        (128*1024)
-  #define NUM_REGS       (0x0100)
-  #define NUM_FUNCS      (0x1000)
+  #define NUM_REGS       (100)
+  #define NUM_FUNCS      (1000)
 #else
   /* Dev Board */
   #define _NEEDS_ALIGN_   1

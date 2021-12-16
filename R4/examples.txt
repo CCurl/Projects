@@ -5,23 +5,23 @@ R4 examples:
     ; here is another comment
   
 ;   if (r3) { print("Yes") } else { print("No") }
-    3v#("Yes")_("No")
+    r3#("Yes")_("No")
 
  ; r10 = (r1 == r2) ? r3 : r4;
-    1v2v=#(3v$)_(4v)10r!;
+    r1 r2=#(r3$)_(r4)V10;
 
 ; To make sure F < T
      %%>($)
 
 ; To do something (in this case, call f19) r3 times:
-    3v 1[19C]
+    r3 1[C19]
 
 ; To print the ASCII chars from 33 to 126:
     33 126[I.BI,E]
 
 ; One way to copy N bytes from A to B
-    71:2r! 1r! 1[1vc@ 2vc! 1rp 2rp];     ; Define f71 (COPY)
-    n@ a@ b@ CPY
+    71:V2 V1 1[r1c@ r2c! 1ap 2ap];     ; Define f71 (COPY)
+    N A B C71
 
 ; A simple benchmark for a 100 million FOR loop:
     100 1000#** xT$ 1[] xT$-." ms"
@@ -30,7 +30,7 @@ R4 examples:
     100 1000#** xT$ {D} xT$-." ms"
 
 ; Define a function to display the currently defined code:
-    1:20v7vD[Ic@#,59=(E)];
+    1:r20 r7 D[Ic@#,59=(E)];
 
 ; To exit R4:
     xq
