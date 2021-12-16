@@ -1,17 +1,18 @@
 N"The Mandelbrot Set"
 
 ; Registers:
-; 1: temp 1 (a)
-; 2: temp 2 (b)
-; 3: temp 3 (c)
-; 4: temp 4 (d)
-; 5: MB loop counter (j)
-; 6: count of iterations (t)
-; 7: X pos (y)
-; 9: Y pos (x)
-; 10: threshold (k)
-; 11: ??? (m)
-; 12: ??? (s)
+; 11: temp 1 (a)
+; 12: temp 2 (b)
+; 13: temp 3 (c)
+; 14: temp 4 (d)
+; 15: MB loop counter (j)
+; 16: count of iterations (t)
+; 17: X pos (y)
+; 18: Y pos (x)
+; 29: threshold (k)
+; 20: ??? (m)
+; 21: ??? (s)
+; 22: ???
 
 ; Functions:
 ; 5: mandelbrot calc
@@ -22,10 +23,10 @@ N"The Mandelbrot Set"
 ; 99: main, loop for Y axis
 
 1`BL
-5:6rp 1v#*12v/3r! 2v#*12v/4r! 3v4v+10>(5v11r!;) 1v2v*100/9v+2r! 3v4v-8v+1r! 5vp;
-6:0 1r!0 2r! 0 5r! 12v 13r! 1{\ 5C 5v 13v <};
-7:6C 5v 40 + '~ >(\32),;
-8:490N 7r! 1 95[   7C 7v 8+7r!];
-9:340N 9r! 1 35[E 8C 9v20+9r!];
-99:0 6r! xT 9C xT$- 6v." iterations, " . " ms";
-200 12r! 1000000 10r! 99C
+5:16ap r1#*r21/s3 r2#*r21/s4 r3r4+r10>(r15s13;) r11r12*100/r17+s12 r13r14-r18+s11 15ap;
+6:0s11 0s12 0s15 r12 s13 1{\ C5 r15 r13 <};
+7:C6 r15 40 + '~ >(\32),;
+8:490N s17 1 95[   C7 r17  8+s17];
+9:340N s18 1 35[E  C8 r18 20+s18];
+99:0s16 xT C9 xT$- r16." iterations, " . " ms";
+200 s21 1000000 s10 C99
