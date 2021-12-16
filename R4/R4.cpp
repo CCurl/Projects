@@ -32,12 +32,7 @@ void vmInit() {
     for (int i = 0; i < NUM_REGS; i++) { REG[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { USER[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { FUNC[i] = 0; }
-    REG[6] = NUM_REGS;
-    REG[7] = (CELL)&sys.user[0];
-    REG[13] = NUM_FUNCS;
-    REG[19] = (CELL)&sys;
-    REG[20] = (CELL)&sys.user[0];
-    REG[25] = USER_SZ;
+    HERE = (CELL)&USER[0];
 }
 
 void setCell(byte* to, CELL val) {
@@ -167,16 +162,17 @@ int isRegNum() {
     return (isError == 0);
 }
 
-int isFuncNum() {
-    push(getDecimal());
-    if (!isFunc(T)) { printString("-func#-"); isError = 1; }
-    return (isError == 0);
-}
-
 void doExt() {
     ir = *(pc++);
     switch (ir) {
     case 'r': push(rand());                        return;
+    case 'I': ir = *(pc++);
+        if (ir == 'H') { push(HERE); };
+        if (ir == 'F') { push(NUM_FUNCS); };
+        if (ir == 'R') { push(NUM_REGS); };
+        if (ir == 'U') { push((CELL)&USER[0]); };
+        if (ir == 'Z') { push(USER_SZ); };
+        return;
     case 'X': if (*pc == 'R') { ++pc; vmInit(); }  return;
     default:
         pc = doCustom(ir, pc);
@@ -210,23 +206,23 @@ addr run(addr start) {
         case '0': case '1': case '2': case '3': case '4':                  // 48-57
         case '5': case '6': case '7': case '8': case '9':
             pc--; push(getDecimal());                              break;
-        case ':': if (BetweenI(T, 0, NUM_FUNCS - 1)) {
+        case ':': if (isOk(isFunc(T),"-def#-")) {
                 FUNC[pop()] = pc;
                 skipTo(';');
                 HERE = (CELL)pc;
-            } else { isError = 1; printString("-func#-"); }
-            break;
+            } break;
         case ';': pc = rpop();                                     break;  // 59
-        case '<': t1 = pop(); T = T < t1 ? 1 : 0;                  break;  // 60
-        case '=': t1 = pop(); T = T == t1 ? 1 : 0;                 break;  // 61
-        case '>': t1 = pop(); T = T > t1 ? 1 : 0;                  break;  // 62
-        case '?': /* FREE */                                       break;  // 63
+        case '<': t1 = pop(); T = (T <  t1) ? 1 : 0;               break;  // 60
+        case '=': t1 = pop(); T = (T == t1) ? 1 : 0;               break;  // 61
+        case '>': t1 = pop(); T = (T >  t1) ? 1 : 0;               break;  // 62
+        case '?':                                                  break;  // 63
         case '@': T = getCell((byte*)T);                           break;  // 64
         case 'A': if (T < 0) { T = -T; }                           break;  // ABS
         case 'B': printChar(' ');                                  break;
-        case 'C': if (isFuncNum() && FUNC[T]) {
-                if (*pc != ';') { rpush(pc); }
-                pc = FUNC[pop()];
+        case 'C': t1 = getDecimal();
+            if (isOk(isFunc(t1), "-func#-") && FUNC[t1]) {
+                if (*pc != ';') { rpush(pc); } 
+                pc = FUNC[t1]; 
             } break;
         case 'D': --T;                                             break;
         case 'E': printString("\r\n");                             break;

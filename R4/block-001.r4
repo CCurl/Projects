@@ -1,7 +1,7 @@
 xXR
-0(info)
-1:r20r7D[Ic@#,59=(E)];
-2:0 r6D[Ia@(I.": "Ia@.E)];
+0:0(1:code, 2:registers);
+1:xIU xIH D[Ic@#,59=(E)];
+2:0 xIR D[Ia@(I.": "Ia@.E)];
 
 0(HEX output)
 161:#9>(7+)'0+,;
@@ -14,4 +14,6 @@ xXR
 22:h100 S$ C21 C21;
 24:h100#* S$ C22 C22;
 
+777:777xBL;
+888:888xBL;
 999:999xBL; C999
