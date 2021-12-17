@@ -4,14 +4,12 @@
 #define MEM_SZ 8192
 
 //typedef __int32 CELL;
+//typedef unsigned __int32 UCELL;
 typedef __int16 CELL;
+typedef unsigned __int16 UCELL;
 #define CELL_SZ sizeof(CELL)
 #define WORD unsigned __int16
 #define byte unsigned __int8
-
-// #define bool int
-// #define true 1
-// #define false 0
 
 // The top 3 bits identify the class of operation ...
 // 1xxx => LIT  (1xxx xxxx xxxx xxxx) (IR & 0x8000) == 0x8000

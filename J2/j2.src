@@ -38,6 +38,8 @@
             N     T->R      r+1 d-1 alu
             N     T->N              alu ;
 : 0= 0 = ;
+: negate 1- invert ;
+: - negate + ;
 : unloop
             T               r-1     alu
             T               r-1     alu ;
@@ -76,8 +78,9 @@
 : test->r      8 t 71 123 >r . 654 . r> . ;  // expect 71 654 123
 : test-r@      9 t 81 >r 234 . r@ . r> . ;   // expect 234 81 81
 : test-add    10 t 1 2 3 4 + + + . ;         // expect 10
-: test-depth  11 t 7 8 9 depth . . . . ;     // expect 3 9 8 7
-: test-1-     12 t 3345 1- . ;               // expect 3344
+: test-sub    11 t 20 5 - . ;                // expect 15
+: test-depth  12 t 7 8 9 depth . . . . ;     // expect 3 9 8 7
+: test-1-     13 t 3345 1- . ;               // expect 3344
 : OK 'O' emit 'K' emit ;
 : bench begin 1- dup 0= until drop ;
 : benches begin 1- 10000 bench dup 0= until drop ;
@@ -85,7 +88,7 @@
 : main     test-dup   test-nip    test-swap 
            test-drop  test-over   test-0000
            test-dot   test->r     test-r@
-           test-add   test-depth  test-1- 
+           test-add   test-sub    test-depth  test-1- 
     cr 's' emit 10000 benches 'e' emit
     cr OK ;
 // : newMain test-depth ;
