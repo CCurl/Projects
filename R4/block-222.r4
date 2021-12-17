@@ -3,35 +3,31 @@
 1xBL
 0:"Genetic Evolution";
 
+// Each connection is 32 bits
+// first byte is input, 2nd is output
+// So, [type:1][id:7][type:1][id:7][weight:16]
+
 // r10: Critters start address
-// r11: Size of a critter (bytes)
+// r11: Size of a critter (in bytes)
 // r12: Number of critters
-// r13: Number of connections (4 bytes each)
+// r13: Number of connections
 // r14: World size X
 // r15: World size Y
 // r16: World start address
-// r17: 
+// r17: World size (in CELLs)
 // r18: 
 // r19: 
+// r20: Brain start
 
-// f200: (--) 
-// f201: (--) 
-// f202: (--) 
-// f203: (--) 
-// f204: (--) 
-// f205: (--) 
-// f206: (--) 
-// f207: (--) 
-// f208: (--) 
-// f209: (--) 
+0(f200..f210 are reserved for top level functions)
+210:
+234:0(n--) Set # connections;
+234:#s13 4* 2+ s11;
 
-200:;
-201:;
-202:;
-203:;
-204:;
-205:;
-206:;
-207:;
-208:;
-209:;
+260:0(x y--) Set world size;
+234:#s15 s14;
+
+
+
+1000 s10
+r11 r12* r10+ s16

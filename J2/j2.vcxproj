@@ -24,7 +24,7 @@
     <ProjectGuid>{bdd1c19e-3eec-4ddf-ad67-406628bacccf}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>R4</ProjectName>
+    <ProjectName>J2</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -140,8 +140,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="pc-main.cpp" />
-    <ClCompile Include="R4.cpp" />
     <Text Include="history.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -151,8 +149,9 @@
     <None Include="block-777.r4" />
     <None Include="block-888.r4" />
     <None Include="block-999.r4" />
+    <None Include="j2.src" />
     <None Include="LICENSE" />
-    <None Include="R4.ino" />
+    <None Include="make.bat" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
@@ -161,7 +160,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
-    <ClInclude Include="r4.h" />
+    <ClInclude Include="j2.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="io-ports.c" />
+    <ClCompile Include="j2-emu.c" />
+    <ClCompile Include="j2-main.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
