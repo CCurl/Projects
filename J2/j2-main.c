@@ -199,6 +199,15 @@ void parseWord(char *word) {
 		words[numWords-1].len = (HERE - words[numWords-1].xt);
 		return;
 	}
+	if (strcmp(word, "begin") == 0) {
+		push(HERE);
+		return;
+	}
+	if (strcmp(word, "until") == 0) {
+		op = MAKE_JMPZ(pop());
+		COMMA(op);
+		return;
+	}
 	if (strcmp(word, "alu") == 0) {
 		if (debug_flag) writePort_StringF(" putting ALU %04X to [%d]", HERE);
 		op = MAKE_ALU(pop());
@@ -485,7 +494,7 @@ void saveImage() {
 	sprintf(fn, "%s.bin", base_fn);
 	FILE *fp = fopen(fn, "wb");
 	if (fp) {
-		fwrite(the_memory, 1, MEM_SZ, fp);
+		fwrite(the_memory, CELL_SZ, MEM_SZ, fp);
 		fclose(fp);
 	} else {
 		writePort_StringF(" ERROR: unable to open file '%s'", fn);

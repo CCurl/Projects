@@ -37,6 +37,7 @@
             N     T->R      r+1 d-1 alu
             N     T->R      r+1 d-1 alu
             N     T->N              alu ;
+: 0= 0 = ;
 : unloop
             T               r-1     alu
             T               r-1     alu ;
@@ -78,13 +79,13 @@
 : test-depth  11 t 7 8 9 depth . . . . ;     // expect 3 9 8 7
 : test-1-     12 t 3345 1- . ;               // expect 3344
 : OK 'O' emit 'K' emit ;
-: bench drop ;   //     begin 1-            dup while drop ;
-: mbench drop ;  // dup begin over bench 1- dup while drop ;
-: do-bench $5759 mbench ;
+: bench begin 1- dup 0= until drop ;
+: benches begin 1- 10000 bench dup 0= until drop ;
+: do-bench 10 bench ;
 : main     test-dup   test-nip    test-swap 
            test-drop  test-over   test-0000
            test-dot   test->r     test-r@
            test-add   test-depth  test-1- 
-    cr 's' emit do-bench 'e' emit
+    cr 's' emit 10000 benches 'e' emit
     cr OK ;
 // : newMain test-depth ;

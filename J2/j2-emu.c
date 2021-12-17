@@ -9,7 +9,7 @@ void push(CELL val) { if (DSP < STK_SZ) { dstk[++DSP] = val; } }
 CELL pop() { return (DSP) ? dstk[DSP--] : 0; }
 void j2_init() { DSP = RSP = PC = 0; }
 
-WORD deriveNewT(WORD IR) {
+WORD deriveNewT(CELL IR) {
 	switch ((IR & 0x0F00) >> 8) {
 		case tpTgetsT:     return T;
 		case tpTgetsN:     return N;
@@ -32,10 +32,10 @@ WORD deriveNewT(WORD IR) {
 }
 
 void executeALU(CELL IR) {
-	WORD currentT = T;
-	WORD currentN = N;
-	WORD currentR = R;
-	WORD newT = deriveNewT(IR);
+	CELL currentT = T;
+	CELL currentN = N;
+	CELL currentR = R;
+	CELL newT = deriveNewT(IR);
 
 	if (IR & bitIncRSP) { RSP += (RSP < STK_SZ) ? 1 : 0; }
 	if (IR & bitDecRSP) { RSP -= 1; }
@@ -57,7 +57,6 @@ void j2_emu(CELL start) {
 	RSP = 0;
 	while (0 <= RSP) {
         CELL IR = the_memory[PC++];
-
 		if ((IR & opLIT) == opLIT) {
 			push(IR & 0x7FFF);
 			continue;
