@@ -7,4 +7,5 @@
 ." Block 001 - System setup" cr
 ." Block 002 - Sandbox" cr
 ." Block 100 - Screen words (cls, goto-xy, set-color, colors?, ...)" cr
+." Block 200 - Genetic evolution" cr
 ." Block 999 - This file" cr

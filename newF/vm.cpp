@@ -272,7 +272,7 @@ addr run(addr start) {
                 else { lAt()->end = pc; pc = lAt()->start; }
             break;
         case '~': T = ~T;                               break;  // 126
-        default: printStringF("-inv:%d-", ir); isError = 1;
+        default: printStringF("-ir:%d-", ir); isError = 1;
         }
     }
     return pc;
