@@ -162,10 +162,20 @@ int isRegNum() {
     return (isError == 0);
 }
 
+CELL getSeed() { return GetTickCount(); }
+
+CELL doRand() {
+    static CELL seed = 0;
+    if (!seed) { seed = getSeed(); }
+    seed ^= (seed << 13);
+    seed ^= (seed >> 17);
+    seed ^= (seed <<  5);
+    return seed;
+}
+
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case 'r': push(rand());                        return;
     case 'I': ir = *(pc++);
         if (ir == 'H') { push(HERE); };
         if (ir == 'F') { push(NUM_FUNCS); };
@@ -174,6 +184,7 @@ void doExt() {
         if (ir == 'Z') { push(USER_SZ); };
         return;
     case 'X': if (*pc == 'R') { ++pc; vmInit(); }  return;
+    case 'r': push(doRand());                      return;
     default:
         pc = doCustom(ir, pc);
     }

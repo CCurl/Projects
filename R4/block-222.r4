@@ -1,33 +1,53 @@
-; Block-222.r4
+0( Block-222.r4 )
 
 1xBL
-0:"Genetic Evolution";
+0:"Genetic Evolution"E; C0
 
-// Each connection is 32 bits
-// first byte is input, 2nd is output
-// So, [type:1][id:7][type:1][id:7][weight:16]
 
-// r10: Critters start address
-// r11: Size of a critter (in bytes)
-// r12: Number of critters
-// r13: Number of connections
-// r14: World size X
-// r15: World size Y
-// r16: World start address
-// r17: World size (in CELLs)
-// r18: 
-// r19: 
-// r20: Brain start
+0(Each connection is 32 bits)
+0(first byte is input, 2nd is output)
+0(So, [type:1][id:7][type:1][id:7][weight:16])
+
+0(r9: current critter address)
+hFF   s2 0(CONSTANT: 255 hFF)
+hFFFF s4 0(CONSTANT: 255 hFFFF)
+
+        100 s60 0(Number of critters)
+         24 s61 0(Number of connections)
+  r61 1+ 4* s62 0(Size of a critter in BYTEs)
+   r60 r62* s63 0(Size of critters in BYTEs)
+        128 s64 0(World size X)
+         64 s65 0(World size Y)
+r64 r65+ 4* s66 0(World size in CELLs)
+     r61 4* s67 0(Brain size)
+"Sizes: critter: "r62.", critters: "r63.
+", brain: "r67.", world: "r66.E
+
+xIU h2000 + s12 0(Brain start)
+xIU h2400 + s13 0(World start address)
+xIU h3000 + s10 0(Critters start address)
 
 0(f200..f210 are reserved for top level functions)
-210:
-234:0(n--) Set # connections;
-234:#s13 4* 2+ s11;
 
-260:0(x y--) Set world size;
-234:#s15 s14;
+225:0((b--id t) Get neuron type/id);
+225:#h7F&$7R;
+226:0((nid--) dump neuron id);
+226:C225 "{type: ".", id: "."}";
+227:0((--x) Critter: x);
+227:r9c@;
+228:0((--y) Critter: y);
+228:r9Pc@;
+230:0((I--id t) Critter: I input);
+230:2Lr9+c@C225;
+231:0((I--id t) Critter: I output);
+231:2Lr9+Pc@C225;
+232:0((I--wt) Critter: I weight);
+232:2Lr9+@r4&;
+252:xr;
 
-
-
-1000 s10
-r11 r12* r10+ s16
+0(Create a random critter)
+240:0 r61[xr I 2L r9+ !];
+241:r10 s9 0 r60[C240 r9 r62+ s9]
+242:"{ x: "C227. ",y: "C228.",[" C244 "]}"E;
+243:r10 s9 0 r60[C242 r9 r62+ s9E]
+244:0 r61D["{" I C230C225 "," I C231C225 "," I C232. "}"]
