@@ -86,6 +86,7 @@
 
 : execute [ '`' c, 'J' c, ] ; inline
 : timer   [ '`' c, 'T' c, ] ; inline
+: wait    [ '`' c, 'W' c, ] ; inline
 
 : count dup 1+ swap c@ ;      inline
 : type 1 for dup c@ emit 1+ next drop ;

@@ -2,8 +2,10 @@
 
 forget
 
-125 constant w.x
- 50 constant w.y
+100 load
+
+130 constant w.x
+ 40 constant w.y
 w.x w.y * cells constant w.sz 
 variable world w.sz allot
 : w.init world dup w.sz + 1- for 0 i c! next ;
@@ -37,27 +39,30 @@ value critter
          ." , out: "   dup n.out n.dump.n
          ." , wt:"    n.wt .
          ."  }" cr ;
-: n.dump.all 1 #conns for dup n.dump cell + next drop ;         // (a--)
+: n.dump.all 1 #conns for dup n.dump cell + next drop ;        // (a--)
 
 // Critter stuff
-: cr.set 1- critter-sz * critters + (critter) ! ;               // (I--)
-: cr.xy@ critter dup c@ swap 1+ c@ ;                             // (--x y)
-: cr.xy! critter tuck 1+ c! c! ;                                // (x y--)
-: cr->w  critter cr.xy@ w.xy! ;                            // (--)
+: cr.set 1- critter-sz * critters + (critter) ! ;              // (I--)
+: cr.xy@ critter dup c@ swap 1+ c@ ;                           // (--x y)
+: cr.xy! critter tuck 1+ c! c! ;                               // (x y--)
+: cr->w  critter cr.xy@ w.xy! ;                                // (--)
 : cr.xy.rand w.free.xy cr.xy! cr->w ;                          // (--)
-: cr.conns critter cell + ;                                     // (--a)
-: cr.conns.rand 1 #conns for rand i cells critter + ! next ;    // (--)
-: cr.n.in  cells critter + n.in ;                               // (I--n)
-: cr.n.out cells critter + n.out ;                              // (I--n)
-: cr.n.wt  cells critter + n.wt ;                               // (I--n)
+: cr.conns critter cell + ;                                    // (--a)
+: cr.conns.rand 1 #conns for rand i cells critter + ! next ;   // (--)
+: cr.n.in  cells critter + n.in ;                              // (I--n)
+: cr.n.out cells critter + n.out ;                             // (I--n)
+: cr.n.wt  cells critter + n.wt ;                              // (I--n)
 : cr.rand cr.xy.rand cr.conns.rand ;                           // (--)
 : cr.dump cr cr.xy@ swap ." { x:" . ." , y: " . ." , neurons: [" cr
     cr.conns n.dump.all
-    ." ]}" cr ;                                                 // (--)
+    ." ]}" cr ;                                                // (--)
+: cr.color cr.conns @ 7 and 1+ 30 + 40 set-color ;
+: cr.show cr.color cr.xy@ goto-xy '*' emit ;
 
 // Critter collection stuff
 : cr.all.rand 1 #critters for i cr.set cr.rand    next ;
 : cr.all.dump 1 #critters for i cr.set cr.dump cr next ;
+: cr.all.show 1 #critters for i cr.set cr.show    next ;
 
 : go w.init cr.all.rand cr.all.dump ;
 
