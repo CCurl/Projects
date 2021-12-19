@@ -64,6 +64,10 @@ value critter
 : cr.all.dump 1 #critters for i cr.set cr.dump cr next ;
 : cr.all.show 1 #critters for i cr.set cr.show    next ;
 
+: cr.stars      1 for w.init cr.all.rand cls cr.all.show 500 wait next reset-color ;
+: cr.stars2 cls 1 for w.init cr.all.rand     cr.all.show 500 wait next reset-color ;
+: cr.stars3     1 for w.init cr.all.rand cls cr.all.show          next reset-color ;
+
 : go w.init cr.all.rand cr.all.dump ;
 
 : rl 200 load ;
