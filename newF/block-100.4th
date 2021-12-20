@@ -5,6 +5,8 @@
 : reset-color 0 dup set-color ;
 : goto-xy csi (.) ';' emit (.) 'H' emit ;
 : cls csi ." 2J" 1 dup goto-xy ;
+: cursor-off csi ." ?25l" ;
+: cursor-on  csi ." ?25h" ;
 
 : color? dup i set-color ."  (" dup (.) ." ," i (.) ." ) " ;
 

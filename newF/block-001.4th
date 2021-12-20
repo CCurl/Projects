@@ -106,6 +106,11 @@
 
 : load [ '`' c, 'B' c, 'L' c, ] ; inline
 
+: asc  2dup > if swap then ;
+: desc 2dup < if swap then ;
+: min asc  drop ;
+: max desc drop ;
+
 variable fg-sv 2 cells allot
 : marker fg-sv here over ! cell + last over ! cell + vhere swap ! ;
 : forget fg-sv dup @ (here) ! cell + dup @ (last) ! cell + @ (vhere) ! ;
