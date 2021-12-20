@@ -62,25 +62,43 @@ value critter
 : cr.color cr.conns @ 7 and 1+ 30 + 40 set-color ;
 : cr.show cr.color cr.xy@ goto-xy '*' emit ;
 : cr.unshow 0 cr.xy@ 2dup goto-xy space w.xy! ;
-: cr.move 2dup w.xy@ if 2drop leave then                       // (x y--)
+
+: cr.move w.norm.xy 2dup w.xy@ if 2drop leave then             // (x y--)
     cr.unshow cr.xy! cr.show ;
-: cr.mv.n cr.xy@ swap 1- swap cr.move ;
-: cr.mv.s cr.xy@ swap 1+ swap cr.move ;
-: cr.mv.w cr.xy@ swap 1- swap cr.move ;
-: cr.mv.e cr.xy@ swap 1+ swap cr.move ;
+: cr.mv.n  cr.xy@ 1-              cr.move ;
+: cr.mv.ne cr.xy@ 1- swap 1+ swap cr.move ;
+: cr.mv.e  cr.xy@    swap 1+ swap cr.move ;
+: cr.mv.se cr.xy@ 1+ swap 1+ swap cr.move ;
+: cr.mv.s  cr.xy@ 1+              cr.move ;
+: cr.mv.sw cr.xy@ 1+ swap 1- swap cr.move ;
+: cr.mv.w  cr.xy@    swap 1-      cr.move ;
+: cr.mv.nw cr.xy@ 1- swap 1- swap cr.move ;
+
+: do.mv 7 and dup . 'x' emit
+    dup 0 = if 33 . drop cr.mv.n  leave then
+    dup 1 = if 34 . drop cr.mv.ne leave then
+    dup 2 = if 35 . drop cr.mv.e  leave then
+    dup 3 = if 36 . drop cr.mv.se leave then
+    dup 4 = if 37 . drop cr.mv.s  leave then
+    dup 5 = if 38 . drop cr.mv.sw leave then
+        6 = if 39 .      cr.mv.w  leave then
+               40 .      cr.mv.nw ;
+
+// BAD!: cr.move.rnd rand do.mv ;
 
 : +-1 rand 3 mod 1- ;
-: cr.move.rnd cr.xy@ +-1 + swap +-1 + swap w.norm.xy cr.move ;
+: cr.move.rnd cr.xy@ +-1 + swap +-1 + swap cr.move ;
 
 // Critter collection stuff
-: cr.all.rand     1 #critters for i cr.set cr.rand    next ;
-: cr.all.dump     1 #critters for i cr.set cr.dump cr next ;
-: cr.all.show cls 1 #critters for i cr.set cr.show    next ;
-: cr.all.xy       1 #critters for i cr.set cr.xy.rand next ;
+: cr.all.rand 1 #critters for i cr.set cr.rand    next ;
+: cr.all.dump 1 #critters for i cr.set cr.dump cr next ;
+: cr.all.show 1 #critters for i cr.set cr.show    next ;
+: cr.all.xy   1 #critters for i cr.set cr.xy.rand next ;
 
+: g.cmd 1 w.y goto-xy reset-color cursor-on ;
 : cr.all.mv 1 #critters for i cr.set cr.move.rnd next ;
-: cr.mv.n cursor-off 1 for cr.all.mv next cursor-on reset-color ;
+: cr.mv.n cursor-off 1 for cr.all.mv next g.cmd ;
 
-: init w.init cr.all.rand cr.all.show 1 w.y goto-xy reset-color ;
+: init w.init cr.all.rand cls cr.all.show g.cmd ;
 
 : rl 200 load ;
