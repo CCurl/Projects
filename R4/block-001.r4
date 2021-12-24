@@ -1,35 +1,31 @@
 xXR
-0:0(1:code, 2:registers);
-1:xIU xIH D[Ic@#,59=(E)];
-2:0 xIR D[Ia@(I.": "Ia@.E)];
-3:xIH xIU-D.;
+0(C:code, R:registers)
+:C xIU xIH D[rIc@#,59=(E)];
+:R 0 xIR D[rIa@("r"rI.": "rIa@.E)];
 
-0:0(Screen Stuff);
-10:27,"[";
-11:0(GotoXY: [x y--]);
-11:C10.59,."H";
-12:0(Clear Screen);
-12:C10"2J"1#C11;
-13:0(Set Color [fg bg--]);
-13:C10.59,."m";
-14:0(Clear Color);
-14:37 40C13;
+0(Screen Stuff)
+:CSI 27,"[";
+0(GotoXY: [x y--])
+:GXY fCSI.59,."H";
+0(Clear Screen)
+:CLS fCSI"2J"1#fGXY;
+0(Set Color [fg bg--])
+:STC fCSI.59,."m";
+0(Clear Color)
+:CLC 37 40fSTC;
 0( To list the colors: )
-0(15:30 37[E I s10  40  47[I s11 r10 r11 C13 " (",r10.59,r11.") "] C14];)
-0(16:90 97[E I s10 100 107[I s11 r10 r11 C13 " (",r10.59,r11.") "] C14];)
+:COL 30 37[E rI sF 40 47[rI sG rF rG fSTC " (",rF.59,rG.") "] fCLC];
+0(:COM 90 97[E rI sF 100 107[rI sG rF rG fSTC " (",rF.59,rG.") "] fCLC];)
 
 0(HEX output)
-161:#9>(7+)'0+,;
-162:16 S$ C161 C161;)
-164:256 S$ C162 C162;)
-168:256#* S$ C164 C164;)
+:HXD #9>(7+)'0+,;
+:HXB 16 S$ fHXD fHXD;
+:HXW h100 S$ fHXB fHXB;
+:HXL h100#* S$ fHXW fHXW;
 
-0(; Binary output)
-21:hFF&h80 1 8[$%S$.$1R]\\;)
-22:h100 S$ C21 B C21;
-24:h100#* S$ C22 C22;
+0( Binary output)
+:BD hFF&h80 1 8[$%S$.$1R]\\;)
+:BW h100 S$ fBD fBD;
+:BL h100#* S$ fBW fBW;
 
-222:222xBL;
-777:777xBL;
-888:888xBL;
-999:999xBL; C999
+:HLP 999xBL; fHLP

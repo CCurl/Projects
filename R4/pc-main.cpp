@@ -44,6 +44,7 @@ static FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
 
 void printChar(const char c) { printf("%c", c); }
 void printString(const char* str) { printf("%s", str); }
+CELL getSeed() { return millis(); }
 
 addr doBlock(addr pc) {
     t1 = *(pc++);

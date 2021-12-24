@@ -48,57 +48,59 @@ p     (a--)       Increment CELL at address a (a++)
 
 
 *** REGISTERS ***
-  NOTES: 1) The number of registers is controlled by the NUM_REGS #define in "config.h"
-         2) Register initial values:
-            -  7: Start of USER area (**special** HERE)
-            -  8: Loop index (**special**)
-            - 20: Start of USER area
-            - 25: Size of USER area
-            - All other registers are set to 0
-rX     (--v)      v: value of register #X.
-a      (n--a)     a: address of register #X.
-sX     (v--)      v: value to store in register #X.
+  NOTES: 1) A register reference is 1-3 UPPERCASE characters [A..ZZZ]
+         2) The number of registers is controlled by the NUM_REGS #define in "config.h"
+         3) Register A is the same as register AAA, B <-> AAB, Z <-> AAZ
+         4) Register #0 is A, #25 is Z, #26 is BA, ... #17575 is ZZZ
+rXXX   (--v)      v: value of register XXX.
+a      (n--a)     a: address of register #n.
+sXXX   (v--)      v: store v to register XXX.
+
 
 *** FUNCTIONS ***
-  NOTES: 1) Functions are referred to by the number on TOS when ':' or 'C' is encountered.
+  NOTES: 1) A function reference is 1-3 UPPERCASE characters [A..ZZZ]
          2) The number of functions is controlled by the NUM_FUNCS #define in "config.h"
-:     (n--)       Define function #n. Copy chars to (HERE++) until closing ';'.
-Cn    (--)        Call function #n.
+:XXX  (--)        Define function XXX. Copy chars to (HERE++) until closing ';'.
+fXXX  (--)        Call function XXX.
 ;     (--)        Return: PC = rpop()
         NOTE: Returning while inside of a loop is not supported; behavior will be undefined. 
-              Use 'w' or 'l' to exit the loop.
+              Exit the loop first, see 'w' or 'l'.
         NOTE: outside of ':...;', ';' can be used to comment out the rest of the line
-f@    (n--a)      n: function #, a: address where the function starts
-f!    (n a--)     n: function #, a: address where the function starts
 
 
 *** INPUT/OUTPUT ***
 .     (N--)       Output N as a decimal number
-,     (N--)       Output N as a character (Forth EMIT)
+,     (N--)       Output N as a character (EMIT)
 "     (--)        Output characters until the next '"'
 B     (--)        Output a single SPACE (32,)
 E     (--)        Output a single NEWLINE (13,10,)
 0..9  (--n)       Scan DECIMAL number n until non digit
                      to specify multiple values, separate them by space (4711 3333)
-                     to enter a negative number, use "negate" (eg - 490`-)
+                     to enter a negative number, use "negate" (eg - 490N)
 hXXX  (--n)       Scan HEX number n until non hex-digit ([0-9,A-F] only ... NOT [a-f])
 'x    (--n)       n: the ASCII value of x
 
 
-*** LOGICAL/CONDITIONS/LOOPS/FLOW CONTROL ***
+*** LOGICAL/CONDITIONS/FLOW CONTROL ***
 <     (a b--f)    f: (a < b) ? 1 : 0;
 =     (a b--f)    f: (a = b) ? 1 : 0;
 >     (a b--f)    f: (a > b) ? 1 : 0;
 _     (x--f)      f: (x = 0) ? 1 : 0; (logical NOT)
+(     (f--)       if (f != 0), execute code in '()', else skip to matching ')'
+
+
+*** FOR LOOPS ***
 [     (F T--)     FOR: start a For/Next loop. if (T < F), swap T and F
-I     (--n)       n: the index of the current FOR loop
+rI    (--n)       n: the index of the current FOR loop
 8a    (--a)       a: address of the INDEX register
 l     (--)        EXIT for loop
 ]     (--)        NEXT: increment index (I) and loop if (I <= T)
+
+
+*** WHILE LOOPS ***
 {     (f--f)      BEGIN: if (f == 0) skip to matching '}'
 w     (--)        EXIT while loop
 }     (f--f?)     WHILE: if (f != 0) jump to matching '{' else drop f and continue
-(     (f--)       if (f != 0), execute code in '()', else skip to matching ')'
 
 
 *** OTHER ***
@@ -108,6 +110,11 @@ xBOR  (--h)       PC: Block open (read)
 xBOW  (--h)       PC: Block open (write)
 xBR   (h--c f)    PC: Block read one byte (f = 0 and c = 0 on EOF or error)
 xBW   (c h--f)    PC: Block write one byte (f = 0 on error)
+xIH   (--a)       INFO: HERE
+xIF   (--n)       INFO: Number of functions
+xIR   (--n)       INFO: Number of registers
+xIU   (--a)       INFO: Start of user area
+xIZ   (--n)       INFO: Size of user area
 xLA   (--)        PC: Load Abort: to stop loading a block (eg - if the block has already been loaded)
 xPI   (p--)       Arduino: pin input  (pinMode(p, INPUT))
 xPU   (p--)       Arduino: pin pullup (pinMode(p, INPUT_PULLUP))
