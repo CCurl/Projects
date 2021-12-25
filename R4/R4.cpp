@@ -177,13 +177,13 @@ CELL getDecimal() {
     return x;
 }
 
-CELL doRand() {
+void doRand() {
     static CELL seed = 0;
     if (!seed) { seed = getSeed(); }
     seed ^= (seed << 13);
     seed ^= (seed >> 17);
     seed ^= (seed <<  5);
-    return seed;
+    T = (T) ? abs(seed) % T : seed;
 }
 
 void doExt() {
@@ -197,7 +197,7 @@ void doExt() {
         if (ir == 'Z') { push(USER_SZ); };
         return;
     case 'X': if (*pc == 'R') { ++pc; vmInit(); }  return;
-    case 'r': push(doRand());                      return;
+    case 'r': doRand();                            return;
     default:
         pc = doCustom(ir, pc);
     }
