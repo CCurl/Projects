@@ -1,21 +1,8 @@
-`r
+`sR
+0(info)
 :N 13,10,;
-:B " ";
-:O B.;
-
-0( Code and registers )
-:D u@h@1-[i@`@#,';=(i@1+`@':=(13,10,))];
-:R 0 25[i@4*r@+@#(13,10,i@'a+,O1)\];
-
-; Screen Stuff
-:CSI 27,"[";       0(Control Sequence)
-:GXY CSI$.";"."H"; 0(GotoXY: [x y--])
-:CLS CSI"2J"0#GXY; 0(Clear Screen)
-:STC CSI.";"."m";  0(Set Color [fg bg--])
-:CLC 0# STC;       0(Clear Color)
-0( To list the colors: )
-0( :LCA 30 37[N i@ fg!  40  47[i@ bg! fg@ bg@ STC " (",fg@.";"bg@.") "] CLC]; )
-0( :LCB 90 97[N i@ fg! 100 107[i@ bg! fg@ bg@ STC " (",fg@.";"bg@.") "] CLC]; )
+:D `iAU`iAH@1-[i@`@#,';=(i@1+`@':=(13,10,))];
+:R 0`iR1-[i@4*`iAR+@#(13,10,"r"i@." ".1)\];
 
 ; HEX output
 :HX #9>(7+)'0+,;
@@ -28,6 +15,12 @@
 :BW 256`/$ BD BD;
 :BL 256#*`/$ BW BW;
 
-"S4 - v0.0.2 - Chris Curl"N
-"This system has "g@." registers, "n@." functions, and "z@." bytes user memory."N
-"Hello"N
+; Screen Stuff
+:CSI 27,"[";       0(Control Sequence)
+:GXY CSI$.";"."H"; 0(GotoXY: [x y--])
+:CLS CSI"2J"0#GXY; 0(Clear Screen)
+:STC CSI.";"."m";  0(Set Color [fg bg--])
+:CLC 0# STC;       0(Clear Color)
+0( To list the colors: )
+0( :LCA 30 37[N i@ fg!  40  47[i@ bg! fg@ bg@ STC " (",fg@.";"bg@.") "] CLC]; )
+0( :LCB 90 97[N i@ fg! 100 107[i@ bg! fg@ bg@ STC " (",fg@.";"bg@.") "] CLC]; )
