@@ -9,52 +9,59 @@
 
 0(rC: current critter)
 
-        100 sNCR 0(Number of critters)
-          8 sNCN 0(Number of connections - in CELLs)
- rNCN 1+ 4* sCSZ 0(Critter size - in BYTES)
-        128 sWX  0(World size X)
-         64 sWY  0(World size Y)
+         10 sNCR   0(Number of critters)
+          8 sNCN   0(Number of connections - in CELLs)
+ rNCN 1+ 4* sCSZ   0(Critter size - in BYTES)
+        128 sWX    0(World size X)
+         64 sWY    0(World size Y)
 
-xIU h2000 + sBS 0(Brain start)
-xIU h2400 + sWS 0(World start address)
-xIU h3000 + sCS 0(Critters start address)
+xIAU 1000/1000*10000+ sBS   0(Brain start)
+           rBS  1000+ sWS   0(World start address)
+           rWS 50000+ sCS   0(Critters start address)
 
-0(NT (nid--id t) Get neuron type/id)
-:NT hFF& #h7F& $ 7R;
+:NT (nid--id t) Get neuron id/type);
+:NT hFF&#h7F&$7R;
 
-0(ND(nid--) dump neuron info)
-:ND fNT "{type: ".", id: "."}";
+:ND(nid--) dump neuron info);
+:ND fNT "{ type: ".", id: "." }";
 
-0(CXY (--x y) Critter: x y)
+:CXY (--x y) Critter: x y);
 :CXY rC# c@ $P c@;
 
-0(CNI(I--nid) Critter: input connection #I)
+:CNI(I--nid) Critter: input connection #I;
 :CNI 2L rC+ c@;
 
-0(CNO(I--nid) Critter: output connection #I)
+:CNO(I--nid) Critter: output connection #I;
 :CNO D 2L rC+ P c@;
 
-0(CNW(I--wt) Critter: weight #I);
+:CNW(I--wt) Critter: weight #I);
 :CNW 2L rC+ @ hFF&;
 
-0(CND (): Connection dump)
+:CND (): Connection dump;
 :CND # fCNI fND ", " # fCNO fND fCNW ", wt: ".;
 
-0(SCR (I--): Critter Set)
+:SCR (I--): Set Critter, I:[1..N];
 :SCR D rCSZ * rCS + sC;
 
-0(RXY (--): Random X/Y)
-:RXY rWX xr rC c! rWY xr rC 1+ c!;
+:RXY (x y--): Set X/Y;
+:SXY rC P c! rC c!;
 
-0(RNC (--): Create a random critter)
-:RNC fRXY rC 4+ 1 rNCN 4*[255 xr %c! P]\;
+:RXY (--x y): Random X/Y;
+:RXY rWX xr rWY xr;
 
-0(CDN (): Critter dump connection)
-:CDN 1 rNCN [E"    " rI fCND];
+:RNC (--): Create a random critter;
+:RNC fRXY fSXY rC 4+ # rNCN 4*+[255 xr rI c!];
 
-0(CDM (--): Critter dump)
+:CDN (): Critter dump connection;
+:CDN 1 rNCN[E"    " rI fCND];
+
+:CDM (--): Critter dump;
 :CDM fCXY$"{ x: ". ", y: ".", [" fCDN E"]}";
-:CDS 1 rNCR[rI.B rI fSCR "["E fCDM "]"]
 
-1 rNCR[rI fSCR fRNC]
-1 rNCR[rI fSCR fCDM E]
+:DAC (--): Dump all critters;
+:DAC 1 rNCR[rI #.B fSCR fCDM E];
+
+:RAC (--): Randomize all critters;
+:RAC 1 rNCR[rI fSCR fRNC];
+
+fRAC fDAC

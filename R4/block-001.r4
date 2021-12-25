@@ -1,7 +1,10 @@
-xXR
+xSR
 0(C:code, R:registers)
-:C xIU xIH D[rIc@#,59=(E)];
-:R 0 xIR D[rIa@("r"rI.": "rIa@.E)];
+:C xIAU xIH1-[rIc@#,59=(rI1+c@58=(E))];
+:R 0 xIR1-[rIa@#(rIfRN": ".E1)\];
+:F 0 xIF1-[rI4*xIAF+@#(rI#."-"fRN": ".E1)\];
+:RN 26S$26S$'A+,'A+,'A+,;
+:U xIH xIAU-.;
 
 0(Screen Stuff)
 :CSI 27,"[";

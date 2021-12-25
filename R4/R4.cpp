@@ -190,13 +190,20 @@ void doExt() {
     ir = *(pc++);
     switch (ir) {
     case 'I': ir = *(pc++);
+        if (ir == 'A') { 
+            ir = *(pc++);
+            if (ir == 'F') { push((CELL)&func[0]); };
+            if (ir == 'H') { push((CELL)&HERE); };
+            if (ir == 'R') { push((CELL)&reg[0]); };
+            if (ir == 'U') { push((CELL)&user[0]); };
+            return;
+        };
         if (ir == 'H') { push((CELL)HERE); };
         if (ir == 'F') { push(NUM_FUNCS); };
         if (ir == 'R') { push(NUM_REGS); };
-        if (ir == 'U') { push((CELL)&user[0]); };
         if (ir == 'Z') { push(USER_SZ); };
         return;
-    case 'X': if (*pc == 'R') { ++pc; vmInit(); }  return;
+    case 'S': if (*pc == 'R') { ++pc; vmInit(); }  return;
     case 'r': doRand();                            return;
     default:
         pc = doCustom(ir, pc);
