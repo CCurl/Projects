@@ -1,53 +1,60 @@
 0( Block-222.r4 )
 
 1xBL
-0:"Genetic Evolution"E; C0
-
+:HDR"Genetic Evolution"E; fHDR
 
 0(Each connection is 32 bits)
 0(first byte is input, 2nd is output)
 0(So, [type:1][id:7][type:1][id:7][weight:16])
 
-0(r9: current critter address)
-hFF   s2 0(CONSTANT: 255 hFF)
-hFFFF s4 0(CONSTANT: 255 hFFFF)
+0(rC: current critter)
 
-        100 s60 0(Number of critters)
-         24 s61 0(Number of connections)
-  r61 1+ 4* s62 0(Size of a critter in BYTEs)
-   r60 r62* s63 0(Size of critters in BYTEs)
-        128 s64 0(World size X)
-         64 s65 0(World size Y)
-r64 r65+ 4* s66 0(World size in CELLs)
-     r61 4* s67 0(Brain size)
-"Sizes: critter: "r62.", critters: "r63.
-", brain: "r67.", world: "r66.E
+        100 sNCR 0(Number of critters)
+          8 sNCN 0(Number of connections - in CELLs)
+ rNCN 1+ 4* sCSZ 0(Critter size - in BYTES)
+        128 sWX  0(World size X)
+         64 sWY  0(World size Y)
 
-xIU h2000 + s12 0(Brain start)
-xIU h2400 + s13 0(World start address)
-xIU h3000 + s10 0(Critters start address)
+xIU h2000 + sBS 0(Brain start)
+xIU h2400 + sWS 0(World start address)
+xIU h3000 + sCS 0(Critters start address)
 
-0(f200..f210 are reserved for top level functions)
+0(NT (nid--id t) Get neuron type/id)
+:NT hFF& #h7F& $ 7R;
 
-225:0((b--id t) Get neuron type/id);
-225:#h7F&$7R;
-226:0((nid--) dump neuron id);
-226:C225 "{type: ".", id: "."}";
-227:0((--x) Critter: x);
-227:r9c@;
-228:0((--y) Critter: y);
-228:r9Pc@;
-230:0((I--id t) Critter: I input);
-230:2Lr9+c@C225;
-231:0((I--id t) Critter: I output);
-231:2Lr9+Pc@C225;
-232:0((I--wt) Critter: I weight);
-232:2Lr9+@r4&;
-252:xr;
+0(ND(nid--) dump neuron info)
+:ND fNT "{type: ".", id: "."}";
 
-0(Create a random critter)
-240:0 r61[xr I 2L r9+ !];
-241:r10 s9 0 r60[C240 r9 r62+ s9]
-242:"{ x: "C227. ",y: "C228.",[" C244 "]}"E;
-243:r10 s9 0 r60[C242 r9 r62+ s9E]
-244:0 r61D["{" I C230C225 "," I C231C225 "," I C232. "}"]
+0(CXY (--x y) Critter: x y)
+:CXY rC# c@ $P c@;
+
+0(CNI(I--nid) Critter: input connection #I)
+:CNI 2L rC+ c@;
+
+0(CNO(I--nid) Critter: output connection #I)
+:CNO D 2L rC+ P c@;
+
+0(CNW(I--wt) Critter: weight #I);
+:CNW 2L rC+ @ hFF&;
+
+0(CND (): Connection dump)
+:CND # fCNI fND ", " # fCNO fND fCNW ", wt: ".;
+
+0(SCR (I--): Critter Set)
+:SCR D rCSZ * rCS + sC;
+
+0(RXY (--): Random X/Y)
+:RXY rWX xr rC c! rWY xr rC 1+ c!;
+
+0(RNC (--): Create a random critter)
+:RNC fRXY rC 4+ 1 rNCN 4*[255 xr %c! P]\;
+
+0(CDN (): Critter dump connection)
+:CDN 1 rNCN [E"    " rI fCND];
+
+0(CDM (--): Critter dump)
+:CDM fCXY$"{ x: ". ", y: ".", [" fCDN E"]}";
+:CDS 1 rNCR[rI.B rI fSCR "["E fCDM "]"]
+
+1 rNCR[rI fSCR fRNC]
+1 rNCR[rI fSCR fCDM E]
