@@ -1,0 +1,11 @@
+
+0(HEX output)
+:HXD #9>(7+)'0+,;
+:HXB 16 S$ fHXD fHXD;
+:HXW h100 S$ fHXB fHXB;
+:HXL h100#* S$ fHXW fHXW;
+
+0( Binary output)
+:BD hFF&h80 1 8[$%S$.$1R]\\;)
+:BW h100 S$ fBD fBD;
+:BL h100#* S$ fBW fBW;

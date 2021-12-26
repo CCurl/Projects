@@ -1,6 +1,8 @@
 "Block#    Description"E
 "------    -----------------"E
 "  001     General System functions"E
+"  010     Screen / Color functions"E
+"  011     Binary / Hex functions"E
 "  222     Genetic evolution"E
 "  777     Count of primes"E
 "  888     Mandelbrot set"E
