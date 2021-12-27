@@ -22,11 +22,11 @@
 ; 105: (M): main, loop for Y axis
 
 1xBL
-0:E"The Mandelbrot Set";
-100:17ap r10#* r16/ s12 r11#* r16/ s13 r12 r13+ r14>(r15 s20 ;) r10 r11* 100/ r19+ s11 r12 r13- r18+ s10 15ap;
-101:0## s10 s11 s15 r16 s20 1{\C100 r15 r20 <};
-102:C101 r15 40+ #126>(\32),;
-103:490N s18 1 95[  C102 r18  8+ s18];
-104:340N s19 1 35[E C103 r19 20+ s19];
-105:C0 0s17 xT C104 xT$- E r17." iterations, " . " ms";
-200 s16 1000000 s14 C105
+:H E"The Mandelbrot Set";
+:Q rT1+sT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA rJ1+sJ;
+:L 0sA 0sB 0sJ rS sM 1{\fQ rJ rM<};
+:O fLrJ40+#126>(\32),;
+:X 490NsX 1 95[  fO rX 8+sX];
+:Y 340NsY 1 35[E fX rY20+sY];
+:M fH 0sT xT fY xT$- E rT." iterations, " . " ms";
+200 sS 1000000 sK

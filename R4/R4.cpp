@@ -183,7 +183,7 @@ void doRand() {
     seed ^= (seed << 13);
     seed ^= (seed >> 17);
     seed ^= (seed <<  5);
-    T = (T) ? abs(seed) % T : seed;
+    T = (T) ? ABS(seed) % T : seed;
 }
 
 void doExt() {

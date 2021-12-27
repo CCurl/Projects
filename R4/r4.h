@@ -20,6 +20,7 @@ typedef byte *addr;
 #define BetweenI(n, x, y) (((x) <= (n)) && ((n) <= (y)))
 #define isReg(n) ((0 <= (n)) && ((n) < NUM_REGS))
 #define isFunc(n) ((0 <= (n)) && ((n) < NUM_FUNCS))
+#define ABS(x) ((x < 0) ? -x : x)
 
 typedef struct {
     addr start;

@@ -1,4 +1,4 @@
-#include "s4.h"
+#include "r4.h"
 
 #if __SERIAL__
     int charAvailable() { return mySerial.available(); }
@@ -14,6 +14,10 @@
     void printString(const char* str) { }
     void printChar(char c) { }
 #endif
+
+CELL getSeed() {
+  return millis();
+}
 
 addr doPinRead(addr pc) {
     byte ir = *(pc++);
@@ -88,16 +92,18 @@ FILE *input_pop() { return NULL; }
 // ********************************************
 
 #define SOURCE_STARTUP \
-    X(1000, ":D u@h@1-[i@`@#58=(N),];") \
-    X(1001, ":N 13,10,;:B\" \";:Q@.B;:QC`@.B;") \
-    X(1002, ":R 0 25[Ni@#'a+,B4*r@+@.];") \
-    X(1003, ":C t@1+t! a@#*s@/c! b@#*s@/d! c@d@+k@>(j@m!;) a@b@*100/y@+b! c@d@-x@+a! j@1+j!;") \
-    X(1004, ":L 0a!0b!0j!s@m!1{\\Cj@m@<};") \
-    X(1005, ":O Lj@40+#126>(\\32),;") \
-    X(1006, ":X 490`-x!1 95[  O x@ 8+x!];") \
-    X(1007, ":Y 340`-y!1 35[N X y@20+y!];") \
-    X(1008, ":M 0t! `T Y `T$- N t@.\" iterations, \" . \" ms\";") \
-    X(9999, "200 s! 1000000 k!")
+    X(1000, ":C xIAU xIH1-[rIc@#,59=(rI1+c@58=(E))];") \
+    X(1010, ":R 0 xIR1-[rIa@#(rIfRN\": \".E1)\\];") \
+    X(1020, ":F 0 xIF1-[rI4*xIAF+@#(rI#.\"-\"fRN\": \".E1)\\];") \
+    X(1030, ":RN 26S$26S$'A+,'A+,'A+,;") \
+    X(1040, ":U xIH xIAU-.;") \
+    X(2000, ":Q rT1+sT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA rJ1+sJ;") \
+    X(2010, ":L 0sA 0sB 0sJ rS sM 1{\\fQ rJ rM<};") \
+    X(2020, ":O fLrJ40+#126>(\\32),;") \
+    X(2030, ":X 490NsX 1 95[  fO rX 8+sX];") \
+    X(2040, ":Y 340NsY 1 35[E fX rY20+sY];") \
+    X(2050, ":M 0sT xT fY xT$- E rT.\" iterations, \" . \" ms\";") \
+    X(9999, "200 sS 1000000 sK")
 
 #define X(num, val) const PROGMEM char str ## num[] = val;
 SOURCE_STARTUP
@@ -121,6 +127,9 @@ void ok() {
     printString(")>");
 }
 
+int isBackspace(char c) {
+  return (c == 127) ? 1 : 0;
+}
 
 void handleInput(char c) {
     static addr here = (addr)NULL;
@@ -138,7 +147,7 @@ void handleInput(char c) {
         return;
     }
 
-    if ((c == 8) && (here < here1)) {
+    if (isBackspace(c) && (here < here1)) {
         here1--;
         char b[] = {8, 32, 8, 0};
         printString(b);
