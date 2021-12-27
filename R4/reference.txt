@@ -53,8 +53,10 @@ p     (a--)       Increment CELL at address a (a++)
          3) Register A is the same as register AAA, B <-> AAB, Z <-> AAZ
          4) Register #0 is A, #25 is Z, #26 is BA, ... #17575 is ZZZ
 rXXX   (--v)      v: value of register XXX.
-a      (n--a)     a: address of register #n.
 sXXX   (v--)      v: store v to register XXX.
+iXXX   (--)       Increment register XXX.
+dXXX   (--)       Decrement register XXX.
+a      (n--a)     a: address of register #n.
 
 
 *** FUNCTIONS ***
