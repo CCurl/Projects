@@ -10,7 +10,7 @@
 1xBL
 :CPH "Count of primes";
 :Q%%S_(\\_;)%<(\;)PPfQ;
-:CP 4 sC 11[rI3fQ(2ap)8ap]rC;
+:CP 4 sC 11[rI3fQ(iC)iI]rC;
 :CPB E"# primes in "#." - " xT$ fCP . xT$-" (" . " ms)";
 :CPL 256$ 1[#+#fCPB]\;
 :BB 1024#* 8* fCPB;

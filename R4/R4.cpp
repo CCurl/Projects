@@ -287,7 +287,7 @@ addr run(addr start) {
             if (ir == '@') { T = *(byte*)T; }
             if (ir == '!') { *(byte*)T = (byte)N; DROP2; }
             break;
-        case 'd': setCell((addr)T, getCell((addr)T) - 1); DROP1;   break;  // CELL --
+        case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG--
         case 'e':                                                  break;
         case 'f': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
             if (*pc != ';') { rpush(pc); }
@@ -300,14 +300,14 @@ addr run(addr start) {
                 if (t1 < 0) { break; }
                 T = (T * 16) + t1; ++pc;
             } break;
-        case 'i':                                                  break;
+        case 'i': if (getRFnum(1)) { ++reg[pop()]; }               break; // REG++
         case 'j':                                                  break;
         case 'k':                                                  break;
         case 'l': loopExit(']');                                   break;
         case 'm':                                                  break;
         case 'n':                                                  break;
         case 'o':                                                  break;
-        case 'p': setCell((addr)T, getCell((addr)T) + 1); DROP1;   break;  // CELL ++
+        case 'p':                                                  break;
         case 'q':                                                  break;
         case 'r': if (getRFnum(1)) { T = reg[T]; }                 break;  // REGISTER
         case 's': if (getRFnum(1)) { reg[T] = N; DROP2; }          break;  // SET REGISTER

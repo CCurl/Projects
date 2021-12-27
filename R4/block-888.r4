@@ -1,29 +1,29 @@
 ; The Mandelbrot Set
 
 ; Registers:
-; 10: temp 1 (a)
-; 11: temp 2 (b)
-; 12: temp 3 (c)
-; 13: temp 4 (d)
-; 14: threshold (k)
-; 20: MB loop flag (m)
-; 15: MB loop counter (j)
-; 16: scaling factor (s)
-; 17: count of iterations (t)
-; 18: X pos (x)
-; 19: Y pos (y)
+; A: temp 1 (a)
+; B: temp 2 (b)
+; C: temp 3 (c)
+; D: temp 4 (d)
+; K: threshold (k)
+; M: MB loop flag (m)
+; J: MB loop counter (j)
+; S: scaling factor (s)
+; T: count of iterations (t)
+; X: X pos (x)
+; Y: Y pos (y)
 
 ; Functions:
-; 100: (C): mandelbrot calc
-; 101: (L): main MB loop 
-; 102: (O): output
-; 103: (X): loop for X axis
-; 104: (Y): loop for Y axis
-; 105: (M): main, loop for Y axis
+; Q: mandelbrot calc
+; L: main MB loop 
+; O: output
+; X: loop for X axis
+; Y: loop for Y axis
+; M: main, loop for Y axis
 
 1xBL
 :H E"The Mandelbrot Set";
-:Q rT1+sT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA rJ1+sJ;
+:Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA iJ;
 :L 0sA 0sB 0sJ rS sM 1{\fQ rJ rM<};
 :O fLrJ40+#126>(\32),;
 :X 490NsX 1 95[  fO rX 8+sX];
