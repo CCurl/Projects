@@ -201,7 +201,7 @@ void doExt() {
         if (ir == 'H') { push((CELL)HERE); };
         if (ir == 'F') { push(NUM_FUNCS); };
         if (ir == 'R') { push(NUM_REGS); };
-        if (ir == 'Z') { push(USER_SZ); };
+        if (ir == 'U') { push(USER_SZ); };
         return;
     case 'S': if (*pc == 'R') { ++pc; vmInit(); }  return;
     case 'r': doRand();                            return;

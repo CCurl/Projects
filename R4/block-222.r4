@@ -20,6 +20,14 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
            rBS  1000+ sWS   0(World start address)
            rWS 50000+ sCS   0(Critters start address)
 
+:WAT (x y--n);
+:WAT rWY*+4*rWS+@;
+
+:WST (n x y--);
+:WST rWY*+4*rWS+!;
+
+:WIN rWX rWY* 4* rWS+[0 rIc!];
+
 :NT (nid--id t) Get neuron id/type);
 :NT hFF&#h7F&$7R;
 

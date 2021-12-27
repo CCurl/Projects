@@ -145,8 +145,10 @@
     <Text Include="history.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include=".gitignore" />
+    <None Include="block-000.r4" />
     <None Include="block-001.r4" />
+    <None Include="block-010.r4" />
+    <None Include="block-011.r4" />
     <None Include="block-222.r4" />
     <None Include="block-777.r4" />
     <None Include="block-888.r4" />

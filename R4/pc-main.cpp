@@ -149,7 +149,7 @@ void loop() {
 int main(int argc, char** argv) {
     vmInit();
     srand(GetTickCount());
-    loadCode("1xBL");
+    loadCode("0xBL");
     while (!isBye) { loop(); }
     return 0;
 }

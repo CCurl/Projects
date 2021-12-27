@@ -1,17 +1,17 @@
 ; The Mandelbrot Set
 
 ; Registers:
-; A: temp 1 (a)
-; B: temp 2 (b)
-; C: temp 3 (c)
-; D: temp 4 (d)
-; K: threshold (k)
-; M: MB loop flag (m)
-; J: MB loop counter (j)
-; S: scaling factor (s)
-; T: count of iterations (t)
-; X: X pos (x)
-; Y: Y pos (y)
+; A: temp 1
+; B: temp 2
+; C: temp 3
+; D: temp 4
+; K: threshold
+; J: MB loop counter
+; M: MB loop end
+; S: scaling factor
+; T: count of iterations
+; X: X pos
+; Y: Y pos
 
 ; Functions:
 ; Q: mandelbrot calc
@@ -26,7 +26,7 @@
 :Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA iJ;
 :L 0sA 0sB 0sJ rS sM 1{\fQ rJ rM<};
 :O fLrJ40+#126>(\32),;
-:X 490NsX 1 95[  fO rX 8+sX];
-:Y 340NsY 1 35[E fX rY20+sY];
+:X 490N sX 1 95[  fO rX 8+sX];
+:Y 340N sY 1 35[E fX rY20+sY];
 :M fH 0sT xT fY xT$- E rT." iterations, " . " ms";
 200 sS 1000000 sK
