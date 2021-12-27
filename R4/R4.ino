@@ -93,17 +93,18 @@ FILE *input_pop() { return NULL; }
 
 #define SOURCE_STARTUP \
     X(1000, ":C xIAU xIH1-[rIc@#,59=(rI1+c@58=(E))];") \
-    X(1010, ":R 0 xIR1-[rIa@#(rIfRN\": \".E1)\\];") \
-    X(1020, ":F 0 xIF1-[rI4*xIAF+@#(rI#.\"-\"fRN\": \".E1)\\];") \
-    X(1030, ":RN 26S$26S$'A+,'A+,'A+,;") \
+    X(1010, ":R 0 xIR1-[rIa@#(rIfN\": \".E1)\\];") \
+    X(1020, ":F 0 xIF1-[rI4*xIAF+@#(rI#.\"-\"fN\": \".E1)\\];") \
+    X(1030, ":N 26S$26S$'A+,'A+,'A+,;") \
     X(1040, ":U xIH xIAU-.;") \
-    X(2000, ":Q rT1+sT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA rJ1+sJ;") \
+    X(1045, ":SI E\"System info: \"xIR.\" registers, \"xIF.\" functions, \"xIU.\" bytes user memory.\";") \
+    X(2000, ":Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA iJ;") \
     X(2010, ":L 0sA 0sB 0sJ rS sM 1{\\fQ rJ rM<};") \
     X(2020, ":O fLrJ40+#126>(\\32),;") \
     X(2030, ":X 490NsX 1 95[  fO rX 8+sX];") \
-    X(2040, ":Y 340NsY 1 35[E fX rY20+sY];") \
-    X(2050, ":M 0sT xT fY xT$- E rT.\" iterations, \" . \" ms\";") \
-    X(9999, "200 sS 1000000 sK")
+    X(2040, ":Y 300NsY 1 31[E fX rY20+sY];") \
+    X(2050, ":M fI 0sT xT fY xT$- E rT.\" iterations, \" . \" ms\";") \
+    X(2060, ":I 200 sS 1000000 sK;")
 
 #define X(num, val) const PROGMEM char str ## num[] = val;
 SOURCE_STARTUP
@@ -122,7 +123,7 @@ void loadBaseSystem() {
 }
 
 void ok() {
-    printString("\r\ns4:("); 
+    printString("\r\nr4:("); 
     dumpStack(); 
     printString(")>");
 }
