@@ -89,7 +89,8 @@ hXXX  (--n)       Scan HEX number n until non hex-digit ([0-9,A-F] only ... NOT 
 >     (a b--f)    f: (a > b) ? 1 : 0;
 _     (x--f)      f: (x = 0) ? 1 : 0; (logical NOT)
 (     (f--)       if (f != 0), execute code in '()', else skip to matching ')'
-
+e     (a--)       if (a != 0), execute/call function at address a
+g     (a--)       if (a != 0), go/jump) to function at address a
 
 *** FOR LOOPS ***
 [     (F T--)     FOR: start a For/Next loop. if (T < F), swap T and F
@@ -112,14 +113,15 @@ xBOR  (--h)       PC: Block open (read)
 xBOW  (--h)       PC: Block open (write)
 xBR   (h--c f)    PC: Block read one byte (f = 0 and c = 0 on EOF or error)
 xBW   (c h--f)    PC: Block write one byte (f = 0 on error)
-xIAF  (--a)      INFO: Address where the function vectors begin
-xIAH  (--a)      INFO: Address of the HERE variable
-xIAR  (--a)      INFO: Address where the registers begin
-xIAU  (--a)      INFO: Address there the user area begins
-xIH   (--a)       INFO: HERE
+xIAF  (--a)       INFO: Address where the function vectors begin
+xIAH  (--a)       INFO: Address of the HERE variable
+xIAR  (--a)       INFO: Address where the registers begin
+xIAU  (--a)       INFO: Address there the user area begins
+xIC   (--n)       INFO: CELL size
 xIF   (--n)       INFO: Number of functions
+xIH   (--a)       INFO: HERE
 xIR   (--n)       INFO: Number of registers
-xIZ   (--n)       INFO: Size of user area
+xIU   (--n)       INFO: Size of user area
 xLA   (--)        PC: Load Abort: to stop loading a block (eg - if the block has already been loaded)
 xPI   (p--)       Arduino: pin input  (pinMode(p, INPUT))
 xPU   (p--)       Arduino: pin pullup (pinMode(p, INPUT_PULLUP))

@@ -198,8 +198,9 @@ void doExt() {
             if (ir == 'U') { push((CELL)&user[0]); };
             return;
         };
-        if (ir == 'H') { push((CELL)HERE); };
+        if (ir == 'C') { push(CELL_SZ); };
         if (ir == 'F') { push(NUM_FUNCS); };
+        if (ir == 'H') { push((CELL)HERE); };
         if (ir == 'R') { push(NUM_REGS); };
         if (ir == 'U') { push(USER_SZ); };
         return;
@@ -288,12 +289,12 @@ addr run(addr start) {
             if (ir == '!') { *(byte*)T = (byte)N; DROP2; }
             break;
         case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG--
-        case 'e':                                                  break;
+        case 'e': if (T) { rpush(pc); pc = (addr)T; } pop();       break;
         case 'f': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
             if (*pc != ';') { rpush(pc); }
             pc = func[pop()];
         } break;
-        case 'g':                                                  break;
+        case 'g': if (T) { pc = (addr)T; } pop();                  break;
         case 'h': push(0); while (1) {                                     // HEX number
                 t1 = BetweenI(*pc,'0','9') ? (*pc)-'0' : -1;
                 t1 = BetweenI(*pc,'A','F') ? (*pc)-'A'+10 : t1;
