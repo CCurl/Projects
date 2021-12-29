@@ -24,3 +24,6 @@
 
 0(CON (--): Curson on)
 :CON eCSI"?25h";
+
+0(DMO (--): A little demo of using these)
+:DMO eCLS eCOF 1 100000 [8xr 30+ 40 eSTC 100xr 40xr eGXY "*"]eCLC eCON;

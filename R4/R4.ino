@@ -63,10 +63,10 @@ addr doPin(addr pc) {
 
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
-    case 'N': push(micros());          break;
-    case 'P': pc = doPin(pc);          break;
-    case 'T': push(millis());          break;
-    case 'W': delay(pop());            break;
+    case 'N': push(micros());                  break;
+    case 'P': pc = doPin(pc);                  break;
+    case 'T': push(millis());                  break;
+    case 'W': if (0 < T) { delay(T); } pop();  break;
     default:
         isError = 1;
         printString("-notExt-");

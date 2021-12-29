@@ -88,11 +88,11 @@ addr doBlock(addr pc) {
 
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
-    case 'B': pc = doBlock(pc);        break;
-    case 'N': push(micros());          break;
-    case 'T': push(millis());          break;
-    case 'W': delay(pop());            break;
-    case 'Q': isBye = 1;               break;
+    case 'B': pc = doBlock(pc);                break;
+    case 'N': push(micros());                  break;
+    case 'T': push(millis());                  break;
+    case 'W': if (0 < T) { delay(T); } pop();  break;
+    case 'Q': isBye = 1;                       break;
     default:
         isError = 1;
         printString("-notExt-");
