@@ -273,7 +273,7 @@ addr run(addr start) {
         case 'U':                                                  break;
         case 'V':                                                  break;
         case 'W':                                                  break;
-        case 'X':                                                  break;
+        case 'X': if (T) { rpush(pc); pc = (addr)T; } pop();       break;  // eXecute
         case 'Y':                                                  break;
         case 'Z':                                                  break;
         case '[': doFor();                                         break;  // 91 FOR
@@ -288,12 +288,12 @@ addr run(addr start) {
             if (ir == '@') { T = *(byte*)T; }
             if (ir == '!') { *(byte*)T = (byte)N; DROP2; }
             break;
-        case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG--
-        case 'e': if (T) { rpush(pc); pc = (addr)T; } pop();       break;
-        case 'f': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
+        case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG DECREMENT
+        case 'e': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
             if (*pc != ';') { rpush(pc); }
             pc = func[pop()];
         } break;
+        case 'f':                                                  break;
         case 'g': if (T) { pc = (addr)T; } pop();                  break;
         case 'h': push(0); while (1) {                                     // HEX number
                 t1 = BetweenI(*pc,'0','9') ? (*pc)-'0' : -1;
@@ -301,7 +301,7 @@ addr run(addr start) {
                 if (t1 < 0) { break; }
                 T = (T * 16) + t1; ++pc;
             } break;
-        case 'i': if (getRFnum(1)) { ++reg[pop()]; }               break; // REG++
+        case 'i': if (getRFnum(1)) { ++reg[pop()]; }               break; // REG INCREMENT
         case 'j':                                                  break;
         case 'k':                                                  break;
         case 'l': loopExit(']');                                   break;

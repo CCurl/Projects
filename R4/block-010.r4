@@ -2,13 +2,13 @@
 0(Screen Stuff)
 :CSI 27,"[";
 0(GotoXY: [x y--])
-:GXY fCSI.59,."H";
+:GXY eCSI.59,."H";
 0(Clear Screen)
-:CLS fCSI"2J"1#fGXY;
+:CLS eCSI"2J"1#eGXY;
 0(Set Color [fg bg--])
-:STC fCSI.59,."m";
+:STC eCSI.59,."m";
 0(Clear Color)
-:CLC 37 40fSTC;
+:CLC 37 40eSTC;
 0( To list the colors: )
-:COL 30 37[E rI sF 40 47[rI sG rF rG fSTC " (",rF.59,rG.") "] fCLC];
-0(:COM 90 97[E rI sF 100 107[rI sG rF rG fSTC " (",rF.59,rG.") "] fCLC];)
+:COL 30 37[E rI sF 40 47[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];
+0(:COM 90 97[E rI sF 100 107[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];)

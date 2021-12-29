@@ -2,13 +2,13 @@
 
 1xBL
 10xBL
-:HDR"Genetic Evolution"E; fHDR
+:HDR"Genetic Evolution"E; eHDR
 
 0(Each connection is 32 bits)
 0(first byte is input, 2nd is output)
 0(So, [type:1][id:7][type:1][id:7][weight:16])
 
-0(rC: current critter)
+0(rC: cerrent critter)
 
          10 sNCR   0(Number of critters)
           8 sNCN   0(Number of connections - in CELLs)
@@ -32,7 +32,7 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :NT hFF&#h7F&$7R;
 
 :ND(nid--) dump neuron info);
-:ND fNT "{ type: ".", id: "." }";
+:ND eNT "{ type: ".", id: "." }";
 
 :CXY (--x y) Critter: x y);
 :CXY rC# c@ $P c@;
@@ -47,7 +47,7 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :CNW 2L rC+ @ hFF&;
 
 :CND (): Connection dump;
-:CND # fCNI fND ", " # fCNO fND fCNW ", wt: ".;
+:CND # eCNI eND ", " # eCNO eND eCNW ", wt: ".;
 
 :SCR (I--): Set Critter, I:[1..N];
 :SCR D rCSZ * rCS + sC;
@@ -59,18 +59,18 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :RXY rWX xr rWY xr;
 
 :RNC (--): Create a random critter;
-:RNC fRXY fSXY rC 4+ # rNCN 4*+[255 xr rI c!];
+:RNC eRXY eSXY rC 4+ # rNCN 4*+[255 xr rI c!];
 
 :CDN (): Critter dump connection;
-:CDN 1 rNCN[E"    " rI fCND];
+:CDN 1 rNCN[E"    " rI eCND];
 
 :CDM (--): Critter dump;
-:CDM fCXY$"{ x: ". ", y: ".", [" fCDN E"]}";
+:CDM eCXY$"{ x: ". ", y: ".", [" eCDN E"]}";
 
 :DAC (--): Dump all critters;
-:DAC 1 rNCR[rI #.B fSCR fCDM E];
+:DAC 1 rNCR[rI #.B eSCR eCDM E];
 
 :RAC (--): Randomize all critters;
-:RAC 1 rNCR[rI fSCR fRNC];
+:RAC 1 rNCR[rI eSCR eRNC];
 
-fRAC fDAC
+eRAC eDAC
