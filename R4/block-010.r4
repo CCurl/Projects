@@ -1,14 +1,26 @@
-
 0(Screen Stuff)
 :CSI 27,"[";
-0(GotoXY: [x y--])
+
+0(GXY (x y--); GotoXY)
 :GXY eCSI.59,."H";
-0(Clear Screen)
+
+0(CLS (--): Clear Screen)
 :CLS eCSI"2J"1#eGXY;
-0(Set Color [fg bg--])
+
+0(STC (fg bg--): Set Color)
 :STC eCSI.59,."m";
-0(Clear Color)
+
+0(CLC (--): Clear Color)
 :CLC 37 40eSTC;
-0( To list the colors: )
-:COL 30 37[E rI sF 40 47[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];
-0(:COM 90 97[E rI sF 100 107[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];)
+
+0(CLL (--): To list the colors )
+:CLL 30 37[E rI sF 40 47[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];
+
+0(CLU (--): More, ugly)
+:CLU 90 97[E rI sF 100 107[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];
+
+0(COF (--): Curson off)
+:COF eCSI"?25l";
+
+0(CON (--): Curson on)
+:CON eCSI"?25h";
