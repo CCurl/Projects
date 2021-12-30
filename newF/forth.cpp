@@ -5,16 +5,8 @@ char pad[96], *toIn;
 DICT_T *LAST;
 CELL STATE;
 
-#define INLINE    0x01
-#define IMMEDIATE 0x02
-#define PUSH_C    1
-#define PUSH_W    2
-#define PUSH_L    4
-#define CALL      5
-#define JUMP      6
-#define BRANCH0   7
-
-void p(const char *x) { printString(x); }
+#define IMMEDIATE 1
+#define INLINE    2
 
 bool strEquals(const char *str1, const char *str2) {
     while (*str1 && *str2) {
@@ -40,18 +32,14 @@ void vCComma(byte x) {
     *(VHERE++) = x;
 }
 
-void vComma(CELL x) {
-    setCell(VHERE, x);
-    VHERE += CELL_SZ;
-}
-
 void cComma(byte x) {
     *(HERE++) = x;
 }
 
-void wComma(CELL x) {
-    setWord(HERE, x);
-    HERE += 2;
+void numComma(CELL x) {
+    char b[16], *cp = b;
+    sprintf(b, "%ld", x);
+    while (*cp) { *(HERE++) = *(cp++); }
 }
 
 void comma(CELL x) {
@@ -93,16 +81,8 @@ void wordsl() {
                 printStringF("%c", c);
             } else {
                 printStringF("(%d)", c);
-                if (c == PUSH_C) { printStringF("(push %ld)", *(i + 1)); i += 1; }
-                else if (c == PUSH_W) { printStringF("(push %ld)", getWord(i + 1)); i += 2; }
-                else if (c == PUSH_L) { printStringF("(push %ld)", getCell(i + 1)); i += CELL_SZ; }
-                else if (c == CALL) { printStringF("(call %ld)", getCell(i + 1)); i += CELL_SZ; }
-                else if (c == JUMP) { printStringF("(jump %ld)", getCell(i + 1)); break; }
-                else if (c == BRANCH0) { printStringF("(0branch %ld)", *(i + 1)); i += 1;  }
             }
         }
-        if (dp->flags & INLINE) { printStringF("    (INLINE)"); }
-        if (dp->flags & IMMEDIATE) { printStringF("    (IMMEDIATE)"); }
         to = (dp++)->XT;
     }
 }
@@ -160,7 +140,9 @@ void parse(char *line) {
     while ((TRUE) && (!isError)) {
         if (VHERE_T < VHERE) { VHERE_T = VHERE; }
         toIn = getWord(toIn, pad);
-        if (pad[0] == 0) { return; }
+        if (pad[0] == 0) {
+            return;
+        }
         if (strEquals(pad, "//")) { return; }
         if (strEquals(pad, "\\")) { return; }
         BOOL lwc = lastWasCall;
@@ -174,8 +156,8 @@ void parse(char *line) {
                     byte *x = dp->XT;
                     while (*x != ';') { cComma(*x); x++; }
                 } else {
-                    cComma(CALL);
-                    comma((CELL)dp->XT);
+                    numComma((CELL)dp->XT);
+                    cComma('X');
                     lastWasCall = 1;
                 }
             }
@@ -183,16 +165,7 @@ void parse(char *line) {
         }
         if (isNum(pad)) {
             if (STATE) {
-                if ((T & 0xFF) == T) {
-                    cComma(PUSH_C);
-                    cComma((byte)pop());
-                } else if ((T & 0xFFFF) == T) {
-                    cComma(PUSH_W);
-                    wComma(pop());
-                } else {
-                    cComma(PUSH_L);
-                    comma(pop());
-                }
+                numComma(pop());
             }
             continue;
         }
@@ -206,85 +179,8 @@ void parse(char *line) {
             continue;
         }
         if (strEquals(pad, ";") && (STATE == 1)) {
-            if (lwc) { *(HERE-CELL_SZ-1) = JUMP; }
-            else { cComma(';'); }
+            cComma(';');
             STATE = 0;
-            continue;
-        }
-        if (strEquals(pad, "leave")) {
-            if (STATE) { cComma(';'); }
-            continue;
-        }
-        if (strEquals(pad, "wordsl") && (STATE == 0)) {
-            wordsl();
-            continue;
-        }
-        if (strEquals(pad, "constant") && (STATE == 0)) {
-            toIn = getWord(toIn, pad);
-            if (pad[0]) {
-                create(pad);
-                cComma(PUSH_L);
-                comma(pop());
-                cComma(';');
-            }
-            continue;
-        }
-        if (strEquals(pad, "variable") && (STATE == 0)) {
-            toIn = getWord(toIn, pad);
-            if (pad[0]) {
-                create(pad);
-                cComma(PUSH_L);
-                comma((CELL)VHERE);
-                cComma(';');
-                setCell(VHERE, 0);
-                VHERE += CELL_SZ;
-            }
-            continue;
-        }
-        if (strEquals(pad, "value") && (STATE == 0)) {
-            toIn = getWord(toIn, pad);
-            if (pad[0]) {
-                create(pad);
-                cComma(PUSH_L);
-                addr x = HERE;
-                comma(0);
-                cComma(';');
-
-                char wd2[16];
-                sprintf(wd2, "(%s)", pad);
-                create(wd2);
-                cComma(PUSH_L);
-                comma((CELL)x);
-                cComma(';');
-            }
-            continue;
-        }
-        if (strEquals(pad, ".\"")) {
-            toIn++;
-            if (STATE) {
-                cComma('"');
-                while ((*toIn) && (*toIn != '"')) { cComma(*(toIn++)); }
-                cComma('"');
-            }
-            else {
-                while ((*toIn) && (*toIn != '"')) { printChar(*(toIn++)); }
-            }
-            ++toIn;
-            continue;
-        }
-        if (strEquals(pad, "\"")) {
-            addr lenAddr = VHERE_T;
-            push((CELL)lenAddr);
-            *(VHERE_T++) = 0;
-            toIn++;
-            while ((*toIn) && (*toIn != '"')) { *(VHERE_T++) = *(toIn++); ++(*lenAddr); }
-            *(VHERE_T++) = 0;
-            ++toIn;
-            if (STATE) {
-                cComma(PUSH_L);
-                comma((CELL)pop());
-                VHERE = VHERE_T;
-            }
             continue;
         }
         printStringF("'%s'??", pad);
@@ -295,15 +191,15 @@ void parse(char *line) {
 
 void prim(const char *name, const char *code) {
     create(name);
-    LAST->flags = 1;
+    LAST->flags = INLINE;
     while (*code) { cComma(*(code++)); }
     cComma(';');
 }
 
 void forthInit() {
     static char src[32];
-    HERE = USER;
-    VHERE = VAR;
+    HERE = &user[0];
+    VHERE = &var[0];
     USER_END = (USER+USER_SZ-1);
     LAST = (DICT_T *)(USER_END+1);
     STATE = 0;

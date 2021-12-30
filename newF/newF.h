@@ -14,16 +14,18 @@ typedef byte *addr;
 #define ADDR_SZ     sizeof(addr)
 #define DENTRY_SZ   sizeof(DICT_T)
 
-#define USER       sys.user
-#define VAR        sys.var
+#define NUM_FUNCS (26*26*26)
+#define USER       user
+#define VAR        var
 // #define HERE       REG[7]
-#define T          sys.dstack[sys.dsp]
-#define N          sys.dstack[sys.dsp-1]
-#define R          sys.rstack[sys.rsp]
-#define LSP        sys.lsp
+#define T          dstack[dsp]
+#define N          dstack[dsp-1]
+#define R          rstack[rsp]
+#define LSP        lsp
 #define DROP1      pop()
 #define DROP2      pop(); pop()
 #define BetweenI(n, x, y) ((x <= n) && (n <= y))
+#define ABS(n) ((n < 0) ? (-n) : (n))
 
 typedef struct {
     addr start;
@@ -32,14 +34,6 @@ typedef struct {
     addr end;
 } LOOP_ENTRY_T;
 
-typedef struct {
-    byte   user[USER_SZ];
-    byte   var[VARS_SZ];
-    ushort dsp, rsp, lsp, u1;
-    CELL   dstack[STK_SZ + 1];
-    CELL   rstack[STK_SZ + 1];
-    LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
-} SYS_T;
 
 typedef struct{
     addr XT;
@@ -48,11 +42,15 @@ typedef struct{
     char name[14];
 } DICT_T;
 
-extern SYS_T sys;
 extern byte isBye;
 extern byte isError;
 extern addr HERE;
 extern CELL BASE;
+extern CELL dstack[];
+extern CELL rstack[];
+extern ushort dsp, rsp;
+extern byte user[];
+extern byte var[];
 
 extern void vmInit();
 extern void forthInit();

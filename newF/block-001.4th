@@ -12,7 +12,7 @@
 : c, here c! 1 (here) +! ;
 : , here ! cell (here) +! ;
 
-: bye [ '`' c, 'q' c, ] ;
+: bye [ 'x' c, 'Q' c, ] ;
 
 : w!   [ 'W' c, ] ; inline
 : w@   [ 'w' c, ] ; inline
@@ -84,9 +84,9 @@
 : again 1  while    ; inline
 : break  [ 'X' c, ] ; inline
 
-: execute [ '`' c, 'J' c, ] ; inline
-: timer   [ '`' c, 'T' c, ] ; inline
-: wait    [ '`' c, 'W' c, ] ; inline
+: execute [ 'X' c ] ; inline
+: timer   [ 'x' c, 'T' c, ] ; inline
+: wait    [ 'x' c, 'W' c, ] ; inline
 
 : count dup 1+ swap c@ ;      inline
 : type 1 for dup c@ emit 1+ next drop ;
@@ -104,17 +104,18 @@
 : decimal #10 base ! ; inline
 : binary  %10 base ! ; inline
 
-: load [ '`' c, 'B' c, 'L' c, ] ; inline
+: load [ 'x' c, 'B' c, 'L' c, ] ; inline
 
 : asc  2dup > if swap then ;
 : desc 2dup < if swap then ;
 : min asc  drop ;
 : max desc drop ;
 
-variable fg-sv 2 cells allot
-: marker fg-sv here over ! cell + last over ! cell + vhere swap ! ;
-: forget fg-sv dup @ (here) ! cell + dup @ (last) ! cell + @ (vhere) ! ;
-: help 999 load ;
-
-marker 
-help
+// variable fg-sv 2 cells allot
+// : marker fg-sv here over ! cell + last over ! cell + vhere swap ! ;
+// : forget fg-sv dup @ (here) ! cell + dup @ (last) ! cell + @ (vhere) ! ;
+// : help 999 load ;
+// 
+// marker 
+// help
+// 
