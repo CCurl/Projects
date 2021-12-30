@@ -1,0 +1,29 @@
+xSR
+1xBL
+10xBL
+
+
+
+xIAU 1000/1000*10000+ sBS   0(Brain start)
+           rBS  1000+ sWS   0(World start address)
+           rWS 50000+ sCS   0(Critters start address)
+
+  4 sCSZ 0(Critter Size)
+100 sNCR 0(Number of Critters)
+
+100 sWX 0(World X)
+50  sWY 0(World Y)
+
+0(reg CR: current critter)
+
+0(SCR (n--): Set Critter - 0<n<rNCR)
+:SCR 1- rCSZ* rCS + sCR;
+:CXY rCR 1+ c@ rCR c@;
+:CSX rCR 1+ c! rCR c!;
+:CCL rCR 2+ c@;
+:SCL rCR 2+ c!;
+
+:RCR rWY xr rWY xr eCSX 8xr 30+ eSCL;
+:RCA 1 rNCR[rI eSCR eRCR];
+:SCA 1 rNCR[rI eSCR eCCL 40 eSTC  eGXY "*"]eCLC eCON;
+:GO eCLS eCOF 1 100000 [8xr 30+ 40 eSTC 100xr 40xr eGXY "*"]eCLC eCON;

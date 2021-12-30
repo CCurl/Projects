@@ -10,11 +10,11 @@
 
 0(rC: cerrent critter)
 
-         10 sNCR   0(Number of critters)
+       2000 sNCR   0(Number of critters)
           8 sNCN   0(Number of connections - in CELLs)
  rNCN 1+ 4* sCSZ   0(Critter size - in BYTES)
-        128 sWX    0(World size X)
-         64 sWY    0(World size Y)
+        150 sWX    0(World size X)
+         40 sWY    0(World size Y)
 
 xIAU 1000/1000*10000+ sBS   0(Brain start)
            rBS  1000+ sWS   0(World start address)
@@ -27,7 +27,7 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :WST rWY*+4*rWS+!;
 
 :WIN rWX rWY* 4* rWS+[0 rIc!];
-
+ 
 :NT (nid--id t) Get neuron id/type);
 :NT hFF&#h7F&$7R;
 
@@ -35,7 +35,7 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :ND eNT "{ type: ".", id: "." }";
 
 :CXY (--x y) Critter: x y);
-:CXY rC# c@ $P c@;
+:CXY rC c@ rC P c@;
 
 :CNI(I--nid) Critter: input connection #I;
 :CNI 2L rC+ c@;
@@ -52,7 +52,7 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :SCR (I--): Set Critter, I:[1..N];
 :SCR D rCSZ * rCS + sC;
 
-:RXY (x y--): Set X/Y;
+:SXY (x y--): Set X/Y;
 :SXY rC P c! rC c!;
 
 :RXY (--x y): Random X/Y;
@@ -73,4 +73,13 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :RAC (--): Randomize all critters;
 :RAC 1 rNCR[rI eSCR eRNC];
 
-eRAC eDAC
+:CRS (--): Critter Show;
+:CRS eCXY eGXY rC 7M 31+ 40 eSTC "*";
+
+:CRU (--): Critter Unshow;
+:CRU eCXY eGXY " ";
+
+:STS (--): Show all critters;
+:STS 1 rNCR[rI eSCR 100xr50<#(eCRS)_(eCRU)] eCLC;
+
+eRAC eCLS eCOF 1 10000[eSTS 0xW] eCON
