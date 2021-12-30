@@ -3,30 +3,32 @@
 1xBL
 10xBL
 :HDR"Genetic Evolution"E; eHDR
+:NTH 1000+1000/1000*;
 
 0(Each connection is 32 bits)
 0(first byte is input, 2nd is output)
 0(So, [type:1][id:7][type:1][id:7][weight:16])
 
-0(rC: cerrent critter)
+0(rC: current critter)
 
-       2000 sNCR   0(Number of critters)
+         25 sNCR   0(Number of critters)
           8 sNCN   0(Number of connections - in CELLs)
  rNCN 1+ 4* sCSZ   0(Critter size - in BYTES)
         150 sWX    0(World size X)
          40 sWY    0(World size Y)
+  rWX rWY * sWSZ   0(World size)
 
-xIAU 1000/1000*10000+ sBS   0(Brain start)
-           rBS  1000+ sWS   0(World start address)
-           rWS 50000+ sCS   0(Critters start address)
+xIH  8000+ eNTH  sBSA   0(Brain start address)
+     rBSA  1000+ sWSA   0(World start address)
+rWSA rWSZ+ eNTH  sCSA   0(Critters start address)
 
 :WAT (x y--n);
-:WAT rWY*+4*rWS+@;
+:WAT $rWX*+rWSA+c@;
 
 :WST (n x y--);
-:WST rWY*+4*rWS+!;
+:WST $rWX*+rWSA+c!;
 
-:WIN rWX rWY* 4* rWS+[0 rIc!];
+:WIN rWX rWY* rWSA+[0 rIc!];
  
 :NT (nid--id t) Get neuron id/type);
 :NT hFF&#h7F&$7R;
@@ -50,7 +52,7 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :CND # eCNI eND ", " # eCNO eND eCNW ", wt: ".;
 
 :SCR (I--): Set Critter, I:[1..N];
-:SCR D rCSZ * rCS + sC;
+:SCR #sCI D rCSZ * rCSA + sC;
 
 :SXY (x y--): Set X/Y;
 :SXY rC P c! rC c!;
@@ -82,4 +84,5 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 :STS (--): Show all critters;
 :STS 1 rNCR[rI eSCR 100xr50<#(eCRS)_(eCRU)] eCLC;
 
-eRAC eCLS eCOF 1{\eSTS 0xW K?0=}K@\ eCON
+eRAC 0(eCLS eCOF 1{\eSTS 0xW K?0=}K@\ eCON)
+eDAC
