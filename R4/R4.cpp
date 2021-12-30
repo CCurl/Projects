@@ -259,7 +259,10 @@ addr run(addr start) {
         case 'H':                                                  break;
         case 'I':                                                  break;
         case 'J':                                                  break;
-        case 'K':                                                  break;
+        case 'K': ir = *(pc++);
+            if (ir == '?') { push(charAvailable()); }
+            if (ir == '@') { push(getChar()); }
+            break;
         case 'L': t1 = pop(); T = (T << t1);                       break;  // LEFT
         case 'M': if (isOk(T, "-0div-")) { t1 = pop(); T %= t1; }  break;  // MOD
         case 'N': T = -T;                                          break;  // NEGATE

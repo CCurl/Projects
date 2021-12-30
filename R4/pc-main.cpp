@@ -46,6 +46,9 @@ void printChar(const char c) { printf("%c", c); }
 void printString(const char* str) { printf("%s", str); }
 CELL getSeed() { return millis(); }
 
+int getChar() { return _getch(); }
+int charAvailable() { return _kbhit(); }
+
 addr doBlock(addr pc) {
     t1 = *(pc++);
     switch (t1) {

@@ -5,6 +5,7 @@
   #define __WINDOWS__
   #define  _CRT_SECURE_NO_WARNINGS
   #include <Windows.h>
+  #include <conio.h>
   #define __PC__
 #endif
 

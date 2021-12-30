@@ -76,6 +76,8 @@ eXXX  (--)        Execute function XXX.
 "     (--)        Output characters until the next '"'
 B     (--)        Output a single SPACE (32,)
 E     (--)        Output a single NEWLINE (13,10,)
+K?    (--f)       f: 0 if no key is ready to be read, else non-0
+K@    (--n)       n: Key read from terminal
 0..9  (--n)       Scan DECIMAL number n until non digit
                      to specify multiple values, separate them by space (4711 3333)
                      to enter a negative number, use "negate" (eg - 490N)
