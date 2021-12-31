@@ -1,27 +1,10 @@
+0(System Initialization)
 `sR
-0(info)
-:N 13,10,;
 :C `iAU`iH1-[i@`@#,';=(i@1+`@':=(13,10,))];
-:R 0`iR1-[i@4*`iAR+@#(13,10,"r"i@." ".1)\];
-:U `iH1-`iAU-.;
+:N13,10,;
+:R 0`iR1-[i@4*`iAR+@#(13,10,i@RN": ".1)\];
+:RN 26`/$26`/$'a+,'a+,'a+,;
+:U `iH`iAU-1-.;
 
-; HEX output
-:HX #9>(7+)'0+,;
-:HD 16`/$HX HX;
-:HW 256`/$ HD HD;
-:HL 256#*`/$ HW HW;
-
-; Binary output
-:BD 255&128 1 8[$%`/$.$2/]\\;
-:BW 256`/$ BD BD;
-:BL 256#*`/$ BW BW;
-
-; Screen Stuff
-:CSI 27,"[";       0(Control Sequence)
-:GXY CSI$.";"."H"; 0(GotoXY: [x y--])
-:CLS CSI"2J"0#GXY; 0(Clear Screen)
-:STC CSI.";"."m";  0(Set Color [fg bg--])
-:CLC 0# STC;       0(Clear Color)
-0( To list the colors: )
-0( :LCA 30 37[N i@ fg!  40  47[i@ bg! fg@ bg@ STC " (",fg@.";"bg@.") "] CLC]; )
-0( :LCB 90 97[N i@ fg! 100 107[i@ bg! fg@ bg@ STC " (",fg@.";"bg@.") "] CLC]; )
+"S4 - v0.1.0 - Chris Curl"N
+"This system has "`iR." registers, "`iF." functions, and "`iU." bytes user memory."N"Hello"N
