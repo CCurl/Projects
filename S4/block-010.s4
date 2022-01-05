@@ -1,30 +1,29 @@
-0( A Genetic Algorithm )
+0(Screen Stuff)
+:CSI 27,"[";
 
-1`BL
+0(GXY (x y--); GotoXY)
+:GXY CSI.59,."H";
 
-0(RND: [X--N] N: a random number in between 0 and X)
-:RND `*$`%;
+0(CLS (--): Clear Screen)
+:CLS CSI"2J"1#GXY;
 
-0(SU: Startup )
-:SU ;
+0(STC (fg bg--): Set Color)
+:STC CSI.59,."m";
 
-0(st: Sleep Time)
-200 st!
+0(CLC (--): Clear Color)
+:CLC 37 40STC;
 
-0(DY: 1 day)
-:DY 1 10[1 50[]]PW st@`W;
+0(CLL (--): To list the colors )
+:CLL 30 37[N i@f! 40 47[i@g! f@g@ STC " (",f@.","g@.") "] CLC];
 
-0(LF: - 1 Life)
-:LF 100 1 [DY];
+0(CLU (--): More, ugly)
+0(:CLU 90 97[E rI sF 100 107[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];)
 
-0(GEN: Generate new Critters)
-:GEN ;
+0(COF (--): Curson off)
+:COF CSI"?25l";
 
-0(PW: Paint World)
-:PW 1 1 GXY 1 50[1 100 [PC]N];
+0(CON (--): Curson on)
+:CON CSI"?25h";
 
-0(PC: Paint Critter)
-31fg! 40bg!
-:PC 100 RND 98<(" ";) 6 RND fg@+ bg@ STC "*" CLC;
-
-LF
+0(DMO (--): A little demo of using these)
+:DMO CLS COF 1{\8`R 30+ 40 STC 100`R 40`R GXY "*" `K?0=}`K@\ CLC CON;
