@@ -2,37 +2,38 @@ N"Decode ihe encoded image"N
 
 1`BL
 
-; Open, close, read input
-:IO `BOR ih!;
-:IC ih@ (ih@ `BC) 0 ih!;
-:IR ih@`BR 0=(CF);
+:Open, close, read input;
+:IO ``rb` \ `FO ih!;
+:IC ih@ (ih@ `FC) 0 ih!;
+:IR ih@`FR 0=(CF);
 
-; Open, close, write output
-:OO `BOW oh!;
-:OC oh@ (oh@ `BC) 0 oh!;
-:OW oh@ (oh@ `BW \;),;
+:Open, close, write output;
+:OO ``wb` \ `FO oh!;
+:OC oh@ (oh@ `FC) 0 oh!;
+:OW oh@ (oh@ `FW \;),;
 
-; SH: Skip BMP Header
+:SH (--): Skip BMP Header;
 :SH 1 54[IR\];
 
-; PP - var++ 
+:PP (A--) increment CELL at A;
 :PP #@1+$!;
 
-; LS - var = LeftShift(var)
+:LS (A--) LeftShift CELL at A;
 :LS #@#+$!;
 
-; OB (--): Output the Byte
+:OB (--): Output the Byte;
 :OB tb@ 0=(IC;) tb@ OW 0 tb! nb PP;
 
-; PF (--): Process the File
+:PF (--): Process the File;
 :PF ih@{\ IR 1 & (tb@ bt@ | tb!) bt LS bt@ 127>(OB 1 bt!) ih@} OB;
 
-; Do the Work
+:Do the Work;
 :DW 0 tb! 0 bn! 1 bt! SH PF;
 
-; DF (b--) Decode block file b
+:DF (b--) Decode block file;
 :DF 0(b--)0 nb! ih@(DW IC OC);
 
-33 IO
-; 32 OO
+`iAU 5000+ v!
+v@ ``out.bmp`  IO
+v@ ``test.txt` OO
 DF N N "File size: " nb@ .

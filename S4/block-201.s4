@@ -1,45 +1,51 @@
-N"File Steganographer"N
+N"file Steganographer"N
 
-; open files
-:OS `BOR sh!;        ; Source File
-:OI `BOR ih!;        ; Input File
-:OO `BOW oh!;        ; Output File
+1`BL
 
-; close files
-:CS sh@ (sh@ `BC 0 sh!);   ; Source File
-:CI ih@ (ih@ `BC 0 ih!);   ; Input File
-:CO oh@ (oh@ `BC 0 oh!);   ; Output File
+:OS Source/hidden file operations;
+:OS ``rb` \ `FO sh!;       0(Open)
+:CS sh@ (sh@ `FC 0 sh!);   0(Close)
+:RS sh@ `FR;               0(Read)
 
-; Read/Write the files
-:RI ih@ `BR;
-:RS sh@ `BR;
-:WO oh@ `BW \;
+:IO Input file operations;
+:OI ``rb` \ `FO ih!;       0(Open)
+:CI ih@ (ih@ `FC 0 ih!);   0(Close)
+:RI ih@ `FR;               0(Read)
 
-; AO (--f) All open?
-:AO sh@ 0=("-sh-"0;) ih@ 0=("-ih-"0;) oh@ 0=("-oh-"0;) 1;
+:OO Output file operations;
+:OO ``wb` \ `FO oh!;       0(Open)
+:CO oh@ (oh@ `FC 0 oh!);   0(Close)
+:WO oh@ `FW \;             0(Write)
 
-; NS (--) -  Next Source Byte, sb is the Source Byte
+:OA (--f): Opened all?;
+:OA sh@ 0=("-sh-"0;) ih@ 0=("-ih-"0;) oh@ 0=("-oh-"0;) 1;
+
+:CA (--): Close All;
+:CA CS CI CO;
+
+:NS (--):  Next Source Byte, sb is the Source Byte;
 :NS 0 sb! sh@(RS 0=(CS) sb!);
 
+:NB (--1|0): Next Bit (From the Source);
+:NB bn@ 1+ # bn! 6>(0 bn! NS) sb@ 2 `/ $ sb!;
+
+:PP (A--): Increment CELL at A;
 :PP #@1+$!;
 
-; NB (--1|0) - Next Bit (From the Source)
-:NB bn PP bn@ 6>(0 bn! NS) sb@ 2 / $ sb!;
-
-; CH (--): Copy Header (54 bytes)
+:CH (--): Copy Header (54 bytes);
 :CH 1 54[RI (WO) sz PP];
 
-; PB (b--) - Process One Byte
+:PB (b--): Process One Byte;
 :PB 254 & NB | WO sz PP ;
 
-; WF (--): Work The File
+:WF (--): Work The file;
 :WF 0 sz! CH 8 bn! 1{\RI(PB 1)};
 
-; EF (--) - Encode File
+:EF (--): Encode file;
 :EF "Encoding ... " WF "done. Output is " sz@ . " bytes";
 
-31 OI 
-32 OS 
-33 OO 
-AO (EF)
-CS CI CO
+`iAU 5000+ v!
+v@ ``in.bmp`       OI
+v@ ``out.bmp`      OO
+v@ ``file.txt`     OS
+OA (EF) CA

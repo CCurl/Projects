@@ -26,4 +26,4 @@
 :CON CSI"?25h";
 
 0(DMO (--): A little demo of using these)
-:DMO CLS COF 1{\8`R 30+ 40 STC 100`R 40`R GXY "*" `K?0=}`K@\ CLC CON;
+:DMO x@0=(100x!) y@0=(40y!) CLS COF 1{\8`R 30+ 40 STC x@`R y@`R GXY "*" `K?0=}`K@\ CLC CON;
