@@ -34,6 +34,6 @@ N"Decode the encoded image"N
 :DF 0 nb! ih@(DW IC OC);
 
 `iAU 5000+ v!
-v@ _out.bmp_  IO
-v@ _test.txt_ OO
+v@ _t-out.bmp_  IO
+v@ _t-out.txt_  OO
 DF N N "File size: " nb@ .
