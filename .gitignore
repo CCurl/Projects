@@ -37,5 +37,4 @@ MFCApplication1/MFCApplication1.aps
 /J2/j2.vcxproj.user
 /J2/j2.lst
 /J2/j2.bin
-S4/test.txt
-S4/out.bmp
+S4/t_*
