@@ -1,4 +1,4 @@
-N"Decode ihe encoded image"N
+N"Decode the encoded image"N
 
 1`BL
 
@@ -30,7 +30,7 @@ N"Decode ihe encoded image"N
 :Do the Work;
 :DW 0 tb! 0 bn! 1 bt! SH PF;
 
-:DF (b--) Decode block file;
+:DF (b--) Decode image file;
 :DF 0(b--)0 nb! ih@(DW IC OC);
 
 `iAU 5000+ v!
