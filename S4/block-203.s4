@@ -2,12 +2,12 @@ N"Decode the encoded image"N
 
 1`BL
 
-:Open, close, read input;
+:IO Open, close, read input;
 :IO ``rb` \ `FO ih!;
 :IC ih@ (ih@ `FC) 0 ih!;
 :IR ih@`FR 0=(CF);
 
-:Open, close, write output;
+:OO Open, close, write output;
 :OO ``wb` \ `FO oh!;
 :OC oh@ (oh@ `FC) 0 oh!;
 :OW oh@ (oh@ `FW \;),;
@@ -18,7 +18,7 @@ N"Decode the encoded image"N
 :PP (A--) increment CELL at A;
 :PP #@1+$!;
 
-:LS (A--) LeftShift CELL at A;
+:LS (A--) left-shift CELL at A;
 :LS #@#+$!;
 
 :OB (--): Output the Byte;
@@ -27,11 +27,11 @@ N"Decode the encoded image"N
 :PF (--): Process the File;
 :PF ih@{\ IR 1 & (tb@ bt@ | tb!) bt LS bt@ 127>(OB 1 bt!) ih@} OB;
 
-:Do the Work;
+:DW (--): Do the Work;
 :DW 0 tb! 0 bn! 1 bt! SH PF;
 
-:DF (b--) Decode image file;
-:DF 0(b--)0 nb! ih@(DW IC OC);
+:DF (--) Decode image file;
+:DF 0 nb! ih@(DW IC OC);
 
 `iAU 5000+ v!
 v@ ``out.bmp`  IO
