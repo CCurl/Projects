@@ -1,0 +1,90 @@
+0(Genetic evolution)
+
+0(Save the current state)
+ 1`BL
+10`BL
+0(------------------------------------------------------------------------------)
+
+:VHI vh@0=(v@vh!);        0(VHERE-INIT)
+:CM vh@!vh@`iC+vh!;       0(,)
+:CCM vh@`!vh@1+vh!;       0(C,)
+:VAR vh@;                 0(VARIABLE)
+:ALT vh@+vh!;             0(ALLOT)
+:MIN %%>($)\;             0(a b--n)
+:MAX %%<($)\;             0(a b--n)
+:RW #`@$1+`@256*+;        0(Read Word 16-bit (a--n))
+:WW %255&%`!$256/$1+`!;   0(Write Word 16-bit (n a--))
+
+VHI
+
+0(----------------------------------------)
+0(----- the world -----)
+150 wsx!
+ 40 wsy!
+wsx@ wsy@ * wsz!       0(world size)
+VAR wld! wsz@ ALT
+:WXR wsx@`R1+;         0(random world x (--x))
+:WYR wsy@`R1+;         0(random world y (--y))
+:WXN 0 MAX wsx@ MIN;   0(World X normalize (--x))
+:WYN 0 MAX wsy@ MIN;   0(World Y normalize (--y))
+:WST $wsx@*+wld@+`!;   0(World Set (c x y--))
+:WGT $wsx@*+wld@+`@;   0(World Get (x y--c))
+
+0(----------------------------------------)
+0(----- connections -----)
+
+0(A connection is a single 32-bit value)
+0([input]      [output]      [weight])
+0([type] [id]  [type] [id]   [weight]
+0([0]    [1-7] [8]    [9-15] [16-31])
+0(type 1:hidden, 0: input/output)
+
+8 ncn!                 0(num connections)
+:TID 128`/;            0(Connection Type/ID(N--t id))
+:DCT TID$"(".",".")";
+:DCN #`@N" in:"DCT 1+#`@", out:"DCT 1+RW", wt:".;
+
+0(----------------------------------------)
+0(----- critters -----)
+0(Critter structure: 4 bytes + connections)
+0([x][y][col][0][connections])
+
+100 ncr!               0(num critters)
+ncn@ `iC* 4+ csz!      0(critter size)
+
+VAR cr!  0 CM          0(Current critter)
+VAR crs! 0 CM          0(Critters)
+ncr@ csz@ * ALT
+
+:SCR 1-csz@*crs@+cr!;  0((n--) Set Critter)
+:CC cr@;               0((--a) Current Critter)
+
+0(Critter X/Y)
+:CXY CC `@ CC 1+ `@;   0(Critter Get XY(--x y))
+:CSX WXN CC  `!;       0(Critter Set X(n--))
+:CSY WYN CC1+`!;       0(Critter Set Y(n--))
+:RXY WXR CSX WYR CSY;  0(Critter Set Random XY(--))
+
+0(Painting)
+:CRP CXY GXY CC3+`@31+40STC"*";  0(Critter Paint)
+:PAC COF CLS 1 ncr@[i@ SCR CRP]CLC CON;    0(Paint All Critters)
+
+0(Randomizing Critters)
+0(Random numbers)
+:RCN 256`R159&;        0(1 Random connection)
+:RNN RCN RCN;          0(2 Random connections)
+:RNW 32768`R;          0(Random weight)
+0(Create a Random Critter)
+:CRC RXY 8`R CC3+`! CC4+t! 1 ncn@4*[RNN t@`! t@1+`! RNW t@2+WW t@4+t!];
+:RAC 1 ncr@[i@ SCR CRC];
+
+0(Dumping)
+0(Dump Critter)
+:DCR CXY$"x:".",y:"."," CC 4+t! 1 ncn@[t@ DCN t@4+t!]N;
+:DAC 1 ncr@[i@ # SCR "Critter #".": " DCR N];
+
+0(N C R N)
+RAC PAC
+
+0(------------------------------------------------------------------------------)
+:RL 400 `BL;
