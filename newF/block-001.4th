@@ -32,6 +32,7 @@
 : 0=  [ '_' c, ] ; inline
 : <<  [ 'L' c, ] ; inline
 : >>  [ 'R' c, ] ; inline
+: not [ '~' c, ] ; inline
 
 : -     [ '-' c, ] ; inline
 : *     [ '*' c, ] ; inline
