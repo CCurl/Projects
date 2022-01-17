@@ -13,8 +13,10 @@
 :ALT v@+v!;               0(ALLOT)
 :MIN %%>($)\;             0(a b--n)
 :MAX %%<($)\;             0(a b--n)
-:WDR #`@$1+`@256*+;       0(Read Word 16-bit (a--n))
-:WDW %255&%`!$256/$1+`!;  0(Write Word 16-bit (n a--))
+:WDR #`@$1+`@256*+;       0(Word Read  16-bit (a--n))
+:WDW %255&%`!$256/$1+`!;  0(Word Write 16-bit (n a--))
+:SHL{$2*$1-};             0(Shift-Left)
+:SHR{$2/$1-};             0(Shift-Right)
 
 0(Jump tables - create the 'A' function first)
 :JT `iAF@CM;              0(Jump Table)
