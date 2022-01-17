@@ -4,6 +4,28 @@
 :R 0`iR1-[i@`iC*`iAR+@#(13,10,i@26`/$26`/$'a+,'a+,'a+,": ".1)\];
 :U `iH`iAU-;
 :N 13,10,;
+:D ." ";
 
-"S4 - v0.1.0 - Chris Curl"N
-"This system has "`iR." registers, "`iF." functions, and "`iU." bytes user memory."N"Hello"N
+0(REG v is VHERE)
+:CM  v@! v@`iC+v!;        0(,)
+:CCM v@`! v`#;            0(C,)
+:VAR v@;                  0(VARIABLE)
+:ALT v@+v!;               0(ALLOT)
+:MIN %%>($)\;             0(a b--n)
+:MAX %%<($)\;             0(a b--n)
+:WDR #`@$1+`@256*+;       0(Read Word 16-bit (a--n))
+:WDW %255&%`!$256/$1+`!;  0(Write Word 16-bit (n a--))
+
+0(Jump tables)
+:NN `iH1+;                0(:NONAME)
+:JT NN CM;                0(Jump Table)
+0(JTE (n jta--a) - jump table entry)
+:JTE @$`iC*+@;
+:JTJ JTE `J;              0(n jta--)
+
+0(MARKER/FORGET)
+:MKR `iH mkr!;
+:FGT mkr@ `iAH!;
+
+0(Initialize VHERE)
+`iAU `iU 2/ + v!

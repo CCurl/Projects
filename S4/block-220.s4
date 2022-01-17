@@ -10,7 +10,7 @@ N"Count of primes"
 ; L: (n--)        Loop for multiple benchmarks
 
 :P%%`/0=(\=;)%<(\;)2+P;
-:Q 4c! 11[i@3P(c@1+c!)i@1+i!]c@;
+:Q 4c! 11[i@3P(c@1+c!)i`#]c@;
 :B N"# primes in "#." - "`T$Q.`T$- " (" . " ms)";
 :L 256$1[#+#B]\;
 
