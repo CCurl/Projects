@@ -7,30 +7,26 @@ MKR
 
 :-create jump table-;
 VAR jt! 
-:-jump table: set entries-;
-JT        0(0)
-:#D D;
-JT        0(1)
-:#\D;
-JT        0(2)
-:+D;
-JT        0(3)
-:#+D;
-JT        0(4)
-:1+D;
-JT        0(5)
-:1-D;
-JT        0(6)
-:"#6";
+:#D D;   JT   0(0)
+:#\D;    JT   0(1)
+:+D;     JT   0(2)
+:#+D;    JT   0(3)
+:1+D;    JT   0(4)
+:1-D;    JT   0(5)
+:"#6";   JT   0(6)
 
 :-test jump table execution-;
-:T N"Test #".": ";
-0T 0       0 jt JTJ
-1T 1       1 jt JTJ
-2T 1 1     2 jt JTJ
-3T 3       3 jt JTJ
-4T 44      4 jt JTJ
-5T 44      5 jt JTJ
-6T         6 jt JTJ
+:TA N"Test #".": ";
+:TB 0 TA 0     0 jt JTJ;
+:TC 1 TA 1     1 jt JTJ;
+:TD 2 TA 1 1   2 jt JTJ;
+:TE 3 TA 3     3 jt JTJ;
+:TF 4 TA 44    4 jt JTJ;
+:TG 5 TA 44    5 jt JTJ;
+:TH 6 TA       6 jt JTJ;
+
+:TT TB TC TD TE TG TF TH;
+TT
+
 0(------------------------------------------------------------------------------)
 :RL FGT 300 `BL;

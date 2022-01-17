@@ -16,9 +16,8 @@
 :WDR #`@$1+`@256*+;       0(Read Word 16-bit (a--n))
 :WDW %255&%`!$256/$1+`!;  0(Write Word 16-bit (n a--))
 
-0(Jump tables)
-:NN `iH1+;                0(:NONAME)
-:JT NN CM;                0(Jump Table)
+0(Jump tables - create the 'A' function first)
+:JT `iAF@CM;              0(Jump Table)
 0(JTE (n jta--a) - jump table entry)
 :JTE @$`iC*+@;
 :JTJ JTE `J;              0(n jta--)
