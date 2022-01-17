@@ -52,10 +52,11 @@ VAR wld! wsz@ ALT
 0(type 1:hidden, 0: input/output)
 
 :-connection/nodes-;
-8 ncn!                 0(num connections)
+0(num connections)
+8 ncn!
 :-Type/ID (n--t id)-;
 :TID 128`/;
-:-conneciton weight (a--w)-;
+:-connection weight (a--w)-;
 :CWT 3+RW;
 :-dump connection DCN (a--)-;
 :DCT TID$"(".",".")";
@@ -66,11 +67,15 @@ VAR wld! wsz@ ALT
 0(Critter structure: 4 bytes + connections)
 0([x][y][col][0][connections])
 
-100 ncr!               0(num critters)
-ncn@ `iC* 4+ csz!      0(critter size)
+0(num critters)
+100 ncr!
+0(critter size)
+ncn@ `iC* 4+ csz!
 
-VAR cr!  0 CM          0(Current critter)
-VAR crs! 0 CM          0(Critters)
+0(Current critter)
+VAR cr!  0 CM
+0(Critters)
+VAR crs! 0 CM
 ncr@ csz@ * ALT
 
 :-Get/Set SCR(n--), CC(--a)-;
@@ -96,16 +101,20 @@ ncr@ csz@ * ALT
 :DAC 1 ncr@[i@ # SCR "Critter #".": " DCR N];
 
 :-Flip one random bit (a--b)-;
-:FB 1 1 9`R[#+]2/ %% & (~&;)|;
+:FB ne@1+ne! 1 1 9`R[#+]2/ %% & (~&;)|;
 
 :-(a--b) Copy 1 byte w/possible mutation-;
 :CPB 125`R7=(FB;);
 
 :-Copy Current Critter to Critter #T (T--)-;
-:CPC CC ccr! STC CC 4+tcr! ccr@#cr! 4+ 1 ncn@[#`@ CPB tcr@`! tcr@1+tcr! 1+]\;
+:CPC CC fc! SCR CC tc! fc@4+fc! tc@4+tc! 1 ncn@4*[fc@`@ CPB tc@`! fc@1+fc! tc@1+tc! 1+];
 
 0(N C R N)
-0(RAC PAC)
+RAC
+:T 1 SCR 2 CPC
+:TT # 1[0ne! 1[1 SCR 2 CPC]ne@." "];
+T
+0(PAC)
 
 :--RELOAD BLOCK--;
 :RL 400 `BL;
