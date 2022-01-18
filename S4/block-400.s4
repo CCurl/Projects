@@ -40,7 +40,7 @@ VAR wld! wsz@ ALT
 
 0(A crude approximation of TANH)
 :-TNH (a--b): b=TanH(a);
-:TNH #0<(\0;)83*100/99MIN;
+:TNH 83*100/99MIN99`-MAX;
 
 :-connection/nodes-;
 0(num connections)
