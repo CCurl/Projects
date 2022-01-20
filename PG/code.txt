@@ -1,0 +1,36 @@
+"PRIME NUMBERS!"
+"1 "
+N 3 =
+(
+    #P,N.;           ' call P(N)
+    N . 1001 - ^    ' if N >= __ break
+    N N . 1 + =      ' N++
+)
+"!"
+
+$P
+   F 1 =       ' F = 1
+   N 1 =       ' N = 1 (flag 1=no divisor found)
+   X %A =      ' X = first argument
+   (
+      ' F = F + 1
+      F F. 1 + =
+      ' break loop when F > A/2
+      F. 2 X. / - 1 + ^
+      ' if A / F * F >= 0
+      F. X. / F. * X. - 1 -
+      [
+         ' set N = 0 and break out of loop
+         N 0 =
+         0 ^
+      ]
+   )
+   ' if N > 0 then print X
+   N .
+   [
+      X. ! " "
+   ]
+ ' return
+ @
+ ' end of program
+$$
