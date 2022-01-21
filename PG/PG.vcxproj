@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Text Include="code.txt" />
     <Text Include="history.txt" />
   </ItemGroup>
   <ItemGroup>
