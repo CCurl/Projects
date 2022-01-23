@@ -26,7 +26,7 @@
 :Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA iJ;
 :L 0sA 0sB 0sJ rS sM 1{\eQ rJ rM<};
 :O eLrJ40+#126>(\32),;
-:X 490N sX 1 95[  eO rX 8+sX];
-:Y 340N sY 1 35[E eX rY20+sY];
-:M eH 0sT xT eY xT$- E rT." iterations, " . " ms";
+:X 490n sX 1 95[  eO rX 8+sX];
+:Y 340n sY 1 35NE eX rY20+sY];
+:M eH 0sT xT eY xT$- N rT." iterations, " . " ms";
 200 sS 1000000 sK eM

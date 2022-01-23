@@ -13,6 +13,7 @@ typedef byte *addr;
 
 #define INDEX      reg[8]
 #define T          dstack[dsp]
+#define A          (addr)T
 #define N          dstack[dsp-1]
 #define R          rstack[dsp]
 #define DROP1      pop()

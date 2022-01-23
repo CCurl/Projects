@@ -22,40 +22,41 @@ xIH  8000+ eNTH  sBSA   0(Brain start address)
      rBSA  1000+ sWSA   0(World start address)
 rWSA rWSZ+ eNTH  sCSA   0(Critters start address)
 
-:WAT (x y--n);
-:WAT $rWX*+rWSA+c@;
+:WGT (x y--n): World ;
+:WGT $rWX*+rWSA+c@;
 
-:WST (n x y--);
+:WST (n x y--): World Set;
 :WST $rWX*+rWSA+c!;
 
+:WIN (--): World Init;
 :WIN rWX rWY* rWSA+[0 rIc!];
- 
-:NT (nid--id t) Get neuron id/type);
-:NT hFF&#h7F&$7R;
 
-:ND(nid--) dump neuron info);
-:ND eNT "{ type: ".", id: "." }";
+:NT (nid--id t) Get neuron id/type);
+:NT h7F b& # h7F b& $ 7R;
+
+:DN (nid--): dump neuron info;
+:DN eNT "{ type: ".", id: "." }";
 
 :CXY (--x y) Critter: x y);
-:CXY rC c@ rC P c@;
+:CXY rC c@ rC I c@;
 
-:CNI(I--nid) Critter: input connection #I;
+:CNI (I--nid) Critter: input connection #I;
 :CNI 2L rC+ c@;
 
-:CNO(I--nid) Critter: output connection #I;
-:CNO D 2L rC+ P c@;
+:CNO (I--nid) Critter: output connection #I;
+:CNO D 2L rC+ I c@;
 
 :CNW(I--wt) Critter: weight #I);
 :CNW 2L rC+ @ hFF&;
 
-:CND (): Connection dump;
-:CND # eCNI eND ", " # eCNO eND eCNW ", wt: ".;
+:DCN (--): Connection dump;
+:DCN # eCNI eND ", " # eCNO eND eCNW ", wt: ".;
 
 :SCR (I--): Set Critter, I:[1..N];
 :SCR #sCI D rCSZ * rCSA + sC;
 
 :SXY (x y--): Set X/Y;
-:SXY rC P c! rC c!;
+:SXY rC I c! rC c!;
 
 :RXY (--x y): Random X/Y;
 :RXY rWX xr rWY xr;
@@ -63,7 +64,7 @@ rWSA rWSZ+ eNTH  sCSA   0(Critters start address)
 :RNC (--): Create a random critter;
 :RNC eRXY eSXY rC 4+ # rNCN 4*+[255 xr rI c!];
 
-:CDN (): Critter dump connection;
+:CDN (--): Critter dump connection;
 :CDN 1 rNCN[E"    " rI eCND];
 
 :CDM (--): Critter dump;

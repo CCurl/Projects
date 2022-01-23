@@ -19,10 +19,10 @@ F. (n--)          Float: print top of fload stack
 
 
 *** BIT MANIPULATION ***
-&  (a b--n)       n: a and b
-|  (a b--n)       n: a or b
-^  (a b--n)       n: a xor b
-~  (a--b)         b: not a (e.g - 1011 => 0100)
+b&  (a b--n)      n: a and b
+b|  (a b--n)      n: a or b
+b^  (a b--n)      n: a xor b
+b~  (a--b)        b: not a (e.g - 1011 => 0100)
 
 
 *** STACK ***
@@ -56,7 +56,6 @@ rXXX   (--v)      v: value of register XXX.
 sXXX   (v--)      v: store v to register XXX.
 iXXX   (--)       Increment register XXX.
 dXXX   (--)       Decrement register XXX.
-a      (n--a)     a: address of register #n.
 
 
 *** FUNCTIONS ***
@@ -67,7 +66,13 @@ eXXX  (--)        Execute function XXX.
 ;     (--)        Return: PC = rpop()
         NOTE: Returning while inside of a loop is not supported; behavior will be undefined. 
               Exit the loop first, see 'w' or 'l'.
-        NOTE: outside of ':...;', ';' can be used to comment out the rest of the line
+
+
+*** LOCALS ***
+    NOTES: 1) On each function call, 10 locals [0..9] are allocated.
+           2) Locals are NOT initialized.
+rN   (--v)      v: value of local #N.
+sN   (v--)      v: store v to local#N.
 
 
 *** INPUT/OUTPUT ***
@@ -75,7 +80,7 @@ eXXX  (--)        Execute function XXX.
 ,     (N--)       Output N as a character (EMIT)
 "     (--)        Output characters until the next '"'
 B     (--)        Output a single SPACE (32,)
-E     (--)        Output a single NEWLINE (13,10,)
+N     (--)        Output a single NEWLINE (13,10,)
 K?    (--f)       f: 0 if no key is ready to be read, else non-0
 K@    (--n)       n: Key read from terminal
 0..9  (--n)       Scan DECIMAL number n until non digit
@@ -136,6 +141,6 @@ xSR   (--)        R4 System Reset
 xT    (--n)       Time (Arduino: millis(), Windows: GetTickCount())
 xN    (--n)       Time (Arduino: micros(), Windows: N/A)
 xW    (n--)       Wait (Arduino: delay(),  Windows: Sleep())
-xr    (n--r)      r: a random number between 0 and n
+xR    (n--r)      r: a random number between 0 and n
                   NOTE: when n=0, r is the entire 32-bit number
 xQ    (--)        PC: Exit R4

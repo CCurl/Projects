@@ -2,22 +2,22 @@
 :CSI 27,"[";
 
 0(GXY (x y--); GotoXY)
-:GXY eCSI.59,."H";
+:GXY eCSI.";"."H";
 
 0(CLS (--): Clear Screen)
 :CLS eCSI"2J"1#eGXY;
 
 0(STC (fg bg--): Set Color)
-:STC eCSI.59,."m";
+:STC eCSI.";"."m";
 
 0(CLC (--): Clear Color)
 :CLC 37 40eSTC;
 
 0(CLL (--): To list the colors )
-:CLL 30 37[E rI sF 40 47[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];
+:CLL 30 37[N rIs1 40 47[r1 rI eSTC " ("r1.";"rI.") "] eCLC];
 
 0(CLU (--): More, ugly)
-:CLU 90 97[E rI sF 100 107[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];
+:CLU 90 97[N rIs1 100 107[r1 rI eSTC " ("r1.";"rI.") "] eCLC];
 
 0(COF (--): Curson off)
 :COF eCSI"?25l";
@@ -26,4 +26,4 @@
 :CON eCSI"?25h";
 
 0(DMO (--): A little demo of using these)
-:DMO eCLS eCOF 1 100000 [8xr 30+ 40 eSTC 100xr 40xr eGXY "*"]eCLC eCON;
+:DMO eCLS eCOF 1{\8xR 30+ 40 eSTC 100xR 40xR eGXY "*" K?0=}K@\eCLC eCON;
