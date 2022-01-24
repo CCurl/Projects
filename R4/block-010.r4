@@ -26,4 +26,4 @@
 :CON eCSI"?25h";
 
 0(DMO (--): A little demo of using these)
-:DMO eCLS eCOF 1{\8xR 30+ 40 eSTC 100xR 40xR eGXY "*" K?0=}K@\eCLC eCON;
+:DMO 0sT eCLS eCOF rX 0=(100sX) rY 0=(40sY)1{\iT 8xR 30+ 40 eSTC rX xR I rY xR I eGXY"*"K?0=}K@\eCLC eCON;

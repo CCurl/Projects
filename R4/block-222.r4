@@ -32,7 +32,7 @@ rWSA rWSZ+ eNTH  sCSA   0(Critters start address)
 :WIN rWX rWY* rWSA+[0 rIc!];
 
 :NT (nid--id t) Get neuron id/type);
-:NT h7F b& # h7F b& $ 7R;
+:NT # h1F b& $ 7R 1 b&;
 
 :DN (nid--): dump neuron info;
 :DN eNT "{ type: ".", id: "." }";

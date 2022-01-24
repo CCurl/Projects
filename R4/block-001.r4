@@ -3,7 +3,6 @@ xSR
 xIAU 10240 + sV
 :C xIAU xIH D[rI c@#,59=(rI I c@ 58=(N))];
 :R 0 xIR1-[rI xIC*xIAR+@#(#rI eRN": ".N)\];
-:F 0 xIF1-[rI xIC*xIAF+@#(#rI eRN": ".N)\];
-:RN 26S$ 26S$ 'A+,'A+,'A+,;
+:RN 26 S$ 26 S$ 'A+,'A+,'A+,;
 :U xIH xIAU-;
 :HLP 999xBL;
