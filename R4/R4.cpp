@@ -118,12 +118,16 @@ void doNext() {
     }
 }
 
-void loopExit(char c) {
+void loopExit() {
     if (!lsp) { isError = 1; return; }
     LOOP_ENTRY_T* x = lAt();
     ldrop();
+    char c = ((x->from) || (x->to)) ? ']' : '}';
+    if (c == '}') { DROP1; }
     if (x->end) { pc = x->end; }
-    else { skipTo(c, 0); }
+    else { 
+        skipTo(c, 0);
+    }
 }
 
 int isOk(int exp, const char* msg) {
@@ -260,10 +264,7 @@ addr run(addr start) {
         case '[': doFor();                                         break;  // 91 FOR
         case '\\': DROP1;                                          break;  // 92 DROP
         case ']': doNext();                                        break;  // 93 NEXT
-        case '^': if (getRFnum(0) && func[T]) {                            // 94 FUNCTION CALL
-            if (*pc != ';') { rpush(pc); locStart += 10; }
-            pc = func[T];
-        } DROP1; break;
+        case '^': loopExit();                                      break;  // 94 Exit LOOP
         case '_': T = (T) ? 0 : 1;                                 break;  // 95 NOT (LOGICAL)
         case '`': push(T);                                                 // 96 ZCOPY
             while ((*pc) && (*pc != ir)) { *(A++) = *(pc++); }
@@ -296,9 +297,9 @@ addr run(addr start) {
         case 'i': if (getRFnum(1)) { ++reg[pop()]; }               break;  // REG INCREMENT
         case 'j': /*FREE*/                                         break;
         case 'k': /*FREE*/                                         break;
-        case 'l': loopExit(']');                                   break;  // LOOP EXIT
+        case 'l': /*FREE*/                                         break;  // LOOP EXIT
         case 'm': /*FREE*/                                         break;
-        case 'n': T = -T;                                          break;  // NEGATE
+        case 'n': /*FREE*/                                         break;
         case 'o': /*FREE*/                                         break;
         case 'p': /*FREE*/                                         break;
         case 'q': /*FREE*/                                         break;
@@ -309,19 +310,19 @@ addr run(addr start) {
         case 't': /*FREE*/                                         break;
         case 'u': /*FREE*/                                         break;
         case 'v': /*FREE*/                                         break;
-        case 'w': loopExit('}');                                   break;  // WHILE EXIT
+        case 'w': /*FREE*/                                         break;  // WHILE EXIT
         case 'x': doExt();                                         break;
         case 'y': /*FREE*/                                         break;  // EXTENDED ops
         case 'z': /*FREE*/                                         break;
         case '{': { LOOP_ENTRY_T *x = lpush();                             // 123 BEGIN
-                x->start = pc; x->end = 0;
+                x->start = pc; x->end = 0; x->from = x->to = 0;
                 if (!T) { skipTo('}', 0); }
             } break;
         case '|':  /*FREE*/                                        break;  // 124
         case '}': if (!T) { ldrop(); DROP1; }                              // 125 WHILE
             else { lAt()->end = pc; pc = lAt()->start; }
             break;
-        case '~':  /*FREE*/                                        break;  // 126
+        case '~': T = -T;                                          break;  // 126 NEGATE
         }
     }
     return pc;

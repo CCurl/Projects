@@ -5,32 +5,38 @@ R4 examples:
     ; here is another comment
   
 ;   if (X) { print("Yes") } else { print("No") }
-    rX#("Yes")_("No")
+    rX #("Yes")_("No")
 
  ; F = (A == B) ? C : D;
-    rB rA=#(rC$)_(rD)sF;
+    rB rA=#(rC $)_(rD)sF;
 
 ; To make sure F < T
      %%>($)
 
+; To get the minimum
+     %%>($)\
+
+; To get the maximum
+     %%<($)\
+
 ; To do something (in this case, call CC) rX times:
-    1 rX[fCC]
+    1 rX[eCC]
 
 ; To print the ASCII chars from 33 to 126:
-    33 126[rI.BrI,E]
+    33 126[rI . B rI , N]
 
-; One way to copy N bytes from F to T
-    :CPY sB sA 1[rA c@ rB c! 0ap 1ap];     ;
-    rN rF rT fCPY
+; One way to copy N bytes from F to T (using locals)
+    :CPY s2 s1 1[r1 c@ r2 c! i1 i2];
+    rN rF rT eCPY
 
 ; A simple benchmark for a 100 million FOR loop:
-    100 1000#** xT$ 1[] xT$-." ms"
+    1000#* 100* xT$ 1[] xT$-." ms"
 
 ; A simple benchmark for a 100 million WHILE/DECREMENT loop:
-    100 1000#** xT$ {D} xT$-." ms"
+    1000#* 100* xT$ {D} xT$-." ms"
 
 ; Define a function to display the currently defined code:
-    :C xIU xIH D[rIc@#,59=(E)];
+    :C xIAU xIH D[rI c@ #, 59=(rI I c@ 58=(N))];
 
 ; To exit R4:
-    xq
+    xQ
