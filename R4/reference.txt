@@ -44,8 +44,8 @@ A  (a--b)         b: abs(a)                 (Absolute value)
 *** MEMORY ***
 @     (a--n)      Fetch CELL n from address a
 !     (n a--)     Store CELL n  to  address a
-c@    (a--n)      Fetch BYTE n from address a
-c!    (n a--)     Store BYTE n  to  address a
+C@    (a--n)      Fetch BYTE n from address a
+C!    (n a--)     Store BYTE n  to  address a
 
 
 *** REGISTERS ***
@@ -71,8 +71,8 @@ sN   (v--)      v: store v to local #N.
          2) The number of functions is controlled by the NUM_FUNCS #define in "config.h"
          3) Function A is the same as function AAA, B <-> AAB, Z <-> AAZ
          4) :"TEST"; will define function #0 (AAA).
-:XXX  (--)        Define function XXX. Copy chars to (HERE++) until closing ';'.
-eXXX  (--)        Execute (call) function XXX.
+:ABC  (--)        Define function ABC. Copy chars to (HERE++) until closing ';'.
+cABC  (--)        Call function ABC.
 ;     (--)        Return: PC = rpop()
         NOTE: Returning while inside of a loop is not supported; behavior will be undefined. 
               Use '^' to exit the loop first.
@@ -91,7 +91,7 @@ K@    (--n)       n: Key char, wait if no char is available.
                      to enter a negative number, use "negate" (eg - 490~)
 hXXX  (--N)       Scan HEX number N until non hex-digit ([0-9,A-F] only ... NOT [a-f])
 'C    (n)         n: the ASCII value of C
-`x    (a--a b)    Copy next chars (string) until closing '`' to user area.
+`x    (a--a b)    Copy following chars until closing '`' to (a++).
                   a: address, b next byte after trailing NULL.
 
 
@@ -120,13 +120,13 @@ sI    (n--)       n: a new value for the index of the current FOR loop
 
 
 *** FILES ***
-xFO  (nm md--fh)  FILE: Open, nm: name, md: mode, fh: fileHandle
-xFC  (fh--)       FILE: Close, fh: fileHandle
-xFD  (nm--)       FILE: Delete
-xFR  (fh--c n)    FILE: Read, fh: fileHandle, c: char, n: num
-xFW  (c fh--n)    FILE: Write, fh: fileHandle, c: char, n: num
-xFS  (--)         FILE: Save Code
-xFL  (--)         FILE: Load Code
+fO   (nm md--fh)  FILE: Open, nm: name, md: mode, fh: fileHandle
+fC   (fh--)       FILE: Close, fh: fileHandle
+fD   (nm--)       FILE: Delete
+fR   (fh--c n)    FILE: Read, fh: fileHandle, c: char, n: num
+fW   (c fh--n)    FILE: Write, fh: fileHandle, c: char, n: num
+fS   (--)         FILE: Save Code
+fL   (--)         FILE: Load Code
 
 
 *** OTHER ***

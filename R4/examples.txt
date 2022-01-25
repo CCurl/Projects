@@ -20,18 +20,18 @@ R4 examples:
      %%<($)\
 
 ; To do something (in this case, call CC) rX times:
-    1 rX[eCC]
+    1 rX[cCC]
 
 ; To output the contents of a file:
-    :CAT xFO #s1 xFR{\, r1 xFR}\ r1 xFC;
-    rV `file.txt` `rt` \ eCAT
+    :CAT fO #s1 fR{\, r1 fR}\ r1 fC;
+    rVH `file.txt` `rt` \ cCAT
 
 ; To print the ASCII chars from 33 to 126:
-    33 126[rI . B rI , N]
+    33 126[rI #. " - " , N]
 
 ; One way to copy N bytes from F to T (using locals)
     :CPY s2 s1 1[r1 c@ r2 c! i1 i2];
-    rN rF rT eCPY
+    rN rF rT cCPY
 
 ; A simple benchmark for a 100 million FOR loop:
     1000#* 100* xT$ 1[] xT$-." ms"
@@ -40,7 +40,7 @@ R4 examples:
     1000#* 100* xT$ {D} xT$-." ms"
 
 ; Define a function to display the currently defined code:
-    :C xIAU xIH D[rI c@ #, 59=(rI I c@ 58=(N))];
+    :C xIAU xIH D[rI C@ #, 59=(rI I C@ 58=(N))];
 
 ; To exit R4:
     xQ

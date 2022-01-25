@@ -10,5 +10,5 @@
 :BW h100 S$ cBD cBD;
 :BL h10000 S$ cBW cBW;
 
-0(rV `block-999.r4` `rt` \ xFO)
-:CAT xFO #s1 xFR{\, r1 xFR}\ r1 xFC;
+0(rV `block-999.r4` `rt` \ cCAT)
+:CAT 0(n m--) fO #s1 fR{\, r1 fR}\ r1 fC;

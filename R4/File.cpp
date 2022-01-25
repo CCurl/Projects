@@ -8,13 +8,13 @@ void fileClose() { noFile(); }
 void fileDelete() { noFile(); }
 void fileRead() { noFile(); }
 void fileWrite() { noFile(); }
-void fileLoad() { noFile(); }
-void fileSave() { noFile(); }
+addr fileLoad(addr x) { noFile(); return x; }
+void fileSave(addr x, addr y) { noFile(); }
 #else
 #if __BOARD__ == PC
 void fileInit() {}
 
-// xFO (nm md--fh) - File Open
+// fO (nm md--fh) - File Open
 // fh: File handle, nm: File name, md: mode
 // fh=0: File not found or error
 void fileOpen() {
@@ -23,14 +23,14 @@ void fileOpen() {
     T = (CELL)fopen(fn, md);
 }
 
-// xFC (fh--) - File Close
+// fC (fh--) - File Close
 // fh: File handle
 void fileClose() {
     FILE* fh = (FILE*)pop();
     if (fh) { fclose(fh); }
 }
 
-// xFD (nm--) - File Delete
+// fD (nm--) - File Delete
 // nm: File name
 // n=0: End of file or file error
 void fileDelete() {
@@ -38,7 +38,7 @@ void fileDelete() {
     T = remove(fn) == 0 ? 1 : 0;
 }
 
-// xFR (fh--c n) - File Read
+// fR (fh--c n) - File Read
 // fh: File handle, c: char read, n: num chars read
 // n=0: End of file or file error
 void fileRead() {
@@ -52,7 +52,7 @@ void fileRead() {
     }
 }
 
-// xFW (c fh--n) - File Write
+// fW (c fh--n) - File Write
 // fh: File handle, c: char to write, n: num chars written
 // n=0: File not open or error
 void fileWrite() {
@@ -64,28 +64,30 @@ void fileWrite() {
     }
 }
 
-void fileLoad() {
+// fL (--) - File Load code
+addr fileLoad(addr user) {
     FILE *fh = fopen("Code.S4", "rt");
+    addr here = HERE;
     if (fh) {
-        addr user = NULL;
         vmInit();
-        int num = fread(HERE, 1, USER_SZ, fh);
-        HERE += num;
+        int num = fread(user, 1, USER_SZ, fh);
         fclose(fh);
-        *(HERE) = 0;
+        here = user + num;
+        *(here) = 0;
         run(user);
-        printStringF("-loaded, (%d)-", num);
+        printStringF("-loaded, (%d bytes)-", num);
     }
     else {
         printString("-loadFail-");
     }
+    return here;
 }
 
-void fileSave() {
+// fS (--) - File Save code
+void fileSave(addr user, addr here) {
     FILE* fh = fopen("Code.S4", "wt");
     if (fh) {
-        addr user = NULL;
-        int count = HERE - user;
+        int count = here - user;
         fwrite(user, 1, count, fh);
         fclose(fh);
         printStringF("-saved (%d)-", count);

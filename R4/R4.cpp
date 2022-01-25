@@ -163,14 +163,6 @@ int getRFnum(int isReg) {
 void doExt() {
     ir = *(pc++);
     switch (ir) {
-    case 'F': ir = *(pc++);
-        if (ir == 'O') { fileOpen(); };
-        if (ir == 'C') { fileClose(); };
-        if (ir == 'R') { fileRead(); };
-        if (ir == 'W') { fileWrite(); };
-        if (ir == 'S') { fileSave(); };
-        if (ir == 'L') { fileLoad(); };
-        return;
     case 'I': ir = *(pc++);
         if (ir == 'A') { 
             ir = *(pc++);
@@ -294,7 +286,14 @@ addr run(addr start) {
         } DROP1; break;
         case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
-        case 'f': /*FREE*/                                         break;
+        case 'f': ir = *(pc++);
+            if (ir == 'O') { fileOpen(); };
+            if (ir == 'C') { fileClose(); };
+            if (ir == 'R') { fileRead(); };
+            if (ir == 'W') { fileWrite(); };
+            if (ir == 'S') { fileSave(user, HERE); };
+            if (ir == 'L') { HERE = fileLoad(user); };
+            break;
         case 'g': /*FREE*/                                         break;
         case 'h': push(0); while (1) {                                     // HEX number
                 t1 = BetweenI(*pc,'0','9') ? (*pc)-'0' : -1;

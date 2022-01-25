@@ -56,5 +56,5 @@ extern void fileClose();
 extern void fileDelete();
 extern void fileRead();
 extern void fileWrite();
-extern void fileLoad();
-extern void fileSave();
+extern addr fileLoad(addr);
+extern void fileSave(addr, addr);
