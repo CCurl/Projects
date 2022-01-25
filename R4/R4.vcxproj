@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="File.cpp" />
     <ClCompile Include="pc-main.cpp" />
     <ClCompile Include="R4.cpp" />
     <Text Include="history.txt" />

@@ -49,6 +49,29 @@ CELL getSeed() { return millis(); }
 int getChar() { return _getch(); }
 int charAvailable() { return _kbhit(); }
 
+addr doFile(addr pc) {
+    FILE* f;
+    t1 = *(pc++);
+    switch (t1) {
+    case 'O': {                                             // OPEN
+        char *m = (char*)pop(), *n = (char*)pop();
+        push((CELL) fopen(n, m));
+        } break;
+    case 'C': f = (FILE*)pop();                             // CLOSE
+        if (f) { fclose(f); }
+        break;
+    case 'R': f = (FILE*)pop();                             // READ
+        printString("-read-");
+        push(t1);
+        break;
+    case 'W': f = (FILE*)pop();                             // WRITE
+        printString("-write-");
+        t1 = pop();
+        break;
+    }
+    return pc;
+}
+
 addr doBlock(addr pc) {
     t1 = *(pc++);
     switch (t1) {
@@ -92,6 +115,7 @@ addr doBlock(addr pc) {
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
     case 'B': pc = doBlock(pc);                break;
+    case 'F': pc = doFile(pc);                 break;
     case 'N': push(micros());                  break;
     case 'T': push(millis());                  break;
     case 'W': if (0 < T) { delay(T); } pop();  break;

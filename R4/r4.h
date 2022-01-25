@@ -48,3 +48,13 @@ extern void dumpStack();
 extern CELL getSeed();
 extern int charAvailable();
 extern int getChar();
+
+// File support
+extern void fileInit();
+extern void fileOpen();
+extern void fileClose();
+extern void fileDelete();
+extern void fileRead();
+extern void fileWrite();
+extern void fileLoad();
+extern void fileSave();

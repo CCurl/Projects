@@ -91,6 +91,8 @@ K@    (--n)       n: Key char, wait if no char is available.
                      to enter a negative number, use "negate" (eg - 490~)
 hXXX  (--N)       Scan HEX number N until non hex-digit ([0-9,A-F] only ... NOT [a-f])
 'C    (--n)       n: the ASCII value of C
+`     (a--a b)    Copy next chars (string) until closing '`' to user area.
+                  a: address, b next byte after trailing NULL.
 
 
 *** LOGICAL/CONDITIONS/FLOW CONTROL ***
