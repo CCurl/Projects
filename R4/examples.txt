@@ -22,6 +22,10 @@ R4 examples:
 ; To do something (in this case, call CC) rX times:
     1 rX[eCC]
 
+; To output the contents of a file:
+    :CAT xFO #s1 xFR{\, r1 xFR}\ r1 xFC;
+    rV `file.txt` `rt` \ eCAT
+
 ; To print the ASCII chars from 33 to 126:
     33 126[rI . B rI , N]
 

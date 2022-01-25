@@ -24,9 +24,9 @@
 1xBL
 :H E"The Mandelbrot Set";
 :Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA iJ;
-:L 0sA 0sB 0sJ rS sM 1{\eQ rJ rM<};
-:O eL rJ 40+ #126>(\32),;
-:X 490~ sX 1 95[  eO rX8+sX];
-:Y 340~ sY 1 35[N eX rY20+sY];
-:M eH 0sT xT eY xT$- N rT." iterations, " . " ms";
-200 sS 1000000 sK eM
+:L 0sA 0sB 0sJ rS sM 1{\cQ rJ rM<};
+:O cL rJ 40+ #126>(\32),;
+:X 490~ sX 1 95[  cO rX  8+ sX];
+:Y 340~ sY 1 35[N cX rY 20+ sY];
+:M cH 0sT xT cY xT$- N rT." iterations, " . " ms";
+200 sS 1000000 sK cM

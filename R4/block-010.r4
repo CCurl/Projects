@@ -2,28 +2,28 @@
 :CSI 27,"[";
 
 0(GXY (x y--); GotoXY)
-:GXY eCSI.";"."H";
+:GXY cCSI.";"."H";
 
 0(CLS (--): Clear Screen)
-:CLS eCSI"2J"1#eGXY;
+:CLS cCSI"2J"1#cGXY;
 
 0(STC (fg bg--): Set Color)
-:STC eCSI.";"."m";
+:STC cCSI.";"."m";
 
 0(CLC (--): Clear Color)
-:CLC 37 40eSTC;
+:CLC 37 40cSTC;
 
 0(CLL (--): To list the colors )
-:CLL 30 37[N rIs1 40 47[r1 rI eSTC " ("r1.";"rI.") "] eCLC];
+:CLL 30 37[N rI s1 40 47[r1 rI cSTC " ("r1.";"rI.") "] cCLC];
 
 0(CLU (--): More, ugly)
-:CLU 90 97[N rIs1 100 107[r1 rI eSTC " ("r1.";"rI.") "] eCLC];
+:CLU 90 97[N rI s1 100 107[r1 rI cSTC " ("r1.";"rI.") "] cCLC];
 
 0(COF (--): Curson off)
-:COF eCSI"?25l";
+:COF cCSI"?25l";
 
 0(CON (--): Curson on)
-:CON eCSI"?25h";
+:CON cCSI"?25h";
 
 0(DMO (--): A little demo of using these)
-:DMO 0sT eCLS eCOF rX 0=(100sX) rY 0=(40sY)1{\iT 8xR 30+ 40 eSTC rX xR I rY xR I eGXY"*"K?0=}K@\eCLC eCON;
+:DMO 0sT cCLS cCOF rX 0=(100sX) rY 0=(40sY)1{\iT 8xR 30+ 40 cSTC rX xR I rY xR I cGXY"*"K?0=}K@\cCLC cCON;

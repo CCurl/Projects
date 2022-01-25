@@ -163,6 +163,14 @@ int getRFnum(int isReg) {
 void doExt() {
     ir = *(pc++);
     switch (ir) {
+    case 'F': ir = *(pc++);
+        if (ir == 'O') { fileOpen(); };
+        if (ir == 'C') { fileClose(); };
+        if (ir == 'R') { fileRead(); };
+        if (ir == 'W') { fileWrite(); };
+        if (ir == 'S') { fileSave(); };
+        if (ir == 'L') { fileLoad(); };
+        return;
     case 'I': ir = *(pc++);
         if (ir == 'A') { 
             ir = *(pc++);
@@ -233,7 +241,10 @@ addr run(addr start) {
         case '@': T = getCell((byte*)T);                           break;  // 64 FETCH
         case 'A': if (T < 0) { T = -T; }                           break;  // ABS
         case 'B': printChar(' ');                                  break;  // PRINT BLANK
-        case 'C': /*FREE*/                                         break;
+        case 'C': ir = *(pc++);                                            // C@, C!
+            if (ir == '@') { T = *(byte*)T; }
+            if (ir == '!') { *(byte*)T = (byte)N; DROP2; }
+            break;
         case 'D': --T;                                             break;  // DECREMENT
         case 'E': /*FREE*/                                         break;
         case 'F': doFloat();                                       break;  // FLOAT ops
@@ -277,15 +288,12 @@ addr run(addr start) {
             if (ir == '^') { N ^= T; DROP1; }      // XOR
             if (ir == '~') { T = ~T; }             // NOT (COMPLEMENT)
             break;
-        case 'c': ir = *(pc++);                                            // c@, c!
-            if (ir == '@') { T = *(byte*)T; }
-            if (ir == '!') { *(byte*)T = (byte)N; DROP2; }
-            break;
-        case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG DECREMENT
-        case 'e': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
+        case 'c': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
             if (*pc != ';') { rpush(pc); locStart += 10; }
             pc = func[T];
         } DROP1; break;
+        case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG DECREMENT
+        case 'e': /*FREE*/                                         break;
         case 'f': /*FREE*/                                         break;
         case 'g': /*FREE*/                                         break;
         case 'h': push(0); while (1) {                                     // HEX number

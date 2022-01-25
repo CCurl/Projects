@@ -14,25 +14,36 @@ void fileSave() { noFile(); }
 #if __BOARD__ == PC
 void fileInit() {}
 
-void fileOpen() { 
+// xFO (nm md--fh) - File Open
+// fh: File handle, nm: File name, md: mode
+// fh=0: File not found or error
+void fileOpen() {
     char* md = (char *)pop();
     char* fn = (char *)T;
     T = (CELL)fopen(fn, md);
 }
 
+// xFC (fh--) - File Close
+// fh: File handle
 void fileClose() {
     FILE* fh = (FILE*)pop();
-    fclose(fh);
+    if (fh) { fclose(fh); }
 }
 
+// xFD (nm--) - File Delete
+// nm: File name
+// n=0: End of file or file error
 void fileDelete() {
     char* fn = (char*)T;
     T = remove(fn) == 0 ? 1 : 0;
 }
 
+// xFR (fh--c n) - File Read
+// fh: File handle, c: char read, n: num chars read
+// n=0: End of file or file error
 void fileRead() {
     FILE* fh = (FILE*)T;
-    T = 0;
+    N = T = 0;
     push(0);
     if (fh) {
         char c;
@@ -41,6 +52,9 @@ void fileRead() {
     }
 }
 
+// xFW (c fh--n) - File Write
+// fh: File handle, c: char to write, n: num chars written
+// n=0: File not open or error
 void fileWrite() {
     FILE* fh = (FILE*)pop();
     char c = (char)T;

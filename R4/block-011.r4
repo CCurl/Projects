@@ -1,11 +1,14 @@
 
 0(HEX output)
 :HXD #9>(7+)'0+,;
-:HXB h10 S$ eHXD eHXD;
-:HXW h100 S$ eHXB eHXB;
-:HXL h10000 S$ eHXW eHXW;
+:HXB h10 S$ cHXD cHXD;
+:HXW h100 S$ cHXB cHXB;
+:HXL h10000 S$ cHXW cHXW;
 
 0(Binary output)
 :BD hFF b& h80 1 8[$%S$.$1R]\\;)
-:BW h100 S$ eBD eBD;
-:BL h10000 S$ eBW eBW;
+:BW h100 S$ cBD cBD;
+:BL h10000 S$ cBW cBW;
+
+0(rV `block-999.r4` `rt` \ xFO)
+:CAT xFO #s1 xFR{\, r1 xFR}\ r1 xFC;
