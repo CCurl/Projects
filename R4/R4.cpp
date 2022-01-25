@@ -153,7 +153,7 @@ void doFloat() {
 
 int getRFnum(int isReg) {
     push(0);
-    while (BetweenI(*pc, 'A', 'Z')) { T = (T * 26) + *(pc++)-'A'; }
+    while (isRegChar(*pc)) { T = (T * 26) + *(pc++)-'A'; }
     if ((isReg == 1) && (NUM_REGS <= T)) { isError = 1; printString("-#reg-"); }
     if ((isReg == 0) && (NUM_FUNCS <= T)) { isError = 1; printString("-#func-"); }
     if (isError) { DROP1; }
@@ -284,7 +284,8 @@ addr run(addr start) {
             if (*pc != ';') { rpush(pc); locStart += 10; }
             pc = func[T];
         } DROP1; break;
-        case 'd': if (getRFnum(1)) { --reg[pop()]; }               break;  // REG DECREMENT
+        case 'd': if (isLocal(*pc)) { --locals[*(pc++) - '0' + locStart]; }
+                else { if (getRFnum(1)) { --reg[pop()]; } }        break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
         case 'f': ir = *(pc++);
             if (ir == 'O') { fileOpen(); };
@@ -301,7 +302,8 @@ addr run(addr start) {
                 if (t1 < 0) { break; }
                 T = (T * 16) + t1; ++pc;
             } break;
-        case 'i': if (getRFnum(1)) { ++reg[pop()]; }               break;  // REG INCREMENT
+        case 'i': if (isLocal(*pc)) { ++locals[*(pc++) - '0' + locStart]; }
+                else { if (getRFnum(1)) { ++reg[pop()]; } }        break;  // SET-REGISTER
         case 'j': /*FREE*/                                         break;
         case 'k': /*FREE*/                                         break;
         case 'l': /*FREE*/                                         break;  // LOOP EXIT
@@ -310,9 +312,9 @@ addr run(addr start) {
         case 'o': /*FREE*/                                         break;
         case 'p': /*FREE*/                                         break;
         case 'q': /*FREE*/                                         break;
-        case 'r': if (BetweenI(*pc, '0', '9')) { push(locals[*(pc++)-'0'+locStart]); } 
+        case 'r': if (isLocal(*pc)) { push(locals[*(pc++)-'0'+locStart]); } 
                 else { if (getRFnum(1)) { T = reg[T]; } }          break;  // READ-REGISTER
-        case 's': if (BetweenI(*pc, '0', '9')) { locals[*(pc++)-'0'+locStart] = pop(); }
+        case 's': if (isLocal(*pc)) { locals[*(pc++)-'0'+locStart] = pop(); }
               else { if (getRFnum(1)) { reg[T] = N; DROP2; } }     break;  // SET-REGISTER
         case 't': /*FREE*/                                         break;
         case 'u': /*FREE*/                                         break;

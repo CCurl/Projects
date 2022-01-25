@@ -19,6 +19,8 @@ typedef byte *addr;
 #define DROP1      pop()
 #define DROP2      pop(); pop()
 #define BetweenI(n, x, y) (((x) <= (n)) && ((n) <= (y)))
+#define isLocal(x) (('0' <= (x)) && ((x) <= '9'))
+#define isRegChar(x) (('A' <= (x)) && ((x) <= 'Z'))
 #define isReg(n) ((0 <= (n)) && ((n) < NUM_REGS))
 #define isFunc(n) ((0 <= (n)) && ((n) < NUM_FUNCS))
 #define ABS(x) ((x < 0) ? -x : x)
