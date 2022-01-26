@@ -102,6 +102,7 @@ void ok() {
     printString(")>");
 }
 
+// PuTTY sends a 127 for backspace
 int isBackspace(char c) {
   return (c == 127) ? 1 : 0;
 }
@@ -165,6 +166,6 @@ void loop() {
 
     while ( charAvailable() ) { handleInput(getChar()); }
 
-    // addr a = functionAddress("R");
-    // if (a) { run(a); }
+    addr a = func[NUM_FUNCS-1];
+    if (a) { run(a); }
 }
