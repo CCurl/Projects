@@ -19,52 +19,26 @@ CELL getSeed() {
   return millis();
 }
 
-addr doPinRead(addr pc) {
-    byte ir = *(pc++);
-    CELL pin = pop();
-    switch (ir) {
-    case 'A': push(analogRead(pin));          break;
-    case 'D': push(digitalRead(pin));         break;
-    default:
-        isError = 1;
-        printString("-pinRead-");
-    }
-    return pc;
-}
-
-addr doPinWrite(addr pc) {
-    byte ir = *(pc++);
-    CELL pin = pop();
-    CELL val = pop();
-    switch (ir) {
-    case 'A': analogWrite(pin, val);          break;
-    case 'D': digitalWrite(pin, val);         break;
-    default:
-        isError = 1;
-        printString("-pinWrite-");
-    }
-    return pc;
-}
-
-addr doPin(addr pc) {
-    CELL t1 = *(pc++);
-    switch (t1) {
-    case 'I': pinMode(pop(), INPUT);          break;
-    case 'O': pinMode(pop(), OUTPUT);         break;
-    case 'U': pinMode(pop(), INPUT_PULLUP);   break;
-    case 'R': pc = doPinRead(pc);             break;
-    case 'W': pc = doPinWrite(pc);            break;
-    default:
-        isError = 1;
-        printString("-notPin-");
-    }
-    return pc;
-}
-
 addr doCustom(byte ir, addr pc) {
+    CELL pin;
     switch (ir) {
     case 'N': push(micros());                  break;
-    case 'P': pc = doPin(pc);                  break;
+    case 'P': ir = *(pc++);
+        pin = pop();
+        if (ir == 'I') { pinMode(pin, INPUT); }
+        if (ir == 'O') { pinMode(pin, OUTPUT); }
+        if (ir == 'U') { pinMode(pin, INPUT_PULLUP); }
+        if (ir == 'R') {
+            ir = *(pc++);
+            if (ir == 'A') { push(analogRead(pin)); }
+            if (ir == 'D') { push(digitalRead(pin)); }
+        } else if (ir == 'W') {
+            CELL val = pop();
+            ir = *(pc++);
+            if (ir == 'A') { analogWrite(pin, val); }
+            if (ir == 'D') { digitalWrite(pin, val); }
+        }
+        break;
     case 'T': push(millis());                  break;
     case 'W': if (0 < T) { delay(T); } pop();  break;
     default:
@@ -92,18 +66,16 @@ FILE *input_pop() { return NULL; }
 // ********************************************
 
 #define SOURCE_STARTUP \
-    X(1000, ":C xIAU xIH1-[rIc@#,59=(rI1+c@58=(E))];") \
-    X(1010, ":R 0 xIR1-[rIa@#(rIeN\": \".E1)\\];") \
-    X(1020, ":F 0 xIF1-[rI4*xIAF+@#(rI#.\"-\"eN\": \".E1)\\];") \
-    X(1030, ":N 26S$26S$'A+,'A+,'A+,;") \
-    X(1040, ":U xIH xIAU-.;") \
-    X(1045, ":SI E\"System info: \"xIR.\" registers, \"xIF.\" functions, \"xIU.\" bytes user memory.\";") \
+    X(1000, ":C xIAU xIH1-[rI C@#,59=(rI1+C@58=(N))];") \
+    X(1010, ":R 0xIR1-[rI4*xIAR+@#s1(rI26S$26S$'A+,'A+,'A+,':,Br1.N)];") \
+    X(1040, ":U xIH xIAU-;") \
+    X(1045, ":SI N\"System info: \"xIR.\" registers, \"xIF.\" functions, \"xIU.\" bytes user memory.\";") \
     X(2000, ":Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM;)rArB*100/rY+sB rCrD-rX+sA iJ;") \
-    X(2010, ":L 0sA 0sB 0sJ rS sM 1{\\eQ rJ rM<};") \
-    X(2020, ":O eLrJ40+#126>(\\32),;") \
-    X(2030, ":X 490NsX 1 95[  eO rX 8+sX];") \
-    X(2040, ":Y 300NsY 1 31[E eX rY20+sY];") \
-    X(2050, ":M eI 0sT xT eY xT$- E rT.\" iterations, \" . \" ms\";") \
+    X(2010, ":L 0sA 0sB 0sJ rS sM 1{\\cQ rJ rM<};") \
+    X(2020, ":O cLrJ40+#126>(\\32),;") \
+    X(2030, ":X 490~sX 1 95[  cO rX 8+sX];") \
+    X(2040, ":Y 300~sY 1 31[N cX rY20+sY];") \
+    X(2050, ":M cI 0sT xT cY xT$- N rT.\" iterations, \" . \" ms\";") \
     X(2060, ":I 200 sS 1000000 sK;")
 
 #define X(num, val) const PROGMEM char str ## num[] = val;
@@ -180,7 +152,7 @@ void loop() {
     long curTm = millis();
     
     if (iLed == 0) {
-        iLed = ILED;
+        iLed = LED_BUILTIN;
         pinMode(iLed, OUTPUT);
     }
     if (nextBlink < curTm) {
