@@ -23,7 +23,6 @@ void doDelay(CELL ms) { return delay(ms); }
 addr doCustom(byte ir, addr pc) {
     CELL pin;
     switch (ir) {
-    case 'N': push(micros());                  break;
     case 'P': ir = *(pc++);
         pin = pop();
         if (ir == 'I') { pinMode(pin, INPUT); }
@@ -40,8 +39,6 @@ addr doCustom(byte ir, addr pc) {
             if (ir == 'D') { digitalWrite(pin, val); }
         }
         break;
-    case 'T': push(millis());                  break;
-    case 'W': if (0 < T) { delay(T); } pop();  break;
     default:
         isError = 1;
         printString("-notExt-");
@@ -59,8 +56,8 @@ void loadCode(const char* src) {
     run(here);
 }
 
-void input_push(FILE *fp) { }
-FILE *input_pop() { return NULL; }
+void fpush(FILE *fp) { }
+FILE *fpop() { return NULL; }
 
 // ********************************************
 // * HERE is where you load your default code *
@@ -162,7 +159,7 @@ void loop() {
     if (nextBlink < curTm) {
         ledState = (ledState == LOW) ? HIGH : LOW;
         digitalWrite(iLed, ledState);
-        nextBlink = curTm + 1111;
+        nextBlink = curTm + 1000;
     }
 
     while ( charAvailable() ) { handleInput(getChar()); }
