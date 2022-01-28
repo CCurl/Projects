@@ -10,16 +10,16 @@ A register (a built-in variable) is identified by up to 3 upper-case characters,
 
 Similarly, a function is also identified by up to 3 upper-case characters, so there is a maximum of (26x26x26) = 17576 functions available. A function is defined ":;", and you call it using 'c'. For example:
 
-0(CPY (N F T--): copy N bytes from F to T)
-:CPY s2 s1 1[r1 C@ r2 C! i1 i2];
-123 rV rV 1000+ cCPY
+- 0(CPY (N F T--): copy N bytes from F to T)
+- :CPY s2 s1 1[r1 C@ r2 C! i1 i2];
+- 123 rV rV 1000+ cCPY
 
-The number of registers, functions, and user memory can be scaled as necessary to fit into a system of any size. For example, on an ESP8266 board, a typical configuration might be 676 (26*26) registers and functions, and 24K of user ram. In such a system, register names would be in the range of [AA..ZZ], and function names would be in the range of [AA..ZZ]. On a Arduino Leonardo, you might configure the system to have 26 registers and functions, and 1K user ram. On a RPI Pico, you can have 676 registers and functions, with 64K ram.
+The number of registers, functions, and user memory can be scaled as necessary to fit into a system of any size. For example, on an ESP8266 board, a typical configuration might be 676 (26*26) registers and functions, and 24K of user ram. In such a system, the register names would be in the range of [AA..ZZ], and function names would be in the range of [AA..ZZ]. On a Arduino Leonardo, you might configure the system to have 13 registers, 26 functions, and 1K user ram. On a RPI Pico, you can have 676 registers and functions, with 64K ram.
 
 - Example 1: "Hello World!" - the standard "hello world" program.
 - Example 2: 1 sA 2 sB 3 sC rA rB rC ++ . -would print 6.
-- Example 4: 32 126\[13,10,rI#."-",\] - would print the ASCII table
-- Example 3: The typical Arduino "blink" program is a one-liner, except this stops when a key is pressed:
+- Example 4: 32 126\[13,10,rI#." - ",\] - would print the ASCII table
+- Example 3: The typical Arduino "blink" program is a one-liner, except this version stops when a key is pressed:
 
     1000 sS 13 xPO 1{\ 0 1[rI 13 xPWD rS xW] K? 0=} K@ \
 
