@@ -38,6 +38,7 @@ extern addr HERE;
 extern CELL dstack[];
 extern ushort dsp;
 extern addr func[];
+extern FILE* input_fp;
 
 extern void vmInit();
 extern CELL pop();
@@ -49,10 +50,14 @@ extern void printString(const char*);
 extern void printStringF(const char*, ...);
 extern void dumpStack();
 extern CELL getSeed();
+extern CELL doMicros();
+extern CELL doMillis();
+extern void doDelay(CELL);
 extern int charAvailable();
 extern int getChar();
 
 // File support
+extern void fpush(FILE *);
 extern void fileInit();
 extern void fileOpen();
 extern void fileClose();
@@ -61,3 +66,4 @@ extern void fileRead();
 extern void fileWrite();
 extern addr fileLoad(addr);
 extern void fileSave(addr, addr);
+extern void blockLoad(CELL);

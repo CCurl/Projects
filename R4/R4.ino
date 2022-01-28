@@ -15,9 +15,10 @@
     void printChar(char c) { }
 #endif
 
-CELL getSeed() {
-  return millis();
-}
+CELL getSeed() { return millis(); }
+CELL doMicros() { return micros(); }
+CELL doMillis() { return millis(); }
+void doDelay(CELL ms) { return delay(ms); }
 
 addr doCustom(byte ir, addr pc) {
     CELL pin;

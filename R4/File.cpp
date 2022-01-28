@@ -10,6 +10,7 @@ void fileRead() { noFile(); }
 void fileWrite() { noFile(); }
 addr fileLoad(addr x) { noFile(); return x; }
 void fileSave(addr x, addr y) { noFile(); }
+void blockLoad(CELL num) { noFile(); }
 #else
 #if __BOARD__ == PC
 void fileInit() {}
@@ -96,6 +97,17 @@ void fileSave(addr user, addr here) {
         printString("-saveFail-");
     }
 }
+
+void blockLoad(CELL num) {
+    char buf[24];
+    sprintf(buf, "Block-%03ld.r4", num);
+    FILE* newFp = fopen(buf, "rb");
+    if (newFp) {
+        if (input_fp) { fpush(input_fp); }
+        input_fp = newFp;
+    }
+}
+
 #endif // PC
 
 #ifdef __LITTLEFS__
@@ -201,6 +213,8 @@ void fileSave() {
         printString("-saveFail-");
     }
 }
+
+void blockLoad(CELL num) { printString("-noBlock-"); }
 
 #endif // __LITTLEFS__
 #endif // __FILES__

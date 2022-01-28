@@ -166,19 +166,22 @@ void doExt() {
     case 'I': ir = *(pc++);
         if (ir == 'A') { 
             ir = *(pc++);
-            if (ir == 'F') { push((CELL)&func[0]); };
-            if (ir == 'H') { push((CELL)&HERE); };
-            if (ir == 'R') { push((CELL)&reg[0]); };
-            if (ir == 'U') { push((CELL)&user[0]); };
+            if (ir == 'F') { push((CELL)&func[0]); }
+            if (ir == 'H') { push((CELL)&HERE); }
+            if (ir == 'R') { push((CELL)&reg[0]); }
+            if (ir == 'U') { push((CELL)&user[0]); }
             return;
         };
-        if (ir == 'C') { push(CELL_SZ); };
-        if (ir == 'F') { push(NUM_FUNCS); };
-        if (ir == 'H') { push((CELL)HERE); };
-        if (ir == 'R') { push(NUM_REGS); };
-        if (ir == 'U') { push(USER_SZ); };
+        if (ir == 'C') { push(CELL_SZ); }
+        if (ir == 'F') { push(NUM_FUNCS); }
+        if (ir == 'H') { push((CELL)HERE); }
+        if (ir == 'R') { push(NUM_REGS); }
+        if (ir == 'U') { push(USER_SZ); }
         return;
     case 'S': if (*pc == 'R') { ++pc; vmInit(); }  return;
+    case 'N': push(doMicros());                    return;
+    case 'T': push(doMillis());                    return;
+    case 'W': if (0 < T) { doDelay(T); } pop();    return;
     case 'R': if (!seed) { seed = getSeed(); }
             seed ^= (seed << 13);
             seed ^= (seed >> 17);
@@ -288,12 +291,13 @@ addr run(addr start) {
                 else { if (getRFnum(1)) { --reg[pop()]; } }        break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
         case 'f': ir = *(pc++);
-            if (ir == 'O') { fileOpen(); };
-            if (ir == 'C') { fileClose(); };
-            if (ir == 'R') { fileRead(); };
-            if (ir == 'W') { fileWrite(); };
-            if (ir == 'S') { fileSave(user, HERE); };
-            if (ir == 'L') { HERE = fileLoad(user); };
+            if (ir == 'B') { blockLoad(pop()); }
+            if (ir == 'O') { fileOpen(); }
+            if (ir == 'C') { fileClose(); }
+            if (ir == 'R') { fileRead(); }
+            if (ir == 'W') { fileWrite(); }
+            if (ir == 'S') { fileSave(user, HERE); }
+            if (ir == 'L') { HERE = fileLoad(user); }
             break;
         case 'g': /*FREE*/                                         break;
         case 'h': push(0); while (1) {                                     // HEX number

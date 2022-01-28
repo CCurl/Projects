@@ -5,27 +5,21 @@
 #ifdef __PC__
 
 #ifdef __WINDOWS__
-CELL millis() {
-    return (CELL)GetTickCount();
-}
-CELL micros() {
-    return (CELL)millis()*1000;
-}
-void delay(UCELL ms) { 
-    Sleep(ms);
-}
+CELL doMillis() { return (CELL)GetTickCount(); }
+CELL doMicros() { return (CELL)doMillis()*1000; }
+void doDelay(CELL ms) { Sleep(ms); }
 #else
-CELL millis() {
+CELL doMillis() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (CELL)((ts.tv_sec * 1000) + (ts.tv_nsec / 1000000));
 }
-CELL micros() {
+CELL doMicros() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (CELL)(ts.tv_nsec);
 }
-void delay(UCELL ms) { 
+void doDelay(CELL ms) { 
     struct timespec ts;
     ts.tv_sec = ms / 1000;
     ts.tv_nsec = (ms % 1000) * 1000000;
@@ -33,68 +27,24 @@ void delay(UCELL ms) {
 }
 #endif
 
-static FILE* input_fp;
 static byte fdsp = 0;
 static FILE* fstack[STK_SZ+1];
 static char buf[256];
 static CELL t1, t2;
 
-static void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
-static FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
+FILE* input_fp;
+void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
+FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
 
 void printChar(const char c) { printf("%c", c); }
 void printString(const char* str) { printf("%s", str); }
-CELL getSeed() { return millis(); }
+CELL getSeed() { return doMillis(); }
 
 int getChar() { return _getch(); }
 int charAvailable() { return _kbhit(); }
 
-addr doBlock(addr pc) {
-    t1 = *(pc++);
-    switch (t1) {
-    case 'C': if (T) {
-            if ((FILE*)T == input_fp) { input_fp = fpop(); }
-            fclose((FILE*)pop());
-        } break;
-    case 'L': if (input_fp) { fpush(input_fp); }
-        sprintf(buf, "Block-%03ld.r4", pop());
-        input_fp = fopen(buf, "rb");
-        break;
-    case 'O': sprintf(buf, "Block-%03ld.r4", pop());
-        t1 = *(pc++);
-        if (t1 == 'R') {
-            push((CELL)fopen(buf, "rb"));
-        } else if (t1 == 'W') {
-            push((CELL)fopen(buf, "wb"));
-        }
-        break;
-    case 'R': t1 = pop();
-        if (t1) {
-            t2 = fread(buf, 1, 1, (FILE *)t1);
-            push(t2 ? buf[0] : 0);
-            push(t2);
-        } else {
-            push(0);
-            push(0);
-        } 
-        break;
-    case 'W': t1 = pop(); t2 = pop();
-        if (t1) {
-            buf[0] = (char)t2;
-            t2 = fwrite(buf, 1, 1, (FILE *)t1);
-            push(t2 ? 1 : 0);
-        }
-        break;
-    }
-    return pc;
-}
-
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
-    case 'B': pc = doBlock(pc);                break;
-    case 'N': push(micros());                  break;
-    case 'T': push(millis());                  break;
-    case 'W': if (0 < T) { delay(T); } pop();  break;
     case 'Q': isBye = 1;                       break;
     default:
         isError = 1;
@@ -145,14 +95,13 @@ void loop() {
     }
     if (input_fp) {
         fclose(input_fp);
-        input_fp = fpop(); // input_pop();
+        input_fp = fpop();
     }
 }
 
 int main(int argc, char** argv) {
     vmInit();
-    srand(GetTickCount());
-    loadCode("0xBL");
+    loadCode("0 fB");
     while (!isBye) { loop(); }
     return 0;
 }

@@ -127,15 +127,10 @@ fR   (fh--c n)    FILE: Read, fh: fileHandle, c: char, n: num
 fW   (c fh--n)    FILE: Write, fh: fileHandle, c: char, n: num
 fS   (--)         FILE: Save Code
 fL   (--)         FILE: Load Code
+fB    (n--)       FILE: Load code from file (Block-nnn.r4). This can be nested.
 
 
 *** OTHER ***
-xBL   (n--)       PC: Load code from file (Block-nnn.r4). This can be nested.
-xBC   (h--)       PC: Block close
-xBOR  (--h)       PC: Block open (read)
-xBOW  (--h)       PC: Block open (write)
-xBR   (h--c f)    PC: Block read one byte (f = 0 and c = 0 on EOF or error)
-xBW   (c h--f)    PC: Block write one byte (f = 0 on error)
 xIAF  (--a)       INFO: Address where the function vectors begin
 xIAH  (--a)       INFO: Address of the HERE variable
 xIAR  (--a)       INFO: Address where the registers begin
