@@ -1,6 +1,7 @@
 #include "R4.h"
 
 #ifndef __FILES__
+#ifndef __LITTLEFS__
 void noFile() { printString("-noFile-"); }
 void fileInit() { noFile(); }
 void fileOpen() { noFile(); }
@@ -8,11 +9,19 @@ void fileClose() { noFile(); }
 void fileDelete() { noFile(); }
 void fileRead() { noFile(); }
 void fileWrite() { noFile(); }
-addr fileLoad(addr x) { noFile(); return x; }
-void fileSave(addr x, addr y) { noFile(); }
+addr codeLoad(addr x) { noFile(); return x; }
+void codeSave(addr x, addr y) { noFile(); }
 void blockLoad(CELL num) { noFile(); }
+int fileReadLine(FILE* fh, char* buf) { noFile(); return -1; }
+#endif // __LITTLEFS__
 #else
-#if __BOARD__ == PC
+static byte fdsp = 0;
+static FILE* fstack[STK_SZ + 1];
+FILE* input_fp;
+
+void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
+FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
+
 void fileInit() {}
 
 // fO (nm md--fh) - File Open
@@ -20,8 +29,8 @@ void fileInit() {}
 // fh=0: File not found or error
 void fileOpen() {
     char* md = (char *)pop();
-    char* fn = (char *)T;
-    T = (CELL)fopen(fn, md);
+    char* fn = (char *)TOS;
+    TOS = (CELL)fopen(fn, md);
 }
 
 // fC (fh--) - File Close
@@ -35,22 +44,40 @@ void fileClose() {
 // nm: File name
 // n=0: End of file or file error
 void fileDelete() {
-    char* fn = (char*)T;
-    T = remove(fn) == 0 ? 1 : 0;
+    char* fn = (char*)TOS;
+    TOS = remove(fn) == 0 ? 1 : 0;
 }
 
 // fR (fh--c n) - File Read
 // fh: File handle, c: char read, n: num chars read
 // n=0: End of file or file error
 void fileRead() {
-    FILE* fh = (FILE*)T;
-    N = T = 0;
+    FILE* fh = (FILE*)TOS;
+    NOS = TOS = 0;
     push(0);
     if (fh) {
         char c;
-        T = fread(&c, 1, 1, fh);
-        N = T ? c : 0;
+        TOS = fread(&c, 1, 1, fh);
+        NOS = TOS ? c : 0;
     }
+}
+
+// fileReadLine(fh, buf)
+// fh: File handle, buf: address
+// returns: -1 if EOF, else len
+int fileReadLine(FILE *fh, char *buf) {
+    byte c, len = 0;
+    while (1) {
+        *(buf) = 0;
+        int n = fread(&c, 1, 1, fh);
+        if (n == 0) { return -1; }
+        if (c == 13) { break; }
+        if (BetweenI(c, 32, 126)) {
+            *(buf++) = c;
+            ++len;
+        }
+    }
+    return len;
 }
 
 // fW (c fh--n) - File Write
@@ -58,23 +85,21 @@ void fileRead() {
 // n=0: File not open or error
 void fileWrite() {
     FILE* fh = (FILE*)pop();
-    char c = (char)T;
-    T = 0;
+    char c = (char)TOS;
+    TOS = 0;
     if (fh) {
-        T = fwrite(&c, 1, 1, fh);
+        TOS = fwrite(&c, 1, 1, fh);
     }
 }
 
 // fL (--) - File Load code
-addr fileLoad(addr user) {
-    FILE *fh = fopen("Code.S4", "rt");
-    addr here = HERE;
+addr codeLoad(addr user, addr here) {
+    FILE *fh = fopen("Code.R4", "rt");
     if (fh) {
         vmInit();
         int num = fread(user, 1, USER_SZ, fh);
         fclose(fh);
         here = user + num;
-        *(here) = 0;
         run(user);
         printStringF("-loaded, (%d bytes)-", num);
     }
@@ -85,8 +110,8 @@ addr fileLoad(addr user) {
 }
 
 // fS (--) - File Save code
-void fileSave(addr user, addr here) {
-    FILE* fh = fopen("Code.S4", "wt");
+void codeSave(addr user, addr here) {
+    FILE* fh = fopen("Code.R4", "wt");
     if (fh) {
         int count = here - user;
         fwrite(user, 1, count, fh);
@@ -98,6 +123,8 @@ void fileSave(addr user, addr here) {
     }
 }
 
+// fB (n--) - File: block load
+// Loads a block fil
 void blockLoad(CELL num) {
     char buf[24];
     sprintf(buf, "Block-%03ld.r4", num);
@@ -108,113 +135,4 @@ void blockLoad(CELL num) {
     }
 }
 
-#endif // PC
-
-#ifdef __LITTLEFS__
-#include "LittleFS.h"
-
-#define MAX_FILES 10
-File *files[MAX_FILES];
-int numFiles = 0;
-File f;
-
-int freeFile() {
-  for (int i = 1; i <= MAX_FILES; i++) {
-    if (files[i-1] == NULL) { return i; }
-  }
-  isError = 1;
-  printString("-fileFull-");
-  return 0;
-}
-
-void fileInit() {
-    for (int i = 0; i < MAX_FILES; i++) { files[i] = NULL; }
-    LittleFS.begin();
-    FSInfo fs_info;
-    LittleFS.info(fs_info);
-    printStringF("\r\nLittleFS: Total: %ld", fs_info.totalBytes);
-    printStringF("\r\nLittleFS: Used: %ld", fs_info.usedBytes);
-}
-
-void fileOpen() {
-    char* md = (char*)pop();
-    char* fn = (char*)pop();
-    int i = freeFile();
-    if (i) {
-        f = LittleFS.open(fn, md);
-        if (f) { files[i-1] = &f; } 
-        else { 
-            i = 0;
-            isError = 1; 
-            printString("-openFail-");
-        }
-    }
-    push(i);
-}
-
-void fileClose() {
-    int fn = (int)pop();
-    if ((0 < fn) && (fn <= MAX_FILES) && (files[fn-1] != NULL)) {
-        files[fn-1]->close();
-        files[fn-1] = NULL;
-    }
-}
-
-void fileDelete() {
-    char* fn = (char*)T;
-    T = LittleFS.remove(fn) ? 1 : 0;
-}
-
-void fileRead() {
-    int fn = (int)pop();
-    push(0);
-    push(0);
-    if ((0 < fn) && (fn <= MAX_FILES) && (files[fn-1] != NULL)) {
-        byte c;
-        T = files[fn-1]->read(&c, 1);
-        N = (CELL)c;
-    }
-}
-
-void fileWrite() {
-    int fn = (int)pop();
-    byte c = (byte)T;
-    T = 0;
-    if ((0 < fn) && (fn <= MAX_FILES) && (files[fn - 1] != NULL)) {
-        T = files[fn-1]->write(&c, 1);
-    }
-}
-
-void fileLoad() {
-    File f = LittleFS.open("/Code.S4", "r");
-    if (f) {
-        vmInit();
-        int num = f.read(HERE, USER_SZ);
-        f.close();
-        HERE += num;
-        *(HERE+1) = 0;
-        run(USER);
-        printStringF("-loaded, (%d)-", num);
-    }
-    else {
-        printString("-loadFail-");
-    }
-}
-
-void fileSave() {
-    File f = LittleFS.open("/Code.S4", "w");
-    if (f) {
-        int count = HERE - USER;
-        f.write(USER, count);
-        f.close();
-        printString("-saved-");
-    }
-    else {
-        printString("-saveFail-");
-    }
-}
-
-void blockLoad(CELL num) { printString("-noBlock-"); }
-
-#endif // __LITTLEFS__
 #endif // __FILES__

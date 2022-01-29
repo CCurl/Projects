@@ -56,9 +56,6 @@ void loadCode(const char* src) {
     run(here);
 }
 
-void fpush(FILE *fp) { }
-FILE *fpop() { return NULL; }
-
 // ********************************************
 // * HERE is where you load your default code *
 // ********************************************
@@ -75,8 +72,7 @@ FILE *fpop() { return NULL; }
     X(2040, ":Y 300~sY 1 31[N cX rY20+sY];") \
     X(2050, ":M cI 0sT xT cY xT$- N rT.\" iterations, \" . \" ms\";") \
     X(2060, ":I 200 sS 1000000 sK;") \
-    X(9999, "2000 xW cSI")
-
+    X(9999, "2000 xW cSI fL")
 
 #define X(num, val) const PROGMEM char str ## num[] = val;
 SOURCE_STARTUP
@@ -142,6 +138,7 @@ void setup() {
     while (mySerial.available()) { char c = mySerial.read(); }
 #endif
     vmInit();
+    fileInit();
     loadBaseSystem();
     ok();
 }

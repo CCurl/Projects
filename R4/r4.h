@@ -4,17 +4,17 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define CELL        long
-#define UCELL       unsigned CELL
+typedef long CELL;
+typedef unsigned long UCELL;
 #define CELL_SZ     sizeof(CELL)
-#define ushort      unsigned short
-#define byte        unsigned char
+typedef unsigned short ushort;
+typedef unsigned char byte;
 typedef byte *addr;
 
 #define INDEX      reg[8]
-#define T          dstack[dsp]
-#define A          (addr)T
-#define N          dstack[dsp-1]
+#define TOS        dstack[dsp]
+#define A          (addr)TOS
+#define NOS        dstack[dsp-1]
 #define R          rstack[dsp]
 #define DROP1      pop()
 #define DROP2      pop(); pop()
@@ -57,13 +57,15 @@ extern int charAvailable();
 extern int getChar();
 
 // File support
-extern void fpush(FILE *);
+extern void fpush(FILE*);
+extern FILE *fpop();
 extern void fileInit();
 extern void fileOpen();
 extern void fileClose();
 extern void fileDelete();
 extern void fileRead();
 extern void fileWrite();
-extern addr fileLoad(addr);
-extern void fileSave(addr, addr);
+extern addr codeLoad(addr, addr);
+extern void codeSave(addr, addr);
 extern void blockLoad(CELL);
+extern int fileReadLine(FILE* fh, char* buf);

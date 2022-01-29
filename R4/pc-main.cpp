@@ -27,14 +27,8 @@ void doDelay(CELL ms) {
 }
 #endif
 
-static byte fdsp = 0;
-static FILE* fstack[STK_SZ+1];
 static char buf[256];
 static CELL t1, t2;
-
-FILE* input_fp;
-void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
-FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
 
 void printChar(const char c) { printf("%c", c); }
 void printString(const char* str) { printf("%s", str); }
@@ -86,17 +80,19 @@ void doHistory(char* str) {
 
 void loop() {
     FILE* fp = (input_fp) ? input_fp : stdin;
-    if (fp == stdin) { ok(); }
-    if (fgets(buf, sizeof(buf), fp) == buf) {
-        if (fp == stdin) { doHistory(buf); }
+    if (fp == stdin) {
+        ok();
+        fgets(buf, sizeof(buf), fp);
+        doHistory(buf);
         rtrim(buf);
-        loadCode(buf);
-        return;
+    } else {
+        int n = fileReadLine(input_fp, buf);
+        if (n == -1) {
+            fclose(input_fp);
+            input_fp = fpop();
+        }
     }
-    if (input_fp) {
-        fclose(input_fp);
-        input_fp = fpop();
-    }
+    loadCode(buf);
 }
 
 int main(int argc, char** argv) {
