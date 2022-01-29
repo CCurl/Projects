@@ -72,7 +72,7 @@ void loadCode(const char* src) {
     X(2040, ":Y 300~sY 1 31[N cX rY20+sY];") \
     X(2050, ":M cI 0sT xT cY xT$- N rT.\" iterations, \" . \" ms\";") \
     X(2060, ":I 200 sS 1000000 sK;") \
-    X(9999, "2000 xW cSI fL")
+    X(9999, "2000 xW cSI 0 fL")
 
 #define X(num, val) const PROGMEM char str ## num[] = val;
 SOURCE_STARTUP

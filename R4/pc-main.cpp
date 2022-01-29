@@ -79,18 +79,17 @@ void doHistory(char* str) {
 }
 
 void loop() {
-    FILE* fp = (input_fp) ? input_fp : stdin;
-    if (fp == stdin) {
-        ok();
-        fgets(buf, sizeof(buf), fp);
-        doHistory(buf);
-        rtrim(buf);
-    } else {
+    if (input_fp) {
         int n = fileReadLine(input_fp, buf);
         if (n == -1) {
             fclose(input_fp);
             input_fp = fpop();
         }
+    } else {
+        ok();
+        fgets(buf, sizeof(buf), stdin);
+        doHistory(buf);
+        rtrim(buf);
     }
     loadCode(buf);
 }

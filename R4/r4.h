@@ -6,11 +6,11 @@
 
 typedef long CELL;
 typedef unsigned long UCELL;
-#define CELL_SZ     sizeof(CELL)
 typedef unsigned short ushort;
 typedef unsigned char byte;
 typedef byte *addr;
 
+#define CELL_SZ    sizeof(CELL)
 #define INDEX      reg[8]
 #define TOS        dstack[dsp]
 #define A          (addr)TOS
