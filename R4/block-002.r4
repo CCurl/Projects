@@ -10,9 +10,12 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 100 sNCR 0(Number of Critters)
 
 120 sWX 0(World X)
-30  sWY 0(World Y)
+35  sWY 0(World Y)
 
 0(reg CR: current critter)
+
+:-RWT (--n): a random weight between -400 and 400-;
+:RWT 800 xR 400-;
 
 :-SCR (n--): Set Critter - 0<n<rNCR)-;
 :SCR 1-rCSZ*rCS+sCR;
@@ -39,4 +42,8 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
 
 cRCA cDCA
 :DCA 1 rNCR[rI cSCR cDCR];
+
+:FUN cCLS 1{\cRCA cPCA K?_}K@ \ 1 rWY cGXY;
+
+:-RL (--): Reload block 2-;
 :RL 2 fB;

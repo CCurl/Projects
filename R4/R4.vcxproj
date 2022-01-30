@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="editor.cpp" />
     <ClCompile Include="File.cpp" />
     <ClCompile Include="LittleFS.cpp" />
     <ClCompile Include="pc-main.cpp" />

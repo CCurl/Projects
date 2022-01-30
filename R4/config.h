@@ -24,6 +24,7 @@
   #define NUM_FUNCS      (26*26*26)
   #define __FILES__
   #define __BOARD__ PC
+  #define __EDITOR__
 #else
   /* Dev Board */
   #define _NEEDS_ALIGN_   1

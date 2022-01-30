@@ -56,6 +56,9 @@ extern void doDelay(CELL);
 extern int charAvailable();
 extern int getChar();
 
+// Built-in editor
+extern void doEditor(CELL, addr);
+
 // File support
 extern void fpush(FILE*);
 extern FILE *fpop();

@@ -177,6 +177,7 @@ void doExt() {
         if (ir == 'R') { push(NUM_REGS); }
         if (ir == 'U') { push(USER_SZ); }
         return;
+    case 'E': doEditor(pop(), HERE+100);             return;
     case 'S': if (*pc == 'R') { ++pc; vmInit(); }    return;
     case 'N': push(doMicros());                      return;
     case 'T': push(doMillis());                      return;
