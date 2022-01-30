@@ -2,7 +2,8 @@
 
 1 fB
 10 fB
-:HDR"Genetic Evolution"E; eHDR
+
+:HDR "Genetic Evolution"N; cHDR
 :NTH 1000+1000/1000*;
 
 0(Each connection is 32 bits)
@@ -18,9 +19,9 @@
          40 sWY    0(World size Y)
   rWX rWY * sWSZ   0(World size)
 
-xIH  8000+ eNTH  sBSA   0(Brain start address)
-     rBSA  1000+ sWSA   0(World start address)
-rWSA rWSZ+ eNTH  sCSA   0(Critters start address)
+xIAU  8000+ cNTH  sBSA   0(Brain start address)
+      rBSA  1000+ sWSA   0(World start address)
+rWSA rWSZ+ cNTH   sCSA   0(Critters start address)
 
 :WGT (x y--n): World ;
 :WGT $rWX*+rWSA+c@;
@@ -87,3 +88,4 @@ rWSA rWSZ+ eNTH  sCSA   0(Critters start address)
 
 eRAC 0(eCLS eCOF 1{\eSTS 0xW K?0=}K@\ eCON)
 eDAC
+

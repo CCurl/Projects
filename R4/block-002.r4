@@ -9,19 +9,34 @@ xIAU 1000/1000*10000+ sBS   0(Brain start)
   4 sCSZ 0(Critter Size)
 100 sNCR 0(Number of Critters)
 
-100 sWX 0(World X)
-50  sWY 0(World Y)
+120 sWX 0(World X)
+30  sWY 0(World Y)
 
 0(reg CR: current critter)
 
-0(SCR (n--): Set Critter - 0<n<rNCR)
-:SCR 1- rCSZ* rCS + sCR;
-:CXY rCR 1+ c@ rCR c@;
-:CSX rCR 1+ c! rCR c!;
-:CCL rCR 2+ c@;
-:SCL rCR 2+ c!;
+:-SCR (n--): Set Critter - 0<n<rNCR)-;
+:SCR 1-rCSZ*rCS+sCR;
+:-CXY (--x y), SXY (x y--) - Critter X/Y-;
+:CXY rCR C@ rCR 1+ C@;
+:SXY rCR 1+ C! rCR C!;
+:-CCL (--f b), SCL (f--) - Critter Color-;
+:CCL rCR 2+ C@ 40;
+:SCL rCR 2+ C!;
+:-DCR (--): Dump Critter-;
+:DCR cCXY$"("$.B.")";
+:-PCR(--): Paint Critter-;
+:PCR cCCL cSTC cCXY cGXY "*";
 
-:RCR rWY xr rWY xr eCSX 8xr 30+ eSCL;
-:RCA 1 rNCR[rI eSCR eRCR];
-:SCA 1 rNCR[rI eSCR eCCL 40 eSTC  eGXY "*"]eCLC eCON;
-    :GO eCLS eCOF 1 100000 [8xr 30+ 40 eSTC 100xr 40xr eGXY "*"]eCLC eCON;
+:-RCR(--): Randomize critter-;
+:RCR rWX xR 1+ rWY xR 1+ cSXY 8xR 31+ cSCL;
+:RCA 1 rNCR[rI cSCR cRCR];
+
+:-PCA (--): Paint Critters All-;
+:PCA cCOF 1 rNCR[rI cSCR cPCR]cCLC cCON;
+
+:-TNH (n--t): an approximation of TANH(x), n: x*100-;
+:TNH 0cMAX 83*100/ 99cMIN;
+
+cRCA cDCA
+:DCA 1 rNCR[rI cSCR cDCR];
+:RL 2 fB;

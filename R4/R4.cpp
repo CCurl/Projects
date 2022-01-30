@@ -136,10 +136,9 @@ int isOk(int exp, const char* msg) {
 }
 
 void doFloat() {
-    addr x;
     switch (*(pc++)) {
     case '<': flpush((float)pop());                             return;
-    case '>': x = (addr)&fT; push(*(CELL*)x); flpop();          return;
+    case '>': push((CELL)flpop());                              return;
     case '+': fN += fT; fDROP1;                                 return;
     case '-': fN -= fT; fDROP1;                                 return;
     case '*': fN *= fT; fDROP1;                                 return;

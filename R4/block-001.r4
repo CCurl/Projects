@@ -5,3 +5,6 @@ xIAU 10240 + sV
 :R 0 xIR D[rI xIC*xIAR+@#s1(rI 26 S$ 26 S$ 'A+,'A+,'A+,": "r1.N)];
 :U xIH xIAU-;
 :HLP 999 fB;
+
+:MIN %%>($)\;
+:MAX %%<($)\;
