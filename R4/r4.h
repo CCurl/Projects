@@ -57,7 +57,7 @@ extern int charAvailable();
 extern int getChar();
 
 // Built-in editor
-extern void doEditor(CELL, addr);
+extern void doEditor();
 
 // File support
 extern void fpush(FILE*);

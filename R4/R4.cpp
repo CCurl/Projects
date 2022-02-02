@@ -177,7 +177,7 @@ void doExt() {
         if (ir == 'R') { push(NUM_REGS); }
         if (ir == 'U') { push(USER_SZ); }
         return;
-    case 'E': doEditor(pop(), HERE+100);             return;
+    case 'E': doEditor();                            return;
     case 'S': if (*pc == 'R') { ++pc; vmInit(); }    return;
     case 'N': push(doMicros());                      return;
     case 'T': push(doMillis());                      return;
@@ -282,6 +282,7 @@ addr run(addr start) {
             if (ir == '|') { NOS |= TOS; DROP1; }      // OR
             if (ir == '^') { NOS ^= TOS; DROP1; }      // XOR
             if (ir == '~') { TOS = ~TOS; }             // NOT (COMPLEMENT)
+            if (ir == 'L') { blockLoad(pop()); }       // Block Load
             break;
         case 'c': if (getRFnum(0) && func[TOS]) {                            // FUNCTION CALL
             if (*pc != ';') { rpush(pc); locStart += 10; }
@@ -291,7 +292,6 @@ addr run(addr start) {
                 else { if (getRFnum(1)) { --reg[pop()]; } }        break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
         case 'f': ir = *(pc++);
-            if (ir == 'B') { blockLoad(pop()); }
             if (ir == 'O') { fileOpen(); }
             if (ir == 'C') { fileClose(); }
             if (ir == 'R') { fileRead(); }

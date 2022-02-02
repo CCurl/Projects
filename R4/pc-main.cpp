@@ -96,7 +96,7 @@ void loop() {
 
 int main(int argc, char** argv) {
     vmInit();
-    loadCode("0 fB");
+    loadCode("0 bL");
     while (!isBye) { loop(); }
     return 0;
 }

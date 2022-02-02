@@ -19,11 +19,18 @@
 0(CLU (--): More, ugly)
 :CLU 90 97[N rI s1 100 107[r1 rI cSTC " ("r1.";"rI.") "] cCLC];
 
-0(COF (--): Curson off)
+0(COF (--): Cursor off)
 :COF cCSI"?25l";
 
-0(CON (--): Curson on)
+0(CON (--): Cursor on)
 :CON cCSI"?25h";
 
 0(DMO (--): A little demo of using these)
 :DMO 0sT cCLS cCOF rX 0=(100sX) rY 0=(40sY)1{\iT 8xR 30+ 40 cSTC rX xR I rY xR I cGXY"*"K?0=}K@\cCLC cCON;
+           
+                                                               
+                                                               
+                                                               
+                                                               
+                                                               
+                                                               

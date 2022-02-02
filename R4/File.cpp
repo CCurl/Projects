@@ -124,14 +124,14 @@ void codeSave(addr user, addr here) {
 }
 
 // fB (n--) - File: block load
-// Loads a block fil
+// Loads a block file
 void blockLoad(CELL num) {
     char buf[24];
     sprintf(buf, "Block-%03ld.r4", num);
-    FILE* newFp = fopen(buf, "rb");
-    if (newFp) {
+    FILE* fp = fopen(buf, "rb");
+    if (fp) {
         if (input_fp) { fpush(input_fp); }
-        input_fp = newFp;
+        input_fp = fp;
     }
 }
 

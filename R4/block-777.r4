@@ -7,7 +7,7 @@
 ; CPL: (n--)        Loop for multiple benchmarks
 ; BB: (--)          Big Benchmark: 8 meg
 
-1 fB
+1 bL
 :CPH "Count of primes";
 :Q%%S_(\=;)%<(\;)IIcQ;
 :CP 4 sC 11[rI 3 cQ (iC) iI]rC;

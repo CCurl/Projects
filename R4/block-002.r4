@@ -1,6 +1,6 @@
 xSR
-1 fB
-10 fB
+1 bL
+10 bL
 
 xIAU 1000/1000*10000+ sBS   0(Brain start)
            rBS  1000+ sWS   0(World start address)
@@ -46,4 +46,4 @@ cRCA cDCA
 :FUN cCLS 1{\cRCA cPCA K?_}K@ \ 1 rWY cGXY;
 
 :-RL (--): Reload block 2-;
-:RL 2 fB;
+:RL 2 bL;
