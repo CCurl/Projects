@@ -65,6 +65,10 @@ Note that those boards usually also have watchdogs that need to be enabled via t
 
 Some development boards support LittleFS. For those boards, the __LITTLEFS__ directive can be #defined to save and load the defined code to the board, so that any user-defined words can be reloaded across boots.
 
+# A simple block editor
+
+R4 includes a simple block editor. Many thanks to Alain Theroux for his inspiration and help.
+
 # Building R4
 
 - The target machine/environment is controlled by the #defined in the file "config.h"

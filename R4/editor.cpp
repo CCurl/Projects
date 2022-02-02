@@ -1,6 +1,7 @@
-// A simple block editor
-// NOTE: this editor was inspired by Alain Theroux's editor
-//       and it is a shameless reverse-engineering of it.
+// editor.cpp - A simple block editor
+//
+// NOTE: A huge thanks to Alain Theroux. This editor was inspired by
+//       his editor and is a shameful reverse-engineering of it. :D
 
 #include "R4.h"
 
@@ -36,13 +37,14 @@ void readBlock() {
         int n = fread(theBlock, 1, BLOCK_SZ, fp);
         fclose(fp);
     }
+    cur = 0;
     isDirty = 0;
 }
 
 void GotoXY(int x, int y) { printStringF("\x1B[%d;%dH", y, x); }
 void CLS() { printString("\x1B[2J"); GotoXY(1, 1); }
-void CursonOn() { printString("\x1B[?25h"); }
-void CursonOff() { printString("\x1B[?25l"); }
+void CursorOn() { printString("\x1B[?25h"); }
+void CursorOff() { printString("\x1B[?25l"); }
 
 void showGuide() {
     printString("\r\n     +"); 
@@ -59,14 +61,13 @@ void showFooter() {
 
 void showEditor() {
     int cp = 0;
-    CursonOff();
+    CursorOff();
     GotoXY(1, 1);
     printString("Block Editor v0.1 - ");
     printStringF("Block# %03d %c", blkNum, isDirty ? '*' : ' ');
     showGuide();
     for (int i = 0; i <= MAX_Y; i++) {
         printStringF("\r\n %2d  |", i);
-        // printStringF("\r\n %2d %c|", i, (i == line) ? '>' : ' ');
         for (int j = 0; j <= MAX_X; j++) {
             if (cur == cp) {
                 printChar((char)178);
@@ -81,17 +82,16 @@ void showEditor() {
         printString("| ");
     }
     showGuide();
-    CursonOn();
+    CursorOn();
 }
 
-void replaceChar(char c) {  }
 void CrLf() {
     // theBlock[cur++] = 13;
     theBlock[cur++] = 10;
 }
 
 void doType() {
-    CursonOff();
+    CursorOff();
     while (1) {
         char c= getChar();
         if (c == 27) { --cur;  return; }
@@ -107,7 +107,7 @@ void doType() {
         if (c == 13) { CrLf(); }
         else { theBlock[cur++] = c; }
         showEditor();
-        CursonOff();
+        CursorOff();
     }
 }
 
@@ -125,7 +125,7 @@ void insertChar(char c) {
     theBlock[MAX_CUR] = 10;
 }
 
-int doEditorChar(char c) {
+int processEditorChar(char c) {
     printChar(c);
     switch (c) {
     case 'Q': return 0;                                  break;
@@ -158,12 +158,11 @@ int doEditorChar(char c) {
 
 void doEditor() {
     blkNum = pop();
-    cur = 0;
     CLS();
     readBlock();
     showEditor();
     showFooter();
-    while (doEditorChar(getChar())) {
+    while (processEditorChar(getChar())) {
         if (cur < 0) { cur = 0; }
         if (MAX_CUR < cur) { cur = MAX_CUR; }
         showEditor();
