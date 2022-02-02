@@ -6,8 +6,8 @@ xIAU 10240 + sV
 :U xIH xIAU-;  
 :HLP 999 bL;  
 
-:MIN %%>($)\;  :MAX %%<($)\;
-              
+:MIN %%>($)\;  
+MAX %%<($)\;               
                                                                
                                                                
                                                                

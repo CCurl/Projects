@@ -71,6 +71,7 @@ int fileReadLine(FILE *fh, char *buf) {
         *(buf) = 0;
         int n = fread(&c, 1, 1, fh);
         if (n == 0) { return -1; }
+        if (c == 10) { break; }
         if (c == 13) { break; }
         if (BetweenI(c, 32, 126)) {
             *(buf++) = c;
