@@ -20,7 +20,7 @@ char theBlock[BLOCK_SZ];
 void saveBlock() {
     char fn[24];
     sprintf(fn, "block-%03d.R4", blkNum);
-    FILE* fp = fopen(fn, "wt");
+    FILE* fp = fopen(fn, "wb");
     if (fp) {
         int n = fwrite(theBlock, 1, BLOCK_SZ, fp);
         fclose(fp);
@@ -32,7 +32,7 @@ void readBlock() {
     char fn[24];
     sprintf(fn, "block-%03d.R4", blkNum);
     for (int i = 0; i < BLOCK_SZ; i++) { theBlock[i] = 32; }
-    FILE* fp = fopen(fn, "rt");
+    FILE* fp = fopen(fn, "rb");
     if (fp) {
         int n = fread(theBlock, 1, BLOCK_SZ, fp);
         fclose(fp);
