@@ -16,27 +16,18 @@ void doEditor() { printString("-noEdit-"); }
 int line, off, blkNum;
 int cur, isDirty = 0;
 char theBlock[BLOCK_SZ];
+const char *msg = NULL;
 
-void saveBlock() {
-    char fn[24];
-    sprintf(fn, "block-%03d.R4", blkNum);
-    FILE* fp = fopen(fn, "wb");
-    if (fp) {
-        int n = fwrite(theBlock, 1, BLOCK_SZ, fp);
-        fclose(fp);
-    }
+void edRdBlk() {
+    int r = readBlock(blkNum, theBlock, BLOCK_SZ);
+    msg = (r) ? "" : "-noFile-";
+    cur = 0;
     isDirty = 0;
 }
 
-void readBlock() {
-    char fn[24];
-    sprintf(fn, "block-%03d.R4", blkNum);
-    for (int i = 0; i < BLOCK_SZ; i++) { theBlock[i] = 32; }
-    FILE* fp = fopen(fn, "rb");
-    if (fp) {
-        int n = fread(theBlock, 1, BLOCK_SZ, fp);
-        fclose(fp);
-    }
+void edSvBlk() {
+    int r = writeBlock(blkNum, theBlock, BLOCK_SZ);
+    msg = (r) ? "" : "-errWrite-";
     cur = 0;
     isDirty = 0;
 }
@@ -47,15 +38,15 @@ void CursorOn() { printString("\x1B[?25h"); }
 void CursorOff() { printString("\x1B[?25l"); }
 
 void showGuide() {
-    printString("\r\n     +"); 
+    printString("\r\n    +"); 
     for (int i = 0; i <= MAX_X; i++) { printChar('-'); } 
     printChar('+');
 }
 
 void showFooter() {
-    printString("\r\n      (q)home (w)up (e)end (a)left (s)down (d)right (t)top (l)last");
-    printString("\r\n      (x)del (i)insert (r)replace (T)Type (n)CrLf");
-    printString("\r\n      (S)save (R)reload (+)next (-)prev (Q)quit");
+    printString("\r\n     (q)home (w)up (e)end (a)left (s)down (d)right (t)top (l)last");
+    printString("\r\n     (x)del (i)insert (r)replace (T)Type (n)CrLf");
+    printString("\r\n     (S)save (R)reload (+)next (-)prev (Q)quit");
     printString("\r\n-> \x8");
 }
 
@@ -63,11 +54,13 @@ void showEditor() {
     int cp = 0;
     CursorOff();
     GotoXY(1, 1);
-    printString("Block Editor v0.1 - ");
+    printString("     Block Editor v0.1 - ");
     printStringF("Block# %03d %c", blkNum, isDirty ? '*' : ' ');
+    printStringF(" %-20s", msg ? msg : "");
+    msg = NULL;
     showGuide();
     for (int i = 0; i <= MAX_Y; i++) {
-        printStringF("\r\n %2d  |", i);
+        printStringF("\r\n %2d |", i);
         for (int j = 0; j <= MAX_X; j++) {
             if (cur == cp) {
                 printChar((char)178);
@@ -142,15 +135,15 @@ int processEditorChar(char c) {
     case 'n': isDirty = 1; CrLf();                       break;
     case 'x': isDirty = 1; deleteChar();                 break;
     case 'i': isDirty = 1; insertChar(' ');              break;
-    case 'L': readBlock();                               break;
-    case 'S': saveBlock();                               break;
-    case '+': if (isDirty) { saveBlock(); }
+    case 'L': edRdBlk();                                 break;
+    case 'S': edSvBlk();                                 break;
+    case '+': if (isDirty) { edSvBlk(); }
             ++blkNum;
-            readBlock(); cur = 0;
+            edRdBlk();
             break;
-    case '-': if (isDirty) { saveBlock(); }
+    case '-': if (isDirty) { edSvBlk(); }
             blkNum -= (blkNum) ? 1 : 0;
-            readBlock(); cur = 0;
+            edRdBlk();
             break;
     }
     return 1;
@@ -158,8 +151,9 @@ int processEditorChar(char c) {
 
 void doEditor() {
     blkNum = pop();
+    blkNum = (0 <= blkNum) ? blkNum : 0;
     CLS();
-    readBlock();
+    edRdBlk();
     showEditor();
     showFooter();
     while (processEditorChar(getChar())) {

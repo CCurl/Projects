@@ -130,4 +130,34 @@ void blockLoad(CELL num) {
     pop();
 }
 
+int readBlock(int blk, char* buf, int sz) {
+    char fn[24];
+    sprintf(fn, "/Block-%03d.R4", blk);
+    for (int i = 0; i < sz; i++) { buf[i] = 32; }
+    File f = LittleFS.open(fn, "r");
+    if (f) {
+        int n = f.read((uint8_t*)buf, sz);
+        f.close();
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+int writeBlock(int blk, char* buf, int sz) {
+    char fn[24];
+    sprintf(fn, "/Block-%03d.R4", blk);
+    for (int i = 0; i < sz; i++) { buf[i] = 32; }
+    File f = LittleFS.open(fn, "w");
+    if (f) {
+        int n = f.write((uint8_t *)buf, sz);
+        f.close();
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 #endif // __LITTLEFS__

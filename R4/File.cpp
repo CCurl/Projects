@@ -13,6 +13,8 @@ addr codeLoad(addr x) { noFile(); return x; }
 void codeSave(addr x, addr y) { noFile(); }
 void blockLoad(CELL num) { noFile(); }
 int fileReadLine(FILE* fh, char* buf) { noFile(); return -1; }
+int readBlock(int blk, char* buf, int sz) { noFile(); return 0; }
+int writeBlock(int blk, char* buf, int sz) { noFile(); return 0; }
 #endif // __LITTLEFS__
 #else
 static byte fdsp = 0;
@@ -133,6 +135,49 @@ void blockLoad(CELL num) {
     if (fp) {
         if (input_fp) { fpush(input_fp); }
         input_fp = fp;
+    }
+}
+
+int saveBlock(int blk, char* buf, int sz) {
+    char fn[24];
+    sprintf(fn, "block-%03d.R4", blk);
+    FILE* fp = fopen(fn, "wb");
+    if (fp) {
+        int n = fwrite(buf, 1, sz, fp);
+        fclose(fp);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int readBlock(int blk, char* buf, int sz) {
+    char fn[24];
+    sprintf(fn, "block-%03d.R4", blk);
+    for (int i = 0; i < sz; i++) { buf[i] = 32; }
+    FILE* fp = fopen(fn, "rb");
+    if (fp) {
+        int n = fread(buf, 1, sz, fp);
+        fclose(fp);
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+int writeBlock(int blk, char* buf, int sz) {
+    char fn[24];
+    sprintf(fn, "block-%03d.R4", blk);
+    for (int i = 0; i < sz; i++) { buf[i] = 32; }
+    FILE* fp = fopen(fn, "wb");
+    if (fp) {
+        int n = fwrite(buf, 1, sz, fp);
+        fclose(fp);
+        return 1;
+    }
+    else {
+        return 0;
     }
 }
 

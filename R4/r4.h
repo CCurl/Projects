@@ -71,4 +71,6 @@ extern void fileWrite();
 extern addr codeLoad(addr, addr);
 extern void codeSave(addr, addr);
 extern void blockLoad(CELL);
+extern int readBlock(int blk, char* buf, int sz);
+extern int writeBlock(int blk, char* buf, int sz);
 extern int fileReadLine(FILE* fh, char* buf);
