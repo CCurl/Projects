@@ -78,14 +78,8 @@ void showEditor() {
     CursorOn();
 }
 
-void CrLf() {
-    // theBlock[cur++] = 13;
-    theBlock[cur++] = 10;
-}
-
 void deleteChar() {
     for (int i = cur; i < MAX_CUR; i++) { theBlock[i] = theBlock[i + 1]; }
-    //theBlock[MAX_CUR - 2] = 32;
     theBlock[MAX_CUR - 1] = 32;
     theBlock[MAX_CUR] = 10;
 }
@@ -93,8 +87,7 @@ void deleteChar() {
 void insertChar(char c) {
     for (int i = MAX_CUR; cur < i; i--) { theBlock[i] = theBlock[i - 1]; }
     theBlock[cur] = c;
-    //theBlock[MAX_CUR - 1] = 13;
-    // theBlock[MAX_CUR] = 10;
+    theBlock[MAX_CUR] = 10;
 }
 
 void doType(int isInsert) {
@@ -112,8 +105,9 @@ void doType(int isInsert) {
             continue;
         }
         if (isInsert) { insertChar(' '); }
-        if (c == 13) { CrLf(); }
-        else { theBlock[cur++] = c; }
+        if (c == 13) { c = 10; }
+        theBlock[cur++] = c;
+        if (MAX_CUR < cur) { cur = MAX_CUR; }
         showEditor();
         CursorOff();
     }
@@ -134,7 +128,7 @@ int processEditorChar(char c) {
     case 'r': isDirty = 1; theBlock[cur++] = getChar();  break;
     case 'I': isDirty = 1; doType(1);                    break;
     case 'R': isDirty = 1; doType(0);                    break;
-    case 'n': isDirty = 1; CrLf();                       break;
+    case 'n': isDirty = 1; theBlock[cur++] = 10;         break;
     case 'x': isDirty = 1; deleteChar();                 break;
     case 'i': isDirty = 1; insertChar(' ');              break;
     case 'L': edRdBlk();                                 break;
