@@ -20,14 +20,14 @@ const char *msg = NULL;
 
 void edRdBlk() {
     int r = readBlock(blkNum, theBlock, BLOCK_SZ);
-    msg = (r) ? "" : "-noFile-";
+    msg = (r) ? "-loaded-" : "-noFile-";
     cur = 0;
     isDirty = 0;
 }
 
 void edSvBlk() {
     int r = writeBlock(blkNum, theBlock, BLOCK_SZ);
-    msg = (r) ? "" : "-errWrite-";
+    msg = (r) ? "-saved-" : "-errWrite-";
     cur = 0;
     isDirty = 0;
 }
@@ -45,8 +45,8 @@ void showGuide() {
 
 void showFooter() {
     printString("\r\n     (q)home (w)up (e)end (a)left (s)down (d)right (t)top (l)last");
-    printString("\r\n     (x)del (i)insert (r)replace (T)Type (n)CrLf");
-    printString("\r\n     (S)save (R)reload (+)next (-)prev (Q)quit");
+    printString("\r\n     (x)del char (i)insert char (r)replace char (I)Insert (R)Replace");
+    printString("\r\n     (n)LF (S)Save (L)reLoad (+)next (-)prev (Q)quit");
     printString("\r\n-> \x8");
 }
 
@@ -83,7 +83,21 @@ void CrLf() {
     theBlock[cur++] = 10;
 }
 
-void doType() {
+void deleteChar() {
+    for (int i = cur; i < MAX_CUR; i++) { theBlock[i] = theBlock[i + 1]; }
+    //theBlock[MAX_CUR - 2] = 32;
+    theBlock[MAX_CUR - 1] = 32;
+    theBlock[MAX_CUR] = 10;
+}
+
+void insertChar(char c) {
+    for (int i = MAX_CUR; cur < i; i--) { theBlock[i] = theBlock[i - 1]; }
+    theBlock[cur] = c;
+    //theBlock[MAX_CUR - 1] = 13;
+    // theBlock[MAX_CUR] = 10;
+}
+
+void doType(int isInsert) {
     CursorOff();
     while (1) {
         char c= getChar();
@@ -92,30 +106,17 @@ void doType() {
         if (isBS) {
             if (cur) {
                 theBlock[--cur] = ' ';
-                printString("\x8 \x8");
+                if (isInsert) { deleteChar(); }
                 showEditor();
             }
             continue;
         }
+        if (isInsert) { insertChar(' '); }
         if (c == 13) { CrLf(); }
         else { theBlock[cur++] = c; }
         showEditor();
         CursorOff();
     }
-}
-
-void deleteChar() {
-    for (int i = cur; i < MAX_CUR; i++) { theBlock[i] = theBlock[i+1]; }
-    //theBlock[MAX_CUR - 2] = 32;
-    theBlock[MAX_CUR - 1] = 32;
-    theBlock[MAX_CUR] = 10;
-}
-
-void insertChar(char c) {
-    for (int i = MAX_CUR; cur < i; i--) { theBlock[i] = theBlock[i-1]; }
-    theBlock[cur] = c;
-    //theBlock[MAX_CUR - 1] = 13;
-    theBlock[MAX_CUR] = 10;
 }
 
 int processEditorChar(char c) {
@@ -131,7 +132,8 @@ int processEditorChar(char c) {
     case 't': cur = 0;                                   break;
     case 'l': cur = MAX_CUR - MAX_X;                     break;
     case 'r': isDirty = 1; theBlock[cur++] = getChar();  break;
-    case 'T': isDirty = 1; doType();                     break;
+    case 'I': isDirty = 1; doType(1);                    break;
+    case 'R': isDirty = 1; doType(0);                    break;
     case 'n': isDirty = 1; CrLf();                       break;
     case 'x': isDirty = 1; deleteChar();                 break;
     case 'i': isDirty = 1; insertChar(' ');              break;
