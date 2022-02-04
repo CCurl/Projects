@@ -152,12 +152,19 @@ int saveBlock(int blk, char* buf, int sz) {
 }
 
 int readBlock(int blk, char* buf, int sz) {
+    int cn = 0;
     char fn[24];
     sprintf(fn, "Block-%03d.R4", blk);
     for (int i = 0; i < sz; i++) { buf[i] = 32; }
     FILE* fp = fopen(fn, "rb");
     if (fp) {
-        int n = fread(buf, 1, sz, fp);
+        // Read in one byte at a time, to strip out CR
+        while (cn < sz) {
+            int n = fread(fn, 1, 1, fp);
+            if (n == 0) { break; }
+            if (fn[0] == 13) { continue; }
+            buf[cn++] = fn[0];
+        }
         fclose(fp);
         return 1;
     }
