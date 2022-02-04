@@ -58,9 +58,10 @@ void fileDelete() {
     TOS = LittleFS.remove(fn) ? 1 : 0;
 }
 
+// (fh--c n) -fh: file handle, c: char, n: num read (0 => EOF)
 void fileRead() {
-    int fn = (int)pop();
-    push(0);
+    int fn = (int)TOS;
+    TOS = 0;
     push(0);
     if ((0 < fn) && (fn <= MAX_FILES) && (files[fn-1] != NULL)) {
         byte c;
@@ -73,18 +74,23 @@ void fileRead() {
 // fh: File handle, buf: address
 // return: -1 if EOF, else len
 int fileReadLine(int fh, char* buf) {
-    byte c, len = 0;
+    *(buf) = 0;
+    if (fh < 1) { return -1; }
+    if (MAX_FILES < fh) { return -1; }
+    if (!files[fh-1]) { return -1; }
+    byte c, len = 0, n;
     while (1) {
-        *(buf) = 0;
         int n = files[fh - 1]->read(&c, 1);
-        if (n == 0) { return -1; }
+        if (n == 0) { break; }
         if (c == 13) { break; }
+        if (c == 10) { break; }
         if (BetweenI(c, 32, 126)) {
             *(buf++) = c;
             ++len;
         }
     }
-    return len;
+    *(buf) = 0;
+    return (n == 0) ? -1 : len;
 }
 
 void fileWrite() {
@@ -148,7 +154,6 @@ int readBlock(int blk, char* buf, int sz) {
 int writeBlock(int blk, char* buf, int sz) {
     char fn[24];
     sprintf(fn, "/Block-%03d.R4", blk);
-    for (int i = 0; i < sz; i++) { buf[i] = 32; }
     File f = LittleFS.open(fn, "w");
     if (f) {
         int n = f.write((uint8_t *)buf, sz);
