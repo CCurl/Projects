@@ -161,7 +161,18 @@ void loop() {
         nextBlink = curTm + 1000;
     }
 
-    while ( charAvailable() ) { handleInput(getChar()); }
+    if (input_fp) {
+        // printString("-inputFp-");
+        int n = fileReadLine(input_fp, (char *)HERE);
+        // printStringF("\r\n%s", (char *)HERE);
+        if (n < 0) { input_fp = fpop(); }
+        run(HERE);
+        return;
+    } else {
+        while ( charAvailable() ) {
+            handleInput(getChar());
+        }
+    }
 
     addr a = func[NUM_FUNCS-1];
     if (a) { run(a); }

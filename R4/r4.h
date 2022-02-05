@@ -38,7 +38,7 @@ extern addr HERE;
 extern CELL dstack[];
 extern ushort dsp;
 extern addr func[];
-extern FILE* input_fp;
+extern CELL input_fp;
 
 extern void vmInit();
 extern CELL pop();
@@ -60,8 +60,8 @@ extern int getChar();
 extern void doEditor();
 
 // File support
-extern void fpush(FILE*);
-extern FILE *fpop();
+extern void fpush(CELL);
+extern CELL fpop();
 extern void fileInit();
 extern void fileOpen();
 extern void fileClose();
@@ -73,4 +73,4 @@ extern void codeSave(addr, addr);
 extern void blockLoad(CELL);
 extern int readBlock(int blk, char* buf, int sz);
 extern int writeBlock(int blk, char* buf, int sz);
-extern int fileReadLine(FILE* fh, char* buf);
+extern int fileReadLine(CELL fh, char* buf);

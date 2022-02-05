@@ -33,7 +33,7 @@
   #define __LITTLEFS__
   #define __EDITOR__
   // #define USER_SZ        (24*1024) // XIAO
-  #define USER_SZ        (64*1024) // RPI PICO
+  #define USER_SZ        (96*1024) // RPI PICO
   #define NUM_REGS       (26*26)
   #define NUM_FUNCS      (26*26)
   #define __SERIAL__      1

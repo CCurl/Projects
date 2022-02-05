@@ -82,7 +82,7 @@ void loop() {
     if (input_fp) {
         int n = fileReadLine(input_fp, buf);
         if (n == -1) {
-            fclose(input_fp);
+            fclose((FILE *)input_fp);
             input_fp = fpop();
         }
     } else {

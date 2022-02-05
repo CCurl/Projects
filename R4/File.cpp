@@ -12,17 +12,19 @@ void fileWrite() { noFile(); }
 addr codeLoad(addr x) { noFile(); return x; }
 void codeSave(addr x, addr y) { noFile(); }
 void blockLoad(CELL num) { noFile(); }
-int fileReadLine(FILE* fh, char* buf) { noFile(); return -1; }
+int fileReadLine(CELL fh, char* buf) { noFile(); return -1; }
 int readBlock(int blk, char* buf, int sz) { noFile(); return 0; }
 int writeBlock(int blk, char* buf, int sz) { noFile(); return 0; }
 #endif // __LITTLEFS__
 #else
+// shared with __LITTLEFS__
 static byte fdsp = 0;
-static FILE* fstack[STK_SZ + 1];
-FILE* input_fp;
+static CELL fstack[STK_SZ + 1];
+CELL input_fp;
 
-void fpush(FILE* v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
-FILE* fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
+void fpush(CELL v) { if (fdsp < STK_SZ) { fstack[++fdsp] = v; } }
+CELL fpop() { return (fdsp) ? fstack[fdsp--] : 0; }
+// shared with __LITTLEFS__
 
 void fileInit() {}
 
@@ -67,14 +69,15 @@ void fileRead() {
 // fileReadLine(fh, buf)
 // fh: File handle, buf: address
 // returns: -1 if EOF, else len
-int fileReadLine(FILE *fh, char *buf) {
+int fileReadLine(CELL fh, char *buf) {
     byte c, len = 0;
     while (1) {
         *(buf) = 0;
-        int n = fread(&c, 1, 1, fh);
+        int n = fread(&c, 1, 1, (FILE *)fh);
         if (n == 0) { return -1; }
         if (c == 10) { break; }
         if (c == 13) { break; }
+        if (c == 9) { c = 32; }
         if (BetweenI(c, 32, 126)) {
             *(buf++) = c;
             ++len;
@@ -134,7 +137,7 @@ void blockLoad(CELL num) {
     FILE* fp = fopen(buf, "rb");
     if (fp) {
         if (input_fp) { fpush(input_fp); }
-        input_fp = fp;
+        input_fp = (CELL)fp;
     }
 }
 
