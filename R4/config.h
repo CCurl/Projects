@@ -34,8 +34,10 @@
   #define __EDITOR__
   // #define USER_SZ        (24*1024) // XIAO
   #define USER_SZ        (96*1024) // RPI PICO
-  #define NUM_REGS       (26*26)
-  #define NUM_FUNCS      (26*26)
+  #define NUM_REGS       (26*26*13) // MZZ
+  #define NUM_FUNCS      (26*26*13) // MZZ
+  //#define NUM_REGS       (26*26)
+  //#define NUM_FUNCS      (26*26)
   #define __SERIAL__      1
   #define mySerial        Serial
 #endif

@@ -20,7 +20,8 @@ const char *msg = NULL;
 
 int edGetChar() {
     int c = getChar();
-    // in PuTTY, cursor keys are <esc>, '[', ,[A-D]
+    // in PuTTY, cursor keys are <esc>, '[', [A..D]
+    // Other keys are <esc>, '[', [1..6] , '~'
     if (c == 27) {
         c = getChar();
         if (c == '[') {
@@ -29,21 +30,11 @@ int edGetChar() {
             if (c == 'B') { return 's'; } // down
             if (c == 'C') { return 'd'; } // right
             if (c == 'D') { return 'a'; } // left
-            if (c == '1') { // home
-                if (getChar() == '~') { return 'q'; }
-            }
-            if (c == '4') { // end
-                if (getChar() == '~') { return 'e'; }
-            }
-            if (c == '5') { // pgup (top)
-                if (getChar() == '~') { return 't'; }
-            }
-            if (c == '6') { // pgdn (bottom)
-                if (getChar() == '~') { return 'l'; }
-            }
-            if (c == '3') { // del
-                if (getChar() == '~') { return 'x'; }
-            }
+            if (c == '1') { if (getChar() == '~') { return 'q'; } } // home
+            if (c == '4') { if (getChar() == '~') { return 'e'; } } // end
+            if (c == '5') { if (getChar() == '~') { return 't'; } } // top (pgup)
+            if (c == '6') { if (getChar() == '~') { return 'l'; } } // last (pgdn)
+            if (c == '3') { if (getChar() == '~') { return 'x'; } } // del
         }
         return c;
     } else {
@@ -56,8 +47,8 @@ int edGetChar() {
             if (c == 'K') { return 'a'; } // left
             if (c == 'G') { return 'q'; } // home
             if (c == 'O') { return 'e'; } // end
-            if (c == 'I') { return 't'; } // pgup (ctrl-home)
-            if (c == 'Q') { return 'l'; } // pgdn (ctrl-end)
+            if (c == 'I') { return 't'; } // top pgup (pgup)
+            if (c == 'Q') { return 'l'; } // last (pgdn)
             if (c == 'S') { return 'x'; } // del
             return c;
         }

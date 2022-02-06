@@ -167,6 +167,7 @@ void loop() {
         // printStringF("\r\n%s", (char *)HERE);
         if (n < 0) { input_fp = fpop(); }
         run(HERE);
+        if (input_fp == 0) { ok(); }
         return;
     } else {
         while ( charAvailable() ) {
