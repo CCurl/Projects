@@ -18,6 +18,53 @@ int cur, isDirty = 0;
 char theBlock[BLOCK_SZ];
 const char *msg = NULL;
 
+int edGetChar() {
+    int c = getChar();
+    // in PuTTY, cursor keys are <esc>, '[', ,[A-D]
+    if (c == 27) {
+        c = getChar();
+        if (c == '[') {
+            c = getChar();
+            if (c == 'A') { return 'w'; } // up
+            if (c == 'B') { return 's'; } // down
+            if (c == 'C') { return 'd'; } // right
+            if (c == 'D') { return 'a'; } // left
+            if (c == '1') { // home
+                if (getChar() == '~') { return 'q'; }
+            }
+            if (c == '4') { // end
+                if (getChar() == '~') { return 'e'; }
+            }
+            if (c == '5') { // pgup (top)
+                if (getChar() == '~') { return 't'; }
+            }
+            if (c == '6') { // pgdn (bottom)
+                if (getChar() == '~') { return 'l'; }
+            }
+            if (c == '3') { // del
+                if (getChar() == '~') { return 'x'; }
+            }
+        }
+        return c;
+    } else {
+        // in Windows, cursor keys are 224, [HPMK]
+        if (c == 224) {
+            c = getChar();
+            if (c == 'H') { return 'w'; } // up
+            if (c == 'P') { return 's'; } // down
+            if (c == 'M') { return 'd'; } // right
+            if (c == 'K') { return 'a'; } // left
+            if (c == 'G') { return 'q'; } // home
+            if (c == 'O') { return 'e'; } // end
+            if (c == 'I') { return 't'; } // pgup (ctrl-home)
+            if (c == 'Q') { return 'l'; } // pgdn (ctrl-end)
+            if (c == 'S') { return 'x'; } // del
+            return c;
+        }
+    }
+    return c;
+}
+
 void edRdBlk() {
     int r = readBlock(blkNum, theBlock, BLOCK_SZ);
     msg = (r) ? "-loaded-" : "-noFile-";
@@ -152,7 +199,7 @@ void doEditor() {
     edRdBlk();
     showEditor();
     showFooter();
-    while (processEditorChar(getChar())) {
+    while (processEditorChar(edGetChar())) {
         if (cur < 0) { cur = 0; }
         if (MAX_CUR < cur) { cur = MAX_CUR; }
         showEditor();
