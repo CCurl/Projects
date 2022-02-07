@@ -21,7 +21,7 @@ const char *msg = NULL;
 int edGetChar() {
     int c = getChar();
     // in PuTTY, cursor keys are <esc>, '[', [A..D]
-    // Other keys are <esc>, '[', [1..6] , '~'
+    // other keys are <esc>, '[', [1..6] , '~'
     if (c == 27) {
         c = getChar();
         if (c == '[') {
@@ -39,6 +39,7 @@ int edGetChar() {
         return c;
     } else {
         // in Windows, cursor keys are 224, [HPMK]
+        // other keys are 224, [GOIQS]
         if (c == 224) {
             c = getChar();
             if (c == 'H') { return 'w'; } // up
@@ -59,15 +60,13 @@ int edGetChar() {
 void edRdBlk() {
     int r = readBlock(blkNum, theBlock, BLOCK_SZ);
     msg = (r) ? "-loaded-" : "-noFile-";
-    cur = 0;
-    isDirty = 0;
+    cur = isDirty = 0;
 }
 
 void edSvBlk() {
     int r = writeBlock(blkNum, theBlock, BLOCK_SZ);
     msg = (r) ? "-saved-" : "-errWrite-";
-    cur = 0;
-    isDirty = 0;
+    cur = isDirty = 0;
 }
 
 void GotoXY(int x, int y) { printStringF("\x1B[%d;%dH", y, x); }
