@@ -1,49 +1,46 @@
-xSR
-1 bL
-10 bL
+0(definitions, addresses and sizes)
+0(also some general subroutines)
 
-xIAU 1000/1000*10000+ sBS   0(Brain start)
+xIAU 10000+1000/1000* sBS   0(Brain start address)
            rBS  1000+ sWS   0(World start address)
            rWS 50000+ sCS   0(Critters start address)
 
-  4 sCSZ 0(Critter Size)
-100 sNCR 0(Number of Critters)
+                   8 sNCN   0(Number of Connections)
+                 100 sNCR   0(Number of Critters)
+         rNCN rNCR * sCSZ   0(Critter Size)
 
-120 sWX 0(World X)
-35  sWY 0(World Y)
+                  120 sWX   0(World X)
+                   35 sWY   0(World Y)
 
 0(reg CR: current critter)
 
-:-RWT (--n): a random weight between -400 and 400-;
+:-RWT (--n): a random weight between -400 and +400-;
 :RWT 800 xR 400-;
-
-:-SCR (n--): Set Critter - 0<n<rNCR)-;
-:SCR 1-rCSZ*rCS+sCR;
-:-CXY (--x y), SXY (x y--) - Critter X/Y-;
-:CXY rCR C@ rCR 1+ C@;
-:SXY rCR 1+ C! rCR C!;
-:-CCL (--f b), SCL (f--) - Critter Color-;
-:CCL rCR 2+ C@ 40;
-:SCL rCR 2+ C!;
-:-DCR (--): Dump Critter-;
-:DCR cCXY$"("$.B.")";
-:-PCR(--): Paint Critter-;
-:PCR cCCL cSTC cCXY cGXY "*";
-
-:-RCR(--): Randomize critter-;
-:RCR rWX xR 1+ rWY xR 1+ cSXY 8xR 31+ cSCL;
-:RCA 1 rNCR[rI cSCR cRCR];
-
-:-PCA (--): Paint Critters All-;
-:PCA cCOF 1 rNCR[rI cSCR cPCR]cCLC cCON;
 
 :-TNH (n--t): an approximation of TANH(x), n: x*100-;
 :TNH 0cMAX 83*100/ 99cMIN;
 
-cRCA cDCA
-:DCA 1 rNCR[rI cSCR cDCR];
+:-SCR (n--): Set Critter - n: [1..rNCR])-;
+:SCR 1-rCSZ*rCS+sCR;
 
-:FUN cCLS 1{\cRCA cPCA K?_}K@ \ 1 rWY cGXY;
+:-CXY (--x y), SXY (x y--) - Critter X/Y-;
+:CXY rCR C@ rCR 1+ C@;
+:SXY rCR 1+ C! rCR C!;
 
-:-RL (--): Reload block 2-;
-:RL 2 bL;
+:-CCL (--f b), SCL (f--) - Critter Color-;
+:CCL rCR 2+ C@ 40;
+:SCL rCR 2+ C!;
+
+:-DCR (--): Dump Critter-;
+:DCR cCXY$"(x:"$.",y:".")";
+
+
+:-RCR(--): Randomize Critter-;
+:-RCA(--): Randomize Critters All-;
+:RCR rWX xR 1+ rWY xR 1+ cSXY 8xR 31+ cSCL;
+:RCA 1 rNCR[rI cSCR cRCR];
+
+:-PCR(--): Paint Critter-;
+:-PCA (--): Paint Critters All-;
+:PCR cCCL cSTC cCXY cGXY "*";
+:PCA cCOF 1 rNCR[rI cSCR cPCR]cCLC cCON;
