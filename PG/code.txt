@@ -1,25 +1,5 @@
-0 ? "here's a comment" .
+0 ? "here is a comment" .
 
-:P ^d " ";
+:s i ^d " ";
 
-i:0. { i 10 < ? i: i 1 + , i P } .
-
-.
-
-
-
-
-
-James Newton has been talking for a while about a language he has been envisioning for a while, where the paradigm is 
-
-<dest>: <expr> .
-
-Where: <dest> in [a..z]
-And: <expr> ? <expressions> . is the conditional
-And: expr is an expression
-And: expr may be another 
-And: '.' marks the end of the sentence.
-And: ',' separates multiple expressions in the sentence.
-
-I finally decided to see what an implementation would look like:
-
+i: 0. { i 10 < ? i: i 1+, s(i) }.

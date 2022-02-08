@@ -237,15 +237,17 @@ addr run(addr start) {
     isError = 0;
     rsp = lsp = locStart = 0;
     while (!isError && pc) {
+        while (*(pc) == ' ') { pc++; }
         ir = *(pc++);
         switch (ir) {
         case 0:                                                    return pc;
-        case ' ': while (*(pc) == ' ') { pc++; }                   break;  // 32
         case '!': setCell((byte*)TOS, NOS); DROP2;                 break;  // 33 STORE
         case '"': while (*(pc) != ir) { printChar(*(pc++)); }; ++pc; break;  // 34 PRINT
         case '#': push(TOS);                                       break;  // 35 DUP
         case '$': t1 = TOS; TOS = NOS; NOS = t1;                   break;  // 36 SWAP
-        case '%': push(NOS);                                       break;  // 37 OVER
+        case '%': ir = *(pc++) - '0';
+            if (BetweenI(ir, 0, 9)) { push(locals[locStart+ir]); } 
+            break;  // 37 local 0-9
         case '&': /*FREE*/                                         break;  // 38
         case '\'': push(*(pc++));                                  break;  // 39 CHAR-LIT
         case '(': if (!TOS) { skipTo(')', 0); } DROP1;             break;  // 40 IF
@@ -254,7 +256,8 @@ addr run(addr start) {
         case '+': t1 = pop(); TOS += t1;                           break;  // 43 ADD
         case '-': t1 = pop(); TOS -= t1;                           break;  // 45 SUBTRACT
         case ',': 
-        case '.': if (0 < destReg) { reg[destReg] = pop(); }       break;  // 46 DOT
+        case '.': if (0 < destReg) { reg[destReg] = pop(); } 
+                destReg = -1;      break;  // 46 DOT
         case '/': if (isOk(TOS, "-0div-")) { NOS /= TOS; DROP1; }  break;  // 47 DIVIDE
         case '0': case '1': case '2': case '3': case '4':                  // 48-57 NUMBER
         case '5': case '6': case '7': case '8': case '9':
@@ -262,9 +265,9 @@ addr run(addr start) {
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
             } break;
-        case ':': ir = *(pc++) - 'A';
-            if (!BetweenI(ir, 0, 25)) { isError = 1; break; }  // 58 CREATE
-            func[ir] = pc;
+        case ':': ir = *(pc++);
+            if (!BetweenI(ir, 'a', 'z')) { isError = 1; break; }     // 58 CREATE
+            func[ir-'a'] = pc;
             skipTo(';', 0);
             HERE = (HERE < pc) ? pc : HERE;
             break;
@@ -279,12 +282,7 @@ addr run(addr start) {
         case 'K': case 'L': case 'M': case 'N': case 'O': 
         case 'P': case 'Q': case 'R': case 'S': case 'T': 
         case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            t1 = ir - 'A';
-            if (*(pc) == '(') {
-                printString("-()-");
-                skipTo(')', 0);
-            }
-            if (func[t1]) { rpush(pc); pc = func[t1]; }
+            printString("-[A..Z]-");
             break;
         case '[': doFor();                                         break;  // 91 FOR
         case '\\': DROP1;                                          break;  // 92 DROP
@@ -306,6 +304,14 @@ addr run(addr start) {
             if (*(pc) == ':') {
                 destReg = t1;
                 ++pc;
+            } else if (*(pc) == '(') {
+                // printStringF("-%c()-", ir);
+                ++pc; skipTo(')', 0); // TEMP
+                if (func[t1]) {
+                    rpush(pc);
+                    pc = func[t1];
+                    locStart += 10;
+                }
             } else {
                 push(reg[t1]);
             }
@@ -327,7 +333,8 @@ addr run(addr start) {
 
 
 int main() {
-    FILE* fp = fopen("code.txt","rt");
+    vmInit();
+    FILE *fp = fopen("code.txt","rb");
     if (fp) {
         fread(user, 1, USER_SZ, fp);
         fclose(fp);
