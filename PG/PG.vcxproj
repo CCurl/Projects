@@ -141,27 +141,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="code.txt" />
-    <Text Include="history.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="block-000.r4" />
-    <None Include="block-001.r4" />
-    <None Include="block-010.r4" />
-    <None Include="block-011.r4" />
-    <None Include="block-222.r4" />
-    <None Include="block-777.r4" />
-    <None Include="block-888.r4" />
-    <None Include="block-999.r4" />
-    <None Include="LICENSE" />
-    <None Include="R4.ino" />
-    <None Include="README.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="examples.txt" />
-    <Text Include="reference.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="config.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PG.cpp" />

@@ -1,51 +1,25 @@
-"!tests!"
-4455 A =
-"# and % ... (s/b 123): " 
-123 #1 %1 !
-$X "!this is MACRO X - %1: " 
-    #1 %1 ! ;
-$Y "!Y: " #2 #1 %2 %1 + ~X;
-17 ~X 
-21 ~X 
-999 ~X
-1 2 ~Y
-"!-should be 123- " %1 !
-"!A=" A@ !
-$$
+0 ? "here's a comment" .
 
-"PRIME NUMBERS!"
-"1 "
-N 3 =
-(
-    #P,N.;           ' call P(N)
-    N . 1001 - ^    ' if N >= __ break
-    N N . 1 + =      ' N++
-)
-"!"
+:P ^d " ";
 
-$P
-   F 1 =       ' F = 1
-   N 1 =       ' N = 1 (flag 1=no divisor found)
-   X %A =      ' X = first argument
-   (
-      ' F = F + 1
-      F F. 1 + =
-      ' break loop when F > A/2
-      F. 2 X. / - 1 + ^
-      ' if A / F * F >= 0
-      F. X. / F. * X. - 1 -
-      [
-         ' set N = 0 and break out of loop
-         N 0 =
-         0 ^
-      ]
-   )
-   ' if N > 0 then print X
-   N .
-   [
-      X. ! " "
-   ]
- ' return
- @
- ' end of program
-$$
+i:0. { i 10 < ? i: i 1 + , i P } .
+
+.
+
+
+
+
+
+James Newton has been talking for a while about a language he has been envisioning for a while, where the paradigm is 
+
+<dest>: <expr> .
+
+Where: <dest> in [a..z]
+And: <expr> ? <expressions> . is the conditional
+And: expr is an expression
+And: expr may be another 
+And: '.' marks the end of the sentence.
+And: ',' separates multiple expressions in the sentence.
+
+I finally decided to see what an implementation would look like:
+
