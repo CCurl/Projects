@@ -43,7 +43,7 @@ typedef struct {
 } LOOP_ENTRY_T;
 
 
-byte ir, isBye = 0, isError = 0;
+byte ir, isBye = 0;
 static char buf[96];
 addr pc, HERE;
 CELL n1, t1, seed = 0;
@@ -55,13 +55,21 @@ addr   func[NUM_FUNCS];
 CELL   reg[NUM_REGS];
 byte   user[USER_SZ];
 CELL locals[STK_SZ * 10];
-int destReg = -1;
+int isError, paramNum, lastReg;
 
 void push(CELL v) { if (dsp < STK_SZ) { dstack[++dsp] = v; } }
 CELL pop() { return (dsp) ? dstack[dsp--] : 0; }
 
 inline void rpush(addr v) { if (rsp < STK_SZ) { rstack[++rsp] = v; } }
 inline addr rpop() { return (rsp) ? rstack[rsp--] : 0; }
+
+int fncSp, fncStk[8];
+inline void fncPush(int v) { if (fncSp < 7) { fncStk[++fncSp] = v; } }
+inline int fncPop() { return (fncSp) ? fncStk[fncSp--] : -1; }
+
+int dstSp, dstStk[8];
+inline void dstPush(int v) { if (dstSp < 7) { dstStk[++dstSp] = v; } }
+inline int dstPop() { return (dstSp) ? dstStk[dstSp--] : -1; }
 
 static float flstack[STK_SZ + 1];
 static int flsp = 0;
@@ -232,32 +240,55 @@ void doExt() {
     }
 }
 
+void setReg() {
+    lastReg = dstPop();
+    if (BetweenI(lastReg, 0, 25)) { reg[lastReg] = pop(); }
+    if (BetweenI(lastReg, 100, 109)) { locals[locStart + lastReg - 100] = pop(); }
+}
+
 addr run(addr start) {
     pc = start;
-    isError = 0;
-    rsp = lsp = locStart = 0;
+    isError = rsp = lsp = locStart = fncSp = 0;
+    fncStk[0] = -1;
+    dstStk[0] = -1;
     while (!isError && pc) {
-        while (*(pc) == ' ') { pc++; }
+        while (BetweenI(*pc, 1, 32)) { pc++; }
         ir = *(pc++);
         switch (ir) {
         case 0:                                                    return pc;
         case '!': setCell((byte*)TOS, NOS); DROP2;                 break;  // 33 STORE
         case '"': while (*(pc) != ir) { printChar(*(pc++)); }; ++pc; break;  // 34 PRINT
-        case '#': push(TOS);                                       break;  // 35 DUP
+        case '#': ir = *(pc++) - '0';
+            if (BetweenI(ir, 0, 9)) {
+                int x = (9 < locStart) ? locStart - 10 : locStart;
+                push(locals[x + ir]);
+            }
+            break;  // 35 local for (param)
         case '$': t1 = TOS; TOS = NOS; NOS = t1;                   break;  // 36 SWAP
-        case '%': ir = *(pc++) - '0';
-            if (BetweenI(ir, 0, 9)) { push(locals[locStart+ir]); } 
-            break;  // 37 local 0-9
+        case '%':  ir = *(pc++) - '0';
+            if (BetweenI(ir, 0, 9)) {
+                if (*pc == ':') { dstPush(100 + ir); ++pc;  }
+                else {
+                    // int x = (9 < locStart) ? locStart - 10 : locStart;
+                    push(locals[locStart + ir]); 
+                }
+            }                                                      break;  // 37 local 0-9
         case '&': /*FREE*/                                         break;  // 38
         case '\'': push(*(pc++));                                  break;  // 39 CHAR-LIT
-        case '(': if (!TOS) { skipTo(')', 0); } DROP1;             break;  // 40 IF
-        case ')': /* endIf() */                                    break;  // 41 ENDIF
+        // case '(': if (!TOS) { skipTo(')', 0); } DROP1;             break;  // 40 IF
+        case ')': setReg(); t1 = fncPop();
+            if (BetweenI(t1, 0, NUM_FUNCS) && func[t1]) {
+                rpush(pc);
+                // locStart += 10;
+                pc = func[t1];
+            } break;  // 41 ENDIF
         case '*': t1 = pop(); TOS *= t1;                           break;  // 42 MULTIPLY
         case '+': t1 = pop(); TOS += t1;                           break;  // 43 ADD
         case '-': t1 = pop(); TOS -= t1;                           break;  // 45 SUBTRACT
-        case ',': 
-        case '.': if (0 < destReg) { reg[destReg] = pop(); } 
-                destReg = -1;      break;  // 46 DOT
+        case ',': setReg(); // 99< lastReg => in () 
+            // if (99<lastReg) { dstPush(lastReg + 1); }
+            break;  // 46 COMMA
+        case '.': setReg();                                        break;  // 46 DOT
         case '/': if (isOk(TOS, "-0div-")) { NOS /= TOS; DROP1; }  break;  // 47 DIVIDE
         case '0': case '1': case '2': case '3': case '4':                  // 48-57 NUMBER
         case '5': case '6': case '7': case '8': case '9':
@@ -279,10 +310,12 @@ addr run(addr start) {
         case '@': TOS = getCell((byte*)TOS);                       break;  // 64 FETCH
         case 'A': case 'B': case 'C': case 'D': case 'E': 
         case 'F': case 'G': case 'H': case 'I': case 'J': 
-        case 'K': case 'L': case 'M': case 'N': case 'O': 
+        case 'K': case 'L': case 'M': break;
+        case 'N': printString("\r\n"); break;
+        case 'O': 
         case 'P': case 'Q': case 'R': case 'S': case 'T': 
         case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            printString("-[A..Z]-");
+            // printString("-[A..Z]-");
             break;
         case '[': doFor();                                         break;  // 91 FOR
         case '\\': DROP1;                                          break;  // 92 DROP
@@ -302,15 +335,16 @@ addr run(addr start) {
         case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
             t1 = ir - 'a';
             if (*(pc) == ':') {
-                destReg = t1;
+                dstPush(t1);
                 ++pc;
             } else if (*(pc) == '(') {
-                // printStringF("-%c()-", ir);
-                ++pc; skipTo(')', 0); // TEMP
+                ++pc;
                 if (func[t1]) {
-                    rpush(pc);
-                    pc = func[t1];
+                    fncPush(t1);
+                    // dstPush(101);
                     locStart += 10;
+                } else {
+                    skipTo(')', 0);
                 }
             } else {
                 push(reg[t1]);
