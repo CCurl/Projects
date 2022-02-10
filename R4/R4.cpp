@@ -163,7 +163,6 @@ char *getFuncName(char* fn) {
     return fn;
 }
 
-#define X(n) (func[i].name[n] == fn[n])
 addr findFunc(char* fn) {
     for (int i = lastFunc-1; 0 <= i; i--) {
         int found = 1;

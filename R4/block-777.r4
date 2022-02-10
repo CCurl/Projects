@@ -9,11 +9,11 @@
 
 1 bL
 :CPH "Count of primes";
-:Q%%S_(\=;)%<(\;)IIcQ;
 :CP 4 sC 11[rI 3 cQ (iC) iI]rC;
 :CPB N"# primes in "#." - " xT$ cCP . xT$-" (" . " ms)";
 :CPL 512 s1 1[r1 cCPB r1#+s1]\;
 :BB 1024#* 8* cCPB;
+:Q%%S_(\=;)%<(\;)IIcQ;
 cCPH 10 cCPL
                                     
                                                                
