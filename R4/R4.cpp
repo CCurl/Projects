@@ -2,15 +2,21 @@
 
 #include "R4.h"
 
+#define FN_LEN 8
+typedef struct {
+    char name[FN_LEN];
+    addr start;
+} FUNC_T;
+
 byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc, HERE;
 CELL n1, t1, seed = 0;
-ushort dsp, rsp, lsp, locStart;
+ushort dsp, rsp, lsp, locStart, lastFunc;
 CELL   dstack[STK_SZ + 1];
 addr   rstack[STK_SZ + 1];
 LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
-addr   func[NUM_FUNCS];
+FUNC_T func[100];
 CELL   reg[NUM_REGS];
 byte   user[USER_SZ];
 CELL locals[STK_SZ * 10];
@@ -36,10 +42,10 @@ inline LOOP_ENTRY_T* lpush() { if (lsp < STK_SZ) { ++lsp; } return lAt(); }
 inline LOOP_ENTRY_T *ldrop() { if (0 < lsp) { --lsp; } return lAt(); }
 
 void vmInit() {
-    dsp = rsp = lsp = flsp = locStart = 0;
+    dsp = rsp = lsp = flsp = locStart = lastFunc = 0;
     for (int i = 0; i < NUM_REGS; i++) { reg[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
-    for (int i = 0; i < NUM_FUNCS; i++) { func[i] = 0; }
+    // for (int i = 0; i < NUM_FUNCS; i++) { func[i].; }
     HERE = &user[0];
 }
 
@@ -150,6 +156,32 @@ void doFloat() {
     }
 }
 
+char *getFuncName(char* fn) {
+    int l = 0;
+    while ((l < FN_LEN) && BetweenI(*pc, 'A', 'Z')) { fn[l++] = *(pc++); }
+    while (l < FN_LEN) { fn[l++] = 0; }
+    return fn;
+}
+
+#define X(n) (func[i].name[n] == fn[n])
+addr findFunc(char* fn) {
+    for (int i = lastFunc-1; 0 <= i; i--) {
+        int found = 1;
+        FUNC_T* p = &func[i];
+        for (int j = 0; j < FN_LEN; j++) {
+            if (p->name[j] != fn[j]) { found = 0; break; }
+        }
+        if (found) { return func[i].start; }
+    }
+    return 0;
+}
+
+void addFunc(char *name) {
+    if (NUM_FUNCS <= lastFunc) { isError = 1; printString("-oof-"); return; }
+    for (int i = 0; i < FN_LEN; i++) { func[lastFunc].name[i] = name[i]; }
+    func[lastFunc++].start = pc;
+}
+
 int getRFnum(int isReg) {
     push(0);
     while (isRegChar(*pc)) { TOS = (TOS * 26) + *(pc++)-'A'; }
@@ -195,6 +227,7 @@ void doExt() {
 
 addr run(addr start) {
     pc = start;
+    char fn[4];
     isError = 0;
     rsp = lsp = locStart = 0;
     while (!isError && pc) {
@@ -223,11 +256,11 @@ addr run(addr start) {
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
             } break;
-        case ':': if (getRFnum(0)) {                                       // 58 CREATE
-                func[pop()] = pc;
-                skipTo(';', 0);
-                HERE = (HERE < pc) ? pc : HERE;
-            } break;
+        case ':': getFuncName(fn);      // 58 CREATE
+            addFunc(fn);
+            skipTo(';', 0);
+            HERE = (HERE < pc) ? pc : HERE;
+            break;
         case ';': pc = rpop(); locStart -= (locStart) ? 10 : 0;    break;  // 59 RETURN
         case '<': t1 = pop(); TOS = (TOS <  t1) ? 1 : 0;           break;  // 60 LESS-THAN
         case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;           break;  // 61 EQUALS
@@ -284,10 +317,12 @@ addr run(addr start) {
             if (ir == '~') { TOS = ~TOS; }             // NOT (COMPLEMENT)
             if (ir == 'L') { blockLoad(pop()); }       // Block Load
             break;
-        case 'c': if (getRFnum(0) && func[TOS]) {                            // FUNCTION CALL
-            if (*pc != ';') { rpush(pc); locStart += 10; }
-            pc = func[TOS];
-        } DROP1; break;
+        case 'c': getFuncName(fn);
+            t1 = (CELL)findFunc(fn);
+            if (t1) {
+                if (*pc != ';') { rpush(pc); locStart += 10; }
+                pc = (addr)t1;
+        } break;
         case 'd': if (isLocal(*pc)) { --locals[*(pc++) - '0' + locStart]; }
                 else { if (getRFnum(1)) { --reg[pop()]; } }        break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;

@@ -37,7 +37,7 @@ extern byte isError;
 extern addr HERE;
 extern CELL dstack[];
 extern ushort dsp;
-extern addr func[];
+// extern addr func[];
 extern CELL input_fp;
 
 extern void vmInit();
