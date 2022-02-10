@@ -147,6 +147,7 @@ void skipTo(byte to, int isCreate) {
         if (ir == to) { return; }
         if (ir == '\'') { ++pc; continue; }
         if (ir == '(') { skipTo(')', isCreate); continue; }
+        if (ir == '?') { skipTo('!', isCreate); continue; }
         if (ir == '[') { skipTo(']', isCreate); continue; }
         if (ir == '"') { skipTo('"', isCreate); continue; }
     }
@@ -211,6 +212,7 @@ void doFloat() {
 void doExt() {
     ir = *(pc++);
     switch (ir) {
+    case '%': t1 = pop(); TOS %= t1;  return; // MODULO
     case 'I': ir = *(pc++);
         if (ir == 'A') {
             ir = *(pc++);
@@ -258,7 +260,7 @@ addr run(addr start) {
         ir = *(pc++);
         switch (ir) {
         case 0:                                                    return pc;
-        case '!': setCell((byte*)TOS, NOS); DROP2;                 break;  // 33 STORE
+        case '!': setReg();                                          break;  // 33 STORE
         case '"': while (*(pc) != ir) { printChar(*(pc++)); }; ++pc; break;  // 34 PRINT
         case '#': ir = *(pc++) - '0';
             if (BetweenI(ir, 0, (LPC-1))) {
@@ -280,7 +282,7 @@ addr run(addr start) {
         case ')': setReg(); t1 = (CELL)fncPop();
             if (t1) {
                 rpush(pc);
-                // locStart += 10;
+                // locStart += LPC;
                 pc = (addr)t1;
             } break;  // 41 ENDIF
         case '*': t1 = pop(); TOS *= t1;                           break;  // 42 MULTIPLY
@@ -307,7 +309,7 @@ addr run(addr start) {
         case '<': t1 = pop(); TOS = (TOS < t1) ? 1 : 0;            break;  // 60 LESS-THAN
         case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;           break;  // 61 EQUALS
         case '>': t1 = pop(); TOS = (TOS > t1) ? 1 : 0;            break;  // 62 GREATER-THAN
-        case '?': if (pop() == 0) { skipTo('.', 0); }              break;  // 63
+        case '?': if (pop() == 0) { skipTo('!', 0); }              break;  // 63
         case '@': TOS = getCell((byte*)TOS);                       break;  // 64 FETCH
         case 'A': case 'B': case 'C': case 'D': case 'E': 
         case 'F': case 'G': case 'H': case 'I': case 'J': 
@@ -323,9 +325,7 @@ addr run(addr start) {
                 if (*pc == 'h') { printStringF("$%x", pop()); ++pc; }
                 break;  // 94 Exit LOOP
         case '_': TOS = (TOS) ? 0 : 1;                             break;  // 95 NOT (LOGICAL)
-        case '`': push(TOS);                                                 // 96 ZCOPY
-            while ((*pc) && (*pc != ir)) { *(A++) = *(pc++); }
-            *(A++) = 0; pc++;
+        case '`': doExt();
             break;
         case 'a': case 'b': case 'c': case 'd': case 'e':
         case 'f': case 'g': case 'h': case 'i': case 'j':
