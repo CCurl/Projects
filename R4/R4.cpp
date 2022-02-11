@@ -177,7 +177,7 @@ addr findFunc(CELL name) {
     return 0;
 }
 
-CELL getRegNum(int isReg) {
+CELL getRFNum(int isReg) {
     int L = 0, M = (isReg) ? 3 : RFN_LEN;
     if (isError) { return 0; }
     push(0);
@@ -254,7 +254,7 @@ addr run(addr start) {
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
             } break;
-        case ':': if (getRegNum(0)) {
+        case ':': if (getRFNum(0)) {                                       // CREATE
                 addFunc(pop());
                 skipTo(';', 0);
                 HERE = (HERE < pc) ? pc : HERE;
@@ -315,7 +315,7 @@ addr run(addr start) {
             if (ir == '~') { TOS = ~TOS; }             // NOT (COMPLEMENT)
             if (ir == 'L') { blockLoad(pop()); }       // Block Load
             break;
-        case 'c': if (getRegNum(0)) {
+        case 'c': if (getRFNum(0)) {                                       // CALL
                 t1 = (CELL)findFunc(pop());
                 if (t1) {
                     if (*pc != ';') { rpush(pc); locStart += 10; }
@@ -323,7 +323,7 @@ addr run(addr start) {
                 }
             } break;
         case 'd': if (isLocal(*pc)) { --locals[*(pc++) - '0' + locStart]; }
-                else { if (getRegNum(1)) { --regs[pop()]; } }        break;  // REG DECREMENT
+                else { if (getRFNum(1)) { --regs[pop()]; } }       break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
         case 'f': ir = *(pc++);
             if (ir == 'O') { fileOpen(); }
@@ -341,7 +341,7 @@ addr run(addr start) {
                 TOS = (TOS * 16) + t1; ++pc;
             } break;
         case 'i': if (isLocal(*pc)) { ++locals[*(pc++) - '0' + locStart]; }
-                else { if (getRegNum(1)) { ++regs[pop()]; } }        break;  // SET-REGISTER
+                else { if (getRFNum(1)) { ++regs[pop()]; } }       break;  // SET-REGISTER
         case 'j': /*FREE*/                                         break;
         case 'k': /*FREE*/                                         break;
         case 'l': /*FREE*/                                         break;  // LOOP EXIT
@@ -351,9 +351,9 @@ addr run(addr start) {
         case 'p': /*FREE*/                                         break;
         case 'q': /*FREE*/                                         break;
         case 'r': if (isLocal(*pc)) { push(locals[*(pc++)-'0'+locStart]); } 
-                else { if (getRegNum(1)) { TOS = regs[TOS]; } }      break;  // READ-REGISTER
+              else { if (getRFNum(1)) { TOS = regs[TOS]; } }       break;  // READ-REGISTER
         case 's': if (isLocal(*pc)) { locals[*(pc++)-'0'+locStart] = pop(); }
-              else { if (getRegNum(1)) { regs[TOS] = NOS; DROP2; } } break;  // SET-REGISTER
+              else { if (getRFNum(1)) { regs[TOS] = NOS; DROP2; } } break;  // SET-REGISTER
         case 't': /*FREE*/                                         break;
         case 'u': /*FREE*/                                         break;
         case 'v': /*FREE*/                                         break;
