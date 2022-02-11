@@ -21,7 +21,7 @@
   #define LSTACK_SZ       16
   #define USER_SZ        (256*1024)
   #define NUM_REGS       (26*26*26)
-  #define NUM_FUNCS      (26*26*26)
+  #define NUM_FUNCS      (100)
   #define __FILES__
   #define __BOARD__      PC
   #define __EDITOR__

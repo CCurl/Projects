@@ -2,22 +2,23 @@
 
 #include "R4.h"
 
-#define FN_LEN 8
+#define RFN_LEN 8
 typedef struct {
-    char name[FN_LEN];
-    addr start;
-} FUNC_T;
+    char name[RFN_LEN];
+    CELL val;
+} RF_T;
 
 byte ir, isBye = 0, isError = 0;
 static char buf[96];
 addr pc, HERE;
 CELL n1, t1, seed = 0;
-ushort dsp, rsp, lsp, locStart, lastFunc;
+ushort dsp, rsp, lsp, locStart, lastFunc, lastReg;
 CELL   dstack[STK_SZ + 1];
 addr   rstack[STK_SZ + 1];
 LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
-FUNC_T func[100];
-CELL   reg[NUM_REGS];
+RF_T func[NUM_FUNCS];
+RF_T regs[NUM_REGS];
+CELL reg[NUM_REGS];
 byte   user[USER_SZ];
 CELL locals[STK_SZ * 10];
 
@@ -42,10 +43,10 @@ inline LOOP_ENTRY_T* lpush() { if (lsp < STK_SZ) { ++lsp; } return lAt(); }
 inline LOOP_ENTRY_T *ldrop() { if (0 < lsp) { --lsp; } return lAt(); }
 
 void vmInit() {
-    dsp = rsp = lsp = flsp = locStart = lastFunc = 0;
-    for (int i = 0; i < NUM_REGS; i++) { reg[i] = 0; }
-    for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
+    dsp = rsp = lsp = flsp = locStart = lastFunc = lastReg = 0;
+    // for (int i = 0; i < NUM_REGS; i++) { reg[i] = 0; }
     // for (int i = 0; i < NUM_FUNCS; i++) { func[i].; }
+    for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
     HERE = &user[0];
 }
 
@@ -156,29 +157,43 @@ void doFloat() {
     }
 }
 
-char *getFuncName(char* fn) {
-    int l = 0;
-    while ((l < FN_LEN) && BetweenI(*pc, 'A', 'Z')) { fn[l++] = *(pc++); }
-    while (l < FN_LEN) { fn[l++] = 0; }
+char *getRFName(int isReg, char* fn) {
+    int l = 0, nLen = RFN_LEN;
+    while ((l < nLen) && BetweenI(*pc, 'A', 'Z')) { fn[l++] = *(pc++); }
+    while (l < nLen) { fn[l++] = 0; }
     return fn;
 }
 
-addr findFunc(char* fn) {
-    for (int i = lastFunc-1; 0 <= i; i--) {
-        int found = 1;
-        FUNC_T* p = &func[i];
-        for (int j = 0; j < FN_LEN; j++) {
-            if (p->name[j] != fn[j]) { found = 0; break; }
-        }
-        if (found) { return func[i].start; }
+void addRF(int isReg, char* name) {
+    ushort* pLast = isReg ? &lastReg : &lastFunc;
+    RF_T* dict = isReg ? regs : func;
+    if (isReg) {
+        if (NUM_REGS <= lastReg) { isError = 1; printString("-oof-"); return; }
+    } else {
+        if (NUM_FUNCS <= lastFunc) { isError = 1; printString("-ooR-"); return; }
     }
-    return 0;
+
+    for (int i = 0; i < RFN_LEN; i++) { dict[*pLast].name[i] = name[i]; }
+    dict[*pLast].val = isReg ? 0 : (CELL)pc;
+    *pLast += 1;
 }
 
-void addFunc(char *name) {
-    if (NUM_FUNCS <= lastFunc) { isError = 1; printString("-oof-"); return; }
-    for (int i = 0; i < FN_LEN; i++) { func[lastFunc].name[i] = name[i]; }
-    func[lastFunc++].start = pc;
+RF_T *findRF(int isReg, char* fn) {
+    ushort last = isReg ? lastReg : lastFunc;
+    RF_T* dict = isReg ? regs : func;
+    for (int i = last - 1; 0 <= i; i--) {
+        int found = 1;
+        RF_T* p = &dict[i];
+        for (int j = 0; j < RFN_LEN; j++) {
+            if (p->name[j] != fn[j]) { found = 0; break; }
+        }
+        if (found) { return p; }
+    }
+    if (isReg) {
+        addRF(isReg, fn);
+
+    }
+    return 0;
 }
 
 int getRFnum(int isReg) {
@@ -226,7 +241,8 @@ void doExt() {
 
 addr run(addr start) {
     pc = start;
-    char fn[4];
+    char rfn[RFN_LEN];
+    RF_T* rfp;
     isError = 0;
     rsp = lsp = locStart = 0;
     while (!isError && pc) {
@@ -255,8 +271,8 @@ addr run(addr start) {
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
             } break;
-        case ':': getFuncName(fn);      // 58 CREATE
-            addFunc(fn);
+        case ':': getRFName(0, rfn);      // 58 CREATE
+            addRF(0, rfn);
             skipTo(';', 0);
             HERE = (HERE < pc) ? pc : HERE;
             break;
@@ -316,11 +332,11 @@ addr run(addr start) {
             if (ir == '~') { TOS = ~TOS; }             // NOT (COMPLEMENT)
             if (ir == 'L') { blockLoad(pop()); }       // Block Load
             break;
-        case 'c': getFuncName(fn);
-            t1 = (CELL)findFunc(fn);
-            if (t1) {
+        case 'c': getRFName(0, rfn);
+            rfp = findRF(0, rfn);
+            if (rfp) {
                 if (*pc != ';') { rpush(pc); locStart += 10; }
-                pc = (addr)t1;
+                pc = (addr)rfp->val;
         } break;
         case 'd': if (isLocal(*pc)) { --locals[*(pc++) - '0' + locStart]; }
                 else { if (getRFnum(1)) { --reg[pop()]; } }        break;  // REG DECREMENT
