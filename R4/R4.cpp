@@ -3,7 +3,8 @@
 #include "R4.h"
 
 typedef struct {
-    char name[RFN_LEN];
+    // char name[RFN_LEN];
+    long name;
     addr val;
 } RF_T;
 
@@ -158,43 +159,34 @@ void doFloat() {
     }
 }
 
-char *getFuncName(char* name) {
-    int l = 0;
-    while ((l < RFN_LEN) && BetweenI(*pc, 'A', 'Z')) { name[l++] = *(pc++); }
-    if (l < RFN_LEN) { name[l] = 0; }
-    if (l == 0) { isError = 1; }
-    return name;
-}
-
-int addFunc(char* name) {
+int addFunc(CELL name) {
     if (isError) { return -1; }
     if (NUM_FUNCS <= lastFunc) { isError = 1; printString("-oof-"); return -1; }
 
-    for (int i = 0; i < RFN_LEN; i++) { func[lastFunc].name[i] = name[i]; }
+    func[lastFunc].name = name;
     func[lastFunc].val = pc;
     return (lastFunc++);
 }
 
-addr findFunc(char* name) {
+addr findFunc(CELL name) {
     if (isError) { return 0; }
     for (int i = lastFunc - 1; 0 <= i; i--) {
         RF_T* p = &func[i];
-        for (int j = 0; j < RFN_LEN; j++) {
-            if (p->name[j] != name[j]) { break; }
-            if (name[j] == 0) { return p->val; }
-            if (j == (RFN_LEN-1)) { return p->val; }
-        }
+        if (p->name == name) { return p->val; }
     }
     return 0;
 }
 
-int getRegNum() {
+CELL getRegNum(int isReg) {
+    int L = 0, M = (isReg) ? 3 : RFN_LEN;
     if (isError) { return 0; }
     push(0);
-    while (BetweenI(*pc, 'A', 'Z')) {
+    while (BetweenI(*pc, 'A', 'Z') && (L <= M)) {
         TOS = (TOS * 26) + (*(pc++) - 'A');
+        ++L;
     }
-    if (NUM_REGS <= TOS) { isError = 1; DROP1; }
+    if ((isReg) && (NUM_REGS <= TOS)) { isError = 1; DROP1; }
+    if ((!isReg) && (L == 0)) { isError = 1; DROP1; }
     return (isError == 0) ? 1 : 0;
 }
 
@@ -234,14 +226,13 @@ void doExt() {
 
 addr run(addr start) {
     pc = start;
-    char name[RFN_LEN];
     isError = 0;
     rsp = lsp = locStart = 0;
     while (!isError && pc) {
-        while (*pc && (*pc < ' ')) { pc++; }
         ir = *(pc++);
-        if (!ir) { return pc; }
         switch (ir) {
+        case 0: return pc;
+        case ' ': while (BetweenI(*pc, 1, 32)) { pc++; }           break;  // 33 STORE
         case '!': setCell((byte*)TOS, NOS); DROP2;                 break;  // 33 STORE
         case '"': while (*(pc)!=ir) { printChar(*(pc++)); }; ++pc; break;  // 34 PRINT
         case '#': push(TOS);                                       break;  // 35 DUP
@@ -263,11 +254,11 @@ addr run(addr start) {
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
             } break;
-        case ':': getFuncName(name); if (isError) { break; }     // 58 CREATE
-            addFunc(name);
-            skipTo(';', 0);
-            HERE = (HERE < pc) ? pc : HERE;
-            break;
+        case ':': if (getRegNum(0)) {
+                addFunc(pop());
+                skipTo(';', 0);
+                HERE = (HERE < pc) ? pc : HERE;
+            } break;
         case ';': pc = rpop(); locStart -= (locStart) ? 10 : 0;    break;  // 59 RETURN
         case '<': t1 = pop(); TOS = (TOS <  t1) ? 1 : 0;           break;  // 60 LESS-THAN
         case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;           break;  // 61 EQUALS
@@ -324,14 +315,15 @@ addr run(addr start) {
             if (ir == '~') { TOS = ~TOS; }             // NOT (COMPLEMENT)
             if (ir == 'L') { blockLoad(pop()); }       // Block Load
             break;
-        case 'c': getFuncName(name); // if (isError) { break; }
-            t1 = (CELL)findFunc(name);
-            if (t1) {
-                if (*pc != ';') { rpush(pc); locStart += 10; }
-                pc = (addr)t1;
-        } break;
+        case 'c': if (getRegNum(0)) {
+                t1 = (CELL)findFunc(pop());
+                if (t1) {
+                    if (*pc != ';') { rpush(pc); locStart += 10; }
+                    pc = (addr)t1;
+                }
+            } break;
         case 'd': if (isLocal(*pc)) { --locals[*(pc++) - '0' + locStart]; }
-                else { if (getRegNum()) { --regs[pop()]; } }        break;  // REG DECREMENT
+                else { if (getRegNum(1)) { --regs[pop()]; } }        break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
         case 'f': ir = *(pc++);
             if (ir == 'O') { fileOpen(); }
@@ -349,7 +341,7 @@ addr run(addr start) {
                 TOS = (TOS * 16) + t1; ++pc;
             } break;
         case 'i': if (isLocal(*pc)) { ++locals[*(pc++) - '0' + locStart]; }
-                else { if (getRegNum()) { ++regs[pop()]; } }        break;  // SET-REGISTER
+                else { if (getRegNum(1)) { ++regs[pop()]; } }        break;  // SET-REGISTER
         case 'j': /*FREE*/                                         break;
         case 'k': /*FREE*/                                         break;
         case 'l': /*FREE*/                                         break;  // LOOP EXIT
@@ -359,9 +351,9 @@ addr run(addr start) {
         case 'p': /*FREE*/                                         break;
         case 'q': /*FREE*/                                         break;
         case 'r': if (isLocal(*pc)) { push(locals[*(pc++)-'0'+locStart]); } 
-                else { if (getRegNum()) { TOS = regs[TOS]; } }      break;  // READ-REGISTER
+                else { if (getRegNum(1)) { TOS = regs[TOS]; } }      break;  // READ-REGISTER
         case 's': if (isLocal(*pc)) { locals[*(pc++)-'0'+locStart] = pop(); }
-              else { if (getRegNum()) { regs[TOS] = NOS; DROP2; } } break;  // SET-REGISTER
+              else { if (getRegNum(1)) { regs[TOS] = NOS; DROP2; } } break;  // SET-REGISTER
         case 't': /*FREE*/                                         break;
         case 'u': /*FREE*/                                         break;
         case 'v': /*FREE*/                                         break;

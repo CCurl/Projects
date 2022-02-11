@@ -20,7 +20,7 @@
   #define STK_SZ          16
   #define LSTACK_SZ       16
   #define USER_SZ       (256*1024)
-  #define RFN_LEN         8
+  #define RFN_LEN         7
   #define NUM_REGS      (26*26*26)
   #define NUM_FUNCS      100
   #define __FILES__
