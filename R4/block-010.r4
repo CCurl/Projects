@@ -11,7 +11,7 @@
 :STC cCSI.";"."m";
 
 0(CLC (--): Clear Color)
-:CLC 37 40cSTC;
+:CLC 37 40 cSTC;
 
 0(CLL (--): To list the colors )
 :CLL 30 37[N rI s1 40 47[r1 rI cSTC " ("r1.";"rI.") "] cCLC];

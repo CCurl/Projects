@@ -20,8 +20,9 @@
   #define STK_SZ          16
   #define LSTACK_SZ       16
   #define USER_SZ        (256*1024)
-  #define NUM_REGS       (26*26*26)
-  #define NUM_FUNCS      (100)
+  #define RFN_LEN        12
+  #define NUM_REGS       100
+  #define NUM_FUNCS      100
   #define __FILES__
   #define __BOARD__      PC
   #define __EDITOR__
@@ -32,14 +33,13 @@
   #define LSTACK_SZ       4
   #define __LITTLEFS__
   #define __EDITOR__
-  // #define USER_SZ        (24*1024) // XIAO
-  #define USER_SZ        (96*1024) // RPI PICO
-  #define NUM_REGS       (26*26*13) // MZZ
-  #define NUM_FUNCS      (26*26*13) // MZZ
-  //#define NUM_REGS       (26*26)
-  //#define NUM_FUNCS      (26*26)
-  #define __SERIAL__      1
-  #define mySerial        Serial
+  // #define USER_SZ       (24*1024) // XIAO
+  #define USER_SZ       (96*1024) // RPI PICO
+  #define RFN_LEN         12
+  #define NUM_REGS       100
+  #define NUM_FUNCS      100
+  #define __SERIAL__       1
+  #define mySerial       Serial
 #endif
 
 #endif
