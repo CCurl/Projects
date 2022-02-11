@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -151,6 +151,7 @@
     <None Include="block-000.r4" />
     <None Include="block-001.r4" />
     <None Include="block-002.r4" />
+    <None Include="block-003.r4" />
     <None Include="block-010.r4" />
     <None Include="block-011.r4" />
     <None Include="block-222.r4" />
