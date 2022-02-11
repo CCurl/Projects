@@ -4,7 +4,7 @@
 
 typedef struct {
     char name[RFN_LEN];
-    CELL val;
+    addr val;
 } RF_T;
 
 byte ir, isBye = 0, isError = 0;
@@ -16,8 +16,8 @@ CELL   dstack[STK_SZ + 1];
 addr   rstack[STK_SZ + 1];
 LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
 RF_T func[NUM_FUNCS];
-RF_T regs[NUM_REGS];
-byte   user[USER_SZ];
+CELL regs[NUM_REGS];
+byte user[USER_SZ];
 CELL locals[STK_SZ * 10];
 
 void push(CELL v) { if (dsp < STK_SZ) { dstack[++dsp] = v; } }
@@ -42,10 +42,12 @@ inline LOOP_ENTRY_T *ldrop() { if (0 < lsp) { --lsp; } return lAt(); }
 
 void vmInit() {
     dsp = rsp = lsp = flsp = locStart = lastFunc = lastReg = 0;
-    // for (int i = 0; i < NUM_REGS; i++) { reg[i] = 0; }
+    for (int i = 0; i < NUM_REGS; i++) { regs[i] = 0; }
     // for (int i = 0; i < NUM_FUNCS; i++) { func[i].; }
     for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
     HERE = &user[0];
+    // Add the INDEX register
+    // user[0] = 'I'; addRF(1, (char*)user); user[0] = 0;
 }
 
 void setCell(byte* to, CELL val) {
@@ -101,7 +103,7 @@ void skipTo(byte to, int isCreate) {
     isError = 1;
 }
 
-#define INDEX regs[0].val
+// #define INDEX regs[0].val
 void doFor() {
     CELL t = (NOS < TOS) ? TOS : NOS;
     CELL f = (NOS < TOS) ? NOS : TOS;
@@ -156,61 +158,44 @@ void doFloat() {
     }
 }
 
-int isRFChar(int pos, char c) {
-    if (BetweenI(c, 'A', 'Z')) { return 1; }
-    // if (pos && BetweenI(c, 'a', 'z')) { return 1; }
-    // if (pos && BetweenI(c, '0', '9')) { return 1; }
-    // if (c == '.') { return 1; }
+char *getFuncName(char* name) {
+    int l = 0;
+    while ((l < RFN_LEN) && BetweenI(*pc, 'A', 'Z')) { name[l++] = *(pc++); }
+    if (l < RFN_LEN) { name[l] = 0; }
+    if (l == 0) { isError = 1; }
+    return name;
+}
+
+int addFunc(char* name) {
+    if (isError) { return -1; }
+    if (NUM_FUNCS <= lastFunc) { isError = 1; printString("-oof-"); return -1; }
+
+    for (int i = 0; i < RFN_LEN; i++) { func[lastFunc].name[i] = name[i]; }
+    func[lastFunc].val = pc;
+    return (lastFunc++);
+}
+
+addr findFunc(char* name) {
+    if (isError) { return 0; }
+    for (int i = lastFunc - 1; 0 <= i; i--) {
+        RF_T* p = &func[i];
+        for (int j = 0; j < RFN_LEN; j++) {
+            if (p->name[j] != name[j]) { break; }
+            if (name[j] == 0) { return p->val; }
+            if (j == (RFN_LEN-1)) { return p->val; }
+        }
+    }
     return 0;
 }
 
-char *getRFName(int isReg, char* fn) {
-    int l = 0, nLen = RFN_LEN;
-    while ((l < nLen) && isRFChar(l, *pc)) { fn[l++] = *(pc++); }
-    if (l < nLen) { fn[l] = 0; }
-    if (l == 0) { isError = 1; }
-    return fn;
-}
-
-int addRF(int isReg, char* name) {
-    ushort* pLast = isReg ? &lastReg : &lastFunc;
-    RF_T* dict = isReg ? regs : func;
-    if (isReg) {
-        if (NUM_REGS <= lastReg) { isError = 1; printString("-oof-"); return -1; }
-    } else {
-        if (NUM_FUNCS <= lastFunc) { isError = 1; printString("-ooR-"); return -1; }
-    }
-
-    for (int i = 0; i < RFN_LEN; i++) { dict[*pLast].name[i] = name[i]; }
-    dict[*pLast].val = isReg ? 0 : (CELL)pc;
-    *pLast += 1;
-    return *pLast-1;
-}
-
-int findRF(int isReg, char* fn) {
-    if (isError) { return -1; }
-    ushort last = isReg ? lastReg : lastFunc;
-    RF_T* dict = isReg ? regs : func;
-    for (int i = last - 1; 0 <= i; i--) {
-        RF_T* p = &dict[i];
-        for (int j = 0; j < RFN_LEN; j++) {
-            if (p->name[j] != fn[j]) { break; }
-            if (fn[j] == 0) { return i; }
-        }
-    }
-    return -1;
-}
-
-int getRFnum(int isReg) {
+int getRegNum() {
     if (isError) { return 0; }
-    char rfn[RFN_LEN];
-    getRFName(1, rfn);
-    int ndx = findRF(1, rfn);
-    if (ndx < 0) {
-        ndx = addRF(1, rfn);
+    push(0);
+    while (BetweenI(*pc, 'A', 'Z')) {
+        TOS = (TOS * 26) + (*(pc++) - 'A');
     }
-    if (!isError) { push(ndx); }
-    return isError == 0;
+    if (NUM_REGS <= TOS) { isError = 1; DROP1; }
+    return (isError == 0) ? 1 : 0;
 }
 
 void doExt() {
@@ -247,16 +232,9 @@ void doExt() {
     }
 }
 
-void addIndexReg(char *rfn) {
-    rfn[0] = 'I';
-    for (int i = 1; i < RFN_LEN; i++) { rfn[i] = 0; }
-    addRF(1, rfn);
-}
-
 addr run(addr start) {
     pc = start;
-    char rfn[RFN_LEN];
-    if (lastReg == 0) { addIndexReg(rfn); }
+    char name[RFN_LEN];
     isError = 0;
     rsp = lsp = locStart = 0;
     while (!isError && pc) {
@@ -285,8 +263,8 @@ addr run(addr start) {
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
             } break;
-        case ':': getRFName(0, rfn); if (isError) { break; }     // 58 CREATE
-            addRF(0, rfn);
+        case ':': getFuncName(name); if (isError) { break; }     // 58 CREATE
+            addFunc(name);
             skipTo(';', 0);
             HERE = (HERE < pc) ? pc : HERE;
             break;
@@ -346,14 +324,14 @@ addr run(addr start) {
             if (ir == '~') { TOS = ~TOS; }             // NOT (COMPLEMENT)
             if (ir == 'L') { blockLoad(pop()); }       // Block Load
             break;
-        case 'c': getRFName(0, rfn); if (isError) { break; }
-            t1 = findRF(0, rfn);
-            if (0 <= t1) {
+        case 'c': getFuncName(name); // if (isError) { break; }
+            t1 = (CELL)findFunc(name);
+            if (t1) {
                 if (*pc != ';') { rpush(pc); locStart += 10; }
-                pc = (addr)func[t1].val;
+                pc = (addr)t1;
         } break;
         case 'd': if (isLocal(*pc)) { --locals[*(pc++) - '0' + locStart]; }
-                else { if (getRFnum(1)) { --regs[pop()].val; } }        break;  // REG DECREMENT
+                else { if (getRegNum()) { --regs[pop()]; } }        break;  // REG DECREMENT
         case 'e': /*FREE*/                                         break;
         case 'f': ir = *(pc++);
             if (ir == 'O') { fileOpen(); }
@@ -371,7 +349,7 @@ addr run(addr start) {
                 TOS = (TOS * 16) + t1; ++pc;
             } break;
         case 'i': if (isLocal(*pc)) { ++locals[*(pc++) - '0' + locStart]; }
-                else { if (getRFnum(1)) { ++regs[pop()].val; } }        break;  // SET-REGISTER
+                else { if (getRegNum()) { ++regs[pop()]; } }        break;  // SET-REGISTER
         case 'j': /*FREE*/                                         break;
         case 'k': /*FREE*/                                         break;
         case 'l': /*FREE*/                                         break;  // LOOP EXIT
@@ -381,9 +359,9 @@ addr run(addr start) {
         case 'p': /*FREE*/                                         break;
         case 'q': /*FREE*/                                         break;
         case 'r': if (isLocal(*pc)) { push(locals[*(pc++)-'0'+locStart]); } 
-                else { if (getRFnum(1)) { TOS = regs[TOS].val; } }      break;  // READ-REGISTER
+                else { if (getRegNum()) { TOS = regs[TOS]; } }      break;  // READ-REGISTER
         case 's': if (isLocal(*pc)) { locals[*(pc++)-'0'+locStart] = pop(); }
-              else { if (getRFnum(1)) { regs[TOS].val = NOS; DROP2; } } break;  // SET-REGISTER
+              else { if (getRegNum()) { regs[TOS] = NOS; DROP2; } } break;  // SET-REGISTER
         case 't': /*FREE*/                                         break;
         case 'u': /*FREE*/                                         break;
         case 'v': /*FREE*/                                         break;

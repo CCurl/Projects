@@ -11,7 +11,7 @@ typedef unsigned char byte;
 typedef byte *addr;
 
 #define CELL_SZ    sizeof(CELL)
-// #define INDEX      reg[8]
+#define INDEX      regs[8]
 #define TOS        dstack[dsp]
 #define A          (addr)TOS
 #define NOS        dstack[dsp-1]

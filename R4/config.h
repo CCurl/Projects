@@ -19,9 +19,9 @@
 #ifdef __PC__
   #define STK_SZ          16
   #define LSTACK_SZ       16
-  #define USER_SZ        (256*1024)
-  #define RFN_LEN        12
-  #define NUM_REGS       100
+  #define USER_SZ       (256*1024)
+  #define RFN_LEN         8
+  #define NUM_REGS      (26*26*26)
   #define NUM_FUNCS      100
   #define __FILES__
   #define __BOARD__      PC
