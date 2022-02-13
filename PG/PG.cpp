@@ -43,6 +43,22 @@ typedef struct {
     addr end;
 } LOOP_ENTRY_T;
 
+#define OP_STACK   0
+#define OP_DEST    1
+#define OP_ADD     2
+#define OP_SUB     3
+#define OP_MUL     4
+#define OP_DIV     5
+#define OP_EQU     6
+#define OP_LT      7
+#define OP_GT      8
+
+typedef struct {
+    CELL *dest; // 0 => none, 1-26 (1:a, 26:z)
+    byte reg;  // 0 => none, 1-26 (1:a, 26:z)
+    byte op;  // see above
+    byte loc; // locals start
+} CTX_T;
 
 byte ir, isBye = 0;
 static char buf[96];
@@ -53,10 +69,18 @@ CELL   dstack[STK_SZ + 1];
 addr   rstack[STK_SZ + 1];
 LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
 addr   func[NUM_FUNCS];
-CELL   reg[NUM_REGS];
+CELL   reg[NUM_REGS+1];
 byte   user[USER_SZ];
 CELL locals[STK_SZ * LPC];
 int isError, paramNum;
+
+int ctxSP;
+CTX_T ctx[32];
+#define CTX ctx[ctxSP]
+#define CLR_CTX { CTX.dest = NULL; CTX.reg = CTX.op = 0; }
+
+void ctxPush() { ++ctxSP; CTX.dest = NULL; CTX.reg = CTX.op = 0; CTX.loc = locStart; }
+void ctxPop() { if (ctxSP) --ctxSP; }
 
 void push(CELL v) { if (dsp < STK_SZ) { dstack[++dsp] = v; } }
 CELL pop() { return (dsp) ? dstack[dsp--] : 0; }
@@ -90,6 +114,7 @@ inline LOOP_ENTRY_T* ldrop() { if (0 < lsp) { --lsp; } return lAt(); }
 
 void vmInit() {
     dsp = rsp = lsp = flsp = locStart = 0;
+    ctxSP = 0;
     for (int i = 0; i < NUM_REGS; i++) { reg[i] = 0; }
     for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
     for (int i = 0; i < NUM_FUNCS; i++) { func[i] = 0; }
@@ -104,32 +129,6 @@ CELL doMicros() { return (CELL)doMillis() * 1000; }
 void doDelay(CELL ms) { Sleep(ms); }
 int getChar() { return _getch(); }
 int charAvailable() { return _kbhit(); }
-
-
-void setCell(byte* to, CELL val) {
-#ifdef _NEEDS_ALIGN_
-    * (to++) = (byte)val;
-    for (int i = 1; i < CELL_SZ; i++) {
-        val = (val >> 8);
-        *(to++) = (byte)val;
-    }
-#else
-    * ((CELL*)to) = val;
-#endif
-}
-
-CELL getCell(byte* from) {
-    CELL val = 0;
-#ifdef _NEEDS_ALIGN_
-    from += (CELL_SZ - 1);
-    for (int i = 0; i < CELL_SZ; i++) {
-        val = (val << 8) + *(from--);
-    }
-#else
-    val = *((CELL*)from);
-#endif
-    return val;
-}
 
 void printStringF(const char* fmt, ...) {
     va_list args;
@@ -190,64 +189,37 @@ void loopExit() {
 }
 
 int isOk(int exp, const char* msg) {
-    isError = (exp == 0); if (isError) { printString(msg); }
-    return (isError == 0);
+    if (exp == 0) { isError = 1; printString(msg); return 0; }
+    return 1;
 }
 
-void doFloat() {
-    switch (*(pc++)) {
-    case '<': flpush((float)pop());                             return;
-    case '>': push((CELL)flpop());                              return;
-    case '+': fN += fT; fDROP1;                                 return;
-    case '-': fN -= fT; fDROP1;                                 return;
-    case '*': fN *= fT; fDROP1;                                 return;
-    case '/': if (isOk(fT != 0, "-0div-")) { fN /= fT; fDROP1; }  return;
-    case '.': printStringF("%g", flpop());                      return;
-    default:
-        isError = 1;
-        printString("-flt?-");
-    }
-}
-
-void doExt() {
-    ir = *(pc++);
-    switch (ir) {
-    case '%': t1 = pop(); TOS %= t1;  return; // MODULO
-    case 'I': ir = *(pc++);
-        if (ir == 'A') {
-            ir = *(pc++);
-            if (ir == 'F') { push((CELL)&func[0]); }
-            if (ir == 'H') { push((CELL)&HERE); }
-            if (ir == 'R') { push((CELL)&reg[0]); }
-            if (ir == 'U') { push((CELL)&user[0]); }
-            return;
-        };
-        if (ir == 'C') { push(CELL_SZ); }
-        if (ir == 'F') { push(NUM_FUNCS); }
-        if (ir == 'H') { push((CELL)HERE); }
-        if (ir == 'R') { push(NUM_REGS); }
-        if (ir == 'U') { push(USER_SZ); }
-        return;
-    // case 'E': doEditor();                            return;
-    case 'S': if (*pc == 'R') { ++pc; vmInit(); }    return;
-    case 'N': push(doMicros());                      return;
-    case 'T': push(doMillis());                      return;
-    case 'W': if (0 < TOS) { doDelay(TOS); } pop();  return;
-    case 'R': if (!seed) { seed = getSeed(); }
-            seed ^= (seed << 13);
-            seed ^= (seed >> 17);
-            seed ^= (seed << 5);
-            TOS = (TOS) ? ABS(seed) % TOS : seed;
-            return;
-    default:
+void doOp() {
+    switch (CTX.op) {
+    case OP_STACK: break;
+    case OP_ADD: if (CTX.dest) { *CTX.dest += TOS; }
+               else { NOS += TOS; }
+               DROP1;  break;
+    case OP_SUB: if (CTX.dest) { *CTX.dest -= TOS; }
+               else { NOS -= TOS; }
+               DROP1;  break;
+    case OP_MUL: if (CTX.dest) { *CTX.dest *= TOS; }
+               else { NOS += TOS; }
+               DROP1;  break;
+    case OP_DIV: if (!isOk(TOS, "-div0-")) { break; }
+               if (CTX.dest) { *CTX.dest /= TOS; }
+               else { NOS += TOS; }
+               DROP1; break;
+    case OP_EQU: NOS = (NOS == TOS) ? 1 : 0;
+        DROP1; break;
+    case OP_LT: NOS = (NOS < TOS) ? 1 : 0;
+        DROP1; break;
+    case OP_GT: NOS = (NOS > TOS) ? 1 : 0;
+        DROP1;  break;
+    case OP_DEST: *CTX.dest = pop();
         break;
-        // pc = doCustom(ir, pc);
     }
-}
-
-void setReg() {
-    CELL *rp = dstPop();
-    if (rp) { *(rp) = pop(); }
+    CTX.op = OP_STACK;
+    CTX.reg = 0;
 }
 
 addr run(addr start) {
@@ -255,12 +227,13 @@ addr run(addr start) {
     isError = rsp = lsp = locStart = fncSp = 0;
     fncStk[0] = 0;
     dstStk[0] = 0;
+    ctxSP = 0;
     while (!isError && pc) {
         while (BetweenI(*pc, 1, 32)) { pc++; }
         ir = *(pc++);
         switch (ir) {
-        case 0:                                                    return pc;
-        case '!': setReg();                                          break;  // 33 STORE
+        case 0:                                                      return pc;
+        case '!':           break;
         case '"': while (*(pc) != ir) { printChar(*(pc++)); }; ++pc; break;  // 34 PRINT
         case '#': ir = *(pc++) - '0';
             if (BetweenI(ir, 0, (LPC-1))) {
@@ -271,34 +244,31 @@ addr run(addr start) {
         case '$': t1 = TOS; TOS = NOS; NOS = t1;                   break;  // 36 SWAP
         case '%':  ir = *(pc++) - '0';
             if (BetweenI(ir, 0, (LPC-1))) {
-                if (*pc == ':') { dstPush(&locals[locStart + ir]); ++pc;  }
-                else {
-                    push(locals[locStart + ir]); 
-                }
+                if (*pc == ':') { CTX.dest = &locals[locStart + ir]; ++pc;  }
+                else { push(locals[locStart + ir]); }
             }                                                      break;  // 37 local 0-9
         case '&': /*FREE*/                                         break;  // 38
         case '\'': push(*(pc++));                                  break;  // 39 CHAR-LIT
         // case '(': if (!TOS) { skipTo(')', 0); } DROP1;             break;  // 40 IF
-        case ')': setReg(); t1 = (CELL)fncPop();
+        case ')': doOp(); t1 = (CELL)fncPop();
             if (t1) {
                 rpush(pc);
                 // locStart += LPC;
                 pc = (addr)t1;
             } break;  // 41 ENDIF
-        case '*': t1 = pop(); TOS *= t1;                           break;  // 42 MULTIPLY
-        case '+': t1 = pop(); TOS += t1;                           break;  // 43 ADD
-        case '-': t1 = pop(); TOS -= t1;                           break;  // 45 SUBTRACT
-        case ',': setReg(); // 99< lastReg => in () 
-            // if (99<lastReg) { dstPush(lastReg + 1); }
-            break;  // 46 COMMA
-        case '.': setReg();                                        break;  // 46 DOT
-        case '/': if (isOk(TOS, "-0div-")) { NOS /= TOS; DROP1; }  break;  // 47 DIVIDE
+        case '*': CTX.op = OP_MUL;                           break;  // 43 ADD
+        case '+': CTX.op = OP_ADD;                           break;  // 43 ADD
+        case '-': CTX.op = OP_SUB;                           break;  // 43 ADD
+        case '/': CTX.op = OP_DIV;                           break;  // 47 DIVIDE
+        case ',': doOp(); CLR_CTX;                           break;  // 46 COMMA
+        case '.': doOp(); CLR_CTX;                           break;  // 46 DOT
         case '0': case '1': case '2': case '3': case '4':                  // 48-57 NUMBER
         case '5': case '6': case '7': case '8': case '9':
             push(ir - '0');
             while (BetweenI(*pc, '0', '9')) {
                 TOS = (TOS * 10) + *(pc++) - '0';
-            } break;
+            } 
+            doOp(); break;
         case ':': ir = *(pc++);
             if (!BetweenI(ir, 'a', 'z')) { isError = 1; break; }     // 58 CREATE
             func[ir-'a'] = pc;
@@ -306,46 +276,42 @@ addr run(addr start) {
             HERE = (HERE < pc) ? pc : HERE;
             break;
         case ';': pc = rpop(); locStart -= (locStart) ? LPC : 0;   break;  // 59 RETURN
-        case '<': t1 = pop(); TOS = (TOS < t1) ? 1 : 0;            break;  // 60 LESS-THAN
-        case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;           break;  // 61 EQUALS
-        case '>': t1 = pop(); TOS = (TOS > t1) ? 1 : 0;            break;  // 62 GREATER-THAN
+        case '<': CTX.op = OP_LT;             break;  // 60 LESS-THAN
+        case '=': CTX.op = OP_EQU;            break;  // 60 LESS-THAN
+        case '>': CTX.op = OP_GT;             break;  // 60 LESS-THAN
         case '?': if (pop() == 0) { skipTo('!', 0); }              break;  // 63
-        case '@': TOS = getCell((byte*)TOS);                       break;  // 64 FETCH
+        case '@': return pc;                              break;  // 64 FETCH
         case 'A': case 'B': case 'C': case 'D': case 'E': 
         case 'F': case 'G': case 'H': case 'I': case 'J': 
-        case 'K': case 'L': case 'M': break;
-        case 'N': printString("\r\n"); break;
+        case 'K': case 'L': case 'M': case 'N':
         case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': 
         case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+            printStringF("-func:%c", ir);
             break;
         case '[': doFor();                                         break;  // 91 FOR
         case '\\': DROP1;                                          break;  // 92 DROP
         case ']': doNext();                                        break;  // 93 NEXT
         case '^': if (*pc == 'd') { printStringF("%d", pop()); ++pc; }
                 if (*pc == 'h') { printStringF("$%x", pop()); ++pc; }
+                if (*pc == 'c') { printChar(pop()); ++pc; }
+                if (*pc == 'b') { printChar(32); ++pc; }
+                if (*pc == 'n') { printString("\r\n"); ++pc; }
                 break;  // 94 Exit LOOP
         case '_': TOS = (TOS) ? 0 : 1;                             break;  // 95 NOT (LOGICAL)
-        case '`': doExt();
-            break;
+        case '`':             break;
         case 'a': case 'b': case 'c': case 'd': case 'e':
         case 'f': case 'g': case 'h': case 'i': case 'j':
         case 'k': case 'l': case 'm': case 'n': case 'o':
         case 'p': case 'q': case 'r': case 's': case 't':
         case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
-            t1 = ir - 'a';
+            t1 = ir - 'a' + 1;
             if (*(pc) == ':') {
-                dstPush(&reg[t1]);
+                CTX.dest = &reg[t1];
+                CTX.op = OP_DEST;
                 ++pc;
-            } else if (*(pc) == '(') {
-                ++pc;
-                if (func[t1]) {
-                    fncPush((char *)func[t1]);
-                    locStart += LPC;
-                } else {
-                    skipTo(')', 0);
-                }
             } else {
                 push(reg[t1]);
+                doOp();
             }
             break;
         case '{': { LOOP_ENTRY_T* x = lpush();                             // 123 BEGIN
