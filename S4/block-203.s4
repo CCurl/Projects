@@ -1,16 +1,16 @@
 N"Decode the encoded image"N
 
-1`BL
+1xBL
 
 :IO Open, close, read input;
-:IO _rb_ \ `FO ih!;
-:IC ih@ (ih@ `FC) 0 ih!;
-:IR ih@`FR 0=(CF);
+:IO _rb_ \ xFO ih!;
+:IC ih@ (ih@ xFC) 0 ih!;
+:IR ih@xFR 0=(CF);
 
 :OO Open, close, write output;
-:OO _wb_ \ `FO oh!;
-:OC oh@ (oh@ `FC) 0 oh!;
-:OW oh@ (oh@ `FW \;),;
+:OO _wb_ \ xFO oh!;
+:OC oh@ (oh@ xFC) 0 oh!;
+:OW oh@ (oh@ xFW \;),;
 
 :SH (--): Skip BMP Header;
 :SH 1 54[IR\];
@@ -33,7 +33,7 @@ N"Decode the encoded image"N
 :DF (--) Decode image file;
 :DF 0 nb! ih@(DW IC OC);
 
-`iAU 5000+ v!
+xIAU 5000+ v!
 v@ _t-out.bmp_  IO
 v@ _t-out.txt_  OO
 DF N N "File size: " nb@ .

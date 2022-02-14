@@ -1,23 +1,21 @@
 0(Screen Stuff)
+0(CSI (--): Control Sequence)
 :CSI 27,"[";
 
-0(GXY (x y--); GotoXY)
-:GXY CSI.59,."H";
+0(GXY (x y--): GotoXY)
+:GXY CSI.";"."H";  
 
 0(CLS (--): Clear Screen)
 :CLS CSI"2J"1#GXY;
 
 0(STC (fg bg--): Set Color)
-:STC CSI.59,."m";
+:STC CSI.";"."m";
 
 0(CLC (--): Clear Color)
-:CLC 37 40STC;
+:CLC 0# STC;
 
-0(CLL (--): To list the colors )
-:CLL 30 37[N i@f! 40 47[i@g! f@g@ STC " (",f@.","g@.") "] CLC];
-
-0(CLU (--): More, ugly)
-0(:CLU 90 97[E rI sF 100 107[rI sG rF rG eSTC " (",rF.59,rG.") "] eCLC];)
+0(CLL (--): Color list)
+:CLL 30 37[CR rI s1 40 47[r1 rI STC " (" r1. "," rI. ") "] CLC];
 
 0(COF (--): Curson off)
 :COF CSI"?25l";
@@ -25,5 +23,5 @@
 0(CON (--): Curson on)
 :CON CSI"?25h";
 
-0(DMO (--): A little demo of using these)
-:DMO x@0=(100x!) y@0=(40y!) CLS COF 1{\8`R 30+ 40 STC x@`R y@`R GXY "*" `K?0=}`K@\ CLC CON;
+0(DMO (--): A little demo, random stars, until you press a key (xK?0=))
+:DMO rX~(120sX) rY~(30sY)CLS 1{\rX xR rY xR GXY 8 xR 30+ 40 STC "*"xK?0=}xK@\ CLC;
