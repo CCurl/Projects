@@ -5,28 +5,8 @@ xSR
 :REGS 0 xIR 1-[rI xIC* xIAR+ @#s1(CR "r" rI 26&$26&$'A+,'A+,'A+,": "r1.)];
 :USED xIH xIAU-;
 
-0(rVH is VHERE)
-:COMMA  rVH ! rVHxIC+sVH; 0(,)
-:CCOMMA rVH c! iVH;       0(C,)
-:VAR rVH;                 0(VARIABLE)
-:ALLOT rVH+sVH;           0(ALLOT (n--))
-:MIN %%>($)\;             0(a b--n)
-:MAX %%<($)\;             0(a b--n)
-:WDR #c@$1+c@256*+;       0(Word Read  16-bit (a--n))
-:WDW %255&%c!$256/$1+c!;  0(Word Write 16-bit (n a--))
+0(rV is VERE)
+:VAR rV;                  0(VARIABLE)
 :-Shift Left/Right (a n--b)-;
-:SHL {$2*$1-};
-:SHR {$2/$1-};
-
-0(Jump tables - create the 'A' function first)
-:JT "TODO";              0(Jump Table)
-0(JTE (n jta--a) - jump table entry)
-:JTE "TODO";
-:JTJ "TODO";              0(n jta--)
-
-0(MARKER/FORGET)
-:MARKER xIH sMKR;
-:FORGET rMKR xIAH!;
-
-0(Initialize VHERE)
-xIAU 20480 + sVH
+:SHL 1[2*];
+:SHR 1[2/];

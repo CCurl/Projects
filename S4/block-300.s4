@@ -1,32 +1,24 @@
-0(Jump table)
-
-0(Save the current state)
+0(-Editor-)
 1xBL
-MKR
-0(------------------------------------------------------------------------------)
+10 xBL
 
-:-create jump table-;
-VAR jt! 
-:#D D;   JT   0(0)
-:#\D;    JT   0(1)
-:+D;     JT   0(2)
-:#+D;    JT   0(3)
-:1+D;    JT   0(4)
-:1-D;    JT   0(5)
-:"#6";   JT   0(6)
-
-:-test jump table execution-;
-:TA N"Test #".": ";
-:TB 0 TA 0     0 jt JTJ;
-:TC 1 TA 1     1 jt JTJ;
-:TD 2 TA 1 1   2 jt JTJ;
-:TE 3 TA 3     3 jt JTJ;
-:TF 4 TA 44    4 jt JTJ;
-:TG 5 TA 44    5 jt JTJ;
-:TH 6 TA       6 jt JTJ;
-
-:TT TB TC TD TE TG TF TH;
-TT
+:EDIT sBN 1sGO RBLK CLS rGO{\ COF DISP FOOTER CON xK@ #,sC EDITCH rGO};
+:CBLK rV #1023+[rI c@ 32<(10 rI c!)];
+:RBLK rBN rV 1024 xBR \ rV sU CBLK;
+:WBLK rBN rV 1024 xBW \ rV sU;
+:RULE " +" 1 64 ["-"] "+" CR;
+:HDR 1# GXY " Editor v0.1 Block: " rBLK. CR;
+:FA "  (a)left (d)right (w)up (s)down (q)<< (e)>> (t)top (l)last" CR;
+:FB "  (n)LF" CR;
+:FC "  (r)replace" CR ": "8,;
+:FOOTER FA FB FC;
+:PC #10=(\174),;
+:DISP HDR rV s1 RULE 1 16[" |"1 64[r1 rU=(178,) r1 c@ PC i1]"| "CR] RULE;
+:NORM #s1 rV<(rV s1) rV 1023+ #s2 r1<(r2 s1) r1;
+:CHA rC'd=(iU;) rC'a=(dU;) rC'w=(rU64-sU;) rC's=(rU64+sU);
+:CHB rC'q=(rU4-sU;) rC'e=(rU4+sU;) rC't=(0sU;) rC'l=(rU9999+sU);
+:CHC rC'r=(xK@rUc!iU;) rC'n=(10rUc!iU;);
+:EDITCH rC'Q=(0 sGO;) CHA CHB CHC rU NORM sU;
 
 0(------------------------------------------------------------------------------)
-:RL FGT 300 xBL;
+:RL 300 xBL;
