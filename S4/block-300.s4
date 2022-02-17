@@ -15,7 +15,7 @@ rV sBS rV rBSZ+ 1- sBE
 :FC "  (n)LF (W)Write (Q)Quit" CR;
 :FB "  (r)replace (R)Replace (i)insert (I)Insert" CR;
 :FOOTER FA FB FC ": "8,;
-:PC #10=(\174),;
+:PC #10=(\250),;
 :DISP HDR rBS s1 RULE 1 rYS[" |"1 rXS[r1 rU=(178,) r1 c@ PC i1]"| "CR] RULE;
 :NORM s1r1rV<(rV s1) r1rBE>(rBE s1) r1;
 :INS rBE #s2 s1d1 r2rU>{\r1c@r2c! d1d2 r2rU>}32rUc!;
