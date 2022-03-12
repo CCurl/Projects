@@ -4,18 +4,20 @@ S3 is a minimal, extendable, and interactive environment where the source code I
 
 # What is S3?
 
-I think of S3 as a 32-bit stack-based, RPN, Forth-like, virtual CPU/VM that 26 registers and 26 functions, and amount of user ram as the system supports.
+S3 is a 32-bit stack-based, RPN, Forth-like, virtual CPU/VM that has 26 registers, 26 functions, and any amount of user ram as the system supports.
 
-A register is identified by up to 1 UPPER-case, so there are 26 registers available. I tend to think of the registers as built-in variables. Reading, setting, incrementing or decrementing a register is a single operation.
+A register is identified by 1 UPPER-case letter, so there are 26 registers available. Registers are essentially built-in variables. Reading, setting, incrementing or decrementing a register is a single operation.
 
-A function is also identified by 1 UPPER-case character.
+A word/function is also identified by 1 UPPER-case letter.
 
-- Example 1: "Hello World!"            - the typical "hello world" program.
-- Example 2: 123 sA 456 sB rA rB ++ . - would print 579. (A and B are registers)
-- Example 4: 32 126\[13,10,rI#."-",\]  - would print the ASCII table
-- Example 3: 1000sS 13xPO 1{1 13 xPWD rS xW 0 13 xPWD rS xW} - the typical Arduino "blink" program.
+```
+Example 1: "Hello World!"                    - the typical "hello world" program.
+Example 2: 123 sA 456 sB rA rB ++ .          - prints 579. (rA and rB are registers)
+Example 4: 32 126[rI##"%n%d %c (%x)"]        - prints the ASCII table
+Example 3: 13xPO 1{0 1[rI 13 xPWD 1000 xW]}  - the typical Arduino "blink" program.
+```
 
-The reference for S3 is here:   https://github.com/CCurl/S3/blob/main/doc/reference.txt
+The reference for S3 is here: https://github.com/CCurl/S3/blob/main/doc/reference.txt
 
 Examples for S3 are here: https://github.com/CCurl/S3/blob/main/doc/examples.txt
 
