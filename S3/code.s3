@@ -1,0 +1,7 @@
+:C xIAU xIH 1-[rI c@ #, ';=(rI1+c@':=("%n"))];
+:R xIAR s1 0 25[r1@(r1@rI'A+"r%c: %d%n")n1];
+:A 1 2 3 ++ "sum: %d%n";
+:H "hello world!%n";
+:L s2s1 r1r2+ "locals: %d%n";
+:S xIU "S3 v0.0.1 - %d user space%n";
+111 222 SALCH

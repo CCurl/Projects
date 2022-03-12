@@ -1,0 +1,17 @@
+; Block.220
+
+:C xIAU xIH1-[rI c@ #,';=(rI 1+ c@':=("%n"))];
+:R 0 25[rI xIC* xIAR+ @#s1(r1 rI'A+ "%nr%c: %d")];
+
+; H: (--)         Header
+; Q: (n l--f)     Is Prime Number routine
+; P: (n1--n2)     Count of Primes routine
+; B: (n--)        Benchmark routine
+; L: (n--)        Loop for multiple benchmarks
+
+:H "%nCount of primes";
+:Q {%%&~(\=|)%<(\|)2+};
+:P 4 s1 11[rI 3 Q(i1)iI]r1;
+:B #"%n# primes in %d - "xT$ P . xT$- " (%d ms)";
+:L H 512 s1 1[r1 B r1 #+ s1]\;
+10 L

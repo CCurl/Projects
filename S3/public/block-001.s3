@@ -1,0 +1,4 @@
+0(System Initialization)
+
+:C xIAU xIH1-[rI c@ #,';=(rI 1+ c@':=("%n"))];
+:R 0 25[rI xIC* xIAR+ @#s1(r1 rI'A+ "%nr%c: %d")];
