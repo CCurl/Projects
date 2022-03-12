@@ -1,15 +1,15 @@
-// S4 - A Minimal Interpreter
+// S3 - A Minimal Interpreter
 
 #include "config.h"
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifndef S4CELL
-#define S4CELL long
+#ifndef S3CELL
+#define S3CELL long
 #endif
 
-typedef S4CELL           CELL;
-typedef unsigned S4CELL  UCELL;
+typedef S3CELL           CELL;
+typedef unsigned S3CELL  UCELL;
 typedef unsigned short   ushort;
 typedef unsigned char    byte;
 typedef byte*            addr;

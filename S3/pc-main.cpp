@@ -1,4 +1,4 @@
-// S4 - A Minimal Interpreter
+// S3 - A Minimal Interpreter
 
 #include "s3.h"
 

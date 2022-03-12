@@ -1,6 +1,6 @@
-# S4 architecture:
+# S3 architecture:
 
-The main interpreter loop in S4 is the run(addr start) function in the S4.cpp file. Parameter "start" is where the interpreter loop is to begin.
+The main interpreter loop in S3 is the run(addr start) function in the S3.cpp file. Parameter "start" is where the interpreter loop is to begin.
 
 Variables:
 
@@ -13,7 +13,7 @@ N       The 'next on stack'.
 
 ## Program flow:
 
-Function run(addr start) is the heart of S4. It is very simple: 
+Function run(addr start) is the heart of S3. It is very simple: 
 
 ```
 (1) set pc to start, 

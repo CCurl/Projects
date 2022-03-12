@@ -1,4 +1,4 @@
-#include "s4.h"
+#include "s3.h"
 
 #if __SERIAL__
     int charAvailable() { return mySerial.available(); }
@@ -16,8 +16,7 @@
 int isOTA = 0;
 
 void printString(const char* str) { 
-    if (isOTA) { printWifi(str); }
-    else { printSerial(str); }
+    printSerial(str);
 }
 
 void printChar(const char ch) { 
@@ -51,7 +50,7 @@ addr doPin(addr pc) {
 
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
-    case 'G': pc = doGamePad(ir, pc);       break;
+    // case 'G': pc = doGamePad(ir, pc);       break;
     case 'N': push(micros());               break;
     case 'P': pc = doPin(pc);               break;
     case 'T': push(millis());               break;
@@ -81,19 +80,15 @@ FILE *input_pop() { return NULL; }
 // ********************************************
 
 #define SOURCE_STARTUP \
-    X(1000, ":CODE CR xIAU xIH 1-[rI c@ #,';=(rI 1+ c@':=(CR))];") \
-    X(1001, ":CR 13,10,;:U xIHxIAU-;") \
-    X(1002, ":REGS 0 xIR 1-[rI xIC* xIAR+@ #s1(CR\"r\" rI 26&$ 26&$ 'A+,'A+,'A+,\": \"r1.)];") \
-    X(1003, ":SI xIUxIFxIR\"%nThis system has %d registers, %d functions, and %d bytes user memory.\";") \
-    X(1004, ":XDOT s2 0s1{r2&$i1} 1 r1[#9>(7+)'0+,]32,;") \
-    X(1005, ":BDOT 2 XDOT;:HDOT 16 XDOT;:DOT 10 XDOT;") \
-    X(1006, ":NN 10&$..32,;:NNN 100&$.NN;") \
-    X(9999, "SI")
+    X(1000, ":C CR xIAU xIH 1-[rI c@ #,';=(rI 1+ c@':=(CR))];") \
+    X(1002, ":R 0 xIR 1-[rI xIC* xIAR+@ #s1(CR\"r\" rI 26&$ 26&$ 'A+,'A+,'A+,\": \"r1.)];") \
+    X(1003, ":S xIUxIFxIR\"%nThis system has %d registers, %d functions, and %d bytes user memory.\";") \
+    X(9999, "S")
 
 //#if __BOARD__ == ESP8266
-#define X(num, val) const char str ## num[] = val;
+// #define X(num, val) const char str ## num[] = val;
 //#else
-//#define X(num, val) const PROGMEM char str ## num[] = val;
+#define X(num, val) const PROGMEM char str ## num[] = val;
 //#endif
 SOURCE_STARTUP
 
@@ -114,7 +109,7 @@ void loadBaseSystem() {
 }
 
 void ok() {
-    printString("\r\ns4:"); 
+    printString("\r\ns3:"); 
     dumpStack(); 
     printString(">");
 }
@@ -166,14 +161,10 @@ void setup() {
     ok();
 #endif
     vmInit();
-    wifiStart();
-    fileInit();
 }
 
 void do_autoRun() {
-    const char *cp = "AUTORUN";
-    addr a = (addr)cp;
-    addr fa = findFunc(funcNum(a), 0);
+    addr fa = 0;
     if (fa) { run(fa); }
 }
 
@@ -198,10 +189,6 @@ void loop() {
     while (charAvailable()) { 
         isOTA = 0;
         handleInput(getChar()); 
-    }
-    while (wifiCharAvailable()) { 
-        isOTA = 1;
-        handleInput(wifiGetChar()); 
     }
     do_autoRun();
 }

@@ -1,4 +1,4 @@
-S4 examples:
+S3 examples:
 
 ; To enter a comment: 
     0( here is a comment )
@@ -11,7 +11,7 @@ S4 examples:
     rA rB=#(rC$)~(rD)sX;
 
 ; To make sure F < T
-;   S4 code:             %%>($)
+;   S3 code:             %%>($)
 ;   Forth equivalent:    OVER OVER > IF SWAP THEN
 ;   C equivalent:        if (f > t) { int x = f; f = t; t = x; }
 
@@ -22,7 +22,7 @@ S4 examples:
     iX dY
 
 ; To print numbers from F to T:
-;   S4 code:             rF rT[rI." "]
+;   S3 code:             rF rT[rI." "]
 ;   Forth equivalent:    F @ T @ FOR I . NEXT
 ;   C equivalent:        for (int i = F; i <= T; i)) { printf("%d ", i); }
 
@@ -41,5 +41,5 @@ S4 examples:
 ; Define a word to display the currently defined code:
     :C xIAU xIH 1-[rI c@ #,';=(rI 1+ c@': =("%n"))];
 
-; Exit S4:
+; Exit S3:
     xQ

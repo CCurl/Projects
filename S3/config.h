@@ -14,7 +14,7 @@
   #undef __BOARD__
   #define __BOARD__ PC
   // For Windows 64-bit, use 'long long'
-  // #define S4CELL long long
+  // #define S3CELL long long
 #endif
 
 #ifdef __LINUX__
@@ -32,9 +32,9 @@
   #define _NEEDS_ALIGN_    1
   #define __SERIAL__       1
   #define mySerial         Serial
-  #define STK_SZ           8
-  #define LSTACK_SZ        4
-  #define USER_SZ        (26*1024)
+  #define STK_SZ           7
+  #define LSTACK_SZ        3
+  #define USER_SZ        (1*1024)
 #endif
 
 #endif // __CONFIG__
