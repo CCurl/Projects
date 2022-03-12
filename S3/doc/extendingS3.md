@@ -1,14 +1,14 @@
-# Adding new functionality to S4:
+# Adding new functionality to S3:
 
-In run(start) (S4.cpp), in the "switch" statement, there are cases available for direct support of new instructions, mostly unused lowercase characters. New functionality can be put there by comandeering one of the /\* FREE \*/ cases.
+In run(start) (S3.cpp), in the "switch" statement, there are cases available for direct support of new instructions, mostly unused lowercase characters. New functionality can be put there by comandeering one of the /\* FREE \*/ cases.
 
-S4 also has "extended" instructions. These are triggered by the 'x' case. All extended instructions begin with 'x'. For extended instructions, function doExt() is called. It behaves in a similar way to run(), by setting 'ir = \*(pc++)' and a switch statement. The "default:" case calls an external function, doCustom(ir, pc). That is where I usually put system-specific functionality; (eg - pin manipulation for Arduino Boards). Function doCustom(ir, pc) needs to return the address where pc should continue.
+S3 also has "extended" instructions. These are triggered by the 'x' case. All extended instructions begin with 'x'. For extended instructions, function doExt() is called. It behaves in a similar way to run(), by setting 'ir = \*(pc++)' and a switch statement. The "default:" case calls an external function, doCustom(ir, pc). That is where I usually put system-specific functionality; (eg - pin manipulation for Arduino Boards). Function doCustom(ir, pc) needs to return the address where pc should continue.
 
-As an example, I will add Gamepad/Joystick simulation to S4 as extended instructions. This example uses the HID-Project from NicoHood (https://github.com/NicoHood/HID).
+As an example, I will add Gamepad/Joystick simulation to S3 as extended instructions. This example uses the HID-Project from NicoHood (https://github.com/NicoHood/HID).
 
 Import the library into Arduino using "Import Library".
 
-In the doCustom(ir, pc) function (S4.ino), add a new case for ir. In this case, I am adding case 'G'.
+In the doCustom(ir, pc) function (S3.ino), add a new case for ir. In this case, I am adding case 'G'.
 
 ```
 addr doCustom(byte ir, addr pc) {
@@ -64,7 +64,7 @@ The last thing to do is \#define \_\_GAMEPAD\_\_. This is best done in "config.h
 ```
 
 
-Now in S4, you can do things like: 
+Now in S3, you can do things like: 
 
 3 xGP xGW  0(Press button 3)
 3 xGR xGW  0(Release button 3)

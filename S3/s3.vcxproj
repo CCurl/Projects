@@ -150,21 +150,11 @@
   <ItemGroup>
     <None Include="code.s3" />
     <None Include="doc\architecture.md" />
-    <None Include="doc\extendingS4.md" />
+    <None Include="doc\extendingS3.md" />
     <None Include="LICENSE" />
-    <None Include="public\block-000.s4" />
     <None Include="public\block-001.s3" />
-    <None Include="public\block-003.s4" />
-    <None Include="public\block-010.s4" />
-    <None Include="public\block-111.s4" />
-    <None Include="public\block-1111.s4" />
-    <None Include="public\block-200.s4" />
-    <None Include="public\block-201.s4" />
-    <None Include="public\block-203.s4" />
     <None Include="public\block-210.s3" />
     <None Include="public\block-220.s3" />
-    <None Include="public\block-6502.s4" />
-    <None Include="public\block-999.s4" />
     <None Include="README.md" />
     <None Include="S3.ino" />
   </ItemGroup>

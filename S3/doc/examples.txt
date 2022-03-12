@@ -15,8 +15,8 @@ S4 examples:
 ;   Forth equivalent:    OVER OVER > IF SWAP THEN
 ;   C equivalent:        if (f > t) { int x = f; f = t; t = x; }
 
-; To do something (in this case, execute LP) N times:
-    1 rN[LP]
+; To do something (in this case, execute L) N times:
+    1 rN[L]
 
 ; Increment Register x, decrement register Y
     iX dY
@@ -39,7 +39,7 @@ S4 examples:
     1000#* 100* xT$ {1-} xT$-." ms"
 
 ; Define a word to display the currently defined code:
-    :CODE xIAU xIH 1-[rI c@ #,';=(rI 1+ c@': =(13,10,))];
+    :C xIAU xIH 1-[rI c@ #,';=(rI 1+ c@': =("%n"))];
 
 ; Exit S4:
     xQ
