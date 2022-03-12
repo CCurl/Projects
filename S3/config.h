@@ -26,15 +26,17 @@
 #if __BOARD__ == PC
   #define STK_SZ          64
   #define LSTACK_SZ        8
+  #define LPC             10
   #define USER_SZ        (16*1024)
 #else
   #include <Arduino.h>
   #define _NEEDS_ALIGN_    1
   #define __SERIAL__       1
   #define mySerial         Serial
-  #define STK_SZ           7
-  #define LSTACK_SZ        3
-  #define USER_SZ        (1*1024)
+  #define STK_SZ           8
+  #define LSTACK_SZ        4
+  #define USER_SZ         (1*1024)
+  #define LPC              5
 #endif
 
 #endif // __CONFIG__

@@ -6,7 +6,7 @@ SYS_T sys;
 byte ir, isBye = 0, isError = 0;
 short locBase, lastFunc;
 addr pc, HERE, func[26];
-CELL seed, t1, reg[26], locs[STK_SZ * 10];
+CELL seed, t1, reg[26], locs[STK_SZ * LPC];
 byte user[USER_SZ];
 static char buf[64];
 
@@ -87,7 +87,7 @@ void skipTo(byte to) {
 
 void doRegOp(int op) {
     CELL *pCell = 0;
-    if (BetweenI(*pc, '0', '9')) { pCell = &locs[locBase + (*(pc++) - '0')];} 
+    if (BetweenI(*pc, '0', ('0'+LPC-1))) { pCell = &locs[locBase + (*(pc++) - '0')];} 
     else if (BetweenI(*pc, 'A', 'Z')) { pCell = &reg[(*(pc++) - 'A')]; }
     if (!pCell) { return; }
     switch (op) {
@@ -226,7 +226,7 @@ addr run(addr start) {
             else { func[ir] = HERE+2; skipTo(';'); }
             toHere((addr)t1, pc-1);
             break;  // 58
-        case ';': pc = rpop(); locBase -= 10;                          break;  // 59
+        case ';': pc = rpop(); locBase -= LPC;                          break;  // 59
         case '<': t1 = pop(); TOS = TOS < t1 ? 1 : 0;                  break;  // 60
         case '=': t1 = pop(); TOS = TOS == t1 ? 1 : 0;                 break;  // 61
         case '>': t1 = pop(); TOS = TOS > t1 ? 1 : 0;                  break;  // 62
@@ -238,7 +238,7 @@ addr run(addr start) {
         case 'P': case 'Q': case 'R': case 'S': case 'T':
         case 'U': case 'V': case 'W': case 'X': case 'Y': 
         case 'Z': ir -= 'A';
-            if (*pc != ';') { locBase += 10; rpush(pc); }
+            if (*pc != ';') { locBase += LPC; rpush(pc); }
             pc = func[ir];                                             break;
         case '[': doFor();                                             break;  // 91
         case '\\': DROP1;                                              break;  // 92 (DROP)

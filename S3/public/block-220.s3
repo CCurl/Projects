@@ -15,3 +15,4 @@
 :B #"%n# primes in %d - "xT$ P . xT$- " (%d ms)";
 :L H 512 s1 1[r1 B r1 #+ s1]\;
 10 L
+xQ
