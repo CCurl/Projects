@@ -26,6 +26,42 @@ void printChar(const char ch) {
 
 CELL getSeed() { return millis(); }
 
+#define __GAMEPAD__
+#ifdef __GAMEPAD__
+#include <HID-Project.h>
+#include <HID-Settings.h>
+void gamePadBegin() { Gamepad.begin(); }
+
+void gp_PressRelease(int btn) {
+    Gamepad.press(btn);  
+    Gamepad.write();
+    delay(100);
+    Gamepad.release(btn);
+    Gamepad.write();        
+}
+
+addr doGamePad(byte ir, addr pc) {
+    ir = *(pc++);
+    switch (ir) {
+    case 'X': Gamepad.xAxis(pop());          break;
+    case 'Y': Gamepad.yAxis(pop());          break;
+    case 'P': gp_PressRelease((int)pop());   break;
+    case 'R': Gamepad.release(pop());        break;
+    case 'A': Gamepad.dPad1(pop());          break;
+    case 'B': Gamepad.dPad2(pop());          break;
+    case 'L': Gamepad.releaseAll();          break;
+    case 'W': Gamepad.write();               break;
+    default:
+        isError = 1;
+        printString("-notGamepad-");
+    }
+    return pc;
+}
+#else
+addr doGamePad(addr pc) { printString("-noGamepad-"); return pc; }
+void gamePadBegin() { }
+#endif
+
 addr doPin(addr pc) {
     CELL pin = pop();
     byte ir = *(pc++);
@@ -50,11 +86,12 @@ addr doPin(addr pc) {
 
 addr doCustom(byte ir, addr pc) {
     switch (ir) {
-    // case 'G': pc = doGamePad(ir, pc);       break;
+    case 'G': pc = doGamePad(ir, pc);       break;
     case 'N': push(micros());               break;
     case 'P': pc = doPin(pc);               break;
     case 'T': push(millis());               break;
     case 'W': delay(pop());                 break;
+    case 'L': push(LED_BUILTIN);            break;
     default:
         isError = 1;
         printString("-notExt-");
@@ -80,15 +117,12 @@ FILE *input_pop() { return NULL; }
 // ********************************************
 
 #define SOURCE_STARTUP \
-    X(1000, ":C CR xIAU xIH 1-[rI c@ #,';=(rI 1+ c@':=(CR))];") \
-    X(1002, ":R 0 xIR 1-[rI xIC* xIAR+@ #s1(CR\"r\" rI 26&$ 26&$ 'A+,'A+,'A+,\": \"r1.)];") \
-    X(1003, ":S xIUxIFxIR\"%nThis system has %d registers, %d functions, and %d bytes user memory.\";") \
-    X(9999, "S")
+    X(1000, ":C \"%n\"xIAU xIH1-[rIc@#,';=(rI1+c@':=(\"%n\"))];") \
 
 //#if __BOARD__ == ESP8266
-// #define X(num, val) const char str ## num[] = val;
+#define X(num, val) const char str ## num[] = val;
 //#else
-#define X(num, val) const PROGMEM char str ## num[] = val;
+//#define X(num, val) const PROGMEM char str ## num[] = val;
 //#endif
 SOURCE_STARTUP
 
@@ -103,9 +137,6 @@ void loadBaseSystem() {
     for (int i = 0; bootStrap[i] != NULL; i++) {
         loadCode(bootStrap[i]);
     }
-#ifdef __FILES__
-    loadCode("xFL");
-#endif
 }
 
 void ok() {
@@ -161,6 +192,7 @@ void setup() {
     ok();
 #endif
     vmInit();
+    gamePadBegin();
 }
 
 void do_autoRun() {
@@ -168,6 +200,8 @@ void do_autoRun() {
     if (fa) { run(fa); }
 }
 
+#undef LED_BUILTIN
+#define LED_BUILTIN 16
 void loop() {
     static int iLed = 0;
     static long nextBlink = 0;
