@@ -36,9 +36,7 @@ typedef struct {
 
 
 typedef struct{
-    addr XT;
-    byte flags;
-    byte len;
+    ushort func;
     char name[14];
 } DICT_T;
 
@@ -51,6 +49,7 @@ extern CELL rstack[];
 extern ushort dsp, rsp;
 extern byte user[];
 extern byte var[];
+extern addr func[];
 
 extern void vmInit();
 extern void forthInit();
@@ -64,7 +63,7 @@ extern void printChar(const char);
 extern void printString(const char*);
 extern void printStringF(const char*, ...);
 extern void dumpStack();
-extern void parse(char *);
+extern void parse(const char *);
 extern void setCell(addr to, CELL val);
 extern CELL getCell(addr from);
 extern void setWord(addr to, CELL val);

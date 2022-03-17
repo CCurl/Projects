@@ -235,87 +235,49 @@ addr run(addr start) {
         case '0': case '1': case '2': case '3': case '4':                  // 48-57 NUMBER
         case '5': case '6': case '7': case '8': case '9':
             pc--; push(getDecimal());                              break;
-        case ':': if (getRFnum(0)) {                                       // CREATE
-            func[pop()] = pc;
-            skipTo(';');
-            HERE = pc;
-        } break;
+        case ':': break;
         case ';': pc = (addr)rpop();                               break;  // 59 RETURN
         case '<': t1 = pop(); T = (T < t1) ? 1  : 0;               break;  // 60
         case '=': t1 = pop(); T = (T == t1) ? 1 : 0;               break;  // 61
         case '>': t1 = pop(); T = (T > t1) ? 1 : 0;                break;  // 62
         case '?':                                                  break;  // 63
         case '@': T = getCell((byte*)T);                           break;  // 64 FETCH
-        case 'A': if (T < 0) { T = -T; }                           break;  // ABS
-        case 'B': printChar(' ');                                  break;  // BLANK
-        case 'C':                                                  break;
-        case 'D': --T;                                             break;  // DEC
-        case 'E': printString("\r\n");                             break;  // EOL
-        case 'F': doFloat();                                       break;  // FLOAT ops
-        case 'G':                                                  break;
-        case 'H':                                                  break;
-        case 'I':                                                  break;
-        case 'J':                                                  break;
-        case 'K':                                                  break;
-        case 'L': t1 = pop(); T = (T << t1);                       break;  // LEFT
-        case 'M': if (isOk(T, "-0div-")) { t1 = pop(); T %= t1; }  break;  // MOD
-        case 'N': T = -T;                                          break;  // NEGATE
-        case 'O':                                                  break;
-        case 'P': ++T;                                             break;  // TOS++
-        case 'Q':                                                  break;
-        case 'R': t1 = pop(); T = (T >> t1);                       break;  // RIGHT
-        case 'S': if (T) { t1 = T; T = N % t1; N /= t1; }                  // /MOD
-                else { isError = 1; printString("-0div-"); }       break;
-        case 'T':                                                  break;
-        case 'U':                                                  break;
-        case 'V':                                                  break;
-        case 'W':                                                  break;
-        case 'X': if (T) { rpush((CELL)pc); pc = (addr)T; } pop(); break;  // eXecute
-        case 'Y':                                                  break;
-        case 'Z':                                                  break;
+        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+        case 'G': case 'H': case 'I': case 'J': case 'K': case 'L':
+        case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R':
+        case 'S': case 'T': case 'U': case 'V': case 'W': case 'X':
+        case 'Y': case 'Z': t1 = ir - 'A'; 
+            if (BetweenI(*pc, 'A', 'Z')) { t1 = t1 * 26 + (*pc - 'A'); ++pc; }
+            if (BetweenI(*pc, 'A', 'Z')) { t1 = t1 * 26 + (*pc - 'A'); ++pc; }
+            if (func[t1]) {
+                if (*pc != ';') { rpush((CELL)pc); }
+                pc = func[t1];
+            }                                                      break;
         case '[': doFor();                                         break;  // 91 FOR
         case '\\': pop();                                          break;  // 92 DROP
         case ']': doNext();                                        break;  // 93 NEXT
         case '^': t1 = pop(); T ^= t1;                             break;  // 94 XOR
         case '_': T = (T) ? 0 : 1;                                 break;  // 95 NOT (LOGICAL)
         case '`':                                                  break;  // 96
-        case 'a':                                                  break;  // REGISTER ADDRESS
-        case 'b':                                                  break;
         case 'c': ir = *(pc++);                                            // c@, c!
             if (ir == '@') { T = *(byte*)T; }
             if (ir == '!') { *(byte*)T = (byte)N; DROP2; }
             break;
-        case 'd':                                                  break;  // REG DECREMENT
-        case 'e': if (getRFnum(0) && func[T]) {                            // FUNCTION CALL
-            if (*pc != ';') { rpush((CELL)pc); }
-            pc = func[pop()];
-        } break;
-        case 'f':                                                  break;
         case 'g': if (T) { pc = (addr)T; } pop();                  break;
         case 'h': push(0); while (1) {                                     // HEX number
             t1 = BetweenI(*pc, '0', '9') ? (*pc) - '0' : -1;
-            t1 = BetweenI(*pc, 'A', 'F') ? (*pc) - 'A' + 10 : t1;
+            t1 = BetweenI(*pc, 'a', 'f') ? (*pc) - 'a' + 10 : t1;
             if (t1 < 0) { break; }
             T = (T * 16) + t1; ++pc;
         } break;
-        case 'i':                                                  break; // REG INCREMENT
-        case 'j':                                                  break;
-        case 'k':                                                  break;
         case 'l': loopExit(']');                                   break;
-        case 'm':                                                  break;
-        case 'n':                                                  break;
-        case 'o':                                                  break;
-        case 'p':                                                  break;
-        case 'q':                                                  break;
-        case 'r':                                                  break;  // REGISTER
-        case 's':                                                  break;  // SET REGISTER
-        case 't':                                                  break;
-        case 'u':                                                  break;
-        case 'v':                                                  break;
         case 'w': loopExit('}');                                   break;
         case 'x': doExt();                                         break;
-        case 'y':                                                  break;
-        case 'z':                                                  break;
+        case 'a': case 'b': case 'd': case 'e': case 'f':
+        case 'i': case 'j': case 'k': 
+        case 'm': case 'n': case 'o': case 'p': case 'q': case 'r':
+        case 's': case 't': case 'u': case 'v':
+        case 'y': case 'z':
         case '{': { LOOP_ENTRY_T* x = lpush();                             // 123 WHILE
             x->start = pc; x->end = 0;
             if (!T) { skipTo('}'); }
