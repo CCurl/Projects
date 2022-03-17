@@ -69,4 +69,5 @@ extern CELL getCell(addr from);
 extern void setWord(addr to, CELL val);
 extern CELL getWord(addr from);
 extern CELL getSeed();
+extern void prim(const char *);
 

@@ -194,21 +194,45 @@ void parse(const char *line) {
     }
 }
 
-void prim(const char *name, const char *code) {
-    create((char *)name);
+void parseF(const char* fmt, ...) {
+    char buf[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    parse(buf);
+}
+
+void prim(const char* name, const char* code) {
+    create((char*)name);
     makeInline();
     while (*code) { cComma(*(code++)); }
     cComma(';');
 }
 
-void forthInit() {
+void baseSystem() {
     static char src[32];
     HERE = &user[0];
     VHERE = &var[0];
-    USER_END = (USER+USER_SZ-1);
-    LAST = (DICT_T *)(USER_END+1);
+    USER_END = (USER + USER_SZ - 1);
+    LAST = (DICT_T*)(USER_END + 1);
     STATE = 0;
     BASE = 10;
+    parseF(": cell %ld ;      inline", (CELL)CELL_SZ);
+    parseF(": addr %ld ;      inline", (CELL)ADDR_SZ);
+    parseF(": dentry-sz %ld ; inline", (CELL)sizeof(DICT_T));
+    parseF(": user-sz %ld ;   inline", (CELL)USER_SZ);
+    parseF(": vars-sz %ld ;   inline", (CELL)VARS_SZ);
+    parseF(": user %ld ;", (CELL)USER);
+    parseF(": vars %ld ;", (CELL)VAR);
+    parseF(": (here) %ld ;", (CELL)&HERE);
+    parseF(": (vhere) %ld ;", (CELL)&VHERE);
+    parseF(": (last) %ld ;", (CELL)&LAST);
+    parseF(": base %ld ;", (CELL)&BASE);
+    parseF(": state %ld ;", (CELL)&STATE);
+    parseF(": user-end %ld ;", (CELL)USER_END);
+    parseF(": >in %ld ;", (CELL)&toIn);
+    parseF(": pad %ld ;", (CELL)pad);
     prim("swap", "$");
     prim("over", "%");
     prim("drop", "\\");
@@ -219,22 +243,19 @@ void forthInit() {
     prim("+", "+");
     prim("(.)", ".");
     prim("bye", "xQ");
-    sprintf(src, ": cell %ld ;",      (CELL)CELL_SZ);         parse(src);    makeInline();
-    sprintf(src, ": addr %ld ;",      (CELL)ADDR_SZ);         parse(src);    makeInline();
-    sprintf(src, ": dentry-sz %ld ;", (CELL)sizeof(DICT_T));  parse(src);    makeInline();
-    sprintf(src, ": user-sz %ld ;",   (CELL)USER_SZ);         parse(src);    makeInline();
-    sprintf(src, ": vars-sz %ld ;",   (CELL)VARS_SZ);         parse(src);    makeInline();
-    sprintf(src, ": user %ld ;",      (CELL)USER);            parse(src);
-    sprintf(src, ": vars %ld ;",      (CELL)VAR);             parse(src);
-    sprintf(src, ": (here) %ld ;",    (CELL)&HERE);           parse(src);
-    sprintf(src, ": (vhere) %ld ;",   (CELL)&VHERE);          parse(src);
-    sprintf(src, ": (last) %ld ;",    (CELL)&LAST);           parse(src);
-    sprintf(src, ": base %ld ;",      (CELL)&BASE);           parse(src);
-    sprintf(src, ": state %ld ;",     (CELL)&STATE);          parse(src);
-    sprintf(src, ": user-end %ld ;",  (CELL)USER_END);        parse(src);
-    sprintf(src, ": >in %ld ;",       (CELL)&toIn);           parse(src);
-    sprintf(src, ": pad %ld ;",       (CELL)pad);             parse(src);
-    parse(": [ 0 state ! ;"); makeImmediate();
-    parse(": ] 1 state ! ;");
+    parse(": [ 0 state ! ; immediate");
+        parse(": ] 1 state ! ;");
     parse(": nip swap drop ; inline");
+}
+
+
+void forthInit() {
+    static char src[32];
+    HERE = &user[0];
+    VHERE = &var[0];
+    USER_END = (USER + USER_SZ - 1);
+    LAST = (DICT_T*)(USER_END + 1);
+    STATE = 0;
+    BASE = 10;
+    baseSystem();
 }
