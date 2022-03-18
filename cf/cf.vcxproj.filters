@@ -21,13 +21,13 @@
     <ClCompile Include="editor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="compiler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="block-000.cf" />
   </ItemGroup>
 </Project>

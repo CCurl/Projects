@@ -212,6 +212,7 @@ int processEditorChar(char c) {
     case 'G': theBlock[cur++] = COMPILE;                 break;
     case 'D': theBlock[cur++] = DEFINE;                  break;
     case 'Y': theBlock[cur++] = INTERP;                  break;
+    case 'A': theBlock[cur++] = ASM;                     break;
     case '+': if (isDirty) { edSvBlk(); }
             ++blkNum;
             edRdBlk();

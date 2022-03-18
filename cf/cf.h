@@ -4,13 +4,18 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
+#include <string.h>
 #include <conio.h>
 #include <stdarg.h>
+
+typedef int CELL;
+typedef unsigned short ushort;
+typedef unsigned char byte;
 
 #define RED      1 // Define Word
 #define GREEN    2 // Compile
 #define YELLOW   3 // Immediate
-#define BLUE     4 // 
+#define BLUE     4 // Machine code
 #define PURPLE   5 // 
 #define CYAN     6 // 
 #define WHITE    7 // Comment
@@ -19,11 +24,19 @@
 #define COMPILE  GREEN
 #define DEFINE   RED
 #define INTERP   YELLOW
+#define ASM      CYAN
 
-#define USER_SZ 1024
-#define CELL int
+#define STK_SZ     15
+#define USER_SZ   256
+#define CELL_SZ    sizeof(CELL)
 
 #define betw(x, y, z) ((y <= x) && (x <= z))
+
+typedef struct {
+    ushort xt;
+    byte sz;
+    char name[32];
+} DICT_T;
 
 extern char theBlock[];
 
