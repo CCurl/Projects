@@ -6,6 +6,7 @@
 
 : emit [ ',' c, ] ; inline
 : . (.) 32 emit ; inline
+: nip swap drop ; inline
 : test 1 2 3 + + . ;
 test
-333 444 nip .
+333 444 over . nip .

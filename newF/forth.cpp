@@ -38,7 +38,7 @@ void cComma(byte x) {
 
 void numComma(CELL x) {
     char b[16], *cp = b;
-    sprintf(b, "h%lx", x);
+    sprintf(b, "%ld", x);
     while (*cp) { *(HERE++) = *(cp++); }
 }
 
@@ -244,8 +244,7 @@ void baseSystem() {
     prim("(.)", ".");
     prim("bye", "xQ");
     parse(": [ 0 state ! ; immediate");
-        parse(": ] 1 state ! ;");
-    parse(": nip swap drop ; inline");
+    parse(": ] 1 state ! ;");
 }
 
 
