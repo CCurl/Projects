@@ -13,7 +13,7 @@ CELL t1;
 void push(CELL v) { if (sp < STK_SZ) { stk[++sp] = v; } }
 CELL pop() { return (sp) ? stk[sp--] : 0; }
 
-void rpush(CELL v) { if (rsp < STK_SZ) { rstk[rsp++] = v; } }
+void rpush(CELL v) { if (rsp < STK_SZ) { rstk[++rsp] = v; } }
 CELL rpop() { return (rsp) ? rstk[rsp--] : 0; }
 
 int charAvailable() { return _kbhit(); }
@@ -60,14 +60,26 @@ void run(ushort pc) {
         byte ir = user[pc++];
         switch (ir) {
         case '"': while ((user[pc]) && (user[pc] != '"')) {
-                printChar(user[pc++]); 
+                char c = user[pc++];
+                if (c == '%') {
+                    c = user[pc++];
+                    if (c == 'd') { printStringF("%d", pop()); }
+                    else if (c == 'x') { printStringF("%x", pop()); }
+                    else if (c == 'n') { printString("\r\n"); }
+                    else if (c == 'b') { printChar(' '); }
+                    else if (c == 'c') { printChar(pop()); }
+                    else { printChar(c); }
+                } else { printChar(c); }
             } ++pc;                                            break;
         case '+': t1 = pop(); TOS += t1;                       break;
         case '-': t1 = pop(); TOS -= t1;                       break;
+        case '*': t1 = pop(); TOS *= t1;                       break;
+        case '/': t1 = pop(); TOS /= (t1 ? t1 : 1);            break;
         case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;       break;
         case '<': t1 = pop(); TOS = (TOS < t1) ? 1 : 0;        break;
         case '>': t1 = pop(); TOS = (TOS > t1) ? 1 : 0;        break;
         case '.': printStringF("%d ", pop());                  break;
+        case ',': printChar(pop());                            break;
         case 'c':  rpush(pc+2); pc = WFO(pc);                  break;
         case 'l':  push(lfo(pc)); pc += CELL_SZ;               break;
         case ';': t1 = rpop(); if (!t1) { rsp = 0; return; }
@@ -172,6 +184,9 @@ int doInterpret(const char* wd) {
         return 1;
     }
     if (isNum(wd)) { return 1; }
+    if (strcmp(wd,"edit")==0) {
+        return 1;
+    }
     byte* cp = &user[here];
     while (*wd) { *(cp++) = *(wd++); }
     *cp = ';';
@@ -186,10 +201,7 @@ void doAsm(const char* wd) {
 void doCompiler(char* cp) {
     char buf[32];
     toIn = cp;
-    int mode = COMMENT;
-    last = USER_SZ;
-    here = 0;
-    user[here++] = ';';
+    int mode = INTERP;
     while (1) {
         char c = peekCh();
         if (!c) { return; }
@@ -200,16 +212,45 @@ void doCompiler(char* cp) {
         case COMPILE: doCompile(buf);                   break;
         case INTERP:  doInterpret(buf);                 break;
         case ASM:     doAsm(buf);                       break;
-        case COMMENT: printStringF("-skp:%s-", buf);    break;
+        case COMMENT:                                   break;
         default: break;
         }
     }
 }
 
+char* rtrim(char *cp) {
+    char* p = cp;
+    if (*p == 0) { return cp; }
+    while (*(p+1)) { p++; }
+    while ((*p < 32) && (cp <= p)) { *(p--) = 0; }
+    return cp;
+}
+
+void initVM() {
+    last = USER_SZ;
+    here = 0;
+    CCM(';');
+}
+
+int loop() {
+    char buf[96];
+    printf(" ok\r\n>");
+    fgets(buf, 96, stdin);
+    if (strcmp(rtrim(buf), "edit") == 0) {
+        if (sp==0) { push(-1); }
+        doEditor();
+        initVM();
+        doCompiler(theBlock);
+    } else if (strcmp(buf, "bye") == 0) {
+        return 0;
+    } else {
+        doCompiler(buf);
+    }
+    return 1;
+}
+
 int main(int argc, char **argv) {
-    push(0);
-    doEditor();
-    printString("\r\n");
-    doCompiler(theBlock);
+    initVM();
+    while (loop()) {}
     return 1;
 }
