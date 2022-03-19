@@ -59,6 +59,7 @@ void run(ushort pc) {
     while (isOK && (betw(pc, 0, USER_SZ))) {
         byte ir = user[pc++];
         switch (ir) {
+        case 0: return;
         case '"': while ((user[pc]) && (user[pc] != '"')) {
                 char c = user[pc++];
                 if (c == '%') {
@@ -123,6 +124,7 @@ void doFind(const char* wd) {
 
 void doDefine(const char* wd) {
     // printStringF("-def:%s-", wd);
+    CCM(';');
     int sz = strlen(wd) + 4;
     while (sz % 4) { ++sz; }
     ushort newLast = last - sz;
@@ -229,7 +231,6 @@ char* rtrim(char *cp) {
 void initVM() {
     last = USER_SZ;
     here = 0;
-    CCM(';');
 }
 
 int loop() {
