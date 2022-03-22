@@ -4,6 +4,22 @@
 #include <stdio.h>
 #include "Shared.h"
 
+typedef struct {
+    const char *name;
+    char op;
+} PRIM_T;
+
+PRIM_T prims[] = {
+    {"+",'+'}, {"-",'-'}, {"/",'/'}, {"*",'*'},
+    {"swap",'$'}, {"drop",'\\'}, {"over",'%'}, {"dup",'#'},
+    {"emit",','}, {".",'.'}, {"space",'b'}, {"cr",'n'},
+    {"=",'='}, {"<",'<'}, {">",'>'}, {"0=",'N'},
+    {"@",'@'}, {"c@",'c'}, {"w@",'w'}, {"!",'!'}, {"c!",'C'}, {"w!",'W'},
+    {"and",'A'}, {"or",'O'}, {"xor",'X'}, {"com",'~'},
+    {"leave",';'}, {"bye",'z'},
+    {0,0}
+};
+
 #define betw(x, a, b) ((a<=x)&&(x<=b))
 
 char word[32];
@@ -149,9 +165,22 @@ int doParseNum(char* wd) {
     return 1;
 }
 
+int doPrim(const char *wd) {
+    for (int i = 0; prims[i].op; i++) {
+        if (strEq(prims[i].name, wd)) {
+            CComma(prims[i].op);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int doParseWord(char* wd) {
     byte lwc = lastWasCall;
     lastWasCall = 0;
+
+    if (doPrim(wd)) { return 1; }
+
     int l = doFind(wd);
     if (0 <= l) {
         execWord((WORD)l);
@@ -239,47 +268,10 @@ void doOK() {
 }
 
 void doSystemWords() {
-    char* cp;
-    cp = (char *)(VHERE + 6);
-    sprintf(cp, ": CELL %d ;", CELL_SZ);
-    doParse(cp);
-    sprintf(cp, ": (here) %lu ;", (UCELL)&HERE);
-    sprintf(cp, ": (vhere) %lu ;", (UCELL)VHERE);
-    doParse(cp);
-}
-
-void doBuiltin(const char* name, byte op) {
-    doCreate(name, 0);
-    CComma(op);
-    CComma(';');
-}
-
-void doBuiltIns()
-{
-    doBuiltin("SWAP", '$');
-    doBuiltin("DROP", '\\');
-    doBuiltin("DUP", '#');
-    doBuiltin("OVER", '%');
-    doBuiltin("EMIT", ',');
-    doBuiltin("=", '=');
-    doBuiltin(">", '>');
-    doBuiltin("<", '<');
-    doBuiltin("LEAVE", ';');
-    doBuiltin("CR", 'n');
-    doBuiltin("SPACE", 'b');
-    doBuiltin("(.)", '.');
-    doBuiltin("+", '+');
-    doBuiltin("-", '-');
-    doBuiltin("*", '*');
-    doBuiltin("/", '/');
-    doBuiltin("@", '@');
-    doBuiltin("C@", 'c');
-    doBuiltin("W@", 'w');
-    doBuiltin("!", '!');
-    doBuiltin("W!", 'W');
-    doBuiltin("C!", 'C');
-    doBuiltin("BYE", 'Z');
-    doBuiltin("xQ", 'Z');
+    char* cp = (char *)(VHERE + 6);
+    sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
+    sprintf(cp, ": (h) %lu ;", (UCELL)&HERE);   doParse(cp);
+    sprintf(cp, ": (vh) %lu ;", (UCELL)VHERE);  doParse(cp);
 }
 
 void doHistory(const char* txt) {
@@ -312,12 +304,11 @@ int main()
 {
     reset();
 
-    doBuiltIns();
     doSystemWords();
 
     printf("\r\nMinForth v0.0.1");
-    printf("\r\nCODE: %p, SIZE: %ld, HERE: %ld", (UCELL)user, (UCELL)USER_SZ, HERE);
-    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %p", VARS, (long)VARS_SZ, VHERE);
+    printf("\r\nCODE: %p, SIZE: %ld, HERE: %ld", user, (UCELL)USER_SZ, HERE);
+    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %x", VARS, (long)VARS_SZ, VHERE);
 
     printf("\r\nHello.");
     input_fp = NULL; //  fopen("sys.fs", "rt");
