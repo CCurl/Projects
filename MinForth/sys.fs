@@ -1,7 +1,8 @@
-: vhere (vhere) @ ;
-: . 32 emit (.) ;
-: 1+ 1 + ;
+: vh v @ ;
 : 2dup over over ;
 : 2drop drop drop ;
-: .c dup c@ dup . dup 32 < if drop 46 then emit 1+ ;
-: dd 2dup > if 2drop leave then swap .c swap dd ;
+: .c dup c@ dup $20 < if drop '.' then emit 1+ ;
+// : dump 1 for .c next drop ;
+: tt if 'Y' else 'N' then emit ;
+1 tt 0 tt
+// u $32 dump

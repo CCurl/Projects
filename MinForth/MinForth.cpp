@@ -16,6 +16,7 @@ PRIM_T prims[] = {
     {"=",'='}, {"<",'<'}, {">",'>'}, {"0=",'N'},
     {"@",'@'}, {"c@",'c'}, {"w@",'w'}, {"!",'!'}, {"c!",'C'}, {"w!",'W'},
     {"and",'A'}, {"or",'O'}, {"xor",'X'}, {"com",'~'},
+    {"1+",'I'}, {"1-",'D'},
     {"leave",';'}, {"bye",'Z'},
     {0,0}
 };
@@ -27,6 +28,9 @@ FILE* input_fp = NULL;
 byte lastWasCall = 0;
 WORD HERE, LAST;
 CELL STATE, VHERE;
+
+void printString(const char* cp) { printf("%s", cp); }
+void printChar(char c) { printf("%c", c); }
 
 void CComma(CELL v) { user[HERE++] = (byte)v; }
 void Comma(CELL v) { SET_LONG(&user[HERE], v); HERE += CELL_SZ; }
@@ -86,12 +90,12 @@ int isDigit(char c) {
 }
 
 void reset() {
-    DSP = 0;
-    RSP = 0;
+    sp = 0;
+    rsp = 0;
     BASE = 10;
     HERE = 0;
     LAST = 0;
-    VHERE = (CELL)&VARS[0];
+    VHERE = (CELL)&vars[0];
 }
 
 
@@ -121,21 +125,12 @@ void execWord(WORD l) {
     DICT_T* dp = DP_AT(l);
     WORD xt = getXT(l, dp);
     if ((STATE == 1) && (dp->flags == 0)) {
-        Comma(':');
+        CComma(':');
         WComma(xt);
         lastWasCall = 1;
     } else {
        run(xt);
     }
-}
-
-int isNum(char* x) {
-    // TODO: support neg
-    // TODO: support other bases
-    while (*x) {
-        if (isDigit(*(x++)) == -1) { return 0; }
-    }
-    return 1;
 }
 
 void compileNumber(CELL num) {
@@ -154,14 +149,26 @@ void compileNumber(CELL num) {
     }
 }
 
-int doParseNum(char* wd) {
-    // TODO: support neg
-    if (!isNum(wd)) { return 0; }
-    push(0);
+int isNum(const char* wd) {
+    CELL x = 0;
+    int base = BASE, isNeg = 0, lastCh = '9';
+    if ((wd[0]=='\'') && (wd[2]==wd[0]) && (wd[3]==0)) { push(wd[1]); return 1; }
+    if (*wd == '#') { base = 10;  ++wd; }
+    if (*wd == '$') { base = 16;  ++wd; }
+    if (*wd == '%') { base = 2;  ++wd; lastCh = '1'; }
+    if ((*wd == '-') && (base == 10)) { isNeg = 1;  ++wd; }
+    if (*wd == 0) { return 0; }
     while (*wd) {
-        TOS = (TOS * BASE) + (*wd - '0');
-        wd++;
+        char c = *(wd++);
+        int t = -1;
+        if (betw(c, '0', lastCh)) { t = c - '0'; }
+        if ((9 < base) && (betw(c, 'A', 'F'))) { t = c - 'A' + 10; }
+        if ((9 < base) && (betw(c, 'a', 'f'))) { t = c - 'a' + 10; }
+        if (t < 0) { return 0; }
+        x = (x * base) + t;
     }
+    if (isNeg) { x = -x; }
+    push(x);
     return 1;
 }
 
@@ -170,9 +177,9 @@ int doPrim(const char *wd) {
         if (strEqI(prims[i].name, wd)) {
             if (STATE) { CComma(prims[i].op); }
             else {
-                user[HERE] = prims[i].op;
-                user[HERE+1] = ';';
-                run(HERE);
+                user[HERE+1] = prims[i].op;
+                user[HERE+2] = ';';
+                run(HERE+1);
             }
             return 1;
         }
@@ -192,7 +199,7 @@ int doParseWord(char* wd) {
         return 1;
     }
 
-    if (doParseNum(wd)) {
+    if (isNum(wd)) {
         if (STATE == 1) { compileNumber(pop()); }
         return 1;
     }
@@ -258,6 +265,8 @@ void doParse(const char* line) {
     in = (char*)line;
     int len = getWord(word, ' ');
     while (0 < len) {
+        if (strEq(word, "//")) { return; }
+        if (strEq(word, "\\")) { return; }
         if (doParseWord(word) == 0) {
             return;
         }
@@ -266,9 +275,11 @@ void doParse(const char* line) {
 }
 
 void doOK() {
-    int d = DSP;
-    printf(" OK (");
-    for (int d = 1; d <= DSP; d++) { printf("%s%d", (1 < d) ? " " : "", DSTK[d]); }
+    printString(" OK (");
+    for (int d = 1; d <= sp; d++) {
+        if (1 < d) { printChar(' '); }
+        printBase(stk[d], BASE);
+    }
     printf(")\r\n");
 }
 
@@ -320,10 +331,10 @@ int main()
 
     printf("\r\nMinForth v0.0.1");
     printf("\r\nCODE: %p, SIZE: %d, HERE: %ld", user, USER_SZ, HERE);
-    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", VARS, VARS_SZ, (UCELL)VHERE);
+    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", vars, VARS_SZ, (UCELL)VHERE);
 
     printf("\r\nHello.");
-    input_fp = NULL; //  fopen("sys.fs", "rt");
+    input_fp = fopen("sys.fs", "rt");
 
-    while (RSP != 99) { loop(); }
+    while (rsp != 99) { loop(); }
 }
