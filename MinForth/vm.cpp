@@ -77,6 +77,10 @@ void run(WORD start) {
         case 'n': printf("\r\n");                      break;
         case ':': rpush(PC+2); PC = GET_WORD(user+PC); break;
         case ';': PC = (WORD)rpop();                   break;
+        case '[': printChar(IR); PC += 2;  break;
+        case ']': printChar(IR); break;
+        case '{': printChar(IR); PC += 2;  break;
+        case '}': printChar(IR); break;
         case 'Z': rsp = 99;                            return;
         default:                                       break;
         }

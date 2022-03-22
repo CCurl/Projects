@@ -256,6 +256,34 @@ int doParseWord(char* wd) {
         return 1;
     }
 
+    if (strEqI(wd, "FOR")) {
+        CComma('[');
+        push(HERE);
+        WComma(0);
+        return 1;
+    }
+
+    if (strEqI(wd, "NEXT")) {
+        CComma(']');
+        CELL tgt = pop();
+        SET_WORD(UA(tgt), HERE);
+        return 1;
+    }
+
+    if (strEqI(wd, "BEGIN")) {
+        CComma('{');
+        push(HERE);
+        WComma(0);
+        return 1;
+    }
+
+    if (strEqI(wd, "WHILE")) {
+        CComma('}');
+        CELL tgt = pop();
+        SET_WORD(UA(tgt), HERE);
+        return 1;
+    }
+
     STATE = 0;
     printf("[%s]??", wd);
     return 0;
