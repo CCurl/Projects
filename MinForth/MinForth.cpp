@@ -10,13 +10,13 @@ typedef struct {
 } PRIM_T;
 
 PRIM_T prims[] = {
-    {"+",'+'}, {"-",'-'}, {"/",'/'}, {"*",'*'},
+    {"+",'+'}, {"-",'-'}, {"/",'/'}, {"*",'*'},{"/mod",'&'},
     {"swap",'$'}, {"drop",'\\'}, {"over",'%'}, {"dup",'#'},
     {"emit",','}, {".",'.'}, {"space",'b'}, {"cr",'n'},
     {"=",'='}, {"<",'<'}, {">",'>'}, {"0=",'N'},
     {"@",'@'}, {"c@",'c'}, {"w@",'w'}, {"!",'!'}, {"c!",'C'}, {"w!",'W'},
     {"and",'A'}, {"or",'O'}, {"xor",'X'}, {"com",'~'},
-    {"leave",';'}, {"bye",'z'},
+    {"leave",';'}, {"bye",'Z'},
     {0,0}
 };
 
@@ -167,8 +167,13 @@ int doParseNum(char* wd) {
 
 int doPrim(const char *wd) {
     for (int i = 0; prims[i].op; i++) {
-        if (strEq(prims[i].name, wd)) {
-            CComma(prims[i].op);
+        if (strEqI(prims[i].name, wd)) {
+            if (STATE) { CComma(prims[i].op); }
+            else {
+                user[HERE] = prims[i].op;
+                user[HERE+1] = ';';
+                run(HERE);
+            }
             return 1;
         }
     }
@@ -272,6 +277,7 @@ void doSystemWords() {
     sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
     sprintf(cp, ": (h) %lu ;", (UCELL)&HERE);   doParse(cp);
     sprintf(cp, ": (vh) %lu ;", (UCELL)VHERE);  doParse(cp);
+    sprintf(cp, "(h) .");  doParse(cp);
 }
 
 void doHistory(const char* txt) {
@@ -282,16 +288,21 @@ void doHistory(const char* txt) {
     }
 }
 
+char *rtrim(char* str) {
+    char* cp = str;
+    while (*cp) { ++cp; }
+    --cp;
+    while ((str <= cp) && (*cp <= ' ')) { *(cp--) = 0; }
+    return str;
+}
+
 void loop() {
     char* tib = (char *)(VHERE + 6);
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { doOK(); }
     if (fgets(tib, 100, fp) == tib) {
         if (fp == stdin) { doHistory(tib); }
-        int l = strLen(tib) - 1;
-        while ((0 < l) && (tib[l]) && (tib[l] < ' ')) { --l; }
-        tib[l + 1] = 0;
-        doParse(tib);
+        doParse(rtrim(tib));
         return;
     }
     if (input_fp) {
@@ -303,16 +314,14 @@ void loop() {
 int main()
 {
     reset();
-
     doSystemWords();
 
     printf("\r\nMinForth v0.0.1");
-    printf("\r\nCODE: %p, SIZE: %ld, HERE: %ld", user, (UCELL)USER_SZ, HERE);
-    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %x", VARS, (long)VARS_SZ, VHERE);
+    printf("\r\nCODE: %p, SIZE: %d, HERE: %ld", user, USER_SZ, HERE);
+    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", VARS, VARS_SZ, (UCELL)VHERE);
 
     printf("\r\nHello.");
     input_fp = NULL; //  fopen("sys.fs", "rt");
-    while (RSP != 99) {
-        loop();
-    }
+
+    while (RSP != 99) { loop(); }
 }

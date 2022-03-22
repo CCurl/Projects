@@ -25,9 +25,13 @@ long GET_LONG(byte *l) { return GET_WORD(l) | GET_WORD(l + 2) << 16; }
 void SET_WORD(byte *l, WORD v) { *l = (v & 0xff); *(l+1) = (byte)(v >> 8); }
 void SET_LONG(byte *l, long v) { SET_WORD(l, v & 0xFFFF); SET_WORD(l + 2, (WORD)(v >> 16)); }
 
-void printStringF(const char* fmt, ...) { printf("%s", fmt); }
 void printString(const char* cp) { printf("%s", cp); }
 void printChar(char c) { printf("%c", c); }
+
+void doDot(CELL x) {
+    if (BASE == 10) { printf(" %ld/%x", x, x); }
+    if (BASE == 16) { printf(" %lx", x); }
+}
 
 void run(WORD start) {
     PC = start;
@@ -42,6 +46,8 @@ void run(WORD start) {
         case 2: push(GET_WORD(UA(PC))); PC += 2;     break;
         case 4: push(GET_LONG(UA(PC))); PC += 4;     break;
         case '#': push(TOS);                         break;
+        case '%': push(NOS);                         break;
+        case '$': t1 = TOS; TOS = NOS; NOS = t1;     break;
         case '\\': pop();                            break;
         case '+': t1 = pop(); TOS += t1;             break;
         case '-': t1 = pop(); TOS -= t1;             break;
@@ -50,26 +56,25 @@ void run(WORD start) {
         case '=': NOS = (NOS == TOS) ? 1 : 0; pop(); break;
         case '>': NOS = (NOS > TOS) ? 1 : 0; pop();  break;
         case '<': NOS = (NOS < TOS) ? 1 : 0; pop();  break;
-        case '.': printStringF("%d", pop());         break;
+        case '.': doDot(pop());                      break;
         case ',': printChar((char)pop());            break;
         case 'b': printChar(' ');                    break;
-        case '@': TOS = GET_LONG(UA(TOS));           break;
-        case 'c': TOS = U(TOS);                      break;
-        case 'w': TOS = U(TOS);                      break;
-        case '!': SET_LONG(UA(TOS), NOS); DROP2;     break;
+        case '@': TOS = GET_LONG((byte*)TOS);        break;
+        case 'c': TOS = *(byte*)TOS;                 break;
+        case 'w': TOS = GET_WORD((byte*)TOS);        break;
+        case '!': SET_LONG((byte*)TOS, NOS); DROP2;  break;
         case 'C': U(TOS) = (byte)NOS; DROP2;         break;
         case 'W': U(TOS) = (byte)NOS; DROP2;         break;
+        case 'A': t1 = pop(); TOS &= t1;             break;
+        case 'O': t1 = pop(); TOS |= t1;             break;
+        case 'X': t1 = pop(); TOS ^= t1;             break;
+        case '&': t1 = NOS; t2 = TOS;
+            NOS = t1 / t2; TOS = t1 % t2;            break;
         case 'j': if (pop() == 0) { PC = GET_WORD(UA(PC)); }
                 else { PC += ADDR_SZ; }
             break;
         case 'J': PC = GET_WORD(UA(PC));             break;
         case 'n': printf("\r\n");                    break;
-        case '$': t1 = pop(); t2 = pop();    // SWAP
-            push(t1); push(t2);
-            break;
-        case '%': t1 = pop(); t2 = TOS;        // OVER
-            push(t1); push(t2);
-            break;
         case ':': rpush(PC + ADDR_SZ);
             PC = GET_WORD(user+PC);
             ++rdepth;
