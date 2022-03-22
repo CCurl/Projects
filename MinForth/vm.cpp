@@ -29,8 +29,9 @@ void printString(const char* cp) { printf("%s", cp); }
 void printChar(char c) { printf("%c", c); }
 
 void doDot(CELL x) {
-    if (BASE == 10) { printf(" %ld/%x", x, x); }
-    if (BASE == 16) { printf(" %lx", x); }
+    if (BASE == 10) { printf(" %ld", x); return; }
+    if (BASE == 16) { printf(" %lx", x); return; }
+    printf(" (%d in base %d)", x, BASE);
 }
 
 void run(WORD start) {
@@ -60,11 +61,11 @@ void run(WORD start) {
         case ',': printChar((char)pop());            break;
         case 'b': printChar(' ');                    break;
         case '@': TOS = GET_LONG((byte*)TOS);        break;
-        case 'c': TOS = *(byte*)TOS;                 break;
-        case 'w': TOS = GET_WORD((byte*)TOS);        break;
-        case '!': SET_LONG((byte*)TOS, NOS); DROP2;  break;
-        case 'C': U(TOS) = (byte)NOS; DROP2;         break;
-        case 'W': U(TOS) = (byte)NOS; DROP2;         break;
+        case 'c': TOS = *AOS;                        break;
+        case 'w': TOS = GET_WORD(AOS);               break;
+        case '!': SET_LONG(AOS, NOS); DROP2;         break;
+        case 'C': *AOS = (byte)NOS; DROP2;           break;
+        case 'W': SET_WORD(AOS, (WORD)NOS); DROP2;   break;
         case 'A': t1 = pop(); TOS &= t1;             break;
         case 'O': t1 = pop(); TOS |= t1;             break;
         case 'X': t1 = pop(); TOS ^= t1;             break;

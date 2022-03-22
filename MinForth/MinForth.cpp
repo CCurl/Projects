@@ -275,9 +275,11 @@ void doOK() {
 void doSystemWords() {
     char* cp = (char *)(VHERE + 6);
     sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
-    sprintf(cp, ": (h) %lu ;", (UCELL)&HERE);   doParse(cp);
-    sprintf(cp, ": (vh) %lu ;", (UCELL)VHERE);  doParse(cp);
-    sprintf(cp, "(h) .");  doParse(cp);
+    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
+    sprintf(cp, ": h %lu ;", (UCELL)&HERE);     doParse(cp);
+    sprintf(cp, ": v %lu ;", (UCELL)VHERE);     doParse(cp);
+    sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
+    // sprintf(cp, "h . cr");  doParse(cp);
 }
 
 void doHistory(const char* txt) {

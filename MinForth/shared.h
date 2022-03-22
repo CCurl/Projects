@@ -27,7 +27,7 @@ typedef struct {
 #define DP_AT(l) (DICT_T *)&user[l]
 
 #define TOS  DSTK[DSP]
-#define AOS (ADDR)DSTK[DSP]
+#define AOS (byte*)DSTK[DSP]
 #define NOS  DSTK[DSP-1]
 #define R  RSTK[RSP]
 #define STR_AT(l) (char *)&VARS[l]
