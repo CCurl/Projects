@@ -6,9 +6,10 @@
 
 typedef struct {
     const char *name;
-    char op;
+    byte op;
 } PRIM_T;
 
+// Words that directly map to VM operations
 PRIM_T prims[] = {
     {"+",'+'}, {"-",'-'}, {"/",'/'}, {"*",'*'},{"/mod",'&'},
     {"swap",'$'}, {"drop",'\\'}, {"over",'%'}, {"dup",'#'},
@@ -17,7 +18,8 @@ PRIM_T prims[] = {
     {"@",'@'}, {"c@",'c'}, {"w@",'w'}, {"!",'!'}, {"c!",'C'}, {"w!",'W'},
     {"and",'A'}, {"or",'O'}, {"xor",'X'}, {"com",'~'},
     {"1+",'I'}, {"1-",'D'}, {"I", 'i'},
-    {"leave",';'}, {"timer",'t'}, {"bye",'Z'},
+    {"leave",';'}, {"timer",'t'}, {"bye",'Z'}, {"reset", 255},
+    // {"ext",'G'}, {"exy",'R'}, // Extensions
     {0,0}
 };
 
@@ -25,9 +27,8 @@ PRIM_T prims[] = {
 
 char word[32];
 FILE* input_fp = NULL;
-byte lastWasCall = 0;
-WORD HERE, LAST;
-CELL STATE, VHERE;
+byte lastWasCall = 0, isBye = 0;
+CELL HERE, LAST, STATE, VHERE;
 
 void printString(const char* cp) { printf("%s", cp); }
 void printChar(char c) { printf("%c", c); }
@@ -64,7 +65,7 @@ UCELL align4(UCELL x) {
 }
 
 void doCreate(const char* name, byte f) {
-    WORD prev = LAST;
+    CELL prev = LAST;
     DICT_T *dp = DP_AT(HERE);
     dp->prev = (byte)(HERE - LAST);
     dp->flags = f;
@@ -73,8 +74,20 @@ void doCreate(const char* name, byte f) {
     HERE += strLen(name) + 3;
 }
 
+int doWords() {
+    CELL l = (WORD)LAST;
+    while (l) {
+        DICT_T *dp = DP_AT(l);
+        printString(dp->name);
+        printChar(' ');
+        if (l == dp->prev) break;
+        l -= dp->prev;
+    }
+    return 1;
+}
+
 int doFind(const char* name) {
-    WORD l = (WORD)LAST;
+    CELL l = (WORD)LAST;
     while (l) {
         DICT_T *dp = DP_AT(l);
         if (strEq(dp->name, name)) { return l; }
@@ -88,16 +101,6 @@ int isDigit(char c) {
     if (betw(c,'0','9')) { return c - '0'; }
     return -1;
 }
-
-void reset() {
-    sp = 0;
-    rsp = 0;
-    BASE = 10;
-    HERE = 0;
-    LAST = 0;
-    VHERE = (CELL)&vars[0];
-}
-
 
 char* in;
 int getWord(char* wd, char delim) {
@@ -121,16 +124,15 @@ WORD getXT(WORD l, DICT_T *dp) {
     return l + strLen(dp->name) + 3;
 }
 
-void execWord(WORD l) {
+int execWord(WORD l) {
     DICT_T* dp = DP_AT(l);
     WORD xt = getXT(l, dp);
     if ((STATE == 1) && (dp->flags == 0)) {
         CComma(':');
         WComma(xt);
         lastWasCall = 1;
-    } else {
-       run(xt);
-    }
+    } else { run(xt); }
+    return 1;
 }
 
 void compileNumber(CELL num) {
@@ -179,7 +181,7 @@ int doPrim(const char *wd) {
             else {
                 user[HERE+1] = prims[i].op;
                 user[HERE+2] = ';';
-                run(HERE+1);
+                run((WORD)HERE+1);
             }
             return 1;
         }
@@ -194,10 +196,7 @@ int doParseWord(char* wd) {
     if (doPrim(wd)) { return 1; }
 
     int l = doFind(wd);
-    if (0 <= l) {
-        execWord((WORD)l);
-        return 1;
-    }
+    if (0 <= l) { return execWord((WORD)l); }
 
     if (isNum(wd)) {
         if (STATE == 1) { compileNumber(pop()); }
@@ -215,11 +214,8 @@ int doParseWord(char* wd) {
 
     if (strEq(wd, ";")) {
         STATE = 0;
-        if (lwc && (user[HERE - 3] == ':')) { 
-            user[HERE - 3] = 'J';
-        } else {
-            CComma(';');
-        }
+        if (lwc && (user[HERE - 3] == ':')) { user[HERE - 3] = 'J'; }
+        else { CComma(';'); }
         return 1;
     }
 
@@ -234,6 +230,10 @@ int doParseWord(char* wd) {
         else { return 0; }
     }
 
+    if (strEqI(wd, "IMMEDIATE")) { DP_AT(LAST)->flags |= 1; return 1; }
+    if (strEqI(wd, "ALLOT")) { VHERE += pop();              return 1; }
+    if (strEqI(wd, "WORDS")) { return doWords(); }
+
     if (strEqI(wd, "IF")) {
         CComma('j');
         push(HERE);
@@ -246,13 +246,13 @@ int doParseWord(char* wd) {
         CComma('J');
         push(HERE);
         WComma(0);
-        SET_WORD(UA(tgt), HERE);
+        SET_WORD(UA(tgt), (WORD)HERE);
         return 1;
     }
 
     if (strEqI(wd, "THEN")) {
         CELL tgt = pop();
-        SET_WORD(UA(tgt), HERE);
+        SET_WORD(UA(tgt), (WORD)HERE);
         return 1;
     }
 
@@ -266,7 +266,7 @@ int doParseWord(char* wd) {
     if (strEqI(wd, "NEXT")) {
         CComma(']');
         CELL tgt = pop();
-        SET_WORD(UA(tgt), HERE);
+        SET_WORD(UA(tgt), (WORD)HERE);
         return 1;
     }
 
@@ -280,7 +280,7 @@ int doParseWord(char* wd) {
     if (strEqI(wd, "WHILE")) {
         CComma('}');
         CELL tgt = pop();
-        SET_WORD(UA(tgt), HERE);
+        SET_WORD(UA(tgt), (WORD)HERE);
         return 1;
     }
 
@@ -295,30 +295,19 @@ void doParse(const char* line) {
     while (0 < len) {
         if (strEq(word, "//")) { return; }
         if (strEq(word, "\\")) { return; }
-        if (doParseWord(word) == 0) {
-            return;
-        }
+        if (doParseWord(word) == 0) { return; }
         len = getWord(word, ' ');
     }
 }
 
 void doOK() {
+    if (STATE) { printString(" ... "); return; }
     printString(" OK (");
     for (int d = 1; d <= sp; d++) {
         if (1 < d) { printChar(' '); }
         printBase(stk[d], BASE);
     }
     printf(")\r\n");
-}
-
-void doSystemWords() {
-    char* cp = (char *)(VHERE + 6);
-    sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
-    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
-    sprintf(cp, ": h %lu ;", (UCELL)&HERE);     doParse(cp);
-    sprintf(cp, ": v %lu ;", (UCELL)VHERE);     doParse(cp);
-    sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
-    // sprintf(cp, "h . cr");  doParse(cp);
 }
 
 void doHistory(const char* txt) {
@@ -352,17 +341,34 @@ void loop() {
     }
 }
 
+void doSystemWords() {
+    char* cp = (char*)(VHERE + 6);
+    sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
+    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
+    sprintf(cp, ": h %lu ;", (UCELL)&HERE);     doParse(cp);
+    sprintf(cp, ": v %lu ;", (UCELL)&VHERE);    doParse(cp);
+    sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
+}
+
+WORD doExt(CELL ir, WORD pc) {
+    switch (ir) {
+    case 'G': printf("-works-");            break;
+    case 'Z': isBye = 1;                   break;
+    default: printf("-unk ir: (%c)(%d)-", ir, ir);
+    }
+    return pc;
+}
+
 int main()
 {
-    reset();
+    vmReset();
     doSystemWords();
 
-    printf("\r\nMinForth v0.0.1");
+    printf("\r\nmyForth v0.0.1");
     printf("\r\nCODE: %p, SIZE: %d, HERE: %ld", user, USER_SZ, HERE);
-    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %ld", vars, VARS_SZ, (UCELL)VHERE);
-
+    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %p", vars, VARS_SZ, (void *)VHERE);
     printf("\r\nHello.");
     input_fp = fopen("sys.fs", "rt");
 
-    while (rsp != 99) { loop(); }
+    while (!isBye) { loop(); }
 }
