@@ -5,10 +5,12 @@
 #define USER_SZ  (2*1024)
 #define VARS_SZ  (1*256)
 #define STK_SZ    8
+#define LSTK_SZ   4
 
 #define TOS  stk[sp]
 #define NOS  stk[sp-1]
 #define AOS (byte*)stk[sp]
+#define LOS  lstk[lsp]
 #define DROP2 pop(); pop()
 #define U(l) user[l]
 #define UA(l) &U(l)
@@ -27,6 +29,11 @@ typedef struct {
     byte flags;
     char name[32];
 } DICT_T;
+
+typedef struct {
+    WORD s, e;
+    CELL f, t;
+} LOOP_T;
 
 extern WORD PC;
 extern char IR, sp, rsp;

@@ -1,10 +1,12 @@
-#include <stdio.h>
 #include "shared.h"
+#include <stdio.h>
+#include <Windows.h>
 
-char IR, sp, rsp;
+char IR, sp, rsp, lsp;
 CELL BASE;
 CELL stk[STK_SZ+1];
 CELL rstk[STK_SZ+1];
+LOOP_T lstk[LSTK_SZ+1];
 byte user[USER_SZ+1];
 byte vars[VARS_SZ+1];
 WORD PC;
@@ -14,6 +16,9 @@ CELL pop() { return sp ? stk[sp--] : 0; }
 
 void rpush(CELL v) { if (rsp < STK_SZ) { rstk[++rsp] = v; } }
 CELL rpop() { return rsp ? rstk[rsp--] : 0; }
+
+LOOP_T *lpush() { return (lsp < LSTK_SZ) ? &lstk[++lsp] : 0; }
+LOOP_T *lpop() { return (lsp) ? &lstk[--lsp] : 0; }
 
 unsigned short GET_WORD(byte *l) { return *l | (*(l+1) << 8); }
 long GET_LONG(byte *l) { return GET_WORD(l) | GET_WORD(l + 2) << 16; }
@@ -35,8 +40,8 @@ void printBase(UCELL num, CELL base) {
 
 void run(WORD start) {
     PC = start;
-    int rdepth = 0;
     CELL t1, t2;
+    rsp = lsp = 0;
     while (1) {
         IR = U(PC++);
         switch (IR) {
@@ -56,7 +61,6 @@ void run(WORD start) {
         case '>': NOS = (NOS > TOS) ? 1 : 0; pop();    break;
         case '<': NOS = (NOS < TOS) ? 1 : 0; pop();    break;
         case ',': printChar((char)pop());              break;
-        case 'b': printChar(' ');                      break;
         case 'D': TOS--;                               break;
         case 'I': TOS++;                               break;
         case '@': TOS = GET_LONG((byte*)TOS);          break;
@@ -68,19 +72,29 @@ void run(WORD start) {
         case 'A': t1 = pop(); TOS &= t1;               break;
         case 'O': t1 = pop(); TOS |= t1;               break;
         case 'X': t1 = pop(); TOS ^= t1;               break;
-        case '.': printBase(pop(), BASE);              break;
+        case '.': printBase(pop(), BASE);              // break;
+        case 'b': printChar(' ');                      break;
+        case 't': push(GetTickCount());                break;
         case '&': t1 = NOS; t2 = TOS;
             NOS = t1 / t2; TOS = t1 % t2;              break;
         case 'j': if (pop() == 0) { PC = GET_WORD(UA(PC)); }
                 else { PC += 2; }                      break;
         case 'J': PC = GET_WORD(UA(PC));               break;
         case 'n': printf("\r\n");                      break;
-        case ':': rpush(PC+2); PC = GET_WORD(user+PC); break;
+        case ':': rpush(PC+2); PC = GET_WORD(UA(PC));  break;
         case ';': PC = (WORD)rpop();                   break;
-        case '[': printChar(IR); PC += 2;  break;
-        case ']': printChar(IR); break;
-        case '{': printChar(IR); PC += 2;  break;
-        case '}': printChar(IR); break;
+        case '[': lpush()->e = GET_WORD(UA(PC)); PC += 2;
+            LOS.s = PC;
+            LOS.f = TOS < NOS ? TOS : NOS;
+            LOS.t = TOS > NOS ? TOS : NOS;
+            DROP2;                                     break;
+        case 'i': push(LOS.f);                         break;
+        case ']': ++LOS.f; if (LOS.f <= LOS.t) { PC = LOS.s; }
+                else { lpop(); }                       break;
+        case '{': lpush()->e = GET_WORD(UA(PC)); PC += 2;
+            LOS.s = PC;                                break;
+        case '}': if (TOS == 0) { pop(); lpop(); }
+                else { PC = LOS.s; }                   break;
         case 'Z': rsp = 99;                            return;
         default:                                       break;
         }
