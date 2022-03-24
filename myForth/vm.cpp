@@ -1,7 +1,6 @@
 #include "shared.h"
-#include <Windows.h>
 
-char sp, rsp, lsp;
+byte sp, rsp, lsp, isError;
 CELL BASE;
 CELL stk[STK_SZ+1];
 CELL rstk[STK_SZ+1];
@@ -49,16 +48,16 @@ void printBase(CELL num, CELL base) {
 }
 
 void run(WORD start) {
-    WORD PC = start;
+    WORD pc = start;
     CELL t1, t2;
-    rsp = lsp = 0;
-    while (1) {
-        byte IR = U(PC++);
+    rsp = lsp = isError = 0;
+    while (isError == 0) {
+        byte IR = U(pc++);
         switch (IR) {
         case 0: return;
-        case  1 : push(U(PC++));                                       break;
-        case  2 : push(GET_WORD(UA(PC))); PC += 2;                     break;
-        case  4 : push(GET_LONG(UA(PC))); PC += 4;                     break;
+        case  1 : push(U(pc++));                                       break;
+        case  2 : push(GET_WORD(UA(pc))); pc += 2;                     break;
+        case  4 : push(GET_LONG(UA(pc))); pc += 4;                     break;
         case '#': push(TOS);                                           break;
         case '%': push(NOS);                                           break;
         case '$': t1 = TOS; TOS = NOS; NOS = t1;                       break;
@@ -86,27 +85,27 @@ void run(WORD start) {
         case 'W': SET_WORD(AOS, (WORD)NOS); DROP2;                     break;
         case '.': printBase(pop(), BASE);                           // break;
         case 'b': printChar(' ');                                      break;
-        case 't': push(GetTickCount());                                break;
+        case 't': push(timer());                                break;
         case '&': t1 = NOS; t2 = TOS;
             NOS = t1 / t2; TOS = t1 % t2;                              break;
-        case 'j': if (pop() == 0) { PC = GET_WORD(UA(PC)); }
-                else { PC += 2; }                                      break;
-        case 'J': PC = GET_WORD(UA(PC));                               break;
+        case 'j': if (pop() == 0) { pc = GET_WORD(UA(pc)); }
+                else { pc += 2; }                                      break;
+        case 'J': pc = GET_WORD(UA(pc));                               break;
         case 'n': printString("\r\n");                                 break;
-        case ':': rpush(PC+2); PC = GET_WORD(UA(PC));                  break;
-        case ';': PC = (WORD)rpop();                                   break;
-        case '[': lpush()->e = GET_WORD(UA(PC)); PC += 2;
-            LOS.s = PC;
+        case ':': rpush(pc+2); pc = GET_WORD(UA(pc));                  break;
+        case ';': pc = (WORD)rpop();                                   break;
+        case '[': lpush()->e = GET_WORD(UA(pc)); pc += 2;
+            LOS.s = pc;
             LOS.f = TOS < NOS ? TOS : NOS;
             LOS.t = TOS > NOS ? TOS : NOS; DROP2;                      break;
         case 'i': push(LOS.f);                                         break;
-        case ']': ++LOS.f; if (LOS.f <= LOS.t) { PC = LOS.s; }
+        case ']': ++LOS.f; if (LOS.f <= LOS.t) { pc = LOS.s; }
                 else { lpop(); }                                       break;
-        case '{': lpush()->e = GET_WORD(UA(PC)); LOS.s = PC+2;      // break;
-        case '}': if (TOS) { PC = LOS.s; } 
-                else { PC = LOS.e;  pop(); lpop(); }                   break;
+        case '{': lpush()->e = GET_WORD(UA(pc)); LOS.s = pc+2;      // break;
+        case '}': if (TOS) { pc = LOS.s; } 
+                else { pc = LOS.e;  pop(); lpop(); }                   break;
         case 255: vmReset();                                           return;
-        default: PC = doExt(IR, PC);                                   break;
+        default: pc = doExt(IR, pc);                                   break;
         }
     }
 }

@@ -147,6 +147,7 @@
     <ClInclude Include="shared.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="myForth.ino" />
     <None Include="sys.fs" />
   </ItemGroup>
   <ItemGroup>

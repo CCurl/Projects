@@ -1,8 +1,7 @@
 // MinForth.cpp : An extremely memory conscious Forth interpreter
-//
-#define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
+
 #include "Shared.h"
+#include <stdio.h>
 
 typedef struct {
     const char *name;
@@ -23,15 +22,9 @@ PRIM_T prims[] = {
     {0,0}
 };
 
-#define betw(x, a, b) ((a<=x)&&(x<=b))
-
 char word[32];
-FILE* input_fp = NULL;
 byte lastWasCall = 0, isBye = 0;
 CELL HERE, LAST, STATE, VHERE;
-
-void printString(const char* cp) { printf("%s", cp); }
-void printChar(char c) { printf("%c", c); }
 
 void CComma(CELL v) { user[HERE++] = (byte)v; }
 void Comma(CELL v) { SET_LONG(&user[HERE], v); HERE += CELL_SZ; }
@@ -43,7 +36,7 @@ byte strEq(const char* x, const char* y) {
 }
 
 char lower(char c) {
-    return (('A' <= c) && (c <= 'Z')) ? (c + 32) : c;
+    return betw(c,'A','Z') ? (c + 32) : c;
 }
 
 byte strEqI(const char* x, const char* y) {
@@ -59,13 +52,16 @@ void strCpy(char* d, const char* s) {
     *d = 0;
 }
 
-UCELL align4(UCELL x) {
-    while (x % 4) { --x; }
-    return x;
+void printStringF(const char* fmt, ...) {
+    char *buf = (char *)(VHERE + 6);
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, 100, fmt, args);
+    va_end(args);
+    printString(buf);
 }
 
 void doCreate(const char* name, byte f) {
-    CELL prev = LAST;
     DICT_T *dp = DP_AT(HERE);
     dp->prev = (byte)(HERE - LAST);
     dp->flags = f;
@@ -285,7 +281,7 @@ int doParseWord(char* wd) {
     }
 
     STATE = 0;
-    printf("[%s]??", wd);
+    printStringF("[%s]??", wd);
     return 0;
 }
 
@@ -307,15 +303,7 @@ void doOK() {
         if (1 < d) { printChar(' '); }
         printBase(stk[d], BASE);
     }
-    printf(")\r\n");
-}
-
-void doHistory(const char* txt) {
-    FILE* fp = fopen("history.txt", "at");
-    if (fp) {
-        fputs(txt, fp);
-        fclose(fp);
-    }
+    printString(")\r\n");
 }
 
 char *rtrim(char* str) {
@@ -326,8 +314,47 @@ char *rtrim(char* str) {
     return str;
 }
 
+void doSystemWords() {
+    char* cp = (char*)(VHERE + 6);
+    sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
+    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
+    sprintf(cp, ": h %lu ;", (UCELL)&HERE);     doParse(cp);
+    sprintf(cp, ": v %lu ;", (UCELL)&VHERE);    doParse(cp);
+    sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
+    printString("\r\nmyForth v0.0.1");
+    printStringF("\r\nCODE: %p, SIZE: %ld, HERE: %ld", user, USER_SZ, HERE);
+    printStringF("\r\nVARS: %p, SIZE: %ld, VHERE: %p", vars, VARS_SZ, (void *)VHERE);
+    printString("\r\nHello.");
+}
+
+#if __BOARD__ == PC
+FILE* input_fp = NULL;
+
+WORD doExt(CELL ir, WORD pc) {
+    switch (ir) {
+    case 'G': printf("-works-");           break;
+    case 'Z': isBye = 1;                   break;
+    default: printStringF("-unk ir: (%c)(%d)-", ir, ir);
+    }
+    return pc;
+}
+
+void printString(const char* cp) { printf("%s", cp); }
+void printChar(char c) { printf("%c", c); }
+
+CELL timer() { return GetTickCount(); }
+void delay() { return Sleep(pop()); }
+
+void doHistory(const char* txt) {
+    FILE* fp = fopen("history.txt", "at");
+    if (fp) {
+        fputs(txt, fp);
+        fclose(fp);
+    }
+}
+
 void loop() {
-    char* tib = (char *)(VHERE + 6);
+    char* tib = (char*)(VHERE + 6);
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { doOK(); }
     if (fgets(tib, 100, fp) == tib) {
@@ -341,34 +368,14 @@ void loop() {
     }
 }
 
-void doSystemWords() {
-    char* cp = (char*)(VHERE + 6);
-    sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
-    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
-    sprintf(cp, ": h %lu ;", (UCELL)&HERE);     doParse(cp);
-    sprintf(cp, ": v %lu ;", (UCELL)&VHERE);    doParse(cp);
-    sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
-}
-
-WORD doExt(CELL ir, WORD pc) {
-    switch (ir) {
-    case 'G': printf("-works-");            break;
-    case 'Z': isBye = 1;                   break;
-    default: printf("-unk ir: (%c)(%d)-", ir, ir);
-    }
-    return pc;
-}
-
 int main()
 {
     vmReset();
     doSystemWords();
 
-    printf("\r\nmyForth v0.0.1");
-    printf("\r\nCODE: %p, SIZE: %d, HERE: %ld", user, USER_SZ, HERE);
-    printf("\r\nVARS: %p, SIZE: %ld, VHERE: %p", vars, VARS_SZ, (void *)VHERE);
-    printf("\r\nHello.");
     input_fp = fopen("sys.fs", "rt");
 
     while (!isBye) { loop(); }
 }
+
+#endif
