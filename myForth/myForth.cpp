@@ -5,19 +5,19 @@
 
 typedef struct {
     const char *name;
-    byte op;
+    const char *op;
 } PRIM_T;
 
 // Words that directly map to VM operations
 PRIM_T prims[] = {
-    {"+",'+'}, {"-",'-'}, {"/",'/'}, {"*",'*'},{"/mod",'&'},
-    {"swap",'$'}, {"drop",'\\'}, {"over",'%'}, {"dup",'#'},
-    {"emit",','}, {".",'.'}, {"space",'b'}, {"cr",'n'},
-    {"=",'='}, {"<",'<'}, {">",'>'}, {"0=",'N'},
-    {"@",'@'}, {"c@",'c'}, {"w@",'w'}, {"!",'!'}, {"c!",'C'}, {"w!",'W'},
-    {"and",'A'}, {"or",'O'}, {"xor",'X'}, {"com",'~'},
-    {"1+",'I'}, {"1-",'D'}, {"I", 'i'},
-    {"leave",';'}, {"timer",'t'}, {"bye",'Z'}, {"reset", 255},
+    {"+","+"}, {"-","-"}, {"/","/"}, {"*","*"},{"/mod","&"},
+    {"swap","$"}, {"drop","\\"}, {"over","%"}, {"dup","#"},
+    {"emit",","}, {".","."}, {"space","b"}, {"cr","n"},
+    {"=","="}, {"<","<"}, {">",">"}, {"0=","N"},
+    {"@","@"}, {"c@","c"}, {"w@","w"}, {"!","!"}, {"c!","C"}, {"w!","W"},
+    {"and","A"}, {"or","O"}, {"xor","X"}, {"com","~"},
+    {"1+","I"}, {"1-","D"}, {"I", "i"}, {"edit","e"},
+    {"leave",";"}, {"timer","t"}, {"bye","zZ"}, {"reset","Y"},
     // {"ext",'G'}, {"exy",'R'}, // Extensions
     {0,0}
 };
@@ -53,7 +53,7 @@ void strCpy(char* d, const char* s) {
 }
 
 void printStringF(const char* fmt, ...) {
-    char *buf = (char *)(VHERE + 6);
+    char* buf = (char*)&user[USER_SZ-128];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, 100, fmt, args);
@@ -172,12 +172,15 @@ int isNum(const char* wd) {
 
 int doPrim(const char *wd) {
     for (int i = 0; prims[i].op; i++) {
-        if (strEqI(prims[i].name, wd)) {
-            if (STATE) { CComma(prims[i].op); }
-            else {
-                user[HERE+1] = prims[i].op;
-                user[HERE+2] = ';';
-                run((WORD)HERE+1);
+        PRIM_T* p = &prims[i];
+        if (strEqI(p->name, wd)) {
+            if (STATE) {
+                for (int j = 0; p->op[j]; j++) { CComma(p->op[j]); }
+            } else {
+                byte* x = UA(HERE + 10);
+                for (int j = 0; p->op[j]; j++) { *(x++) = p->op[j]; }
+                *x = ';';
+                run((WORD)HERE+10);
             }
             return 1;
         }
@@ -314,7 +317,7 @@ char *rtrim(char* str) {
     return str;
 }
 
-void doSystemWords() {
+void systemWords() {
     char* cp = (char*)(VHERE + 6);
     sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
     sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
@@ -333,7 +336,7 @@ FILE* input_fp = NULL;
 WORD doExt(CELL ir, WORD pc) {
     switch (ir) {
     case 'G': printf("-works-");           break;
-    case 'Z': isBye = 1;                   break;
+    case 'z': isBye = U(pc++) == 'Z';      break;
     default: printStringF("-unk ir: (%c)(%d)-", ir, ir);
     }
     return pc;
@@ -341,6 +344,8 @@ WORD doExt(CELL ir, WORD pc) {
 
 void printString(const char* cp) { printf("%s", cp); }
 void printChar(char c) { printf("%c", c); }
+int charAvailable(void) { return _kbhit(); }
+int getChar(void) { return _getch(); }
 
 CELL timer() { return GetTickCount(); }
 void delay() { return Sleep(pop()); }
@@ -371,7 +376,6 @@ void loop() {
 int main()
 {
     vmReset();
-    doSystemWords();
 
     input_fp = fopen("sys.fs", "rt");
 

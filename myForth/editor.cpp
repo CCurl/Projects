@@ -3,7 +3,15 @@
 // NOTE: A huge thanks to Alain Theroux. This editor was inspired by
 //       his editor and is a shameful reverse-engineering of it. :D
 
-#include "cf.h"
+#include "shared.h"
+
+#ifndef __EDITOR__
+
+void doEditor() {}
+
+#else
+
+#include <stdio.h>
 
 #define LLEN       100
 #define NUM_LINES   20
@@ -57,7 +65,7 @@ void showCursor() {
     GotoXY(off + 1, line + 1);
     Color(0, 47);
     printChar(c ? c : 'X');
-    //Color(WHITE, 0);
+    Color(7, 0);
 }
 
 void mv(int l, int o) {
@@ -146,7 +154,7 @@ void toLines() {
 void edRdBlk() {
     clearBlock();
     char buf[24];
-    sprintf(buf, "block-%03d.cf", blkNum);
+    sprintf(buf, "block-%03d.fs", blkNum);
     msg = "-noFile-";
     FILE* fp = fopen(buf, "rb");
     if (fp) {
@@ -171,7 +179,7 @@ void edSvBlk() {
     // blockWrite();
     toBlock();
     char buf[24];
-    sprintf(buf, "block-%03d.cf", blkNum);
+    sprintf(buf, "block-%03d.fs", blkNum);
     msg = "-err-";
     FILE* fp = fopen(buf, "wb");
     if (fp) {
@@ -198,15 +206,15 @@ void showFooter() {
 void showEditor() {
     int cp = 0, x = 1, y = 1;
     CursorOff();
-    Color(WHITE, 0);
+    //Color(WHITE, 0);
     msg = NULL;
-    int color = PURPLE;
+    //int color = PURPLE;
     for (int i = 0; i < NUM_LINES; i++) {
         showLine(i);
     }
     showCursor();
     GotoXY(1, NUM_LINES);
-    Color(WHITE, 0);
+    //Color(WHITE, 0);
 }
 
 void lineEdit() {
@@ -276,11 +284,11 @@ int processEditorChar(char c) {
     case 'x': deleteChar();                     break;
     case 'L': edRdBlk();                        break;
     case 'W': edSvBlk();                        break;
-    case 'M': edSetCh(COMMENT);                 break;
-    case 'C': edSetCh(COMPILE);                 break;
-    case 'D': edSetCh(DEFINE);                  break;
-    case 'I': edSetCh(INTERP);                  break;
-    case 'A': edSetCh(ASM);                     break;
+    //case 'M': edSetCh(COMMENT);                 break;
+    //case 'C': edSetCh(COMPILE);                 break;
+    //case 'D': edSetCh(DEFINE);                  break;
+    //case 'I': edSetCh(INTERP);                  break;
+    //case 'A': edSetCh(ASM);                     break;
     case '+': if (isDirty) { edSvBlk(); }
             ++blkNum;
             edRdBlk();
@@ -304,7 +312,8 @@ void doEditor() {
     showFooter();
     while (processEditorChar(edGetChar())) {
         NormLO();
-        Color(WHITE, 0);
+        //Color(WHITE, 0);
         showFooter();
     }
 }
+#endif

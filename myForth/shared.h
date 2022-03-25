@@ -4,29 +4,34 @@
 #define PC           1
 #define TEENSY4      2
 #define XIAO         3
+#define ESP32_DEV    4
+#define ESP8266      5
 
 #define __BOARD__    TEENSY4
 
 #ifdef _WIN32
+  #undef __BOARD__
+  #define __BOARD__ PC
   #define __WINDOWS__
   #define  _CRT_SECURE_NO_WARNINGS
   #include <Windows.h>
   #include <conio.h>
-  #undef __BOARD__
-  #define __BOARD__ PC
   #define USER_SZ  (64*1024)
   #define VARS_SZ  (64*1024)
   #define STK_SZ     8
   #define LSTK_SZ    8
+  #define __EDITOR__
 #endif
 
 #include <stdarg.h>
 
 #if __BOARD__ != PC
+  // For TEENSY4
   #define USER_SZ  (48*1024)
   #define VARS_SZ  (48*1024)
   #define STK_SZ     8
   #define LSTK_SZ    8
+  #define __EDITOR__
 #endif
 
 #define CELL_SZ      4
@@ -66,7 +71,7 @@ extern CELL stk[];
 extern CELL rstk[];
 
 extern void vmReset();
-extern void doSystemWords();
+extern void systemWords();
 extern void push(CELL);
 extern CELL pop();
 extern void SET_WORD(byte *l, WORD v);
@@ -79,7 +84,10 @@ extern int strLen(const char *);
 extern void run(WORD);
 extern void doOK();
 extern WORD doExt(CELL, WORD);
+extern void doEditor();
 extern void doParse(const char *);
+extern int charAvailable();
+extern int getChar();
 
 extern CELL timer();
 

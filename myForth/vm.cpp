@@ -1,12 +1,9 @@
 #include "shared.h"
 
 byte sp, rsp, lsp, isError;
-CELL BASE;
-CELL stk[STK_SZ+1];
-CELL rstk[STK_SZ+1];
-LOOP_T lstk[LSTK_SZ+1];
-byte user[USER_SZ+1];
-byte vars[VARS_SZ+1];
+CELL BASE, stk[STK_SZ+1], rstk[STK_SZ+1];
+byte user[USER_SZ+1], vars[VARS_SZ+1];
+LOOP_T lstk[LSTK_SZ + 1];
 
 void vmReset() {
     sp = rsp = lsp = 0;
@@ -15,6 +12,7 @@ void vmReset() {
     VHERE = (CELL)&vars[0];
     for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
     for (int i = 0; i < VARS_SZ; i++) { vars[i] = 0; }
+    systemWords();
 }
 
 void push(CELL v) { if (sp < STK_SZ) { stk[++sp] = v; } }
@@ -33,9 +31,8 @@ void SET_WORD(byte *l, WORD v) { *l = (v & 0xff); *(l+1) = (byte)(v >> 8); }
 void SET_LONG(byte *l, long v) { SET_WORD(l, v & 0xFFFF); SET_WORD(l + 2, (WORD)(v >> 16)); }
 
 void printBase(CELL num, CELL base) {
-    UCELL n = (UCELL) num;
-    char isNeg = ((base == 10) && (num < 0)) ? 1 : 0;
-    if (isNeg) { n = -num; }
+    UCELL n = (UCELL) num, isNeg = 0;
+    if ((base == 10) && (num < 0)) { isNeg = 1; n = -num; }
     char* cp = (char *)&user[USER_SZ];
     *(cp--) = 0;
     do {
@@ -85,7 +82,8 @@ void run(WORD start) {
         case 'W': SET_WORD(AOS, (WORD)NOS); DROP2;                     break;
         case '.': printBase(pop(), BASE);                           // break;
         case 'b': printChar(' ');                                      break;
-        case 't': push(timer());                                break;
+        case 't': push(timer());                                       break;
+        case 'e': doEditor();                                          break;
         case '&': t1 = NOS; t2 = TOS;
             NOS = t1 / t2; TOS = t1 % t2;                              break;
         case 'j': if (pop() == 0) { pc = GET_WORD(UA(pc)); }
@@ -104,7 +102,7 @@ void run(WORD start) {
         case '{': lpush()->e = GET_WORD(UA(pc)); LOS.s = pc+2;      // break;
         case '}': if (TOS) { pc = LOS.s; } 
                 else { pc = LOS.e;  pop(); lpop(); }                   break;
-        case 255: vmReset();                                           return;
+        case 'Y': vmReset();                                           return;
         default: pc = doExt(IR, pc);                                   break;
         }
     }

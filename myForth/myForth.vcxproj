@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="editor.cpp" />
     <ClCompile Include="myForth.cpp" />
     <ClCompile Include="vm.cpp" />
   </ItemGroup>
