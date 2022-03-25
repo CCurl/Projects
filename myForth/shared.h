@@ -18,7 +18,7 @@
   #include <conio.h>
   #define USER_SZ  (64*1024)
   #define VARS_SZ  (64*1024)
-  #define STK_SZ     8
+  #define STK_SZ    16
   #define LSTK_SZ    8
   #define __EDITOR__
 #endif
@@ -29,19 +29,19 @@
   // For TEENSY4
   #define USER_SZ  (48*1024)
   #define VARS_SZ  (48*1024)
-  #define STK_SZ     8
+  #define STK_SZ    16
   #define LSTK_SZ    8
-  #define __EDITOR__
+  // #define __EDITOR__
 #endif
 
 #define CELL_SZ      4
 
-#define TOS  stk[sp]
-#define NOS  stk[sp-1]
-#define AOS (byte*)stk[sp]
-#define LOS  lstk[lsp]
+#define TOS   stk[sp]
+#define NOS   stk[sp-1]
+#define AOS  (byte*)stk[sp]
+#define LOS   lstk[lsp]
 #define DROP2 pop(); pop()
-#define U(l) user[l]
+#define U(l)  user[l]
 #define UA(l) &U(l)
 #define DP_AT(l) ((DICT_T *)(&user[l]))
 #define betw(x, a, b) ((a<=x)&&(x<=b))
@@ -85,9 +85,11 @@ extern void run(WORD);
 extern void doOK();
 extern WORD doExt(CELL, WORD);
 extern void doEditor();
+extern int doFind(const char *);
 extern void doParse(const char *);
 extern int charAvailable();
 extern int getChar();
+extern WORD getXT(WORD, DICT_T *);
 
 extern CELL timer();
 

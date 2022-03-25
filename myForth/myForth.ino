@@ -36,6 +36,7 @@ void gamePadInit() {
     gpInit();
 }
 #else
+void gamePadInit() {}
 WORD doGamePad(byte ir, WORD pc) { printString("-noGamepad-"); return pc; }
 #endif
 
@@ -149,8 +150,8 @@ void handleInput(char c) {
     static char *s = NULL, *e = NULL;
     if (s == NULL) { s = e = (char *)(VHERE + 6); }
     if (c == 13) {
-        printString(" ");
         *e = 0;
+        printString(" ");
         doParse(s);
         s = NULL;
         doOK();
@@ -180,19 +181,18 @@ void setup() {
     // while (mySerial.available()) { char c = mySerial.read(); }
     doOK();
 #endif
-    vmReset();
-    doSystemWords();
- 
+    vmReset(); 
+    gamePadInit();
 //    wifiStart();
 //    fileInit();
-//    gamePadInit();
 }
 
 void do_autoRun() {
-    // const char *cp = "AUTORUN";
-    // WORD a = (WORD)cp;
-    // WORD fa = findFunc(funcNum(a), 0);
-    // if (fa) { run(fa); }
+    int p = doFind("AUTORUN");
+    if (0 <= p) {
+      DICT_T* dp = DP_AT(p);
+      run(getXT((WORD)p, dp));
+    }
 }
 
 void loop() {
@@ -202,11 +202,11 @@ void loop() {
     long curTm = millis();
 
     if (iLed == 0) {
-        // loadBaseSystem();
         doOK();
         iLed = LED_BUILTIN;
         pinMode(iLed, OUTPUT);
     }
+    
     if (nextBlink < curTm) {
         ledState = (ledState == LOW) ? HIGH : LOW;
         digitalWrite(iLed, ledState);
@@ -221,5 +221,5 @@ void loop() {
     //    isOTA = 1;
     //    handleInput(wifiGetChar()); 
     //}
-    //do_autoRun();
+    do_autoRun();
 }

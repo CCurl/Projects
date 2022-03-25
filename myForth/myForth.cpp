@@ -93,11 +93,6 @@ int doFind(const char* name) {
     return -1;
 }
 
-int isDigit(char c) {
-    if (betw(c,'0','9')) { return c - '0'; }
-    return -1;
-}
-
 char* in;
 int getWord(char* wd, char delim) {
     while (*in && (*in == delim)) { ++in; }
@@ -195,7 +190,7 @@ int doParseWord(char* wd) {
     if (doPrim(wd)) { return 1; }
 
     int l = doFind(wd);
-    if (0 <= l) { return execWord((WORD)l); }
+    if (0 <= l) { return execWord(l); }
 
     if (isNum(wd)) {
         if (STATE == 1) { compileNumber(pop()); }
