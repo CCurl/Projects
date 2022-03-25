@@ -206,6 +206,12 @@ int doParseWord(char* wd) {
         return 1;
     }
 
+    if (strEq(wd, "(")) {
+        while (*in && (*in != ')')) { ++in; }
+        if (*in == ')') { ++in; }
+        return 1;
+    }
+
     if (strEq(wd, ";")) {
         STATE = 0;
         if (lwc && (user[HERE - 3] == ':')) { user[HERE - 3] = 'J'; }
