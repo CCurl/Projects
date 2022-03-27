@@ -13,3 +13,4 @@ ttt rr
 : lt1 +locs 123 s0 445 s1     r0 . r1 . -locs ;
 : lt2 +locs 666 s0 777 s1 lt1 r0 . r1 . -locs ;
 cr lt2
+cr h @ .

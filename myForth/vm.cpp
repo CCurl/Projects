@@ -72,9 +72,9 @@ void run(WORD start) {
         case 'D': TOS--;                                                    break;
         case 'I': TOS++;                                                    break;
         case 'J': pc = GET_WORD(UA(pc));                                    break;
-        case 'L': locBase += 10;                                            break;
-        case 'M': locBase -= 10;                                            break;
+        case 'L': NOS = (NOS << TOS); pop();                                break;
         case 'N': TOS = (TOS) ? 0 : 1;                                      break;
+        case 'R': NOS = (NOS >> TOS); pop();                                break;
         case 'W': SET_WORD(AOS, (WORD)NOS); DROP2;                          break;
         case 'Y': vmReset();                                                return;
         case '~': TOS = ~TOS;                                               break;
@@ -94,14 +94,16 @@ void run(WORD start) {
         case '}': if (TOS) { pc = LOS.s; }
                 else { pc = LOS.e;  pop(); lpop(); }                        break;
         case 'a': t1 = pop(); TOS &= t1;                                    break;
-        case 'c': TOS = *AOS;                                               break;
         case 'b': printChar(' ');                                           break;
+        case 'c': TOS = *AOS;                                               break;
         case 'e': doEditor();                                               break;
         case 'i': push(LOS.f);                                              break;
         case 'j': if (pop() == 0) { pc = GET_WORD(UA(pc)); }
                 else { pc += 2; }                                           break;
         case 'n': printString("\r\n");                                      break;
         case 'o': t1 = pop(); TOS |= t1;                                    break;
+        case 'p': locBase += 10;                                            break;
+        case 'q': locBase -= 10;                                            break;
         case 'r': t1 = U(pc++) - '0'; push(locals[locBase + t1]);           break;
         case 's': t1 = U(pc++) - '0'; locals[locBase + t1] = pop();         break;
         case 't': push(timer());                                            break;
