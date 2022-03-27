@@ -16,10 +16,11 @@
   #define  _CRT_SECURE_NO_WARNINGS
   #include <Windows.h>
   #include <conio.h>
-  #define USER_SZ  (64*1024)
-  #define VARS_SZ  (64*1024)
-  #define STK_SZ    16
-  #define LSTK_SZ    8
+  #define USER_SZ      (64*1024)
+  #define VARS_SZ      (64*1024)
+  #define STK_SZ        16
+  #define LSTK_SZ        8
+  #define LOCALS_SZ    128
   #define __EDITOR__
 #endif
 
@@ -27,10 +28,11 @@
 
 #if __BOARD__ != PC
   // For TEENSY4
-  #define USER_SZ  (48*1024)
-  #define VARS_SZ  (48*1024)
-  #define STK_SZ    16
-  #define LSTK_SZ    8
+  #define USER_SZ      (48*1024)
+  #define VARS_SZ      (48*1024)
+  #define STK_SZ        16
+  #define LSTK_SZ        8
+  #define LSTK_SZ      128
   // #define __EDITOR__
 #endif
 
@@ -63,7 +65,7 @@ typedef struct {
     CELL f, t;
 } LOOP_T;
 
-extern byte sp, isError;
+extern char sp, isError;
 extern CELL BASE, STATE, VHERE, LAST, HERE;
 extern byte user[];
 extern byte vars[];
