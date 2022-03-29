@@ -335,9 +335,9 @@ char *rtrim(char* str) {
 void systemWords() {
     char* cp = (char*)(VHERE + 6);
     sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
-    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
-    sprintf(cp, ": h %lu ;", (UCELL)&HERE);     doParse(cp);
-    sprintf(cp, ": v %lu ;", (UCELL)&VHERE);    doParse(cp);
+    sprintf(cp, ": user %lu ;", (UCELL)user);   doParse(cp);
+    sprintf(cp, ": ha %lu ;", (UCELL)&HERE);    doParse(cp);
+    sprintf(cp, ": va %lu ;", (UCELL)&VHERE);   doParse(cp);
     sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
     printString("\r\nmyForth v0.0.1");
     printStringF("\r\nCODE: %p, SIZE: %ld, HERE: %ld", user, USER_SZ, HERE);

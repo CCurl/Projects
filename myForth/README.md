@@ -35,13 +35,14 @@ To these ends, I have wandered off the beaten path in the following ways:
   - -tmps: destroys the most recently allocated temps.
 
 ### Temporary words:
-- The purpose of temporary words is to support code reuse without the overhead of the dictionary entries.
-- Temporary words are run-time only, You cannot create an IMMEDIATE temporary word.
+- I think of temporary words as named transient words that don't incur any dictionary overhead.
+- Their purpose is to support code reuse without the overhead of the dictionary entries.
+- They are run-time only, You cannot create an IMMEDIATE temporary word.
 - When defined, they refer to the current value of HERE.
 - A temporary word's name is T[0..9]. E.G. - ": T4 ... ;" will define word T4, but T4 is not added to the dictionary.
 - All previous references to T4 still refer to the previous definition. New references to T4 refer to the new defintion.
 - Here is a simple example:
 ```
-: T1 dup $20 < if drop '.' then emit ; \ Word "T1" is not added to the dictionary
-: .code user dup here + 1- for i c@ T1 next ;
+: T1 dup $20 < if drop '.' then ; \ Word "T1" is not added to the dictionary
+: .code user dup here + 1- for i c@ T1 emit next ;
 ```
