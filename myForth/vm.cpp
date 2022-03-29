@@ -12,6 +12,7 @@ void vmReset() {
     VHERE = (CELL)&vars[0];
     for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
     for (int i = 0; i < VARS_SZ; i++) { vars[i] = 0; }
+    for (int i = 0; i < 10; i++) { tempWords[i] = 0; }
     systemWords();
 }
 

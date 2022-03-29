@@ -30,7 +30,7 @@ PRIM_T prims[] = {
 
 char word[32], *in;
 byte lastWasCall = 0, isBye = 0;
-CELL HERE, LAST, STATE, VHERE;
+CELL HERE, LAST, STATE, VHERE, tempWords[10];
 
 void CComma(CELL v) { user[HERE++] = (byte)v; }
 void Comma(CELL v) { SET_LONG(&user[HERE], v); HERE += CELL_SZ; }
@@ -65,13 +65,42 @@ void printStringF(const char* fmt, ...) {
     printString(buf);
 }
 
+BOOL isTempWord(const char* nm) {
+    return ((nm[0] == 'T') && betw(nm[1], '0', '9') && (nm[2] == 0));
+}
+
 void doCreate(const char* name, byte f) {
+    if (isTempWord(name)) {
+        tempWords[name[1] - '0'] = HERE;
+        return;
+    }
     DICT_T *dp = DP_AT(HERE);
     dp->prev = (byte)(HERE - LAST);
     dp->flags = f;
     strCpy(dp->name, name);
     LAST = HERE;
     HERE += strLen(name) + 3;
+}
+
+int doFind(const char* name) {
+    // Temporary word?
+    if (isTempWord(name) && (tempWords[name[1] - '0'])) {
+        push(tempWords[name[1] - '0']);
+        push(0);
+        return 1;
+    }
+    CELL def = (WORD)LAST;
+    while (def) {
+        DICT_T* dp = DP_AT(def);
+        if (strEq(dp->name, name)) {
+            push(def + strLen(dp->name) + 3);
+            push(dp->flags);
+            return 1;
+        }
+        if (def == dp->prev) break;
+        def -= dp->prev;
+    }
+    return 0;
 }
 
 int doWords() {
@@ -84,21 +113,6 @@ int doWords() {
         l -= dp->prev;
     }
     return 1;
-}
-
-int doFind(const char* name) {
-    CELL de = (WORD)LAST;
-    while (de) {
-        DICT_T *dp = DP_AT(de);
-        if (strEq(dp->name, name)) {
-            push(de + strLen(dp->name) + 3);
-            push(dp->flags);
-            return 1; 
-        }
-        if (de == dp->prev) break;
-        de -= dp->prev;
-    }
-    return 0;
 }
 
 int getWord(char* wd, char delim) {
