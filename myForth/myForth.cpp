@@ -18,17 +18,17 @@ PRIM_T prims[] = {
     {"@","@"}, {"c@","c"}, {"w@","w"}, {"!","!"}, {"c!","C"}, {"w!","W"},
     {"and","a"}, {"or","o"}, {"xor","x"}, {"com","~"}, {"not","N"},
     {"1+","I"}, {"1-","D"}, {"I", "i"}, {"edit","e"},
-    {"leave",";"}, {"timer","t"}, {"bye","zZ"}, {"reset","Y"},
-    {"+locs","p"}, {"-locs","q"}, 
+    {"leave",";"}, {"timer","t"}, {"reset","Y"},
+    {"+tmps","p"}, {"-tmps","q"}, 
     {"r0","r0"}, {"r1","r1"}, {"r2","r2"},{"r3","r3"}, {"r4","r4"},
     {"r5","r5"}, {"r6","r6"}, {"r7","r7"},{"r8","r8"}, {"r9","r9"},
     {"s0","s0"}, {"s1","s1"}, {"s2","s2"},{"s3","s3"}, {"s4","s4"},
     {"s5","s5"}, {"s6","s6"}, {"s7","s7"},{"s8","s8"}, {"s9","s9"},
-    // {"ext",'G'}, {"exy",'R'}, // Extensions
+    {"bye","zZ"}, // {"ext",'G'}, {"exy",'R'}, // Extensions
     {0,0}
 };
 
-char word[32];
+char word[32], *in;
 byte lastWasCall = 0, isBye = 0;
 CELL HERE, LAST, STATE, VHERE;
 
@@ -36,13 +36,11 @@ void CComma(CELL v) { user[HERE++] = (byte)v; }
 void Comma(CELL v) { SET_LONG(&user[HERE], v); HERE += CELL_SZ; }
 void WComma(WORD v) { SET_WORD(&user[HERE], v); HERE += 2; }
 
+char lower(char c) { return betw(c, 'A', 'Z') ? (c + 32) : c; }
+
 byte strEq(const char* x, const char* y) {
     while (*x && *y && (*x == *y)) { ++x; ++y; }
     return (*x || *y) ? 0 : 1;
-}
-
-char lower(char c) {
-    return betw(c,'A','Z') ? (c + 32) : c;
 }
 
 byte strEqI(const char* x, const char* y) {
@@ -59,7 +57,7 @@ void strCpy(char* d, const char* s) {
 }
 
 void printStringF(const char* fmt, ...) {
-    char* buf = (char*)&user[USER_SZ-128];
+    char* buf = (char*)&user[USER_SZ-64];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, 100, fmt, args);
@@ -89,17 +87,20 @@ int doWords() {
 }
 
 int doFind(const char* name) {
-    CELL l = (WORD)LAST;
-    while (l) {
-        DICT_T *dp = DP_AT(l);
-        if (strEq(dp->name, name)) { return l; }
-        if (l == dp->prev) break;
-        l -= dp->prev;
+    CELL de = (WORD)LAST;
+    while (de) {
+        DICT_T *dp = DP_AT(de);
+        if (strEq(dp->name, name)) {
+            push(de + strLen(dp->name) + 3);
+            push(dp->flags);
+            return 1; 
+        }
+        if (de == dp->prev) break;
+        de -= dp->prev;
     }
-    return -1;
+    return 0;
 }
 
-char* in;
 int getWord(char* wd, char delim) {
     while (*in && (*in == delim)) { ++in; }
     int l = 0;
@@ -117,35 +118,33 @@ int strLen(const char* str) {
     return cp - str;
 }
 
-WORD getXT(WORD l, DICT_T *dp) {
-    return l + strLen(dp->name) + 3;
-}
-
-int execWord(WORD l) {
-    DICT_T* dp = DP_AT(l);
-    WORD xt = getXT(l, dp);
-    if ((STATE == 1) && (dp->flags == 0)) {
+int execWord() {
+    CELL f = pop(), xt = pop();
+    if ((STATE) && (f == 0)) {
         CComma(':');
-        WComma(xt);
+        WComma((WORD)xt);
         lastWasCall = 1;
-    } else { run(xt); }
+    } else { run((WORD)xt); }
     return 1;
 }
 
-void compileNumber(CELL num) {
-    if ((0 <= num) && (num <= 0xFF)) {
-        CComma(1);
-        CComma(num & 0xff);
+int compileNumber(int state) {
+    if (state) {
+        CELL num = pop();
+        if ((num & 0xFF) == num) {
+            CComma(1);
+            CComma(num & 0xff);
+        }
+        else if ((num & 0xFFFF) == num) {
+            CComma(2);
+            WComma((WORD)num);
+        }
+        else {
+            CComma(4);
+            Comma(num);
+        }
     }
-    else if ((0x0100 <= num) && (num <= 0xFFFF)) {
-        CComma(2);
-        SET_WORD(UA(HERE), (WORD)num);
-        HERE += 2;
-    }
-    else {
-        CComma(4);
-        Comma(num);
-    }
+    return 1;
 }
 
 int isNum(const char* wd) {
@@ -194,14 +193,8 @@ int doParseWord(char* wd) {
     lastWasCall = 0;
 
     if (doPrim(wd)) { return 1; }
-
-    int l = doFind(wd);
-    if (0 <= l) { return execWord(l); }
-
-    if (isNum(wd)) {
-        if (STATE == 1) { compileNumber(pop()); }
-        return 1;
-    }
+    if (doFind(wd)) { return execWord(); }
+    if (isNum(wd)) { return compileNumber(STATE); }
 
     if (strEq(wd, ":")) {
         if (getWord(wd, ' ')) {
@@ -228,7 +221,8 @@ int doParseWord(char* wd) {
     if (strEqI(wd, "VARIABLE")) {
         if (getWord(wd, ' ')) {
             doCreate(wd, 0);
-            compileNumber((UCELL)VHERE);
+            push(VHERE);
+            compileNumber(1);
             CComma(';');
             VHERE += CELL_SZ;
             return 1;
@@ -308,12 +302,12 @@ void doParse(const char* line) {
 
 void doOK() {
     if (STATE) { printString(" ... "); return; }
-    printString(" OK (");
+    printString("\r\nOK (");
     for (int d = 1; d <= sp; d++) {
         if (1 < d) { printChar(' '); }
         printBase(stk[d], BASE);
     }
-    printString(")\r\n");
+    printString(")>");
 }
 
 char *rtrim(char* str) {
@@ -383,9 +377,7 @@ void loop() {
 int main()
 {
     vmReset();
-
-    input_fp = fopen("sys.fs", "rt");
-
+    input_fp = fopen("tests.fs", "rt");
     while (!isBye) { loop(); }
 }
 

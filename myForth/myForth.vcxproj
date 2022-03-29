@@ -149,7 +149,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="myForth.ino" />
-    <None Include="sys.fs" />
+    <None Include="README.md" />
+    <None Include="tests.fs" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="history.txt" />

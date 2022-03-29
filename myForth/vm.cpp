@@ -49,13 +49,24 @@ void run(WORD start) {
     CELL t1, t2;
     rsp = lsp = locSP = isError = 0;
     while (isError == 0) {
-        byte IR = U(pc++);
-        switch (IR) {
+        byte ir = U(pc++);
+        switch (ir) {
         case 0: return;
         case  1 : push(U(pc++));                                            break;
         case  2 : push(GET_WORD(UA(pc))); pc += 2;                          break;
         case  4 : push(GET_LONG(UA(pc))); pc += 4;                          break;
         case '#': push(TOS);                                                break;
+        case '"': t1 = U(pc++); while (t1 && (t1 != ir)) {
+            if (t1 == '%') {
+                U(pc++);
+                if (t1 == 'b') { printChar(' '); }
+                else if (t1 == 'c') { printChar((char)pop()); }
+                else if (t1 == 'd') { printBase(pop(), BASE); }
+                else if (t1 == 'n') { printString("\r\n"); }
+                else printChar((char)t1);
+            } else { printChar((char)t1); }
+            t1 = U(pc++); 
+        }                                                                   break;
         case '%': push(NOS);                                                break;
         case '$': t1 = TOS; TOS = NOS; NOS = t1;                            break;
         case '\\': pop();                                                   break;
@@ -109,7 +120,7 @@ void run(WORD start) {
         case 't': push(timer());                                            break;
         case 'w': TOS = GET_WORD(AOS);                                      break;
         case 'x': t1 = pop(); TOS ^= t1;                                    break;
-        default: pc = doExt(IR, pc);                                        break;
+        default: pc = doExt(ir, pc);                                        break;
         }
     }
 }
