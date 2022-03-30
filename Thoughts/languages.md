@@ -26,18 +26,18 @@ Sure, on the surface, it seems like this shouldn't be too hard, especially for t
 
 Where to start? Many solutions start by defining their own "virtual processor" with a corresponding ML (a VML, if you will). A single instruction in the VML is generally pretty simple but also abstract.
 
-It is usually easier to translate given Source code into a VML than it is to translate it directly into ML for a processor. Additionally, a VML is closer to a "real" ML than the Source. It's a step in the right direction at least. So when tasked with solving this problem, one might then start by designing a VML, a Syntax for the Source, and provide a way to translate the Source into that VML. At least that gets us closer to being able to tell the processor what the user wants it to do.
+It is usually easier to translate given Source code into a VML than it is to translate it directly into ML for a processor. Additionally, a VML is closer to a "real" ML than is the Source. It's a step in the right direction at least. So when tasked with solving this problem, one might then start by designing a VML, a Syntax for the Source, and provide a way to translate the Source into that VML. At least that gets us closer to being able to tell the processor what the user wants it to do.
 
 But we are obviously not done yet, as the processor only natively understands its ML, not our VML. We still have a gap to close.
 
 ### Compilers and Interpreters:
-In a compiler-based world, a VML and Syntax for the Source is defined. The source is first translated into the VML. That VML is then transformed into the target processor's ML. Then the ML must be put together (linked) to some pre-written code that can set things up and kick off the ML on the given system. Those tasks must be performed one after the other (chained together), hence the term "tool-chain".
+In a compiler-based world, a VML and Syntax for the Source is defined. The source is first translated into the VML. That VML is then transformed into the target processor's ML. Then the ML must be put together (linked) with some pre-written code that can set things up and kick off the ML on the given system. Those tasks must be performed one after the other (chained together), hence the term "tool-chain".
 
-In an interpreter-based world, a VML and Syntax for the Source is also defined. But instead of other steps, the implementer provides a pre-written program that makes the system be able to load and understand (execute/interpret) the VML. Hence the term "interpreter".
+In an interpreter-based world, a VML and Syntax for the Source is also defined. But instead of other steps, the implementer provides a pre-written program that makes the system able to load and understand (execute/interpret) the VML. Hence the term "interpreter".
 
 On some interpreted systems (e.g. - S4 and MINT) there is no need to translate the Source at all, because the VML is human-readable, and the Source IS the VML.
 
-On other interpreted systems (e.g. - many Forths), the is a focus on ease of the translation, but the VML is generally not very "human-readable".
+On other interpreted systems (e.g. - many Forths), there is a focus on ease of the translation, but the VML is generally not very "human-readable".
 
 On compiled systems, all bets are off, and there is no way to avoid tranforming the Source into ML for the target system.
 
@@ -59,12 +59,12 @@ VARIABLE C
 A small piece of the VML:
 ```
 Byte $02: "WLIT"   - Turn the next 2 bytes from the instruction stream into a number and PUSH that value
-Byte $40: "FETCH"  - POP an address and PUSH that address' 32-bit value
+Byte $40: "FETCH"  - POP an address and PUSH the (16-bit) value at that address
 Byte $2B: "ADD"    - POP the top 2 items, add them, and PUSH the result.
 Byte $21: "STORE"  - POP an address and a value and store the value to that address
 ```
 
-And I need to be translate it into:
+So, I need to translate the Source into:
 ```
 Define A to be $A110 (VARIABLE A)
 Define B to be $A112 (VARIABLE B)
@@ -104,7 +104,7 @@ There are also many compiled languages, of which C is probably the best known. T
 ### Summary:
 It is pretty easy for an experienced programmer to parse source into a VML (depending, again, on the Syntax for the Source).
 
-It is my opinion that the "post VML" steps (transformation/link) that a compiler needs to do makes the solution orders of magnitude more difficult to pull off. And if one wants to include some sort optimization of the generated ML, it is even more difficult. Many compiler tool-chains are multiple MB or GB beasts (not exactly minimal!). Modern machines (PCs) and Harvard architectures (many development boards) add even more complexity, because they impose more limits on what the program can do, and how to end up with code that actually runs on those systems. Older (vintage) systems were much simpler, and so it would be (at least somewhat) less difficult for those systems.
+It is my opinion that the "post VML" steps (transformation/link) that a compiler needs to do makes the solution of the problem orders of magnitude more difficult to pull off. And if one wants to include some sort optimization of the generated ML, it is even more difficult. Many compiler tool-chains are multiple MB or GB beasts (not exactly minimal!). Modern machines (PCs) and Harvard architectures (many development boards) add even more complexity, because they impose more limits on what the program can do, and how to end up with code that actually runs on those systems. Older (vintage) systems were much simpler, and so it would be (at least somewhat) less difficult for those systems.
 
 Interpreters are able to avoid all that extra complexity, making them much more "minimal".
 
