@@ -108,4 +108,4 @@ It is my opinion that the "post VML" steps (transformation/link) that a compiler
 
 Interpreters are able to avoid all that extra complexity, making them much more "minimal".
 
-I am a minimalist. So I will choose "interpreter" evvery time when implementing a language.
+I am a minimalist. So I will choose "interpreter" whenever possible when choosing to implement a language.
