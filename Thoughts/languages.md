@@ -88,7 +88,7 @@ $02 $14 $A1 $21  [WLIT C, STORE]
 
 Generation of the VML is the job of the parser. It has 2 tasks: (1) break the input stream (the Source) into tokens (the tokenizer), and (2) process the tokens to generate the VML. Sometimes, depending on the syntax, part (2) can be done in one pass. Othertimes, it might take more than one pass to correctly generate the desired VML.
 
-As I mentioned earlier, some systems (S4, MINT) don't parser at all. I call htem "pure interpreters".
+As I mentioned earlier, some systems (S4, MINT) don't need parser at all. I call them "pure interpreters".
 
 Also mentioned, a Forth system tries to make these tasks as easy as possible because there is just ONE token type (word), and the separator between the tokens is (almost) always whitespace.
 
