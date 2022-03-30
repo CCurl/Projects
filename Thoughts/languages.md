@@ -22,9 +22,9 @@ How can we turn "C = A + B" into terms the computer understands? We obviously ha
 
 Of course, the solution will ultimately depend on the target processor, because each processor's ML is unique.
 
-In the surface, it seems like it should be trivial, especially for this extremely simple problem (C = A + B), but the devil is in the details.
+Sure, on the surface, it seems like this shouldn't be too hard, especially for this extremely simple example problem (C = A + B). But what about more involved problems? It can get really complex, really fast. The devil is in the details.
 
-Where to start? Many solutione start by defining their own "virtual processor" with a corresponding ML (a VML, if you will). A single instruction in the VML is generally pretty simple but also abstract.
+Where to start? Many solutions start by defining their own "virtual processor" with a corresponding ML (a VML, if you will). A single instruction in the VML is generally pretty simple but also abstract.
 
 It is usually easier to translate given Source code into a VML than it is to translate it directly into ML for a processor. Additionally, a VML is closer to a "real" ML than the Source. It's a step in the right direction at least. So when tasked with solving this problem, one might then start by designing a VML, a Syntax for the Source, and provide a way to translate the Source into that VML. At least that gets us closer to being able to tell the processor what the user wants it to do.
 
@@ -102,8 +102,9 @@ S4, Forth, MINT, Basic, to name just a few, and many other implementations take 
 There are also many compiled languages, of which C is probably the best known. The LLVM C implementation has a VML, the Syntax for C is quite complex, and the optimization phase (when enabled/used) is (I believe) applied to the VML before the transformation of the ML to the target processor is done.
 
 ### Summary:
+It is pretty easy for an experienced programmer to parse source into a VML (depending, again, on the Syntax for the Source).
 
-It is my opinion that the "post VML" steps (transformation/link) that a compiler needs to do makes the problem orders of magnitude more difficult to solve. And if one wants to include some sort optimization of the generated ML, it is even more difficult. Many compiler tool-chains are multiple MB or GB beasts (not exactly minimal!).
+It is my opinion that the "post VML" steps (transformation/link) that a compiler needs to do makes the solution orders of magnitude more difficult to pull off. And if one wants to include some sort optimization of the generated ML, it is even more difficult. Many compiler tool-chains are multiple MB or GB beasts (not exactly minimal!). Modern machines (PCs) and Harvard architectures (many development boards) add even more complexity, because they impose more limits on what the program can do, and how to end up with code that actually runs on those systems. Older (vintage) systems were much simpler, and so it would be (at least somewhat) less difficult for those systems.
 
 Interpreters are able to avoid all that extra complexity, making them much more "minimal".
 
