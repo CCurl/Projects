@@ -75,7 +75,7 @@ void run(WORD start) {
         case '-': t1 = pop(); TOS -= t1;                                    break;
         case '*': t1 = pop(); TOS *= t1;                                    break;
         case '/': t1 = pop(); TOS /= t1;                                    break;
-        case '.': printBase(pop(), BASE); printChar(' ');                   break;
+        case '.': printBase(pop(), BASE);                                   break;
         case ':': rpush(pc + 2); pc = GET_WORD(UA(pc));                     break;
         case ';': pc = (WORD)rpop();                                        break;
         case '@': TOS = GET_LONG((byte*)TOS);                               break;
@@ -112,6 +112,7 @@ void run(WORD start) {
         case 'i': push(LOS.f);                                              break;
         case 'j': if (pop() == 0) { pc = GET_WORD(UA(pc)); }
                 else { pc += 2; }                                           break;
+        case 'k': push(' ');                                                break;
         case 'n': printString("\r\n");                                      break;
         case 'o': t1 = pop(); TOS |= t1;                                    break;
         case 'p': locBase += 10;                                            break;
