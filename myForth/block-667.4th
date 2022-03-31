@@ -1,10 +1,3 @@
-: vhere va @ ; : here ha @ ;
-: T1 dup $20 < if drop '.' then ;
-: .code user dup here + 1- for i c@ T1 emit next drop ;
-
-: hex $10 base ! ;
-: decimal #10 base ! ;
-: binary %10 base ! ;
 
 : mil 1000 dup * * ;
 : bm timer swap 1 for next timer swap - . ;
@@ -17,6 +10,6 @@
 
 cr 1 T1 0 T1 cr T2 cr T3 cr T4 cr T5
 
-cr 'H' emit '=' emit h @ .
-words
+cr 'H' emit '=' emit here .
+cr words
 cr .code

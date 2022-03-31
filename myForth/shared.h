@@ -25,6 +25,8 @@
 #endif
 
 #include <stdarg.h>
+#include <stdio.h>
+
 
 #if __BOARD__ != PC
   // For TEENSY4

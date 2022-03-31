@@ -1,7 +1,6 @@
 // MinForth.cpp : An extremely memory conscious Forth interpreter
 
 #include "Shared.h"
-#include <stdio.h>
 
 typedef struct {
     const char *name;
@@ -24,7 +23,11 @@ PRIM_T prims[] = {
     {"r5","r5"}, {"r6","r6"}, {"r7","r7"},{"r8","r8"}, {"r9","r9"},
     {"s0","s0"}, {"s1","s1"}, {"s2","s2"},{"s3","s3"}, {"s4","s4"},
     {"s5","s5"}, {"s6","s6"}, {"s7","s7"},{"s8","s8"}, {"s9","s9"},
-    {"bye","zZ"}, // {"ext",'G'}, {"exy",'R'}, // Extensions
+    {"bye","zZ"}, 
+#if __BOARD__ == PC
+    // Extensions
+    {"load","y"},
+#endif
     {0,0}
 };
 
@@ -51,9 +54,16 @@ byte strEqI(const char* x, const char* y) {
     return (*x || *y) ? 0 : 1;
 }
 
-void strCpy(char* d, const char* s) {
+char *strCpy(char* d, const char* s) {
     while (*s) { *(d++) = *(s++); }
     *d = 0;
+    return d;
+}
+
+int strLen(const char* str) {
+    int l = 0;;
+    while (*(str++)) { ++l; }
+    return l;
 }
 
 void printStringF(const char* fmt, ...) {
@@ -126,12 +136,6 @@ int getWord(char* wd, char delim) {
     return l;
 }
 
-int strLen(const char* str) {
-    const char* cp = str;
-    while (*cp) { ++cp; }
-    return cp - str;
-}
-
 int execWord() {
     CELL f = pop(), xt = pop();
     if ((STATE) && (f == 0)) {
@@ -142,7 +146,7 @@ int execWord() {
     return 1;
 }
 
-int compileNumber(int state) {
+int doNumber(int state) {
     if (state) {
         CELL num = pop();
         if ((num & 0xFF) == num) {
@@ -208,7 +212,7 @@ int doParseWord(char* wd) {
 
     if (doPrim(wd)) { return 1; }
     if (doFind(wd)) { return execWord(); }
-    if (isNum(wd)) { return compileNumber(STATE); }
+    if (isNum(wd)) { return doNumber(STATE); }
 
     if (strEq(wd, ":")) {
         if (getWord(wd, ' ')) {
@@ -236,7 +240,7 @@ int doParseWord(char* wd) {
         if (getWord(wd, ' ')) {
             doCreate(wd, 0);
             push(VHERE);
-            compileNumber(1);
+            doNumber(1);
             CComma(';');
             VHERE += CELL_SZ;
             return 1;
@@ -347,11 +351,28 @@ void systemWords() {
 
 #if __BOARD__ == PC
 FILE* input_fp = NULL;
+FILE* fpStk[10];
+byte fpSP = 0;
+
+void fpPush(FILE* v) { if (fpSP < 9) { fpStk[++fpSP] = v; } }
+FILE* fpPop() { return (fpSP) ? fpStk[fpSP--] : 0 ; }
+
+WORD doLoad(CELL ir, CELL pc) {
+    char* fn = (char*)(VHERE + 100);
+    sprintf(fn, "./block-%03d.4th", pop());
+    FILE* fp = fopen(fn, "rt");
+    if (fp) {
+        if (input_fp) { fclose(input_fp); }
+        input_fp = fp;
+    }
+    else { return 0; }
+    return 1;
+}
 
 WORD doExt(CELL ir, WORD pc) {
     switch (ir) {
-    case 'G': printf("-works-");           break;
     case 'z': isBye = U(pc++) == 'Z';      break;
+    case 'y': pc = doLoad(ir, pc);         break;
     default: printStringF("-unk ir: (%c)(%d)-", ir, ir);
     }
     return pc;
@@ -391,7 +412,8 @@ void loop() {
 int main()
 {
     vmReset();
-    input_fp = fopen("tests.fs", "rt");
+    push(0);
+    doLoad(0,0);
     while (!isBye) { loop(); }
 }
 

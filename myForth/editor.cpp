@@ -154,7 +154,7 @@ void toLines() {
 void edRdBlk() {
     clearBlock();
     char buf[24];
-    sprintf(buf, "block-%03d.fs", blkNum);
+    sprintf(buf, "./block-%03d.4th", blkNum);
     msg = "-noFile-";
     FILE* fp = fopen(buf, "rb");
     if (fp) {
@@ -179,7 +179,7 @@ void edSvBlk() {
     // blockWrite();
     toBlock();
     char buf[24];
-    sprintf(buf, "block-%03d.fs", blkNum);
+    sprintf(buf, "./block-%03d.4th", blkNum);
     msg = "-err-";
     FILE* fp = fopen(buf, "wb");
     if (fp) {

@@ -148,9 +148,10 @@
     <ClInclude Include="shared.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="block-000.4th" />
     <None Include="myForth.ino" />
     <None Include="README.md" />
-    <None Include="tests.fs" />
+    <None Include="block-667.4th" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="history.txt" />
