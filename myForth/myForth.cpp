@@ -209,6 +209,23 @@ int doPrim(const char *wd) {
     return 0;
 }
 
+int doQuote() {
+    while (*in == ' ') { in++; }
+    if (STATE) {
+        CComma('"');
+        while (*in && (*in != '"')) { CComma(*(in++)); }
+        ++in; CComma('"');
+    } else {
+        byte* cp = UA(HERE+100);
+        *(cp++) = '"';
+            while (*in && (*in != '"')) { *(cp++) = *(in++); }
+        *(cp++) = '"';
+        *(cp++) = ';';
+        run(HERE + 100);
+    }
+    return 1;
+}
+
 int doParseWord(char* wd) {
     byte lwc = lastWasCall;
     lastWasCall = 0;
@@ -216,6 +233,7 @@ int doParseWord(char* wd) {
     if (doPrim(wd)) { return 1; }
     if (doFind(wd)) { return execWord(); }
     if (isNum(wd)) { return doNumber(STATE); }
+    if (strEq(wd, "\"")) { return doQuote(); }
 
     if (strEq(wd, ":")) {
         if (getWord(wd, ' ')) {

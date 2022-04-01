@@ -59,11 +59,13 @@ void run(WORD start) {
         case '#': push(TOS);                                                break;
         case '"': t1 = U(pc++); while (t1 && (t1 != ir)) {
             if (t1 == '%') {
-                U(pc++);
-                if (t1 == 'b') { printChar(' '); }
+                t1 = U(pc++);
+                if (t1 == 'b') { printBase(pop(), 2); }
                 else if (t1 == 'c') { printChar((char)pop()); }
                 else if (t1 == 'd') { printBase(pop(), BASE); }
                 else if (t1 == 'n') { printString("\r\n"); }
+                else if (t1 == 'q') { printChar('"'); }
+                else if (t1 == 'x') { printBase(pop(), 16); }
                 else printChar((char)t1);
             } else { printChar((char)t1); }
             t1 = U(pc++); 
