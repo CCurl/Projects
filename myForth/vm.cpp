@@ -94,8 +94,7 @@ void run(WORD start) {
         case '>': NOS = (NOS > TOS) ? 1 : 0; pop();                         break;
         case '<': NOS = (NOS < TOS) ? 1 : 0; pop();                         break;
         case ',': printChar((char)pop());                                   break;
-        case '&': t1 = NOS; t2 = TOS;
-            NOS = t1 / t2; TOS = t1 % t2;                                   break;
+        case '&': t1 = NOS; t2 = TOS; NOS = t1 / t2; TOS = t1 % t2;         break;
         case '[': lpush()->e = GET_WORD(UA(pc)); pc += 2;
             LOS.s = pc;
             LOS.f = TOS < NOS ? TOS : NOS;
