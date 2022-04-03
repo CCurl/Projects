@@ -9,7 +9,7 @@ void vmReset() {
     sp = rsp = lsp = locSP = locBase = 0;
     BASE = 10;
     HERE = LAST = 0;
-    VHERE = (CELL)&vars[0];
+    VHERE = VHERE2 = &vars[0];
     for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
     for (int i = 0; i < VARS_SZ; i++) { vars[i] = 0; }
     for (int i = 0; i < 10; i++) { tempWords[i] = 0; }
@@ -45,6 +45,30 @@ void printBase(CELL num, CELL base) {
     printString(cp+1);
 }
 
+void doType(byte *a, int l) {
+    byte* e = a+l;
+    while (a < e) {
+        byte c = *(a++);
+        if (c == '%') {
+            c = *(a++);
+            if (c == 'b') { printBase(pop(), 2); }
+            else if (c == 'c') { printChar((char)pop()); }
+            else if (c == 'd') { printBase(pop(), 10); }
+            else if (c == 'n') { printString("\r\n"); }
+            else if (c == 'q') { printChar('"'); }
+            else if (c == 'x') { printBase(pop(), 16); }
+            else printChar((char)c);
+        }
+        else { printChar((char)c); }
+    }
+}
+
+void doZType(byte *a) {
+    byte *x = a;
+    while (*(x++)) {}
+    doType(a, x-a);
+}
+
 void run(WORD start) {
     WORD pc = start;
     CELL t1, t2;
@@ -53,23 +77,7 @@ void run(WORD start) {
         byte ir = U(pc++);
         switch (ir) {
         case 0: return;
-        case  1 : push(U(pc++));                                            break;
-        case  2 : push(GET_WORD(UA(pc))); pc += 2;                          break;
-        case  4 : push(GET_LONG(UA(pc))); pc += 4;                          break;
         case '#': push(TOS);                                                break;
-        case '"': t1 = U(pc++); while (t1 && (t1 != ir)) {
-            if (t1 == '%') {
-                t1 = U(pc++);
-                if (t1 == 'b') { printBase(pop(), 2); }
-                else if (t1 == 'c') { printChar((char)pop()); }
-                else if (t1 == 'd') { printBase(pop(), BASE); }
-                else if (t1 == 'n') { printString("\r\n"); }
-                else if (t1 == 'q') { printChar('"'); }
-                else if (t1 == 'x') { printBase(pop(), 16); }
-                else printChar((char)t1);
-            } else { printChar((char)t1); }
-            t1 = U(pc++); 
-        }                                                                   break;
         case '%': push(NOS);                                                break;
         case '$': t1 = TOS; TOS = NOS; NOS = t1;                            break;
         case '\\': pop();                                                   break;
@@ -80,6 +88,9 @@ void run(WORD start) {
         case '.': printBase(pop(), BASE);                                   break;
         case ':': rpush(pc + 2); pc = GET_WORD(UA(pc));                     break;
         case ';': pc = (WORD)rpop();                                        break;
+        case '1': push(U(pc++));                                            break;
+        case '2': push(GET_WORD(UA(pc))); pc += 2;                          break;
+        case '4': push(GET_LONG(UA(pc))); pc += 4;                          break;
         case '@': TOS = GET_LONG((byte*)TOS);                               break;
         case '!': SET_LONG(AOS, NOS); DROP2;                                break;
         case 'C': *AOS = (byte)NOS; DROP2;                                  break;
@@ -91,12 +102,14 @@ void run(WORD start) {
         case 'R': NOS = (NOS >> TOS); pop();                                break;
         case 'W': SET_WORD(AOS, (WORD)NOS); DROP2;                          break;
         case 'Y': vmReset();                                                return;
+        case 'Z': doZType((byte *)pop());                                   break;
         case '~': TOS = ~TOS;                                               break;
         case '=': NOS = (NOS == TOS) ? 1 : 0; pop();                        break;
         case '>': NOS = (NOS > TOS) ? 1 : 0; pop();                         break;
         case '<': NOS = (NOS < TOS) ? 1 : 0; pop();                         break;
         case ',': printChar((char)pop());                                   break;
         case '&': t1 = NOS; t2 = TOS; NOS = t1 / t2; TOS = t1 % t2;         break;
+        case '^': if (lsp) { pc = LOS.e; }                                  break;
         case '[': lpush()->e = GET_WORD(UA(pc)); pc += 2;
             LOS.s = pc;
             LOS.f = TOS < NOS ? TOS : NOS;

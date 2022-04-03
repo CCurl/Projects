@@ -13,11 +13,11 @@ PRIM_T prims[] = {
     {"swap","$"}, {"drop","\\"}, {"over","%"}, {"dup","#"},
     {"emit",","}, {"(.)","."}, {"space","b"}, {"cr","n"}, {"bl","k"},
     {"=","="}, {"<","<"}, {">",">"}, {"0=","N"},
-    {"<<","L"}, {">>","R"},
+    {"<<","L"}, {">>","R"}, {"type","Z"},
     {"@","@"}, {"c@","c"}, {"w@","w"}, {"!","!"}, {"c!","C"}, {"w!","W"},
     {"and","a"}, {"or","o"}, {"xor","x"}, {"com","~"}, {"not","N"},
     {"1+","I"}, {"1-","D"}, {"I", "i"}, {"edit","e"},
-    {"leave",";"}, {"timer","t"}, {"reset","Y"},
+    {"leave",";"}, {"timer","t"}, {"reset","Y"}, {"break","^"},
     {"+tmps","p"}, {"-tmps","q"}, 
     {"r0","r0"}, {"r1","r1"}, {"r2","r2"},{"r3","r3"}, {"r4","r4"},
     {"r5","r5"}, {"r6","r6"}, {"r7","r7"},{"r8","r8"}, {"r9","r9"},
@@ -36,7 +36,8 @@ PRIM_T prims[] = {
 
 char word[32], *in;
 byte lastWasCall = 0, isBye = 0;
-CELL HERE, LAST, STATE, VHERE, tempWords[10];
+byte *VHERE, *VHERE2;
+CELL HERE, LAST, STATE, tempWords[10];
 
 void CComma(CELL v) { user[HERE++] = (byte)v; }
 void Comma(CELL v) { SET_LONG(&user[HERE], v); HERE += CELL_SZ; }
@@ -153,15 +154,15 @@ int doNumber(int state) {
     if (state) {
         CELL num = pop();
         if ((num & 0xFF) == num) {
-            CComma(1);
+            CComma('1');
             CComma(num & 0xff);
         }
         else if ((num & 0xFFFF) == num) {
-            CComma(2);
+            CComma('2');
             WComma((WORD)num);
         }
         else {
-            CComma(4);
+            CComma('4');
             Comma(num);
         }
     }
@@ -210,18 +211,29 @@ int doPrim(const char *wd) {
 }
 
 int doQuote() {
-    while (*in == ' ') { in++; }
+    in++;
+    if (STATE) { VHERE2 = VHERE; }
+    push((CELL)VHERE2);
+    while (*in && (*in != '"')) { *(VHERE2++) = *(in++); }
+    *(VHERE2++) = 0;
+    if (*in) { ++in; }
     if (STATE) {
-        CComma('"');
-        while (*in && (*in != '"')) { CComma(*(in++)); }
-        ++in; CComma('"');
+        CComma('4');
+        Comma(pop());
+        VHERE = VHERE2;
+    }
+    return 1;
+}
+
+int doDotQuote() {
+    doQuote();
+    if (STATE) {
+        CComma('Z');
     } else {
-        byte* cp = UA(HERE+100);
-        *(cp++) = '"';
-            while (*in && (*in != '"')) { *(cp++) = *(in++); }
-        *(cp++) = '"';
+        byte* cp = UA(HERE+10);
+        *(cp++) = 'Z';
         *(cp++) = ';';
-        run(HERE + 100);
+        run((WORD)(HERE+10));
     }
     return 1;
 }
@@ -233,6 +245,7 @@ int doParseWord(char* wd) {
     if (doPrim(wd)) { return 1; }
     if (doFind(wd)) { return execWord(); }
     if (isNum(wd)) { return doNumber(STATE); }
+    if (strEq(wd, ".\"")) { return doDotQuote(); }
     if (strEq(wd, "\"")) { return doQuote(); }
 
     if (strEq(wd, ":")) {
@@ -260,7 +273,7 @@ int doParseWord(char* wd) {
     if (strEqI(wd, "VARIABLE")) {
         if (getWord(wd, ' ')) {
             doCreate(wd, 0);
-            push(VHERE);
+            push((CELL)VHERE);
             doNumber(1);
             CComma(';');
             VHERE += CELL_SZ;
@@ -323,7 +336,14 @@ int doParseWord(char* wd) {
         return 1;
     }
 
+    if (strEqI(wd, "FORGET")) {
+        HERE = LAST;
+        LAST -= U(LAST);
+        return 1;
+    }
+
     STATE = 0;
+    VHERE2 = VHERE;
     printStringF("[%s]??", wd);
     return 0;
 }
@@ -332,6 +352,7 @@ void doParse(const char* line) {
     in = (char*)line;
     int len = getWord(word, ' ');
     while (0 < len) {
+        if (VHERE2 < VHERE) { VHERE2 = VHERE; }
         if (strEq(word, "//")) { return; }
         if (strEq(word, "\\")) { return; }
         if (doParseWord(word) == 0) { return; }
@@ -362,6 +383,7 @@ void systemWords() {
     sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
     sprintf(cp, ": user %lu ;", (UCELL)user);   doParse(cp);
     sprintf(cp, ": ha %lu ;", (UCELL)&HERE);    doParse(cp);
+    sprintf(cp, ": la %lu ;", (UCELL)&LAST);    doParse(cp);
     sprintf(cp, ": va %lu ;", (UCELL)&VHERE);   doParse(cp);
     sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
     printString("\r\nmyForth v0.0.1");
@@ -416,7 +438,7 @@ void doHistory(const char* txt) {
 }
 
 void loop() {
-    char* tib = (char*)(VHERE + 6);
+    char *tib = (char *)UA(HERE+32);
     FILE* fp = (input_fp) ? input_fp : stdin;
     if (fp == stdin) { doOK(); }
     if (fgets(tib, 100, fp) == tib) {

@@ -68,7 +68,8 @@ typedef struct {
 } LOOP_T;
 
 extern char sp, isError;
-extern CELL BASE, STATE, VHERE, LAST, HERE, tempWords[10];
+extern CELL BASE, STATE, LAST, HERE, tempWords[10];
+extern byte *VHERE, *VHERE2;
 extern byte user[];
 extern byte vars[];
 extern CELL stk[];
