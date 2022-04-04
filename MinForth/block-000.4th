@@ -20,3 +20,7 @@ reset
 
 : T1 s9 r9 bl '~' betw if r9 emit else r9 ." (%d)" then ;
 : .code user dup here + 1- for i c@ T1 next ;
+
+." minForth v0.0.1 by Chris Curl%n"
+." https://github.com/CCurl/minForth %n"
+here vhere user ." USER: %x, VHERE: %x, %d bytes used"

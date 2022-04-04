@@ -152,6 +152,7 @@
     <None Include="minForth.ino" />
     <None Include="README.md" />
     <None Include="block-667.4th" />
+    <None Include="reference.md" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="history.txt" />
