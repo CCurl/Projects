@@ -17,9 +17,18 @@ NOTE: The built-in words are not case sensitive
 |1+|I|(a--b)|Forth core word|
 |1-|D|(a--b)|Forth core word|
 |=|=|(a b--f)|Forth core word|
+|<|<|(a b--f)|Forth core word|
+|>|>|(a b--f)|Forth core word|
 |."|Z|(--)||
-|FOR|\[|(--)|For loop|
-|I|i|(--)|Current index|
-|NEXT|\]|(--)|Next loop|
-|DO|{|(--)|Start of while loop|
-|WHILE|}|(--)|If TOS !=0, branch to BEGIN|
+|"|(none)|(--a)|Forth core word|
+|FOR|\[|(f t--)|For loop|
+|I|i|(--n)|Current index|
+|NEXT|\]|(--)|Next: if I <= t, jump to FOR|
+|DO|{|(--)|Start of DO loop|
+|WHILE|}|(n--)|If n != 0, jump to BEGIN|
+|UNTIL|}|(n--)|If n == 0, jump to BEGIN|
+|AGAIN|J|(--)|Jump to BEGIN|
+|BREAK|^|(--)|Break out of FOR or DO loop|
+|IF|j|(f--)|Forth core word|
+|ELSE|(none)|(--)|Forth core word|
+|THEN|(none)|(--)|Forth core word|
