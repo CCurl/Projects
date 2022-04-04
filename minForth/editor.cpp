@@ -22,7 +22,7 @@ int line, off, blkNum;
 int cur, isDirty = 0;
 char theBlock[BLOCK_SZ];
 const char* msg = NULL;
-char edLines[NUM_LINES][LLEN];
+byte edLines[NUM_LINES][LLEN];
 
 void GotoXY(int x, int y) { printStringF("\x1B[%d;%dH", y, x); }
 void CLS() { printString("\x1B[2J"); GotoXY(1, 1); }
@@ -41,11 +41,6 @@ void NormLO() {
 
 char edChar(int l, int o) {
     char c = edLines[l][o];
-    if (betw(c, 1, 7)) {
-        Color(c, 40);
-        //c += 15;
-        c = 32;
-    }
     return c ? c : ' ';
 }
 
@@ -133,22 +128,30 @@ void clearBlock() {
 }
 
 void toBlock() {
-    int c = 0;
+    int o = 0;
     for (int y = 0; y < NUM_LINES; y++) {
         for (int x = 0; x < LLEN; x++) {
-            theBlock[c++] = edLines[y][x];
+            char c = edLines[y][x];
+            if (c == 208) { theBlock[o++] = 10; break; }
+            theBlock[o++] = c;
         }
     }
 }
 
 void toLines() {
-    int c = 0;
-    for (int y = 0; y < NUM_LINES; y++) {
-        for (int x = 0; x < LLEN; x++) {
-            char ch = theBlock[c++];
-            edLines[y][x] = ch ? ch : ' ';
+    int o = 0, x = 0, y = 0;
+    while (o < BLOCK_SZ) {
+        byte c = theBlock[o++];
+        if (c == 10) { c = 208; }
+        edLines[y][x++] = (c < 32) ? ' ' : c;
+        if ((c == 208) || (LLEN <= x)) {
+            while (x < LLEN) { edLines[y][x++] = ' '; }
+            ++y;
+            if (NUM_LINES <= y) { return; }
+            x = 0;
         }
     }
+    
 }
 
 void edRdBlk() {
@@ -269,7 +272,7 @@ int processEditorChar(char c) {
     printChar(c);
     cur = (line*LLEN) + off;
     switch (c) {
-    case 'Q': toBlock(); return 0;              break;
+    case 'Q': toBlock();  CursorOn();           return 0;
     case 9: mv(0,8);                            break;
     case 'a': mv(0,-1);                         break;
     case 'd': mv(0,1);                          break;
