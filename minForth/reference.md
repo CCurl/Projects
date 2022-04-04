@@ -6,17 +6,17 @@ NOTE: The built-in words are not case sensitive
 
 |Word|opcode|stack|notes|
 |-|-|-|-|
-|DUP|#|(--)|Forth core word|
-|OVER|%|(--)|Forth core word|
-|DUP|#|(--)|Forth core word|
-|DROP|\\ |(--)|Forth core word|
-|+|+|(--)|Forth core word|
-|-|-|(--)|Forth core word|
-|\*|\*|(--)|Forth core word|
-|/|/|(--)|Forth core word|
-|/mod|&|(--)|Forth core word|
-|1+|I|(--)|Forth core word|
-|1-|D|(--)|Forth core word|
+|DUP|#|(a--a a)|Forth core word|
+|OVER|%|(a b--a b a)|Forth core word|
+|DROP|\\ |(a b--a)|Forth core word|
+|+|+|(a b--n)|Forth core word|
+|-|-|(a b--n)|Forth core word|
+|\*|\*|(a b--n)|Forth core word|
+|/|/|(a b--n)|Forth core word|
+|/mod|&|(a b--q r)|Forth core word|
+|1+|I|(a--b)|Forth core word|
+|1-|D|(a--b)|Forth core word|
+|=|=|(a b--f)|Forth core word|
 |."|Z|(--)||
 |FOR|\[|(--)|For loop|
 |I|i|(--)|Current index|
