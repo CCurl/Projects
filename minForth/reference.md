@@ -1,4 +1,4 @@
-# MinForth reference
+# MinFORTH reference
 
 ## Built-in words
 
@@ -6,100 +6,61 @@ NOTE: The built-in words are not case sensitive
 
 |Word|opcode|stack|notes|
 |-|-|-|-|
-|DUP|#|(a--a a)|Forth core word|
-|OVER|%|(a b--a b a)|Forth core word|
-|DROP|\\ |(a b--a)|Forth core word|
-|IF|j|(f--)|Forth core word|
-|ELSE|(none)|(--)|Forth core word|
-|THEN|(none)|(--)|Forth core word|
-|+|+|(a b--n)|Forth core word|
-|-|-|(a b--n)|Forth core word|
-|\*|\*|(a b--n)|Forth core word|
-|/|/|(a b--n)|Forth core word|
-|/mod|&|(a b--q r)|Forth core word|
-|AND|A|(a b--n)|Forth core word|
-|OR|O|(a b--n)|Forth core word|
-|XOR|X|(a b--n)|Forth core word|
-|1+|I|(a--b)|Forth core word|
-|1-|D|(a--b)|Forth core word|
-|<|<|(a b--f)|Forth core word|
-|=|=|(a b--f)|Forth core word|
-|>|>|(a b--f)|Forth core word|
-|0=|N|(a--b)|NOT: b: a==0 ? 1 : 0|
-|."|Z|(--)|Forth core word (1)|
-|"|(none)|(--a)|Forth core word|
+|DUP|#|(a--a a)|FORTH CORE|
+|OVER|%|(a b--a b a)|FORTH CORE|
+|SWAP|$|(a b--b a)|FORTH CORE|
+|DROP|\\ |(a b--a)|FORTH CORE|
+|@ |@|(a--n)|FETCH (long)|
+|! |!|(n a----)|STORE (long)|
+|W@|w|(a--n)|FETCH (word)|
+|W!|W|(n a----)|STORE (word)|
+|C@|c|(a--n)|FETCH (byte)|
+|C!|C|(n a----)|STORE (byte)|
+|IF|j|(f--)|FORTH CORE (0BRANCH)|
+|ELSE|(none)|(--)|FORTH CORE|
+|THEN|(none)|(--)|FORTH CORE|
+|EMIT|,|(n--)|FORTH CORE|
+|BL|k|(--n)|FORTH CORE|
+|SPACE|b|(--)|FORTH CORE|
+|CR|n|(--)|FORTH CORE|
+|+,-,*,/|+,-,*,/|(a b--n)|FORTH CORE|
+|/MOD|&|(a b--q r)|FORTH CORE|
+|AND,OR,XOR|A,O,X|(a b--n)|FORTH CORE|
+|COM|~|(a--b)|FORTH CORE|
+|1+,1-|I,D|(a--b)|FORTH CORE|
+|<,=,>,0=|<,=,>,N|(a b--f)|FORTH CORE|
+|."|Z|(a--)|Type - NOT FORTH standard (1)|
+|"|(none)|(--a)|String - NOT FORTH standard(1)|
 |FOR|\[|(F T--)|For loop (2)|
 |I|i|(--n)|Current index|
+|+I|m|(n--)|Add n to index (I)|
 |NEXT|\]|(--)|Next: I += 1, if I <= T, jump to FOR|
-|DO|{|(--)|Start of DO loop|
-|WHILE|}|(n--)|If n != 0, jump to BEGIN|
-|UNTIL|}|(n--)|If n == 0, jump to BEGIN|
-|AGAIN|J|(--)|Jump to BEGIN|
-|BREAK|^|(--)|Break out of FOR or DO loop|
-|DUP     |#|||
-|OVER    |%|||
-|SWAP    |$|||
-|DROP    |\|||
-|ADD     |+|||
-|SUB     |-|||
-|MULT    |*|||
-|DIV     |/|||
-|DOT     |.|||
-|CALL    |:|||
-|RETURN  |;|||
-|BLIT    |1|||
-|WLIT    |2|||
-|LIT     |4|||
-|FETCH   |@|||
-|STORE   |!|||
-|CSTORE  |C|||
-|1-      |D|||
-|EXECUTE |G|||
-|1+      |I|||
-|BRANCH  |J|||
-|LSHIFT  |L|||
-|NOT (0=)|N|||
-|RSHIFT  |R|||
-|W!      |W|||
-|RESET   |Y|||
-|ZTYPE   |Z|||
-|COM     |~|||
-|=       |=|||
-|>       |>|||
-|<       |<|||
-|EMIT    |,|||
-|/MOD    |&|||
-|        |^|||
-|FOR     |[|||
-|        |S|||
-|        |S|||
-|        |S|||
-|NEXT    |]|||
-|        | |||
-|BEGIN   |{|||
-|AGAIN   |}|||
-|WHILE   |v|||
-|UNTIL   |u|||
-|AND     |a|||
-|SPACE   |b|||
-|C@      |c|||
-|EDIT    |e|||
-|I       |i|||
-|IF      |j|||
-|        | |||
-|BL      |k|||
-|CR      |n|||
-|OR      |o|||
-|+tmp    |p|||
-|-tmp    |q|||
-|readTemp|r|||
-|setTemp |s|||
-|TIMER   |t|||
-|w@      |w|||
-|XOR     |x|||
+|BEGIN|{|(--)|Start of BEGIN loop|
+|WHILE|v|(n--)|If n != 0, jump to BEGIN|
+|UNTIL|u|(n--)|If n == 0, jump to BEGIN|
+|AGAIN|}|(--)|Jump to BEGIN|
+|BREAK|^|(--)|Break out of FOR or BEGIN loop|
+|(.)|.|(--)|Internal: used by .|
+|CALL|:|(--)|Internal|
+|;,LEAVE|;|(--)|FORTH CORE|
+|BLIT|1|(--n)|Internal: byte literal|
+|WLIT|2|(--n)|Internal: word literal|
+|LIT|4|(--n)|Internal: long literal|
+|EXECUTE|G|(a--)|FORTH CORE|
+|<<|L|(a n--b)|LSHIFT|
+|>>|R|(a n--b)|RSHIFT|
+|EDIT|e|(n--)|Invoke editor|
+|+tmp|p|(--)|TempVars: allocate new|
+|-tmp|q|(--)|TempVars: destroy last allocated|
+|r0..r9|r|(--n)|TempVar(0..9): read|
+|s0..s9|s|(n--)|TempVar(0..9): set|
+|TIMER|t|(--n)||
+|RESET|Y|(--)||
 
 ```
-(1) Notes on .":
+(1) Notes on " and .":
+- These are NOT standard FORTH counted strings
+- They are NULL-terminated
 - %d print TOS as integer
 - %x print TOS as hex
 - %b print TOS as binary
@@ -115,7 +76,3 @@ example: : ascii $20 '~' for i i i i ." %n%d: (%c) %x %b" next ;
 example: "1 10 for i . next" prints 1 2 3 4 5 6 7 8 9 10
          "10 1 for i . next" prints 1 2 3 4 5 6 7 8 9 10
 ```
-
-
-
-

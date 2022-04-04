@@ -1,5 +1,8 @@
 // Tests
 
+reset
+1 load
+
 : rst ;
 
 : mil 1000 dup * * ;
