@@ -49,12 +49,14 @@ NOTE: The built-in words are not case sensitive
 |EXECUTE|G|(a--)|FORTH CORE|
 |<<|L|(a n--b)|LSHIFT|
 |>>|R|(a n--b)|RSHIFT|
-|EDIT|e|(n--)|Invoke editor|
+|EDIT|zE|(n--)|Extension: __EDITOR__|
+|LOAD|zL|(n--)|Extension: __FILE__|
+|BYE|zZ|(--)|Extension: PC only|
 |+tmp|p|(--)|TempVars: allocate new|
 |-tmp|q|(--)|TempVars: destroy last allocated|
 |r0..r9|r|(--n)|TempVar(0..9): read|
 |s0..s9|s|(n--)|TempVar(0..9): set|
-|TIMER|t|(--n)||
+|TIMER|t|(--n)|Push current MS|
 |RESET|Y|(--)||
 
 ```

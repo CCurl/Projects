@@ -13,20 +13,16 @@ PRIM_T prims[] = {
     {"swap","$"}, {"drop","\\"}, {"over","%"}, {"dup","#"},
     {"emit",","}, {"(.)","."}, {"space","b"}, {"cr","n"}, {"bl","k"},
     {"=","="}, {"<","<"}, {">",">"}, {"0=","N"},
-    {"<<","L"}, {">>","R"}, {"type","Z"},
+    {"<<","L"}, {">>","R"}, {"type","Z"}, {".",".b"},
     {"@","@"}, {"c@","c"}, {"w@","w"}, {"!","!"}, {"c!","C"}, {"w!","W"},
     {"and","a"}, {"or","o"}, {"xor","x"}, {"com","~"}, {"not","N"},
-    {"1+","i"}, {"1-","d"}, {"I", "I"}, {"+I", "m"},
+    {"1+","i"}, {"1-","d"}, {"I", "I"}, {"+I", "m"}, {"execute","G"},
     {"leave",";"}, {"timer","t"}, {"reset","Y"}, {"break","^"},
     {"+tmps","p"}, {"-tmps","q"}, 
-    {"r0","r0"}, {"r1","r1"}, {"r2","r2"},{"r3","r3"}, {"r4","r4"},
-    {"r5","r5"}, {"r6","r6"}, {"r7","r7"},{"r8","r8"}, {"r9","r9"},
-    {"s0","s0"}, {"s1","s1"}, {"s2","s2"},{"s3","s3"}, {"s4","s4"},
-    {"s5","s5"}, {"s6","s6"}, {"s7","s7"},{"s8","s8"}, {"s9","s9"},
     {"bye","zZ"}, 
 #if __BOARD__ == PC
     // Extensions
-    {"load","y"}, { "edit","e" },
+    {"load","zL"}, { "edit","zE" },
 #elif __GAMEPAD__
     // Extensions
     { "gp-button","xGB" },
@@ -192,22 +188,24 @@ int isNum(const char* wd) {
     return 1;
 }
 
-int doPrim(const char *wd) {
-    for (int i = 0; prims[i].op; i++) {
-        PRIM_T* p = &prims[i];
-        if (strEqI(p->name, wd)) {
-            if (STATE) {
-                for (int j = 0; p->op[j]; j++) { CComma(p->op[j]); }
-            } else {
-                byte* x = UA(HERE + 10);
-                for (int j = 0; p->op[j]; j++) { *(x++) = p->op[j]; }
-                *x = ';';
-                run((WORD)HERE+10);
-            }
-            return 1;
-        }
+int doPrim(const char* wd) {
+    const char* vml = NULL;
+    if (betw(wd[0],'r','s') && betw(wd[1],'0','9') && (!wd[2])) {
+        vml = wd;
     }
-    return 0;
+    for (int i = 0; prims[i].op && (!vml); i++) {
+        if (strEqI(prims[i].name, wd)) { vml = prims[i].op; }
+    }
+    if (!vml) { return 0; }
+    if (STATE) {
+        for (int j = 0; vml[j]; j++) { CComma(vml[j]); }
+    } else {
+        byte* x = UA(HERE + 10);
+        for (int j = 0; vml[j]; j++) { *(x++) = vml[j]; }
+        *x = ';';
+        run((WORD)HERE + 10);
+    }
+    return 1;
 }
 
 int doQuote() {
@@ -394,11 +392,14 @@ char *rtrim(char* str) {
 
 void systemWords() {
     char* cp = (char*)(VHERE + 6);
-    sprintf(cp, ": CELL %d ;", CELL_SZ);        doParse(cp);
-    sprintf(cp, ": user %lu ;", (UCELL)user);   doParse(cp);
+    sprintf(cp, ": x ;");                       doParse(cp);
+    sprintf(cp, ": u %lu ;", (UCELL)user);      doParse(cp);
+    sprintf(cp, ": usz %d ;", USER_SZ);         doParse(cp);
+    sprintf(cp, ": vsz %d ;", VARS_SZ);         doParse(cp);
     sprintf(cp, ": ha %lu ;", (UCELL)&HERE);    doParse(cp);
     sprintf(cp, ": la %lu ;", (UCELL)&LAST);    doParse(cp);
     sprintf(cp, ": va %lu ;", (UCELL)&VHERE);   doParse(cp);
+    sprintf(cp, ": vb %lu ;", (UCELL)vars);     doParse(cp);
     sprintf(cp, ": base %lu ;", (UCELL)&BASE);  doParse(cp);
 }
 
@@ -415,7 +416,7 @@ WORD doLoad(CELL ir, CELL pc) {
     sprintf(fn, "./block-%03d.4th", pop());
     FILE* fp = fopen(fn, "rt");
     if (fp) {
-        if (input_fp) { fclose(input_fp); }
+        if (input_fp) { fpPush(input_fp); }
         input_fp = fp;
     }
     else { return 0; }
@@ -424,8 +425,11 @@ WORD doLoad(CELL ir, CELL pc) {
 
 WORD doExt(CELL ir, WORD pc) {
     switch (ir) {
-    case 'z': isBye = U(pc++) == 'Z';      break;
-    case 'y': pc = doLoad(ir, pc);         break;
+    case 'z': ir = U(pc++);
+        if (ir == 'E') { doEditor(); }
+        if (ir == 'L') { pc = doLoad(ir, pc); }
+        if (ir == 'Z') { isBye = 1; }
+        break;
     default: printStringF("-unk ir: (%c)(%d)-", ir, ir);
     }
     return pc;
@@ -458,7 +462,7 @@ void loop() {
     }
     if (input_fp) {
         fclose(input_fp);
-        input_fp = NULL;
+        input_fp = fpPop();
     }
 }
 

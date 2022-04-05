@@ -121,7 +121,6 @@ void run(WORD start) {
         case 'c': TOS = *AOS;                                               break; // C@
         case 'd': TOS--;                                                    break; // 1-
         case 'i': TOS++;                                                    break; // 1+
-        case 'e': doEditor();                                               break; // EDIT
         case 'j': if (pop() == 0) { pc = GET_WORD(UA(pc)); }                       // IF (0BRANCH)
                 else { pc += 2; }                                           break;
         case 'k': push(' ');                                                break; // BL

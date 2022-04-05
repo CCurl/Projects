@@ -6,8 +6,7 @@ reset
 
 : vhere va @ ;
 : here ha @ ;
-: last la @ ;
-: . space (.) ;
+// : last la @ ;
 
 : betw +tmps s3 s2 s1 ( n a b--f )
     r1 r2 < 0= 
@@ -15,7 +14,10 @@ reset
     = -tmps ;
 
 : T1 s9 r9 #32 #127 betw if r9 emit else r9 ." (%d)" then ;
-: .code user dup here + 1- for i c@ T1 next ;
+: dump for i c@ . next ;
+: dumpc for i c@ T1 next ;
+: .code u dup here + 1- dumpc ;
+: .vars vb vhere dumpc ;
 
 : ->XY #27 ." %c[%d;%dH" ;
 : CLS #27 ." %c[2J" 1 dup ->XY ;
