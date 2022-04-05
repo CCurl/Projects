@@ -2,7 +2,9 @@
 
 ## Built-in words
 
-NOTE: The built-in words are not case sensitive
+NOTES:
+1. Built-in words are not case sensitive
+2. They do not show up in WORDS, and are not in the dictionary.
 
 |Word|opcode|stack|notes|
 |-|-|-|-|
@@ -63,11 +65,11 @@ NOTE: The built-in words are not case sensitive
 (1) Notes on " and .":
 - These are NOT standard FORTH counted strings
 - They are NULL-terminated
-- %d print TOS as integer
-- %x print TOS as hex
-- %b print TOS as binary
-- %n print new-line
-- %q print the quote (") character
+- %d: print TOS as integer
+- %x: print TOS as hex
+- %b: print TOS as binary
+- %n: print new-line
+- %q: print the quote (") character
 
 example: : ascii $20 '~' for i i i i ." %n%d: (%c) %x %b" next ;
 ```
@@ -78,3 +80,4 @@ example: : ascii $20 '~' for i i i i ." %n%d: (%c) %x %b" next ;
 example: "1 10 for i . next" prints 1 2 3 4 5 6 7 8 9 10
          "10 1 for i . next" prints 1 2 3 4 5 6 7 8 9 10
 ```
+## Default dictionary entries:
