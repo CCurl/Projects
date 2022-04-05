@@ -18,6 +18,7 @@ void doEditor() {}
 #define BLOCK_SZ    (NUM_LINES)*(LLEN)
 #define MAX_CUR     (BLOCK_SZ-1)
 #define SETC(c)     edLines[line][off]=c
+#define NL_CHAR     190
 int line, off, blkNum;
 int cur, isDirty = 0;
 char theBlock[BLOCK_SZ];
@@ -72,7 +73,7 @@ void mv(int l, int o) {
     showCursor();
 }
 
-void edSetCh(char c) {
+void edSetCh(byte c) {
     SETC(c);
     mv(0, 1);
     isDirty = 1;
@@ -127,27 +128,34 @@ void clearBlock() {
     }
 }
 
-void toBlock() {
+int toBlock() {
     int o = 0;
     for (int y = 0; y < NUM_LINES; y++) {
         for (int x = 0; x < LLEN; x++) {
-            char c = edLines[y][x];
-            if (c == 208) { theBlock[o++] = 10; break; }
+            byte c = edLines[y][x];
+            if (c == NL_CHAR) { 
+                if (o && (theBlock[o-1] == ' ')) { theBlock[o-1] = 13; }
+                c = 10;
+            }
             theBlock[o++] = c;
         }
+        while (o && (theBlock[o-1] == ' ')) { --o; }
     }
+    o = BLOCK_SZ - 1;
+    while (o && (theBlock[o] == ' ')) { o--; }
+    return o+1;
 }
 
 void toLines() {
-    int o = 0, x = 0, y = 0;
+    int o = 0, x = 0, ln = 0;
     while (o < BLOCK_SZ) {
         byte c = theBlock[o++];
-        if (c == 10) { c = 208; }
-        edLines[y][x++] = (c < 32) ? ' ' : c;
-        if ((c == 208) || (LLEN <= x)) {
-            while (x < LLEN) { edLines[y][x++] = ' '; }
-            ++y;
-            if (NUM_LINES <= y) { return; }
+        if (c == 10) { c = NL_CHAR; }
+        edLines[ln][x++] = (c < 32) ? ' ' : c;
+        if (LLEN <= x) {
+            // while (x < LLEN) { edLines[y][x++] = ' '; }
+            // ++y;
+            if (NUM_LINES <= (++ln)) { return; }
             x = 0;
         }
     }
@@ -180,13 +188,13 @@ void edSvBlk() {
     //push(BLOCK_SZ);
     //push(0);
     // blockWrite();
-    toBlock();
+    int sz = toBlock();
     char buf[24];
     sprintf(buf, "./block-%03d.4th", blkNum);
     msg = "-err-";
     FILE* fp = fopen(buf, "wb");
     if (fp) {
-        fwrite(theBlock, 1, BLOCK_SZ, fp);
+        fwrite(theBlock, 1, sz, fp);
         msg = "-saved-";
         fclose(fp);
     }
@@ -248,7 +256,7 @@ void insertChar(char c, int refresh) {
 void doType(int isInsert) {
     CursorOff();
     while (1) {
-        char c = getChar();
+        byte c = getChar();
         if (c == 27) { return; }
         int isBS = ((c == 127) || (c == 8));
         if (isBS) {
@@ -258,8 +266,8 @@ void doType(int isInsert) {
                 else { SETC(' '); }
             }
         } else {
-            if (isInsert) { insertChar(' ', 0); }
-            if (betw(c, 8, 31)) { c = ' '; }
+            if (c == 13) { c = NL_CHAR; }
+            if (c < 32) { c = ' '; }
             edSetCh(c);
         }
         showLine(line);
@@ -287,7 +295,7 @@ int processEditorChar(char c) {
     case 'x': deleteChar();                     break;
     case 'L': edRdBlk();                        break;
     case 'W': edSvBlk();                        break;
-    //case 'M': edSetCh(COMMENT);                 break;
+    case 'n': edSetCh(NL_CHAR);                 break;
     //case 'C': edSetCh(COMPILE);                 break;
     //case 'D': edSetCh(DEFINE);                  break;
     //case 'I': edSetCh(INTERP);                  break;
