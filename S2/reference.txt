@@ -1,1 +1,85 @@
-S2 reference
+************************************
+*     S2 Reference                 *
+************************************
+
+*** ARITHMETIC ***
++   (a b--n)      n: a+b - addition
+-   (a b--n)      n: a-b - subtraction
+*   (a b--n)      n: a*b - multiplication
+/   (a b--q)      q: a/b - division
+&   (a b--q r)    q: DIV(a,b), r: MODULO(a,b) - /MOD
+x%  (a b--m)      m: MODULO(a,b)
+
+
+*** BIT MANIPULATION ***
+x&  (a b--n)      n: a AND b
+x|  (a b--n)      n: a OR  b
+x^  (a b--n)      n: a XOR b
+x~  (a--b)        b: NOT a (ones-complement, e.g - 101011 => 010100)
+
+
+*** STACK ***
+#  (a--a a)       Duplicate TOS                    (DUP)
+\  (a b--a)       Drop TOS                         (DROP)
+$  (a b--b a)     Swap top 2 stack items           (SWAP)
+%  (a b--a b a)   Push 2nd                         (OVER)
+_  (a--b)         b: -a                            (Negate)
+
+
+*** MEMORY ***
+c@    (a--n)      Fetch BYTE n from address a
+@     (a--n)      Fetch CELL n from address a
+c!    (n a--)     Store BYTE n to address a
+!     (n a--)     Store CELL n to address a
+
+
+*** REGISTERS ***
+  NOTES: 1) A register name is any printable character, including <space>
+rX    (--n)       read register X
+sX    (n--)       set register X to n
+iX    (--)        increment register X
+dX    (--)        decrement register X
+
+
+*** WORDS/FUNCTIONS ***
+        NOTES: 1) A function names is a single UPPERCASE character
+:     (?--?)      Define function. Copy chars to (HERE++) until closing ';'.
+A     (?--?)      Call function A
+^     (?--?)      Early return from function
+;     (?--?)      Function definition end, return
+        NOTES: 1) Returning while inside of a loop is not supported; break out of the loop first.
+               2) Use 'xW' to break out of a FOR or WHILE loop.
+               2) Use 'xL' to break out of a FOR or WHILE loop.
+
+
+*** INPUT/OUTPUT ***
+.      (N--)      Output N as decimal number.
+,      (N--)      Output N as character (Forth EMIT).
+"      (--)       Output characters until the next '"'.
+0..9   (--n)      Scan DECIMAL number. For multiple numbers, separate them by space (47 33).
+                     To enter a negative number, use "negate" (eg - 490_).
+'x     (--n)      n: the ASCII value of x
+`XXX`  (--)       Executes XXX as a shell command (ie - system(xxx))
+
+
+*** CONDITIONS/LOOPS/FLOW CONTROL ***
+<     (a b--f)    f: (a < b) ? 1 : 0;
+=     (a b--f)    f: (a = b) ? 1 : 0;
+>     (a b--f)    f: (a > b) ? 1 : 0;
+~     (n -- f)    f: (a = 0) ? 1 : 0; (Logical NOT)
+[     (F T--)     FOR: start a For/Next loop.
+xI    (--n)       n: the index of the current FOR loop
+xF    (--)        eXit FOR loop: unwind FOR loop stack, skip to next ']'
+                  NOTE: you can return from a function while in a FOR loop using (uUxUxU^)
+]     (--)        NEXT: increment index (I) and restart loop if (rI <= T)
+        NOTE: A FOR loop always runs at least one iteration.
+              It can be put it inside a '()' to keep it from running.
+{     (f--f)      BEGIN: if (f == 0) skip to matching '}'
+}     (f--f?)     WHILE: if (f != 0) jump to matching '{', else drop f and continue
+xU    (--)        UNLOOP: Unwind WHILE loop stack, used for returing from function while in a WHILE loop (xU^)
+xW    (--)        eXit WHILE loop: unwind WHILE loop stack, skip to next '}'
+(     (f--)       IF: if (f != 0), continue into '()', else skip to next ')'
+
+
+*** OTHER ***
+xQ    (--)        Exit S2
