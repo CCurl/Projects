@@ -1,5 +1,6 @@
 // S2.c - based on Sandor Schneider's STABLE
 #define _CRT_SECURE_NO_WARNINGS    // For Visual Studio
+#include <windows.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -8,8 +9,8 @@
 #define TOS st.i[s]
 #define NOS st.i[s-1]
 union flin { float f[2500]; int i[2500]; char b[10000]; }; static union flin st;
-static char ex[80], t = 0, u, a, k = 0;
-static int c, m, r, cb = 7000, p, s=1, ro=64, rb=35, sb=1;
+static char ex[80], u, a, k = 0;
+static int c, m, r, cb = 7000, p, s=1, ro=64, rb=35, sb=1, t;
 inline void push(int x) { st.i[++s] = x; } 
 inline int pop() { return st.i[s--]; }
 /* <33 */ void N() { p=(u==' ')?p:0; }
@@ -58,20 +59,21 @@ inline int pop() { return st.i[s--]; }
              else if (u == '-') { st.f[s-1] -= st.f[s]; s--; }
              else if (u == '*') { st.f[s-1] *= st.f[s]; s--; }
              else if (u == '/') { st.f[s-1] /= st.f[s]; s--; } }
-/* g-h */ void f103() {} void f104() {}
+/* g,h */ void f103() {} void f104() {}
 /* i   */ void f105() { u=st.b[p++]; st.i[u+ro]++; }
 /* j-m */ void f106() {} void f107() {} void f108() {} void f109() {} /* j-m */
 /* n   */ void f110() { putc('\n',stdout); }
 /* o-q */ void f111() {} void f112() {} void f113() {}
 /* r   */ void f114() { u = st.b[p++]; push(st.i[u+ro]); }
 /* s   */ void f115() { u = st.b[p++]; st.i[u+ro] = pop(); }
-/* t-w */ void f116() {} void f117() {} void f118() {} void f119() {} /* t-w */
+/* t   */ void f116() { push(GetTickCount()); }
+/* u-w */ void f117() {} void f118() {} void f119() {}
 /* x   */ void f120() { u = st.b[p++];
              if (u == 'U') { --r; }
              if (u == 'L') { --r; while (st.b[p++] != '}'); }
              if (u == 'I') { push(st.i[r]); }
              if (u == 'Q') { exit(0); } }
-/* y-z */ void f121() {} void f122() {} /* y-z */
+/* y,z */ void f121() {} void f122() {} /* y-z */
 /*  {  */ void f123() { st.i[++r] = p; if (TOS == 0) { while (st.b[p] != '}') { ++p; } } }
 /*  |  */ void f124() {}
 /*  }  */ void f125() { if (TOS) { p = st.i[r]; } else { --r; --s; } }
