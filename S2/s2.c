@@ -1,5 +1,5 @@
-// S2.c, based on Sandor Schneider's STABLE
-#define _CRT_SECURE_NO_WARNINGS
+// S2.c - based on Sandor Schneider's STABLE
+#define _CRT_SECURE_NO_WARNINGS    // For Visual Studio
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -9,7 +9,7 @@
 #define NOS st.i[s-1]
 union flin { float f[2500]; int i[2500]; char b[10000]; }; static union flin st;
 static char ex[80], t = 0, u, a, k = 0;
-static int c, m, r, cb = 8000, p, s=1, ro = 64, rb=35, sb=1;
+static int c, m, r, cb = 7000, p, s=1, ro=64, rb=35, sb=1;
 inline void push(int x) { st.i[++s] = x; } 
 inline int pop() { return st.i[s--]; }
 /* <33 */ void N() { p=(u==' ')?p:0; }
@@ -48,14 +48,23 @@ inline int pop() { return st.i[s--]; }
 /*  c  */ void f99() { u = st.b[p++];
               if (u == '@') { TOS=st.b[TOS]; }
               if (u == '!') { st.b[TOS]=NOS; s-=2; } }
-/* d   */ void f100() { u = st.b[p++]; st.i[u + ro]--; }
-/* e-h */ void f101() {} void f102() {} void f103() {} void f104() {} /* e-h */
-/* i   */ void f105() { u=st.b[p++]; st.i[u+ ro]++; }
+/* d   */ void f100() { u = st.b[p++]; st.i[u+ro]--; }
+/* e   */ void f101() {} 
+/* f   */ void f102() { u = st.b[p++];
+             if (u=='I') { st.f[s] = (float)st.i[s]; }
+             else if (u=='O') { st.i[s] = (int)st.f[s]; }
+             else if (u == '.') { printf("%f", st.f[s--]); }
+             else if (u == '+') { st.f[s-1] += st.f[s]; s--; }
+             else if (u == '-') { st.f[s-1] -= st.f[s]; s--; }
+             else if (u == '*') { st.f[s-1] *= st.f[s]; s--; }
+             else if (u == '/') { st.f[s-1] /= st.f[s]; s--; } }
+/* g-h */ void f103() {} void f104() {}
+/* i   */ void f105() { u=st.b[p++]; st.i[u+ro]++; }
 /* j-m */ void f106() {} void f107() {} void f108() {} void f109() {} /* j-m */
 /* n   */ void f110() { putc('\n',stdout); }
 /* o-q */ void f111() {} void f112() {} void f113() {}
-/* r   */ void f114() { u = st.b[p++]; push(st.i[u + ro]); }
-/* s   */ void f115() { u = st.b[p++]; st.i[u+ ro] = pop(); }
+/* r   */ void f114() { u = st.b[p++]; push(st.i[u+ro]); }
+/* s   */ void f115() { u = st.b[p++]; st.i[u+ro] = pop(); }
 /* t-w */ void f116() {} void f117() {} void f118() {} void f119() {} /* t-w */
 /* x   */ void f120() { u = st.b[p++];
              if (u == 'U') { --r; }
@@ -74,7 +83,7 @@ f91,f92,f93,f94,f95,f96,f97,f98,f99,f100,f101,f102,f103,f104,f105,f106,f107,f108
 f114,f115,f116,f117,f118,f119,f120,f121,f122,f123,f124,f125,f126 };
 void R(int x) { s=(s<sb)?sb:s; r=rb; p=x; while (cb<=p) { u=st.b[p++]; q[u](); } }
 void H(char* s) { FILE *fp=fopen("h.txt", "at"); if (fp) { fprintf(fp, "%s", s); fclose(fp); } }
-void L() { char *z = &st.b[m]; printf("\ns2>"); fgets(z, 99, stdin); H(z); R(m); }
+void L() { char *z = &st.b[m]; printf("\ns2>"); fgets(z, 128, stdin); H(z); R(m); }
 void main(int argc, char *argv[]) {
     m=cb; for (int i = 0; i < 2500; i++) { st.i[i] = 0; }
     if (argc > 1) {
