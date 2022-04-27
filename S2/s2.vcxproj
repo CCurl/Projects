@@ -142,9 +142,6 @@
   <ItemGroup>
     <ClCompile Include="s2.c" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="pgm.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
