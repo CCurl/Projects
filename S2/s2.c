@@ -9,10 +9,10 @@
 #define btw(a,b,c) ((b<=a) && (a<=c))
 #define TOS st.i[s]
 #define NOS st.i[s-1]
-#define SZ 2500
-union flin { float f[SZ]; int i[SZ]; char b[SZ*4]; }; static union flin st;
+#define SZ 10000
+union flin { float f[SZ/4]; int i[SZ/4]; char b[SZ]; }; static union flin st;
 static char ex[80], u, a, k = 0;
-static int c, m, r, cb = (SZ*4)-3000, p, s=1, ro=64, rb=35, sb=1, t;
+static int c, m, r, cb = (SZ)-3000, p, s=1, ro=64, rb=35, sb=1, t;
 /* <33 */ void N() { p=(' '<=u)?p:0; }
 /*  !  */ void f33() { st.i[TOS] = NOS; s -= 2; }
 /*  "  */ void f34() { while (st.b[p] != '"') { putc(st.b[p++], stdout); } ++p; }
@@ -63,13 +63,17 @@ static int c, m, r, cb = (SZ*4)-3000, p, s=1, ro=64, rb=35, sb=1, t;
 /* t   */ void f116() { st.i[++s] = GetTickCount(); }
 /* x   */ void f120() { u = st.b[p++];
              if (u == 'I') { st.i[++s] = st.i[r]; }
+             else if (u == 'U') { --r; }
+             else if (u == 'L') { --r; while (st.b[p++] != '}'); }
              else if (u == '&') { NOS &= TOS; s--; }
              else if (u == '|') { NOS |= TOS; s--; }
              else if (u == '^') { NOS ^= TOS; s--; }
              else if (u == '~') { TOS = ~TOS; }
              else if (u == '%') { NOS %= TOS; s--; }
-             else if (u == 'U') { --r; }
-             else if (u == 'L') { --r; while (st.b[p++] != '}'); }
+             else if (u == 'C') { st.i[++s] = cb; }
+             else if (u == 'M') { st.i[++s] = m; }
+             else if (u == 'm') { m = st.i[s--]; }
+             else if (u == 'Z') { st.i[++s] = SZ; }
              else if (u == 'R') { char *y = &st.b[TOS]; fgets(y, 128, stdin); TOS = strlen(y); }
              else if (u == 'Q') { exit(0); } }
 /*  {  */ void f123() { st.i[++r] = p; if (TOS == 0) { while (st.b[p] != '}') { ++p; } } }
@@ -83,7 +87,7 @@ void R(int x) { s=(s<sb)?sb:s; r=rb; p=x; while (cb<=p) { u=st.b[p++]; q[u](); }
 void H(char* s) { FILE *fp=fopen("h.txt", "at"); if (fp) { fprintf(fp, "%s", s); fclose(fp); } }
 void L() { char *z = &st.b[m]; printf("\ns2:("); f113(); printf(")>"); fgets(z, 128, stdin); H(z); R(m); }
 void main(int argc, char *argv[]) {
-    m=cb; for (int i = 0; i < SZ; i++) { st.i[i] = 0; }
+    m=cb; for (int i = 0; i < (SZ/4); i++) { st.i[i] = 0; }
     if (argc > 1) {
         FILE *fp = fopen(argv[1], "rt"); if (fp) {
             while ((c = fgetc(fp)) != EOF) { if (btw(c,32,126)) { st.b[m++]=c; } };
