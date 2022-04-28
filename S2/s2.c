@@ -12,8 +12,8 @@
 #define SZ 10000
 union flin { float f[SZ/4]; int i[SZ/4]; char b[SZ]; }; static union flin st;
 static char ex[80], u, a, k = 0;
-static int c, m, r, cb = (SZ)-3000, p, s=1, ro=64, rb=35, sb=1, t;
-/* <33 */ void N() { p=(' '<=u)?p:0; }
+static int c, m, r, cb = SZ-3000, p, s=1, ro=64, rb=35, sb=1, t;
+/* <33 */ void N()   { p=(' '<=u)?p:0; }
 /*  !  */ void f33() { st.i[TOS] = NOS; s -= 2; }
 /*  "  */ void f34() { while (st.b[p] != '"') { putc(st.b[p++], stdout); } ++p; }
 /*  #  */ void f35() { t = TOS; st.i[++s] = t; }
@@ -28,8 +28,8 @@ static int c, m, r, cb = (SZ)-3000, p, s=1, ro=64, rb=35, sb=1, t;
 /*  -  */ void f45() { NOS -= TOS; s--; }
 /*  .  */ void f46() { printf("%d", st.i[s--]); }
 /*  /  */ void f47() { NOS /= TOS; s--; }
-/* 0-9 */ void n09()  { st.i[++s]=(u-'0'); while (btw(st.b[p],'0','9')) { TOS=(TOS*10)+st.b[p++]-'0'; } }
-/*  :  */ void f58() { u=st.b[p++]; if (btw(u,'A','Z')) { st.i[u]=p; while (st.b[p++] != ';') {} m=p; } }
+/* 0-9 */ void n09() { st.i[++s]=(u-'0'); while (btw(st.b[p],'0','9')) { TOS=(TOS*10)+st.b[p++]-'0'; } }
+/*  :  */ void f58() { u=st.b[p++]; if (btw(u,'A','Z')) { st.i[u]=p; while (st.b[p++] != ';') {} m=(m<p)?p:m; } }
 /*  ;  */ void f59() { p = st.i[r--]; if (r < rb) { r = rb; p = 0; } }
 /*  <  */ void f60() { NOS = (NOS < TOS) ? -1 : 0; s--; }
 /*  =  */ void f61() { NOS = (NOS == TOS) ? -1 : 0; s--; }
@@ -47,6 +47,7 @@ static int c, m, r, cb = (SZ)-3000, p, s=1, ro=64, rb=35, sb=1, t;
               if (u == '@') { TOS=st.b[TOS]; }
               if (u == '!') { st.b[TOS]=NOS; s-=2; } }
 /* d   */ void f100() { u = st.b[p++]; st.i[u+ro]--; }
+/* e   */ void f101() { st.i[++r] = p; p = st.i[s--]; }
 /* f   */ void f102() { u = st.b[p++];
              if (u=='I') { st.f[s] = (float)st.i[s]; }
              else if (u=='O') { st.i[s] = (int)st.f[s]; }
@@ -81,7 +82,7 @@ static int c, m, r, cb = (SZ)-3000, p, s=1, ro=64, rb=35, sb=1, t;
 void (*q[127])() = { N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,
 f33,f34,f35,f36,f37,f38,f39,f40,N,f42,f43,f44,f45,f46,f47,n09,n09,n09,n09,n09,n09,n09,n09,n09,n09,
 f58,f59,f60,f61,f62,N,f64,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,
-f91,f92,f93,f94,f95,f96,N,f98,f99,f100,N,f102,N,N,f105,N,N,N,N,f110,N,N,f113,
+f91,f92,f93,f94,f95,f96,N,f98,f99,f100,f101,f102,N,N,f105,N,N,N,N,f110,N,N,f113,
 f114,f115,f116,N,N,N,f120,N,N,f123,N,f125,N };
 void R(int x) { s=(s<sb)?sb:s; r=rb; p=x; while (cb<=p) { u=st.b[p++]; q[u](); } }
 void H(char* s) { FILE *fp=fopen("h.txt", "at"); if (fp) { fprintf(fp, "%s", s); fclose(fp); } }
