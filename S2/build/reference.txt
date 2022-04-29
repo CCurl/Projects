@@ -11,11 +11,20 @@
 x%  (a b--m)      m: MODULO(a,b)
 
 
+*** FLOATING POINT ***
+fI     (a--b)     b: a converted to a float
+fO     (a--b)     b: a converted to an integer
+f+   (a b--n)     n: a+b - addition
+f-   (a b--n)     n: a-b - subtraction
+f*   (a b--n)     n: a*b - multiplication
+f/   (a b--q)     q: a/b - division
+
+
 *** BIT MANIPULATION ***
-x&  (a b--n)      n: a AND b
-x|  (a b--n)      n: a OR  b
-x^  (a b--n)      n: a XOR b
-x~  (a--b)        b: NOT a (ones-complement, e.g - 101011 => 010100)
+b&  (a b--n)      n: a AND b
+b|  (a b--n)      n: a OR  b
+b^  (a b--n)      n: a XOR b
+b~  (a--b)        b: NOT a (ones-complement, e.g - 101011 => 010100)
 
 
 *** STACK ***
@@ -34,17 +43,18 @@ c!    (n a--)     Store BYTE n to address a
 
 
 *** REGISTERS ***
-  NOTES: 1) A register name is any printable character, including <space>
-rX    (--n)       read register X
-sX    (n--)       set register X to n
+        NOTES: 1) A register name is any printable character, including <space>
+               2) Punctuation characters can also be used registers
+rX    (--n)       n: value of register X
+sX    (n--)       n: value to store in register X
 iX    (--)        increment register X
 dX    (--)        decrement register X
 
 
 *** WORDS/FUNCTIONS ***
-        NOTES: 1) A function names is a single UPPERCASE character
+        NOTES: 1) A function name is a single UPPERCASE character
 :     (?--?)      Define function. Copy chars to (HERE++) until closing ';'.
-A     (?--?)      Call function A
+X     (?--?)      Call function X
 ^     (?--?)      Early return from function
 ;     (?--?)      Function definition end, return
         NOTES: 1) Returning while inside of a loop is not supported; break out of the loop first.
@@ -53,13 +63,14 @@ A     (?--?)      Call function A
 
 
 *** INPUT/OUTPUT ***
-.      (N--)      Output N as decimal number.
-,      (N--)      Output N as character (Forth EMIT).
+.      (n--)      n: Number to output as a decimal
+,      (c--)      c: Character to output
 "      (--)       Output characters until the next '"'.
 0..9   (--n)      Scan DECIMAL number. For multiple numbers, separate them by space (47 33).
                      To enter a negative number, use "negate" (eg - 490_).
 'x     (--n)      n: the ASCII value of x
 `XXX`  (--)       Executes XXX as a shell command (ie - system(xxx))
+xR     (a--l)     ReadLine: a: byte address, l: number of chars read
 
 
 *** CONDITIONS/LOOPS/FLOW CONTROL ***
@@ -67,19 +78,22 @@ A     (?--?)      Call function A
 =     (a b--f)    f: (a = b) ? 1 : 0;
 >     (a b--f)    f: (a > b) ? 1 : 0;
 ~     (n -- f)    f: (a = 0) ? 1 : 0; (Logical NOT)
+xU    (--)        UNLOOP: Unwind FOR/WHILE stack, used to return from a function when in a loop 
 [     (F T--)     FOR: start a For/Next loop.
 xI    (--n)       n: the index of the current FOR loop
-xF    (--)        eXit FOR loop: unwind FOR loop stack, skip to next ']'
-                  NOTE: you can return from a function while in a FOR loop using (uUxUxU^)
+xF    (--)        exit FOR loop: unwind FOR loop stack, continue after next ']'
+            NOTE: you can return from the function when in a FOR loop using (xUxUxU^)
 ]     (--)        NEXT: increment index (I) and restart loop if (rI <= T)
-        NOTE: A FOR loop always runs at least one iteration.
-              It can be put it inside a '()' to keep it from running.
 {     (f--f)      BEGIN: if (f == 0) skip to matching '}'
 }     (f--f?)     WHILE: if (f != 0) jump to matching '{', else drop f and continue
-xU    (--)        UNLOOP: Unwind WHILE loop stack, used for returing from function while in a WHILE loop (xU^)
-xW    (--)        eXit WHILE loop: unwind WHILE loop stack, skip to next '}'
-(     (f--)       IF: if (f != 0), continue into '()', else skip to next ')'
+xW    (--)        exit WHILE loop: unwind WHILE loop stack, continue after next '}'
+            NOTE: you can return from the function when in a WHILE loop using (xU^)
+(     (f--)       IF: if (f != 0), continue into '()', continue after next ')'
 
 
 *** OTHER ***
+xZ    (--n)       n: Size of memory (in bytes)
+xC    (--n)       n: Start of code area
+xH    (--n)       n: Next free code byte (HERE)
+xh    (n--)       n: byte address for HERE value
 xQ    (--)        Exit S2
