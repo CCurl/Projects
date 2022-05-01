@@ -21,19 +21,21 @@ static int c, h, r, cb = SZ-3000, p, s=1, ro=64, rb=35, sb=1, t;
 /*  %  */ void f37() { t = NOS; st.i[++s]=t; }
 /*  &  */ void f38() { t = TOS; TOS = NOS % t; NOS /= t; }
 /*  '  */ void f39() { st.i[++s] = st.b[p++]; }
-/*  (  */ void f40() { if (st.i[s--] == 0) { while (st.b[p++] != ')'); } }
+/*  (  */ void f40() { if (st.i[s--]==0) { while (st.b[p++] != ')'); } }
 /*  *  */ void f42() { NOS *= TOS; s--; }
 /*  +  */ void f43() { NOS += TOS; s--; }
 /*  ,  */ void f44() { putc(st.i[s--], stdout); }
 /*  -  */ void f45() { NOS -= TOS; s--; }
 /*  .  */ void f46() { printf("%d", st.i[s--]); }
 /*  /  */ void f47() { NOS /= TOS; s--; }
-/* 0-9 */ void n09() { st.i[++s]=(u-'0'); while (btw(st.b[p],'0','9')) { TOS=(TOS*10)+st.b[p++]-'0'; } }
+/* 0-9 */ void n09() { st.i[++s]=(u-'0'); while (btw(st.b[p],'0','9')) { TOS=(TOS*10)+st.b[p++]-'0'; }
+                if (st.b[p] == 'e') {++p; st.f[s] = (float)TOS; } }
 /*  :  */ void f58() { u=st.b[p++]; if (btw(u,'A','Z')) { st.i[u]=p; while (st.b[p++] != ';') ; if (h<p) h=p; } }
 /*  ;  */ void f59() { p = st.i[r--]; if (r < rb) { r = rb; p = 0; } }
-/*  <  */ void f60() { NOS = (NOS < TOS) ? -1 : 0; s--; }
-/*  =  */ void f61() { NOS = (NOS == TOS) ? -1 : 0; s--; }
-/*  >  */ void f62() { NOS = (NOS > TOS) ? -1 : 0; s--; }
+/*  <  */ void f60() { TOS = (NOS < TOS)  ? -1 : 0; }
+/*  =  */ void f61() { TOS = (NOS == TOS) ? -1 : 0; }
+/*  >  */ void f62() { TOS = (NOS > TOS)  ? -1 : 0; }
+/*  ?  */ void f63() { c = fgetc(stdin); st.i[++s] = (c!=EOF) ? c : 0; }
 /*  @  */ void f64() { TOS = st.i[TOS]; }
 /* A-Z */ void AZ()  { st.i[++r] = p; p = st.i[u]; }
 /*  [  */ void f91() { st.i[++r] = p; st.i[++r] = st.i[s--]; st.i[++r] = st.i[s--]; }
@@ -74,10 +76,10 @@ static int c, h, r, cb = SZ-3000, p, s=1, ro=64, rb=35, sb=1, t;
              else if (u == 'Q') { exit(0); } }
 /*  {  */ void f123() { st.i[++r] = p; if (TOS == 0) { while (st.b[p] != '}') { ++p; } } }
 /*  }  */ void f125() { if (TOS) { p = st.i[r]; } else { --r; --s; } }
-/*  }  */ void f126() { TOS = (TOS) ? 0 : 1; }
+/*  }  */ void f126() { TOS = (TOS) ? 0 : -1; }
 void (*q[127])() = { N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,N,
 f33,f34,f35,f36,f37,f38,f39,f40,N,f42,f43,f44,f45,f46,f47,n09,n09,n09,n09,n09,n09,n09,n09,n09,n09,
-f58,f59,f60,f61,f62,N,f64,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,
+f58,f59,f60,f61,f62,f63,f64,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,
 f91,f92,f93,f94,f95,f96,N,f98,f99,f100,f101,f102,N,N,f105,N,N,N,N,N,N,N,f113,
 f114,f115,f116,N,N,N,f120,N,N,f123,N,f125,f126 };
 void R(int x) { s=(s<sb)?sb:s; r=rb; p=x; while (cb<=p) { u=st.b[p++]; q[u](); } }

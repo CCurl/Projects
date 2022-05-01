@@ -53,10 +53,10 @@ dX    (--)        decrement register X
 
 *** WORDS/FUNCTIONS ***
         NOTES: 1) A function name is a single UPPERCASE character
-:     (?--?)      Define function. Copy chars to (HERE++) until closing ';'.
+:     (--)        Define function. Copy chars to (HERE++) until closing ';'.
 X     (?--?)      Call function X
-^     (?--?)      Early return from function
-;     (?--?)      Function definition end, return
+^     (--)        Early return from function
+;     (--)        Function definition end, return
         NOTES: 1) Returning while inside of a loop is not supported; break out of the loop first.
                2) Use 'xW' to break out of a FOR or WHILE loop.
                2) Use 'xL' to break out of a FOR or WHILE loop.
@@ -67,17 +67,19 @@ X     (?--?)      Call function X
 ,      (c--)      c: Character to output
 "      (--)       Output characters until the next '"'.
 0..9   (--n)      Scan DECIMAL number. For multiple numbers, separate them by space (47 33).
-                     To enter a negative number, use "negate" (eg - 490_).
+        NOTES: 1) To enter a negative number, use "negate" (eg - 490_).
+               2) If "e" immediately follows the number (eg - 355e), then convert it to a float.
 'x     (--n)      n: the ASCII value of x
 `XXX`  (--)       Executes XXX as a shell command (ie - system(xxx))
-xR     (a--l)     ReadLine: a: byte address, l: number of chars read
+xR     (a--n)     ReadLine: a: byte address, n: number of chars read
+?      (--c)      c: next character from STDIN (0 if EOF)
 
 
 *** CONDITIONS/LOOPS/FLOW CONTROL ***
-<     (a b--f)    f: (a < b) ? 1 : 0;
-=     (a b--f)    f: (a = b) ? 1 : 0;
->     (a b--f)    f: (a > b) ? 1 : 0;
-~     (n -- f)    f: (a = 0) ? 1 : 0; (Logical NOT)
+<     (a b--a f)  f: (a < b) ? -1 : 0;
+=     (a b--a f)  f: (a = b) ? -1 : 0;
+>     (a b--a f)  f: (a > b) ? -1 : 0;
+~     (n -- f)    f: (a = 0) ? -1 : 0; (Logical NOT)
 xU    (--)        UNLOOP: Unwind FOR/WHILE stack, used to return from a function when in a loop 
 [     (F T--)     FOR: start a For/Next loop.
 xI    (--n)       n: the index of the current FOR loop
@@ -93,7 +95,7 @@ xW    (--)        exit WHILE loop: unwind WHILE loop stack, continue after next 
 
 *** OTHER ***
 xZ    (--n)       n: Size of memory (in bytes)
-xC    (--n)       n: Start of code area
-xH    (--n)       n: Next free code byte (HERE)
-xh    (n--)       n: byte address for HERE value
+xC    (--a)       a: Start of code area
+xH    (--a)       a: Next free code byte (HERE)
+xh    (a--)       a: set HERE value to n
 xQ    (--)        Exit S2
