@@ -1,17 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <time.h>
 #define btw(a,b,c) ((b<=a) && (a<=c))
-#define TOS st.i[s]
-#define NOS st.i[s-1]
 #define SZ 65536
 union fib { float f[SZ/4]; int i[SZ/4]; char b[SZ]; };
 static union fib st;
+static char *y;
 static int cb, h, sb, s, rb, r, p, u, t;
-/*   */ void X() { ; }
-/*   */ void f32() { printf("[%c]",u); }
-/* ! */ void f33() { printf("[%c]",u); }
+/*   */ void X() { printf("[%d]",u); p=0; }
+/*   */ void N() { }
+/* ! */ void f33() { printf("[!]",u); }
 /* " */ void f34() { printf("[%c]",u); }
 /* # */ void f35() { printf("[%c]",u); }
 /* $ */ void f36() { printf("[%c]",u); }
@@ -26,7 +23,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* - */ void f45() { printf("[%c]",u); }
 /* . */ void f46() { printf("[%c]",u); }
 /* / */ void f47() { printf("[%c]",u); }
-/* 0 */ void f48() { printf("[%c]",u); }
+/* 0 */ void f48() { printf("[0]",u); }
 /* 1 */ void f49() { printf("[%c]",u); }
 /* 2 */ void f50() { printf("[%c]",u); }
 /* 3 */ void f51() { printf("[%c]",u); }
@@ -43,7 +40,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* > */ void f62() { printf("[%c]",u); }
 /* ? */ void f63() { printf("[%c]",u); }
 /* @ */ void f64() { printf("[%c]",u); }
-/* A */ void f65() { printf("[%c]",u); }
+/* A */ void f65() { printf("[A]",u); }
 /* B */ void f66() { printf("[%c]",u); }
 /* C */ void f67() { printf("[%c]",u); }
 /* D */ void f68() { printf("[%c]",u); }
@@ -75,7 +72,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* ^ */ void f94() { printf("[%c]",u); }
 /* _ */ void f95() { printf("[%c]",u); }
 /* ` */ void f96() { printf("[%c]",u); }
-/* a */ void f97() { printf("[%c]",u); }
+/* a */ void f97() { printf("[a]",u); }
 /* b */ void f98() { printf("[%c]",u); }
 /* c */ void f99() { printf("[%c]",u); }
 /* d */ void f100() { printf("[%c]",u); }
@@ -91,7 +88,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* n */ void f110() { printf("[%c]",u); }
 /* o */ void f111() { printf("[%c]",u); }
 /* p */ void f112() { printf("[%c]",u); }
-/* q */ void f113() { printf("[%c]",u); }
+/* q */ void f113() { printf("[%c]",u); exit(0); }
 /* r */ void f114() { printf("[%c]",u); }
 /* s */ void f115() { printf("[%c]",u); }
 /* t */ void f116() { printf("[%c]",u); }
@@ -104,12 +101,22 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* { */ void f123() { printf("[%c]",u); }
 /* | */ void f124() { printf("[%c]",u); }
 /* } */ void f125() { printf("[%c]",u); }
-/* ~ */ void f126() { printf("[%c]",u); }
-void (*q[127])()={X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
+/* ~ */ void f126() { printf("[~]",u); }
+void (*q[127])()={X,X,X,X,X,X,X,X,X,X,N,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,N,
     f33,f34,f35,f36,f37,f38,f39,f40,f41,f42,f43,f44,f45,f46,f47,f48,f49,f50,f51,f52,
     f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65,f66,f67,f68,f69,f70,f71,f72,f73,
     f74,f75,f76,f77,f78,f79,f80,f81,f82,f83,f84,f85,f86,f87,f88,f89,f90,f91,f92,f93,f94,
     f95,f96,f97,f98,f99,f100,f101,f102,f103,f104,f105,f106,f107,f108,f109,f110,f111,f112,
-    f113,f114,f115,f116,f117,f118,f119,f120,f121,f122,f123,f124,f125,f126,X};
-void I(() { sb=4; r=rb=64; for (t=0; t<(SZ/4); t++) { st.i[t]=0; } }
+    f113,f114,f115,f116,f117,f118,f119,f120,f121,f122,f123,f124,f125,f126};
+void I() { s=sb=4; r=rb=64; h=cb=32000; for (t=0; t<(SZ/4); t++) st.i[t]=0; }
 void R(int x) { s=(s<sb)?(sb-1):s; r=rb; p=x; while (p) { u=st.b[p++]; q[u](); } }
+void L() { printf("\ncmd: "); y=&st.b[h]; fgets(y, 128, stdin); R(h); }
+void main(int argc, char *argv[]) {
+    I();
+    if (argc>1) { FILE *fp=fopen(argv[1], "rb"); 
+        if (fp) {
+            while ((t=fgetc(fp))!=EOF) { if (btw(t,32,126)) st.b[h++]=t; }
+            fclose(fp); R(cb);
+        }
+    } while (1) { L(); };
+}
