@@ -68,11 +68,11 @@ variable critters #crits 1+ critter-sz * allot
 : left?  dup 2 = if left  then ;
 : right?     3 = if right then ;
 
-: crit-Unpaint getCR ->XY space ;
-: crit-Paint getCLR FG getCR ->XY '*' emit ;
+: unpaintCrit getCR ->XY space ;
+: paintCrit getCLR FG getCR ->XY '*' emit ;
 
 : move rand 3 and up? down? left? right? ;
-: workCrit crit-Unpaint r6 4 + work-conns crit-Paint ;
+: workCrit unpaintCrit r6 4 + work-conns paintCrit ;
 : workCrits 1 #crits for i setCrit workCrit next ;
 : oneDay workCrits ;
 
@@ -96,4 +96,5 @@ variable critters #crits 1+ critter-sz * allot
 	next ;
 : T1 r6 3 + c@ if rand-cr else next-alive copy-cr then ;
 : regen critters s7 1 #crits for i setCrit T1 next ;
-: go randCrits C-OFF begin live die regen key? until key drop 37 FG C-ON 1 maxR ->XY ;
+// : go randCrits C-OFF begin live die regen key? until key drop 37 FG C-ON 1 maxR ->XY ;
+: go CLS C-OFF begin 0 #crits for i setCrit randCrit paintCrit next key? until key drop 0 FG C-ON ;
