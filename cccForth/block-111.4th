@@ -42,7 +42,7 @@ variable ln cols allot
 
 : one-gen 1 1 ->b s4
     1 1 ->p cols rows ->p
-    for i c@ .if b++ .then i4 next
+    for i c@ if b++ then i4 next
     bak->pop .pop r7 . i7 ;
 
 // 65 (r) ! 200 (c) !
