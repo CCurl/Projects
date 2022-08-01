@@ -40,12 +40,16 @@ variable ln cols allot
         0 r6 c! ln qtype cr
     next ;
 
-: gen 1 1 ->b s4
+: one-gen 1 1 ->b s4
     1 1 ->p cols rows ->p
     for i c@ .if b++ .then i4 next
     bak->pop .pop r7 . i7 ;
 
 // 65 (r) ! 200 (c) !
 40 (r) ! 150 (c) !
-: T1 begin gen key? until key drop ;
-: go 1 s7 clr-bak rand-pop C-OFF CLS T1 C-ON ;
+: gen? one-gen key? ;
+: gens 0 for gen? .if unloop-f key drop exit .then next ;
+: life 1 s7 clr-bak rand-pop 
+   OFF CURSOR
+   CLS 1000 gens
+   ON CURSOR ;

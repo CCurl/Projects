@@ -15,6 +15,7 @@ reset
 : vars vb vhere for i c@ T0 next ;
 : fill ( c f t-- ) for dup i c! next drop ;
 : fill-n ( c a n-- ) over + fill ;
+: ON 1 ; : OFF 0 ;
 
 // Screen stuff
 : ->XY #27 ." %c[%d;%dH" ;
@@ -23,6 +24,7 @@ reset
 : FG ( fg -- ) 40 swap COLOR ;
 : C-ON  #27 ." %c[?25h" ;
 : C-OFF #27 ." %c[?25l" ;
+: CURSOR ( f-- ) if C-ON else C-OFF then ;
 
 : min ( a b--x ) dup dup > .if swap .then drop ;
 : max ( a b--x ) dup dup < .if swap .then drop ;
