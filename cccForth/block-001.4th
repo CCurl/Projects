@@ -22,9 +22,9 @@ reset
 : CLS #27 ." %c[2J" 1 dup ->XY ;
 : COLOR ( bg fg -- ) #27 ." %c[%d;%dm" ;
 : FG ( fg -- ) 40 swap COLOR ;
-: C-ON  #27 ." %c[?25h" ;
-: C-OFF #27 ." %c[?25l" ;
-: CURSOR ( f-- ) if C-ON else C-OFF then ;
+: CURSOR-ON  #27 ." %c[?25h" ;
+: CURSOR-OFF #27 ." %c[?25l" ;
+: CURSOR ( f-- ) if CURSOR-ON else CURSOR-OFF then ;
 
 : min ( a b--x ) dup dup > .if swap .then drop ;
 : max ( a b--x ) dup dup < .if swap .then drop ;
