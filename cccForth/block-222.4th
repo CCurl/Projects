@@ -2,8 +2,6 @@
 
 1 load
 // 223 load
-: rand-neu rand ;
-: work-conns ;
 
 200 constant maxC
  55 constant maxR
@@ -12,6 +10,8 @@ variable world world-sz allot
 
 500 constant #crits
   8 constant #conns
+
+: rand-neu rand ;
 
 : worldClr 0 world world-sz fill-n ;
 : T0 ( c r--a ) maxC * + world + ;
@@ -35,6 +35,7 @@ variable world world-sz allot
 #crits 1+ critter-sz *   constant critters-sz
 variable critters #crits 1+ critter-sz * allot
 : critters-end critters critters-sz + ;
+: next-conn ( a--b ) 4 + ;
 
 // r6: the current critter
 : set-crit ( n--r6 ) critter-sz * critters + s6 ;
@@ -45,14 +46,17 @@ variable critters #crits 1+ critter-sz * allot
 : setR  ( r-- ) r6 1+ c! ;
 : getCR ( --c r ) getC getR ;
 : setCR ( c r-- ) setR setC ;
-
 : setCLR ( n-- ) r6 2+ c! ;
 : getCLR ( --n ) r6 2+ c@ ;
+: setliving ( f-- ) r6 3 + ! ; // 0 == dead
+: isAlive? ( --f ) r6 3 + c@ ;
+: isDead? ( --f ) r6 3 + c@ 0= ;
+: crit-conns ( --a ) r6 4 + ;
 
 // : +rand rand abs ;
 : rand-cr rand maxC mod 1+ setC rand maxR mod 1+ setR ;
 : rand-clr rand 7 mod 31 + setCLR ;
-: rand-crit rand-cr rand-clr r6 4 + 0 #conns for rand-neu over ! 4 + next drop ;
+: rand-crit rand-cr rand-clr 1 setLiving crit-conns 0 #conns for rand-neu over ! next-conn next drop ;
 : rand-crits 0 #crits for i set-crit rand-crit next ;
 
 : normC ( c--c1 ) maxC min 1 max ;
@@ -73,31 +77,30 @@ variable critters #crits 1+ critter-sz * allot
 : paint-crits 1 #crits for i set-crit paint-crit next ;
 
 : move rand 3 and up? down? left? right? ;
-: work-crit unpaint-crit r6 4 + work-conns paint-crit ;
-: work-crits 1 #crits for i set-crit work-crit next ;
-: oneDay work-crits ;
+: work-conn ( a-- ) drop move ;
+: work-conns ( a-- ) 0 #conns for dup work-conn next-conn next drop ;
+: work-crit unpaint-crit crit-conns work-conns paint-crit ;
+: one-day 0 #crits for i set-crit work-crit next ;
 
 : dump-crit getCLR getCR swap i ." %d: (%d,%d) %d%n" ;
 : dump-crits 1 #crits for i set-crit dump-crit next ;
 
-: live CLS 0 365 for oneDay key? if unloop-f exit then next ;
-: T0 maxC getC - 10 <= r6 3 + c! ;
-: die 1 #crits for i set-crit T0 next ;
+: die? maxC getC - 10 <= setLiving ;
 : next-alive ( --a ) begin 
 		r7 critter-sz + s7
 		r7 critters-end > if critters s7 then
 		r7 3 + c@ if unloop-w exit then
 	while ;
 : copy-mutate ( n1--n2 ) ;
-: copy-cr rand-cr r6 4 + s9
+: copy-cr rand-cr 1 setLiving crit-conns s9
 	s7 4 + s8
 	1 #conns for 
 		r8 @ copy-mutate r9 !
 		r8 4 + s8 r9 4 + s9
 	next ;
-: T1 r6 3 + c@ if rand-cr else next-alive copy-cr then ;
+: T1 isDead? if rand-cr else next-alive copy-cr then ;
 : regen critters s7 1 #crits for i set-crit T1 next ;
 // : go rand-crits C-OFF begin live die regen key? until key drop 37 FG C-ON 1 maxR ->XY ;
-: go CLS CURSOR-OFF begin 0 #crits for i set-crit rand-crit paint-crit next key? until key drop 0 FG CURSOR-ON ;
-: test CLS CURSOR-OFF begin rand-crits paint-crits key? until key drop CURSOR-ON 0 FG ;
+: go CLS CURSOR-OFF rand-crits
+	begin one-day key? until key drop 0 FG CURSOR-ON ;
 : reload 222 load ;
