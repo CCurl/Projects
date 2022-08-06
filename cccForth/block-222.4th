@@ -12,9 +12,10 @@ maxC 1+ maxR 1+ * constant world-sz
 variable world world-sz allot
 
 500 constant #crits
-  8 constant #conns
+  1 constant #conns
+ 10 constant #life-days
 
-: rand-neu rand ;
+: rand-neu rand 255 and ;
 
 : worldClr 0 world world-sz fill-n ;
 : T0 ( c r--a ) maxC * + world + ;
@@ -44,10 +45,13 @@ variable critters #crits 1+ critter-sz * allot
 : next-crit	( a--b ) critter-sz + ;
 : critters-end critters critters-sz + ;
 
+: normX ( x--x1 ) maxC min 1 max ;
+: normY ( y--y1 ) maxR min 1 max ;
+
 : X@ ( crit--n )     c@ ;
-: X! ( n crit-- )    c! ;
+: X! ( n crit-- )    >R normX R> c! ;
 : Y@ ( crit--n )     1+ c@ ;
-: Y! ( n crit-- )    1+ c! ;
+: Y! ( n crit-- )    >R normY R> 1+ c! ;
 : XY@ ( crit--x y )  DUP >R X@ R> Y@ ;
 : CLR@ ( crit--n )   2+ c@ ;
 : CLR! ( n crit-- )  2+ c! ;
@@ -59,8 +63,7 @@ variable critters #crits 1+ critter-sz * allot
 : next-conn ( a--b )     4 + ;
 
 // : +rand rand abs ;
-: rand-mod  ( a b--c )  rand mod ;
-: rand-mod+ ( a b--c )  rand mod  + ;
+: rand-mod+ ( a b--c )  rand swap mod + ;
 : rand-XY   ( -- )      1 maxC rand-mod+ r6 X! 1 maxR rand-mod+ r6 Y! ;
 : rand-CLR  ( -- )      31 7 rand-mod+ r6 CLR! ;
 : rand-crit ( -- )      rand-XY rand-CLR TRUE r6 Alive! 
@@ -71,13 +74,10 @@ variable critters #crits 1+ critter-sz * allot
 : paint-crit   ( -- )  r6 CLR@ FG r6 XY@ ->XY '*' emit ;
 : paint-crits  ( -- )  1 #crits for i set-crit paint-crit next ;
 
-: normC ( c--c1 ) maxC min 1 max ;
-: normR ( r--r1 ) maxR min 1 max ;
-
-: up    r6 Y@ 1- normR r6 Y! ;
-: down  r6 Y@ 1+ normR r6 Y! ;
-: left  r6 X@ 1- normC r6 X! ;
-: right r6 X@ 1+ normC r6 X! ;
+: up    r6 Y@ 1- r6 Y! ;
+: down  r6 Y@ 1+ r6 Y! ;
+: left  r6 X@ 1- r6 X! ;
+: right r6 X@ 1+ r6 X! ;
 
 : up?    dup 0 = if up    then ;
 : down?  dup 1 = if down  then ;
@@ -104,16 +104,17 @@ variable critters #crits 1+ critter-sz * allot
 		r8 conn@ copy-conn r9 conn!
 		r8 next-conn s8 r9 next-conn s9
 	next ;
-: T1 ( -- ) r6 Alive? if rand-XY else next-alive copy-critter then ;
-: regen ( -- ) 0 ->crit s7 0 #crits for i set-crit T1 next ;
-: die? ( crit--f ) maxC X@ - 10 <= ;
+: spawn ( -- ) r6 Alive? if rand-XY else next-alive copy-critter then ;
+: regen ( -- ) 0 ->crit s7 0 #crits for i set-crit spawn next ;
+: die? ( crit--f ) X@ maxC - 10 ABS <= ;
 : cull       ( -- )   0 #crits for i ->crit DUP die? SWAP Alive! next ;
 : one-day    ( -- )   0 #crits for i ->crit s6 work-crit next ;
-: one-life   ( -- )   0 100 for one-day next ;
+: one-life   ( -- )   0 #life-days for one-day next ;
 : go rand-crits CURSOR-OFF 
-	begin one-life cull regen key? until key drop
+	begin CLS one-life cull regen key? until key drop
 	0 FG 1 maxR ->XY CURSOR-ON ;
 : test CLS CURSOR-OFF rand-crits
-	begin one-day key? until key drop 0 FG CURSOR-ON ;
+	begin one-day key? until key drop 
+	0 FG 1 maxR ->XY CURSOR-ON ;
 : reload 222 load ;
 : ed " notepad block-222.4th" system ;
