@@ -145,21 +145,23 @@ variable critters #crits critter-sz * allot
 		paint-crit
 	THEN ;
 
-: next-alive ( -- ) #crits s1 BEGIN 
-		r7 next-crit s7
-		r7 critters-end > IF critters s7 THEN
-		r7 Alive? IF UNLOOP-W EXIT THEN
-	d1 r1 WHILE ;
-: copy-byte ( n1--n2 ) RAND 1000 MOD 8 < IF 1 RAND 7 AND LSHIFT XOR THEN ;
-: copy-critter ( -- ) r6 ->conns s8 r7 ->conns s9
-	0 critter-sz FOR
-		r9 C@ copy-byte r8 C!
-		i9 i8
+: first-dead ( --crit ) 0 #crits FOR
+		I ->crit s9
+		r9 Dead? IF r9 UNLOOP-F EXIT THEN
 	NEXT
-	rand-CLR ;
-: spawn ( -- ) r6 Dead? IF next-alive copy-critter THEN rand-XY 1 r6 Age! ;
-: regen ( -- ) 0 ->crit s7 0 #crits FOR I set-crit spawn NEXT ;
-: kill? ( crit--f ) X@ maxC SWAP - 10 > ;
+	0 ->crit ;
+: copy-byte ( n1--n2 ) RAND 1000 MOD 8 < IF 1 RAND 7 AND LSHIFT XOR THEN ;
+: reproduce ( toCrit-- ) DUP s9 ->conns s8 r6 ->conns s7
+	0 critter-sz FOR
+		r7 C@ copy-byte r8 C!
+		i7 i8
+	NEXT 
+	1 r9 Age! ;
+: births  ( -- )  0 #crits FOR I set-crit r6 Alive? IF first-dead reproduce THEN NEXT ;
+: zombies ( -- )  0 #crits FOR I set-crit r6 Dead? IF rand-crit THEN NEXT ;
+: all-new 0 #crits FOR I set-crit rand-CLR rand-XY 1 r6 Age! NEXT ;
+: regen ( -- )  births zombies all-new ;
+: kill? ( crit--f )   X@ maxC SWAP - 10 > ;
 : cull       ( -- )   0 #crits FOR I set-crit r6 kill? IF r6 Kill! unpaint-crit THEN NEXT ;
 : one-year   ( -- )   0 #crits FOR I set-crit crit-wakeUp NEXT ;
 : one-life   ( -- )   0 #life-years FOR one-year NEXT ;
