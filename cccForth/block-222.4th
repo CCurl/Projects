@@ -1,7 +1,6 @@
 // A genetic algorithm
 
 1 load
-// 223 load
 
 // Register assignments
 // r6: current critter
@@ -11,35 +10,58 @@
 maxC 1+ maxR 1+ * constant world-sz
 variable world world-sz allot
 
+// holders for the neuron input values
+variable inputs  32 CELLS allot
+: >input  ( n--a )   31 AND CELLS inputs + ;
+: input@  ( n--x )   >input @ ;
+: input!  ( x n-- )  >input ! ;
+
+variable hiddens 32 CELLS allot
+: >hidden ( n--a )   31 AND CELLS hiddens + ;
+: hidden@ ( n--x )   >hidden @ ;
+: hidden! ( x n-- )  >hidden ! ;
+
+variable outputs 32 CELLS allot
+: >output ( n--a )   31 AND CELLS outputs + ;
+: output@ ( n--x )   >output @ ;
+: output! ( x n-- )  >output ! ;
+
+// neurons
+// [type:1][unused:2][id:5]
+// type: 0=>input/output,  1=>hidden
+: rand-neu  ( --neu )       RAND %10011111 AND ;
+: n-id-type ( n--id type )  DUP $1F AND SWAP 7 RSHIFT 1 AND ;
+: n-id      ( n--id )       n-id-type DROP ;
+: n-type    ( n--t )        n-id-type NIP ;
+: isHidden? ( n--f)         n-type ;
+: n-dump    ( n-- )         n-id-type ." (%d %d)" ;
+
+// connection
+// [from:8][to:8][weight:16]
+// from, to: [neuron]
+// weight: normalized to -400 to 400
+  4 constant conn-sz
+
+// neural connections
+: rand-conn ( --conn )  rand-neu 24 LSHIFT rand-neu 16 LSHIFT OR RAND $FFFF AND OR ;
+: c-input   ( c--neu )  #24 RSHIFT $FF AND ;
+: c-output  ( c--neu )  #16 RSHIFT $FF AND ;
+: c-weight  ( c--wgt )  $FFFF AND DUP #400 MOD SWAP $8000 AND IF NEGATE THEN ;
+: c-dump ( c-- ) dup c-input ." in: " n-dump
+	dup c-output ." , out: " n-dump
+	c-weight ." , wt: %d" ;
+
 500 constant #crits
-  1 constant #conns
+  4 constant #conns
 
 variable (years) 50 (years) !
  : #life-years (years) @ ;
 
-: rand-neu rand 255 and ;
-
-: worldClr 0 world world-sz fill-n ;
-: T0 ( c r--a ) maxC * + world + ;
-: w-set ( n c r--) T0 c! ;
-: w-get ( c r--n ) T0 C@ ;
-: w-paintR ( r-- ) 1 SWAP T0
-	1 maxC FOR DUP C@ DUP IF FG '*' else DROP bl THEN emit 1+ next
-	DROP cr ;
-: w-paint ( -- ) 1 1 ->XY 1 maxR FOR I w-paintR NEXT ;
-
-// connection
-// [from:8][to:8][weight:16]
-// from: [type:1][id:7] - type: 0=>input, 1=>hidden
-// to:   [type:1][id:7] - type: 0=>output, 1=>hidden
-// weight: normalized to -400 to 400
-4 constant conn-sz
-
 // critter:
 // [c:1][r:1][color:1][age:1][connections:#conns]
 #conns conn-sz * 4 +     constant critter-sz
-#crits 1+ critter-sz *   constant critters-sz
-variable critters #crits 1+ critter-sz * allot
+#crits critter-sz *   constant critters-sz
+variable critters #crits critter-sz * allot
 
 // r6: the current critter
 : ->crit ( n--a ) critter-sz * critters + ;
@@ -72,12 +94,18 @@ variable critters #crits 1+ critter-sz * allot
 : rand-XY   ( -- )      1 maxC rand-mod+ r6 X! 1 maxR rand-mod+ r6 Y! ;
 : rand-CLR  ( -- )      31 7 rand-mod+ r6 CLR! ;
 : rand-crit ( -- )      rand-XY rand-CLR 1 r6 Age! 
-	r6 ->conns 0 #conns FOR rand-neu over conn! next-conn NEXT DROP ;
+	r6 ->conns 0 #conns FOR rand-conn over conn! next-conn NEXT DROP ;
 : rand-crits 0 #crits FOR I set-crit rand-crit NEXT ;
 
 : unpaint-crit ( -- )  0 FG r6 XY@ ->XY space ;
 : paint-crit   ( -- )  r6 CLR@ FG r6 XY@ ->XY '*' emit ;
 : paint-crits  ( -- )  1 #crits FOR I set-crit paint-crit NEXT ;
+
+: dump-crit ( -- )   r6 CLR@ r6 XY@ SWAP I ." %d: (%d,%d) %d, " 
+	r6 Alive? IF ." (alive)" else ." (dead)" THEN cr 
+	r6 ->conns 0 #conns FOR DUP conn@ c-dump next-conn cr NEXT DROP ;
+: dump-crits ( --)   0 #crits FOR I set-crit dump-crit NEXT ;
+: dump-alive ( --)   0 #crits FOR I set-crit r6 Alive? IF dump-crit THEN NEXT ;
 
 : up    r6 Y@ 1- r6 Y! ;
 : down  r6 Y@ 1+ r6 Y! ;
@@ -91,22 +119,31 @@ variable critters #crits 1+ critter-sz * allot
 
 // NOTE: r5 is the current connection
 //       r6 is the current critter
-: get-input ( --n ) ( TODO! ) RAND 6 MOD ;
-: do-output ( n-- ) ( TODO! ) up? down? left? right? ;
-: work-conn  ( -- )  get-input do-output ;
-: crit-die? ( --f )  RAND 1000 MOD 995 > IF r6 Kill! TRUE ELSE FALSE THEN ;
-: crit-live ( -- )   r6 ->conns s5 0 #conns FOR work-conn r5 next-conn s5 NEXT ;
-: crit-wakeUp ( -- ) r6 Alive? IF
-		unpaint-crit r6 Age+
-		crit-die? IF EXIT THEN
+//
+// critter "live" algorithm: 
+// clear all input values (hidden and output neurons)
+// foreach connection (process inputs)
+// - connection input isHidden not if
+// - - derive output value (*weight)
+// - - add output value to output node (might be a hidden node)
+// foreach connection (process hiddens)
+// - connection input isHidden if
+// - - derive output value (*weight)
+// - - add output value to output node (might be hidden node)
+// foreach connection (process outputs)
+// - connection input isHidden not if
+// - - perform output based on value
+
+: crit-live ( -- )    ( TODO! ) RAND 6 MOD up? down? left? right? ;
+: crit-die? ( --f )   RAND 1000 MOD 998 > ;
+: crit-wakeUp ( -- )  
+	r6 Alive? IF
+		unpaint-crit
+		r6 Age+
+		crit-die? IF r6 Kill! EXIT THEN
 		crit-live
 		paint-crit
 	THEN ;
-
-: dump-crit ( -- )   r6 CLR@ r6 XY@ SWAP I ." %d: (%d,%d) %d, " 
-	r6 Alive? IF ." (alive)" else ." (dead)" THEN cr ;
-: dump-crits ( --)   0 #crits FOR I set-crit dump-crit NEXT ;
-: dump-alive ( --)   0 #crits FOR I set-crit r6 Alive? IF dump-crit THEN NEXT ;
 
 : next-alive ( -- ) #crits s1 BEGIN 
 		r7 next-crit s7
