@@ -40,7 +40,7 @@ VARIABLE outputs 32 CELLS allot
 // [from:8][to:8][weight:16]
 // from, to: [neuron]
 // weight: normalized to -400 to 400
-  4 constant conn-sz
+CELL constant conn-sz
 
 // neural connections
 : rand-conn ( --conn )  rand-neu 24 LSHIFT rand-neu 16 LSHIFT OR RAND $FFFF AND OR ;
@@ -60,7 +60,7 @@ VARIABLE (years) 20 (years) !
 
 // critter:
 // [c:1][r:1][color:1][age:1][connections:#conns]
-#conns conn-sz * 4 +     constant critter-sz
+#conns conn-sz * CELL +     constant critter-sz
 #crits critter-sz *   constant critters-sz
 VARIABLE critters #crits critter-sz * allot
 
@@ -86,10 +86,10 @@ VARIABLE critters #crits critter-sz * allot
 : Alive? ( crit--f ) Age@ ;
 : Dead? ( crit--f )  Age@ 0= ; // Age 0 => not alive
 : Kill! ( crit-- )   0 SWAP Age! ;
-: ->conns   ( crit--a )  4 + ;
+: ->conns   ( crit--a )  CELL + ;
 : conn@     ( a--b )     @ ;
 : conn!     ( n a-- )    ! ;
-: next-conn ( a--b )     4 + ;
+: next-conn ( a--b )     CELL + ;
 
 : rand-mod+ ( a b--c )  rand SWAP mod + ;
 : rand-XY   ( -- )      1 maxC rand-mod+ r6 X! 1 maxR rand-mod+ r6 Y! ;
@@ -176,4 +176,3 @@ VARIABLE gens 0 gens !
 	paint? IF 0 FG 1 maxR ->XY CURSOR-ON THEN 
 	gens @ ." (%d gens)" ;
 : reload 222 load ;
-: ed " notepad block-222.4th" system ;
