@@ -6,6 +6,8 @@ reset
 
 : vhere va @ vb + ;
 : here ha @ cb + ;
+: num-words la @ ;
+: used here cb - ;
 
 ( n a b -betw- f )
 : betw +tmps s3 s2 s1  r2 r1 <=  r1 r3 <=  and -tmps ;

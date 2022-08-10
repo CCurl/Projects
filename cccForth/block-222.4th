@@ -8,20 +8,20 @@
 200 constant maxC
  55 constant maxR
 maxC 1+ maxR 1+ * constant world-sz
-variable world world-sz allot
+VARIABLE world world-sz allot
 
 // holders for the neuron input values
-variable inputs  32 CELLS allot
+VARIABLE inputs  32 CELLS allot
 : >input  ( n--a )   31 AND CELLS inputs + ;
 : input@  ( n--x )   >input @ ;
 : input!  ( x n-- )  >input ! ;
 
-variable hiddens 32 CELLS allot
+VARIABLE hiddens 32 CELLS allot
 : >hidden ( n--a )   31 AND CELLS hiddens + ;
 : hidden@ ( n--x )   >hidden @ ;
 : hidden! ( x n-- )  >hidden ! ;
 
-variable outputs 32 CELLS allot
+VARIABLE outputs 32 CELLS allot
 : >output ( n--a )   31 AND CELLS outputs + ;
 : output@ ( n--x )   >output @ ;
 : output! ( x n-- )  >output ! ;
@@ -30,11 +30,11 @@ variable outputs 32 CELLS allot
 // [type:1][unused:2][id:5]
 // type: 0=>input/output,  1=>hidden
 : rand-neu  ( --neu )       RAND %10011111 AND ;
-: n-id-type ( n--id type )  DUP $1F AND SWAP 7 RSHIFT 1 AND ;
+: n-id-type ( n--id type )  DUP $1F AND SWAP $80 AND ;
 : n-id      ( n--id )       n-id-type DROP ;
 : n-type    ( n--t )        n-id-type NIP ;
 : isHidden? ( n--f)         n-type ;
-: n-dump    ( n-- )         n-id-type ." (%d %d)" ;
+: n-dump    ( n-- )         n-id-type 0= 0= ." (%d %d)" ;
 
 // connection
 // [from:8][to:8][weight:16]
@@ -54,14 +54,15 @@ variable outputs 32 CELLS allot
 500 constant #crits
   4 constant #conns
 
-variable (years) 10 (years) !
- : #life-years (years) @ ;
+VARIABLE (years) 20 (years) !
+: years@  (years) @ ;
+: years!  (years) ! ;
 
 // critter:
 // [c:1][r:1][color:1][age:1][connections:#conns]
 #conns conn-sz * 4 +     constant critter-sz
 #crits critter-sz *   constant critters-sz
-variable critters #crits critter-sz * allot
+VARIABLE critters #crits critter-sz * allot
 
 // r6: the current critter
 : ->crit ( n--a ) critter-sz * critters + ;
@@ -97,8 +98,12 @@ variable critters #crits critter-sz * allot
 	r6 ->conns 0 #conns FOR rand-conn over conn! next-conn NEXT DROP ;
 : rand-crits 0 #crits FOR I set-crit rand-crit NEXT ;
 
-: unpaint-crit ( -- )  0 FG r6 XY@ ->XY space ;
-: paint-crit   ( -- )  r6 CLR@ FG r6 XY@ ->XY '*' emit ;
+VARIABLE (paint) TRUE (paint) !
+: paint? (paint) @ ;
+: paint-on   TRUE  (paint) ! ;
+: paint-off  FALSE (paint) ! ;
+: unpaint-crit ( -- )  paint? IF 0 FG r6 XY@ ->XY space THEN ;
+: paint-crit   ( -- )  paint? IF r6 CLR@ FG r6 XY@ ->XY '*' emit THEN ;
 : paint-crits  ( -- )  1 #crits FOR I set-crit paint-crit NEXT ;
 
 : dump-crit ( -- )   r6 CLR@ r6 XY@ SWAP I ." %d: (%d,%d) %d, " 
@@ -146,28 +151,29 @@ variable critters #crits critter-sz * allot
 	THEN ;
 
 : first-dead ( --crit ) 
-	0 #crits FOR
-		I ->crit Dead? IF I ->crit UNLOOP-F EXIT THEN
-	NEXT
+	0 #crits FOR I ->crit Dead? IF I ->crit UNLOOP-F EXIT THEN NEXT
 	0 ->crit ;
 : copy-byte ( n1--n2 ) RAND 125 MOD .IF EXIT .THEN 1 RAND 7 AND LSHIFT XOR ;
 : reproduce ( -- ) first-dead s9
 	r6 ->conns s7  r9 ->conns s8
-	0 critter-sz FOR
-		r7 C@ copy-byte r8 C!
-		i7 i8
-	NEXT 
+	0 critter-sz FOR r7 C@ copy-byte r8 C! i7 i8 NEXT 
 	1 r9 Age! ;
-: births  ( -- )  0 #crits FOR I set-crit r6 Alive? IF reproduce THEN NEXT ;
+: num-dead   ( -- )  0 0 #crits FOR I ->crit Dead?  IF 1+ THEN NEXT ;
+: num-alive  ( -- )  0 0 #crits FOR I ->crit Alive? IF 1+ THEN NEXT ;
+: babies  ( -- )  0 #crits FOR I set-crit r6 Alive? IF reproduce THEN NEXT ;
 : zombies ( -- )  0 #crits FOR I set-crit r6 Dead?  IF rand-crit THEN NEXT ;
 : all-new  0 #crits FOR I set-crit rand-CLR rand-XY 1 r6 Age! NEXT ;
-: regen ( -- )  births zombies all-new ;
+: regen ( -- )  babies zombies all-new ;
 : kill? ( crit--f )   X@ maxC SWAP - 10 > ;
 : cull       ( -- )   0 #crits FOR I set-crit r6 kill? IF r6 Kill! unpaint-crit THEN NEXT ;
 : one-year   ( -- )   0 #crits FOR I set-crit crit-wakeUp NEXT ;
-: one-life   ( -- )   0 #life-years FOR one-year NEXT ;
-: go rand-crits CURSOR-OFF 
-	BEGIN CLS one-life cull regen key? UNTIL key DROP
-	0 FG 1 maxR ->XY CURSOR-ON ;
+: one-life   ( -- )   0 years@ FOR one-year NEXT ;
+VARIABLE gens 0 gens !
+: .stats paint? NOT IF num-dead num-alive ." alive: %d, dead: %d%n" THEN ;
+: go rand-crits 0 gens ! BEGIN
+		paint? IF CURSOR-OFF CLS THEN 1 gens +! one-life cull .stats regen key? 
+	UNTIL key DROP
+	paint? IF 0 FG 1 maxR ->XY CURSOR-ON THEN 
+	gens @ ." (%d gens)" ;
 : reload 222 load ;
 : ed " notepad block-222.4th" system ;
