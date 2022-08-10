@@ -54,7 +54,7 @@ variable outputs 32 CELLS allot
 500 constant #crits
   4 constant #conns
 
-variable (years) 50 (years) !
+variable (years) 10 (years) !
  : #life-years (years) @ ;
 
 // critter:
@@ -145,13 +145,15 @@ variable critters #crits critter-sz * allot
 		paint-crit
 	THEN ;
 
-: first-dead ( --crit ) 0 #crits FOR
+: first-dead ( --crit ) 
+	( 0 ->crit EXIT )
+	0 #crits FOR
 		I ->crit s9
 		r9 Dead? IF r9 UNLOOP-F EXIT THEN
 	NEXT
 	0 ->crit ;
 : copy-byte ( n1--n2 ) RAND 1000 MOD 8 < IF 1 RAND 7 AND LSHIFT XOR THEN ;
-: reproduce ( toCrit-- ) DUP s9 ->conns s8 r6 ->conns s7
+: reproduce ( toCrit-- ) s9  r6 ->conns s7  r9 ->conns s8
 	0 critter-sz FOR
 		r7 C@ copy-byte r8 C!
 		i7 i8
