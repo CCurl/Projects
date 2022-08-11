@@ -9,6 +9,9 @@ reset
 : num-words la @ ;
 : used here cb - ;
 
+: T0 DUP W@ ." %n%d: " DUP 4 + QTYPE ;
+: words-l db la @ 0 FOR T0 20 + NEXT DROP ;
+
 ( n a b -betw- f )
 : betw +tmps s3 s2 s1  r2 r1 <=  r1 r3 <=  and -tmps ;
 
