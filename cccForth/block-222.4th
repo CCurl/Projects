@@ -5,10 +5,19 @@
 // Register assignments
 // r6: current critter
 
-200 constant maxC
- 55 constant maxR
-maxC 1+ maxR 1+ * constant world-sz
+VARIABLE (max-c)
+: max-c  (max-c) @ ;
+: max-c! (max-c) ! ;
+300 max-c!
+
+VARIABLE (max-r)
+: max-r  (max-r) @ ;
+: max-r! (max-r) ! ;
+100 max-r!
+
+max-c 1+ max-r 1+ * constant world-sz
 VARIABLE world world-sz allot
+150 max-c! 50 max-r!
 
 // holders for the neuron input values
 VARIABLE inputs  32 CELLS allot
@@ -51,12 +60,19 @@ CELL constant conn-sz
 	dup c-output ." , out: " n-dump
 	c-weight ." , wt: %d" ;
 
-500 constant #crits
-  4 constant #conns
+VARIABLE (#crits)
+: #crits  (#crits) @ ;
+: #crits! (#crits) ! ;
+500 #crits!
+
+VARIABLE (#conns)
+: #conns  (#conns) @ ;
+: #conns! (#conns) ! ;
+4 #conns!
 
 VARIABLE (years) 20 (years) !
-: years@  (years) @ ;
-: years!  (years) ! ;
+: years  (years) @ ;
+: years! (years) ! ;
 
 // critter:
 // [c:1][r:1][color:1][age:1][connections:#conns]
@@ -70,8 +86,8 @@ VARIABLE critters #crits critter-sz * allot
 : next-crit	( a--b ) critter-sz + ;
 : critters-end critters critters-sz + ;
 
-: normX ( x--x1 ) maxC min 1 max ;
-: normY ( y--y1 ) maxR min 1 max ;
+: normX ( x--x1 ) max-c min 1 max ;
+: normY ( y--y1 ) max-r min 1 max ;
 
 : X@ ( crit--n )     C@ ;
 : X! ( n crit-- )    SWAP normX SWAP c! ;
@@ -92,7 +108,7 @@ VARIABLE critters #crits critter-sz * allot
 : next-conn ( a--b )     CELL + ;
 
 : rand-mod+ ( a b--c )  rand SWAP mod + ;
-: rand-XY   ( -- )      1 maxC rand-mod+ r6 X! 1 maxR rand-mod+ r6 Y! ;
+: rand-XY   ( -- )      1 max-c rand-mod+ r6 X! 1 max-r rand-mod+ r6 Y! ;
 : rand-CLR  ( -- )      31 7 rand-mod+ r6 CLR! ;
 : rand-crit ( -- )      rand-XY rand-CLR 1 r6 Age! 
 	r6 ->conns 0 #conns FOR rand-conn over conn! next-conn NEXT DROP ;
@@ -164,15 +180,15 @@ VARIABLE (paint) TRUE (paint) !
 : zombies ( -- )  0 #crits FOR I set-crit r6 Dead?  IF rand-crit THEN NEXT ;
 : all-new  0 #crits FOR I set-crit rand-CLR rand-XY 1 r6 Age! NEXT ;
 : regen ( -- )  babies zombies all-new ;
-: kill? ( crit--f )   X@ maxC SWAP - 10 > ;
+: kill? ( crit--f )   X@ max-c SWAP - 10 > ;
 : cull       ( -- )   0 #crits FOR I set-crit r6 kill? IF r6 Kill! unpaint-crit THEN NEXT ;
 : one-year   ( -- )   0 #crits FOR I set-crit crit-wakeUp NEXT ;
-: one-life   ( -- )   0 years@ FOR one-year NEXT ;
+: one-life   ( -- )   0 years FOR one-year NEXT ;
 VARIABLE gens 0 gens !
 : .stats paint? NOT IF num-dead num-alive ." alive: %d, dead: %d%n" THEN ;
 : go rand-crits 0 gens ! BEGIN
 		paint? IF CURSOR-OFF CLS THEN 1 gens +! one-life cull .stats regen key? 
 	UNTIL key DROP
-	paint? IF 0 FG 1 maxR ->XY CURSOR-ON THEN 
+	paint? IF 0 FG 1 max-r ->XY CURSOR-ON THEN 
 	gens @ ." (%d gens)" ;
 : reload 222 load ;
