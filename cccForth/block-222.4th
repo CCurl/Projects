@@ -154,6 +154,9 @@ VARIABLE (paint) TRUE (paint) !
 // foreach connection (process outputs)
 // - connection input isHidden not if
 // - - perform output based on value
+// A crude approximation of tanh(x)
+: tanh ( n1--n2 ) dup 82 < if 85 * 100 / else 25 * 100 / 49 + then 99 min -99 max ;
+: tanh-graph ( -- )  0 300 for i tanh 100 swap - i swap ->XY '*' emit next ;
 
 : crit-live ( -- )    ( TODO! ) RAND 6 MOD up? down? left? right? ;
 : crit-die? ( --f )   RAND 1000 MOD 998 > ;
@@ -174,21 +177,23 @@ VARIABLE (paint) TRUE (paint) !
 	r6 ->conns s7  r9 ->conns s8
 	0 critter-sz FOR r7 C@ copy-byte r8 C! i7 i8 NEXT 
 	1 r9 Age! ;
-: num-dead   ( -- )  0 0 #crits FOR I ->crit Dead?  IF 1+ THEN NEXT ;
-: num-alive  ( -- )  0 0 #crits FOR I ->crit Alive? IF 1+ THEN NEXT ;
+: num-dead   ( --n )  0 0 #crits FOR I ->crit Dead?  IF 1+ THEN NEXT ;
+: num-alive  ( --n )  0 0 #crits FOR I ->crit Alive? IF 1+ THEN NEXT ;
 : babies  ( -- )  0 #crits FOR I set-crit r6 Alive? IF reproduce THEN NEXT ;
 : zombies ( -- )  0 #crits FOR I set-crit r6 Dead?  IF rand-crit THEN NEXT ;
-: all-new  0 #crits FOR I set-crit rand-CLR rand-XY 1 r6 Age! NEXT ;
+: all-new ( -- )  0 #crits FOR I set-crit rand-CLR rand-XY 1 r6 Age! NEXT ;
 : regen ( -- )  babies zombies all-new ;
 : kill? ( crit--f )   X@ max-c SWAP - 10 > ;
 : cull       ( -- )   0 #crits FOR I set-crit r6 kill? IF r6 Kill! unpaint-crit THEN NEXT ;
 : one-year   ( -- )   0 #crits FOR I set-crit crit-wakeUp NEXT ;
 : one-life   ( -- )   0 years FOR one-year NEXT ;
 VARIABLE gens 0 gens !
-: .stats paint? NOT IF num-dead num-alive ." alive: %d, dead: %d%n" THEN ;
+: .stats num-dead num-alive gens @ ." gen %d: alive: %d, dead: %d%n" ;
 : go rand-crits 0 gens ! BEGIN
-		paint? IF CURSOR-OFF CLS THEN 1 gens +! one-life cull .stats regen key? 
+		paint? IF CURSOR-OFF CLS THEN
+		1 gens +! one-life cull 
+		paint? NOT IF .stats THEN
+		regen key? 
 	UNTIL key DROP
-	paint? IF 0 FG 1 max-r ->XY CURSOR-ON THEN 
-	gens @ ." (%d gens)" ;
+	paint? IF 0 FG 1 max-r ->XY CURSOR-ON THEN  ;
 : reload 222 load ;
