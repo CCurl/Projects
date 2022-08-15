@@ -25,34 +25,35 @@ variable ln cols allot
     3 = if drop 1 exit then
     drop 0 ;
 
-: rand-pop 0 pop-sz for rand $FF and #200 > i pop + c! next ;
-: clr-bak bak s1 0 pop-sz for 0 r1 c! i1 next ;
-: bak->pop 0 pop-sz for 
+: rand-pop pop s0 pop-sz 0 do rand $FF and #200 > r0 c! i0 loop ;
+: clr-bak bak s1 pop-sz 0 do 0 r1 c! i1 loop ;
+: bak->pop pop-sz 0 do
         i bak + s1 i pop + s2
-        r2 c@ r1 c@ alive? 
-        r2 c! 
-      0 r1 c!
-    next ;
+        r2 c@ r1 c@ alive? r2 c! 
+        0 r1 c!
+    loop ;
 
 : ->p ( c r -- v ) cols * + pop + ;
 : ->b ( c r -- v ) cols * + bak + ;
 
 : .pop 1 dup ->XY
-    1 rows 1+ for ln s6 
-        1 cols 1+ for i j ->p c@ if '*' else bl then r6 c! i6 next 
+    rows 1+ 1 do ln s6 
+        cols 1+ 1 do i j ->p c@ if '*' else bl then r6 c! i6 loop
         0 r6 c! ln qtype cr
-    next ;
+    loop ;
 
 : one-gen 1 1 ->b s4
-    1 1 ->p cols rows ->p
-    for i c@ if b++ then i4 next
+    cols rows ->p 1 1 ->p
+    do i c@ if b++ then i4 loop
     bak->pop .pop r7 . i7 ;
 
 // 65 (r) ! 200 (c) !
-40 rows! 150 cols!
+60 rows! 150 cols!
 : gen? one-gen key? ;
-: gens 0 for gen? if unloop-f key drop exit then next ;
+: gens 0 do gen? if key drop unloop exit then loop ;
 : life 1 s7 clr-bak rand-pop 
    OFF CURSOR
    CLS 2000 gens
    ON CURSOR ;
+: reload 111 load ;
+life
