@@ -71,7 +71,7 @@ VARIABLE (#conns)
 4 #conns!
 
 VARIABLE (years) 20 (years) !
-: years  (years) @ ;
+: #years (years) @ ;
 : years! (years) ! ;
 
 // critter:
@@ -111,8 +111,8 @@ VARIABLE critters #crits critter-sz * allot
 : rand-XY   ( -- )      1 max-c rand-mod+ r6 X! 1 max-r rand-mod+ r6 Y! ;
 : rand-CLR  ( -- )      31 7 rand-mod+ r6 CLR! ;
 : rand-crit ( -- )      rand-XY rand-CLR 1 r6 Age! 
-	r6 ->conns 0 #conns FOR rand-conn over conn! next-conn NEXT DROP ;
-: rand-crits 0 #crits FOR I set-crit rand-crit NEXT ;
+	r6 ->conns #conns 0 DO rand-conn over conn! next-conn LOOP DROP ;
+: rand-crits   #crits 0 DO I set-crit rand-crit LOOP ;
 
 VARIABLE (paint) TRUE (paint) !
 : paint? (paint) @ ;
@@ -120,13 +120,13 @@ VARIABLE (paint) TRUE (paint) !
 : paint-off  FALSE (paint) ! ;
 : unpaint-crit ( -- )  paint? IF 0 FG r6 XY@ ->XY space THEN ;
 : paint-crit   ( -- )  paint? IF r6 CLR@ FG r6 XY@ ->XY '*' emit THEN ;
-: paint-crits  ( -- )  1 #crits FOR I set-crit paint-crit NEXT ;
+: paint-crits  ( -- )  #crits 0 DO I set-crit paint-crit LOOP ;
 
 : dump-crit ( -- )   r6 CLR@ r6 XY@ SWAP I ." %d: (%d,%d) %d, " 
 	r6 Alive? IF ." (alive)" else ." (dead)" THEN cr 
-	r6 ->conns 0 #conns FOR DUP conn@ c-dump next-conn cr NEXT DROP ;
-: dump-crits ( --)   0 #crits FOR I set-crit dump-crit NEXT ;
-: dump-alive ( --)   0 #crits FOR I set-crit r6 Alive? IF dump-crit THEN NEXT ;
+	r6 ->conns #conns 0 DO DUP conn@ c-dump next-conn cr LOOP DROP ;
+: dump-crits ( --)   #crits 0 DO I set-crit dump-crit LOOP ;
+: dump-alive ( --)   #crits 0 DO I set-crit r6 Alive? IF dump-crit THEN LOOP ;
 
 : up    r6 Y@ 1- r6 Y! ;
 : down  r6 Y@ 1+ r6 Y! ;
@@ -156,7 +156,7 @@ VARIABLE (paint) TRUE (paint) !
 // - - perform output based on value
 // A crude approximation of tanh(x)
 : tanh ( n1--n2 ) dup 82 < if 85 * 100 / else 25 * 100 / 49 + then 99 min -99 max ;
-: tanh-graph ( -- )  0 300 for i tanh 100 swap - i swap ->XY '*' emit next ;
+: tanh-graph ( -- )  300 0 DO i tanh 100 swap - i swap ->XY '*' emit LOOP ;
 
 : crit-live ( -- )    ( TODO! ) RAND 6 MOD up? down? left? right? ;
 : crit-die? ( --f )   RAND 1000 MOD 998 > ;
@@ -170,23 +170,23 @@ VARIABLE (paint) TRUE (paint) !
 	THEN ;
 
 : first-dead ( --crit ) 
-	0 #crits FOR I ->crit Dead? IF I ->crit UNLOOP-F EXIT THEN NEXT
+	#crits 0 DO I ->crit Dead? IF I ->crit UNLOOP EXIT THEN LOOP
 	0 ->crit ;
 : copy-byte ( n1--n2 ) RAND 125 MOD .IF EXIT .THEN 1 RAND 7 AND LSHIFT XOR ;
 : reproduce ( -- ) first-dead s9
 	r6 ->conns s7  r9 ->conns s8
-	0 critter-sz FOR r7 C@ copy-byte r8 C! i7 i8 NEXT 
+	critter-sz 0 DO r7 C@ copy-byte r8 C! i7 i8 LOOP
 	1 r9 Age! ;
-: num-dead   ( --n )  0 0 #crits FOR I ->crit Dead?  IF 1+ THEN NEXT ;
-: num-alive  ( --n )  0 0 #crits FOR I ->crit Alive? IF 1+ THEN NEXT ;
-: babies  ( -- )  0 #crits FOR I set-crit r6 Alive? IF reproduce THEN NEXT ;
-: zombies ( -- )  0 #crits FOR I set-crit r6 Dead?  IF rand-crit THEN NEXT ;
-: all-new ( -- )  0 #crits FOR I set-crit rand-CLR rand-XY 1 r6 Age! NEXT ;
+: num-dead   ( --n )  0 #crits 0 DO I ->crit Dead?  IF 1+ THEN LOOP ;
+: num-alive  ( --n )  0 #crits 0 DO I ->crit Alive? IF 1+ THEN LOOP ;
+: babies  ( -- )  #crits 0 DO I set-crit r6 Alive? IF reproduce THEN LOOP ;
+: zombies ( -- )  #crits 0 DO I set-crit r6 Dead?  IF rand-crit THEN LOOP ;
+: all-new ( -- )  #crits 0 DO I set-crit rand-CLR rand-XY 1 r6 Age!  LOOP ;
 : regen ( -- )  babies zombies all-new ;
 : kill? ( crit--f )   X@ max-c SWAP - 10 > ;
-: cull       ( -- )   0 #crits FOR I set-crit r6 kill? IF r6 Kill! unpaint-crit THEN NEXT ;
-: one-year   ( -- )   0 #crits FOR I set-crit crit-wakeUp NEXT ;
-: one-life   ( -- )   0 years FOR one-year NEXT ;
+: cull       ( -- )   #crits 0 DO I set-crit r6 kill? IF r6 Kill! unpaint-crit THEN LOOP ;
+: one-year   ( -- )   #crits 0 DO I set-crit crit-wakeUp LOOP ;
+: one-life   ( -- )   #years 0 DO one-year LOOP ;
 VARIABLE gens 0 gens !
 : .stats num-dead num-alive gens @ ." gen %d: alive: %d, dead: %d%n" ;
 : go rand-crits 0 gens ! BEGIN
