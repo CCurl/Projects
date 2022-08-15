@@ -12,16 +12,16 @@ reset
 : used here cb - ;
 
 : T1 ( a-- ) DUP 4 + SWAP W@ ." %n%i: %s" ;
-: words-l db num-words 0 FOR DUP T1 20 + NEXT DROP ;
+: words-l db num-words 0 DO DUP T1 20 + LOOP DROP ;
 
 ( n a b -betw- f )
-: betw +tmps s3 s2 s1  r2 r1 <=  r1 r3 <=  and -tmps ;
+: betw +TMPS s3 s2 s1  r2 r1 <=  r1 r3 <=  and -TMPS ;
 : min ( a b--x ) OVER OVER > .if SWAP .then DROP ;
 : max ( a b--x ) OVER OVER < .if SWAP .then DROP ;
 
 : .char ( c-- ) DUP BL $7E betw .if EMIT EXIT .then ." (%d)" ;
-: fill ( c f t-- ) for dup i c! next drop ;
-: fill-n ( c a n-- ) over + fill ;
+: fill ( c f t-- ) SWAP DO DUP I C! LOOP DROP ;
+: fill-n ( c a n-- ) OVER + fill ;
 : ON 1 ; : OFF 0 ;
 
 // Screen stuff
