@@ -20,25 +20,28 @@ VARIABLE world world-sz allot
 150 max-c! 50 max-r!
 
 // holders for the neuron input values
-VARIABLE inputs  32 CELLS allot
-: >input  ( n--a )   31 AND CELLS inputs + ;
+8 CONSTANT #input
+VARIABLE inputs  #input CELLS allot
+: >input  ( n--a )   #input 1- AND CELLS inputs + ;
 : input@  ( n--x )   >input @ ;
 : input!  ( x n-- )  >input ! ;
 
-VARIABLE hiddens 32 CELLS allot
-: >hidden ( n--a )   31 AND CELLS hiddens + ;
+8 CONSTANT #hidden
+VARIABLE hiddens #hidden CELLS allot
+: >hidden ( n--a )   #hidden 1- AND CELLS hiddens + ;
 : hidden@ ( n--x )   >hidden @ ;
 : hidden! ( x n-- )  >hidden ! ;
 
-VARIABLE outputs 32 CELLS allot
-: >output ( n--a )   31 AND CELLS outputs + ;
+8 CONSTANT #output
+VARIABLE outputs #output CELLS allot
+: >output ( n--a )   #output 1- AND CELLS outputs + ;
 : output@ ( n--x )   >output @ ;
 : output! ( x n-- )  >output ! ;
 
 // neurons
 // [type:1][unused:2][id:5]
 // type: 0=>input/output,  1=>hidden
-: rand-neu  ( --neu )       RAND %10011111 AND ;
+: rand-neu  ( --neu )       RAND %10000111 AND ;
 : n-id-type ( n--id type )  DUP $1F AND SWAP $80 AND ;
 : n-id      ( n--id )       n-id-type DROP ;
 : n-type    ( n--t )        n-id-type NIP ;
@@ -128,15 +131,11 @@ VARIABLE (paint) TRUE (paint) !
 : dump-crits ( --)   #crits 0 DO I set-crit dump-crit LOOP ;
 : dump-alive ( --)   #crits 0 DO I set-crit r6 Alive? IF dump-crit THEN LOOP ;
 
+// Critter actions
 : up    r6 Y@ 1- r6 Y! ;
 : down  r6 Y@ 1+ r6 Y! ;
 : left  r6 X@ 1- r6 X! ;
 : right r6 X@ 1+ r6 X! ;
-
-: up?    DUP 0 = IF up    THEN ;
-: down?  DUP 1 = IF down  THEN ;
-: left?  DUP 2 = IF left  THEN ;
-: right?     3 > IF right THEN ;
 
 // NOTE: r5 is the current connection
 //       r6 is the current critter
@@ -154,11 +153,23 @@ VARIABLE (paint) TRUE (paint) !
 // foreach connection (process outputs)
 // - connection input isHidden not if
 // - - perform output based on value
-// A crude approximation of tanh(x)
-: tanh ( n1--n2 ) dup 82 < if 85 * 100 / else 25 * 100 / 49 + then 99 min -99 max ;
-: tanh-graph ( -- )  300 0 DO i tanh 100 swap - i swap ->XY '*' emit LOOP ;
 
-: crit-live ( -- )    ( TODO! ) RAND 6 MOD up? down? left? right? ;
+// A crude approximation of tanh(x)
+: tanh ( n1--n2 ) DUP 82 < IF 85 * 100 / ELSE 25 * 100 / 49 + THEN 99 min -99 max ;
+: tanh-graph ( -- )  300 0 DO i tanh 100 swap - i swap ->XY '*' emit LOOP ;
+: fire? ( n--f ) tanh RAND ABS #100 MOD >= ;
+
+: clear-neurons ( -- ) 
+	inputs  #input  0 DO 0 OVER ! CELL+ LOOP DROP
+	hiddens #hidden 0 DO 0 OVER ! CELL+ LOOP DROP
+	outputs #output 0 DO 0 OVER ! CELL+ LOOP DROP ;
+
+: up?    DUP 0 = IF up    THEN ;
+: down?  DUP 1 = IF down  THEN ;
+: left?  DUP 2 = IF left  THEN ;
+: right?     3 > IF right THEN ;
+
+: crit-live ( -- )  ( TODO! ) RAND 6 MOD up? down? left? right? ;
 : crit-die? ( --f )   RAND 1000 MOD 998 > ;
 : crit-wakeUp ( -- )  
 	r6 Alive? IF
