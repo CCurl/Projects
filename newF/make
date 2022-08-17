@@ -1,3 +1,0 @@
-#/bin/sh
-clang -D__LINUX__ -Ofast -onewF *.cpp
-ls -l ./newF
