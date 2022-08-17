@@ -52,8 +52,8 @@ variable ln cols allot
 : gen? one-gen key? ;
 : gens 0 do gen? if key drop unloop exit then loop ;
 : life 1 s7 clr-bak rand-pop 
-   OFF CURSOR
+   CURSOR-OFF
    CLS 2000 gens
-   ON CURSOR ;
+   CURSOR-ON ;
 : reload 111 load ;
 life
