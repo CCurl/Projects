@@ -41,12 +41,12 @@ VARIABLE outputs #output CELLS allot
 // neurons
 // [type:1][unused:2][id:5]
 // type: 0=>input/output,  1=>hidden
-: rand-neu  ( --neu )       RAND %10000111 AND ;
-: n-id-type ( n--id type )  DUP $1F AND SWAP $80 AND ;
-: n-id      ( n--id )       n-id-type DROP ;
-: n-type    ( n--t )        n-id-type NIP ;
-: isHidden? ( n--f)         n-type ;
-: n-dump    ( n-- )         n-id-type 0= 0= ." (%d %d)" ;
+: rand-neu   ( --neu )       RAND %10000111 AND ;
+: n-id-type  ( n--id type )  DUP $1F AND SWAP $80 AND ;
+: n-id       ( n--id )       n-id-type DROP ;
+: n-type     ( n--t )        n-id-type NIP ;
+: is-hidden? ( t--f )        ;
+: n-dump     ( n-- )         n-id-type 0= 0= ." (%d %d)" ;
 
 // connection
 // [from:8][to:8][weight:16]
@@ -59,7 +59,7 @@ CELL constant conn-sz
 : c-input   ( c--neu )  #24 RSHIFT $FF AND ;
 : c-output  ( c--neu )  #16 RSHIFT $FF AND ;
 : c-weight  ( c--wgt )  $FFFF AND DUP #400 MOD SWAP $8000 AND IF NEGATE THEN ;
-: c-dump ( c-- ) dup c-input ." in: " n-dump
+: c-dump    ( c-- )     dup c-input ." in: " n-dump
 	dup c-output ." , out: " n-dump
 	c-weight ." , wt: %d" ;
 
@@ -105,9 +105,10 @@ VARIABLE critters #crits critter-sz * allot
 : Alive? ( crit--f ) Age@ ;
 : Dead? ( crit--f )  Age@ 0= ; // Age 0 => not alive
 : Kill! ( crit-- )   0 SWAP Age! ;
+
 : ->conns   ( crit--a )  CELL + ;
-: conn@     ( a--b )     @ ;
-: conn!     ( n a-- )    ! ;
+: conn@     ( a--c )     @ ;
+: conn!     ( c a-- )    ! ;
 : next-conn ( a--b )     CELL + ;
 
 : rand-mod+ ( a b--c )  rand SWAP mod + ;
@@ -169,7 +170,22 @@ VARIABLE (paint) TRUE (paint) !
 : left?  DUP 2 = IF left  THEN ;
 : right?     3 > IF right THEN ;
 
-: crit-live ( -- )  ( TODO! ) RAND 6 MOD up? down? left? right? ;
+: process-input  ( n--x ) DROP 1 ;
+: process-hidden ( n--x ) DROP 1 ;
+: process-output ( n--x ) DROP 1 ;
+
+: do-input  ( -- ) r9 c-input  n-id-type is-hidden? 0= IF process-input  THEN DROP ;
+: do-hidden ( -- ) r9 c-input  n-id-type is-hidden?    IF process-hidden THEN DROP ;
+: do-output ( -- ) r9 c-output n-id-type is-hidden? 0= IF process-output THEN DROP ;
+
+: do-inputs	 ( ca-- ) #conns 0 DO DUP conn@ s9 do-input  next-conn LOOP DROP ;
+: do-hiddens ( ca-- ) #conns 0 DO DUP conn@ s9 do-hidden next-conn LOOP DROP ;
+: do-outputs ( ca-- ) #conns 0 DO DUP conn@ s9 do-output next-conn LOOP DROP ;
+
+: crit-live ( -- ) clear-neurons r6 ->conns >R
+	R@ do-inputs
+	R@ do-hiddens
+	R> do-outputs ;
 : crit-die? ( --f )   RAND 1000 MOD 998 > ;
 : crit-wakeUp ( -- )  
 	r6 Alive? IF
