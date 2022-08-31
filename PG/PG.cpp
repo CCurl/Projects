@@ -1,376 +1,118 @@
-// R4 - A Minimal Interpreter
-
-#define  _CRT_SECURE_NO_WARNINGS
-
-#include <windows.h>
-#include <varargs.h>
+// pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
 #include <stdio.h>
-#include <conio.h>
+#include <Windows.h>
 
-typedef unsigned char byte;
-typedef unsigned char *addr;
-typedef long CELL;
-typedef unsigned long UCELL;
-typedef unsigned short ushort;
+#define PGM_SZ 256
+#define VAR_SZ 2560
 
-#define STK_SZ       15
-#define LSTACK_SZ     8
-#define NUM_FUNCS    26
-#define NUM_REGS     26
-#define USER_SZ     (32*1024)
-#define LPC          10    // Locals Per Call
-
-#define CELL_SZ    sizeof(CELL)
-#define INDEX      reg[8]
-#define TOS        dstack[dsp]
-#define A          (addr)TOS
-#define NOS        dstack[dsp-1]
-#define R          rstack[dsp]
-#define DROP1      pop()
-#define DROP2      pop(); pop()
-#define BetweenI(n, x, y) (((x) <= (n)) && ((n) <= (y)))
-#define isLocal(x) (('0' <= (x)) && ((x) <= '9'))
-#define isRegChar(x) (('A' <= (x)) && ((x) <= 'Z'))
-#define isReg(n) ((0 <= (n)) && ((n) < NUM_REGS))
-#define isFunc(n) ((0 <= (n)) && ((n) < NUM_FUNCS))
-#define ABS(x) ((x < 0) ? -x : x)
-
-
+typedef unsigned long CELL;
+typedef void (*funcPtr)();
 typedef struct {
-    addr start;
-    CELL from;
-    CELL to;
-    addr end;
-} LOOP_ENTRY_T;
+    funcPtr xt;
+    byte flags;
+    byte sz;
+    char name[14];
+} DICT_T;
 
+#define TOS stk[sp]
+#define NOS stk[sp-1]
+#define PUSH(x) stk[++sp]=x
+#define POP stk[sp--]
+#define DROP sp--
+#define DROP2 sp-=2
+#define RPUSH(x) rstk[++rsp]=x
+#define RPOP rstk[rsp--]
 
-byte ir, isBye = 0;
-static char buf[96];
-addr pc, HERE;
-CELL n1, t1, seed = 0;
-ushort dsp, rsp, lsp, locStart;
-CELL   dstack[STK_SZ + 1];
-addr   rstack[STK_SZ + 1];
-LOOP_ENTRY_T lstack[LSTACK_SZ + 1];
-addr   func[NUM_FUNCS];
-CELL   reg[NUM_REGS];
-byte   user[USER_SZ];
-CELL locals[STK_SZ * LPC];
-int isError, paramNum;
+int ip, here, sp, rsp, vhere, base, state;
+funcPtr next;
+CELL t, n, stk[32], rstk[32];
+funcPtr pgm[PGM_SZ+1];
+byte vars[VAR_SZ+1];
 
-void push(CELL v) { if (dsp < STK_SZ) { dstack[++dsp] = v; } }
-CELL pop() { return (dsp) ? dstack[dsp--] : 0; }
+void doNOP() { }
+void doBREAK() { /* TODO! */ }
+void doRETURN() { if (rsp) { ip=RPOP; } else { ip=PGM_SZ; pgm[ip]=0; } }
+void doCALL() { if (pgm[ip]!=doRETURN) { RPUSH(ip+1); } ip=(int)pgm[ip]; }
+void doDUP() { t = TOS; PUSH(t); }
+void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
+void doOVER() { t = NOS; PUSH(t); }
+void doDROP() { if (sp) { DROP; } }
+void doJMP() { ip = (CELL)pgm[ip]; }
+void doDO() { RPUSH(ip); RPUSH(NOS); RPUSH(POP); DROP; }
+void doI() { PUSH(rstk[rsp]); }
+void doJ() { PUSH(rstk[rsp-4]); }
+void doLOOP() { if (++rstk[rsp] < rstk[rsp-1]) { ip=rstk[rsp-2]; } else { rsp-=3; } }
+void doBEGIN() { RPUSH(ip); }
+void doWHILE() { if (POP) { ip=rstk[rsp]; } else { rsp--; } }
+void doAGAIN() { ip=rstk[rsp]; }
+void doLIT() { PUSH((CELL)pgm[ip++]); }
+void do0BRANCH() { t = (CELL)pgm[ip++]; if (POP == 0) { ip = t; } }
+void doDOTD() { printf("%d", POP); }
+void doDOTH() { printf("%x", POP); }
+void doEMIT() { printf("%c", POP); }
+void doSEMI() { pgm[here++] = doRETURN; state = 0; }
+void doFETCH() { TOS=*(CELL*)&vars[TOS]; }
+void doCFETCH() { TOS = vars[TOS]; }
+void doSTORE() { *(CELL*)&vars[TOS] = NOS; DROP2; }
+void doCSTORE() { vars[TOS] = (byte)NOS; DROP2; }
+void doEQ() { NOS = (NOS == TOS) ? 1 : 0; DROP; }
+void doLT() { NOS = (NOS <  TOS) ? 1 : 0; DROP; }
+void doGT() { NOS = (NOS >  TOS) ? 1 : 0; DROP; }
+void doADD() { NOS += TOS; DROP; }
+void doSUB() { NOS -= TOS; DROP; }
+void doMUL() { NOS *= TOS; DROP; }
+void doDIV() { NOS /= TOS; DROP; }
+void doAND() { NOS &= TOS; DROP; }
+void doOR()  { NOS |= TOS; DROP; }
+void doXOR() { NOS ^= TOS; DROP; }
+void doCOM() { TOS = ~TOS; }
 
-inline void rpush(addr v) { if (rsp < STK_SZ) { rstack[++rsp] = v; } }
-inline addr rpop() { return (rsp) ? rstack[rsp--] : 0; }
-
-int fncSp;
-char *fncStk[8];
-inline void fncPush(char *v) { if (fncSp < 7) { fncStk[++fncSp] = v; } }
-inline char *fncPop() { return (fncSp) ? fncStk[fncSp--] : 0; }
-
-int dstSp;
-CELL *dstStk[8];
-inline void dstPush(CELL *v) { if (dstSp < 7) { dstStk[++dstSp] = v; } }
-inline CELL *dstPop() { return (dstSp) ? dstStk[dstSp--] : 0; }
-
-static float flstack[STK_SZ + 1];
-static int flsp = 0;
-
-#define fT flstack[flsp]
-#define fN flstack[flsp-1]
-#define fDROP1 flpop()
-#define fDROP2 flpop(); flpop();
-static void flpush(float v) { if (flsp < STK_SZ) { flstack[++flsp] = v; } }
-static float flpop() { return (flsp) ? flstack[flsp--] : 0; }
-
-#define lAt() (&lstack[lsp])
-inline LOOP_ENTRY_T* lpush() { if (lsp < STK_SZ) { ++lsp; } return lAt(); }
-inline LOOP_ENTRY_T* ldrop() { if (0 < lsp) { --lsp; } return lAt(); }
-
-void vmInit() {
-    dsp = rsp = lsp = flsp = locStart = 0;
-    for (int i = 0; i < NUM_REGS; i++) { reg[i] = 0; }
-    for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
-    for (int i = 0; i < NUM_FUNCS; i++) { func[i] = 0; }
-    HERE = &user[0];
+void doCREATE() {
+    // TODO!!
 }
 
-void printChar(const char c) { printf("%c", c); }
-void printString(const char* str) { printf("%s", str); }
-CELL getSeed() { return GetTickCount(); }
-CELL doMillis() { return (CELL)GetTickCount(); }
-CELL doMicros() { return (CELL)doMillis() * 1000; }
-void doDelay(CELL ms) { Sleep(ms); }
-int getChar() { return _getch(); }
-int charAvailable() { return _kbhit(); }
-
-
-void setCell(byte* to, CELL val) {
-#ifdef _NEEDS_ALIGN_
-    * (to++) = (byte)val;
-    for (int i = 1; i < CELL_SZ; i++) {
-        val = (val >> 8);
-        *(to++) = (byte)val;
-    }
-#else
-    * ((CELL*)to) = val;
-#endif
+void doFIND() {
+    // TODO!!
+    PUSH(0);
 }
 
-CELL getCell(byte* from) {
-    CELL val = 0;
-#ifdef _NEEDS_ALIGN_
-    from += (CELL_SZ - 1);
-    for (int i = 0; i < CELL_SZ; i++) {
-        val = (val << 8) + *(from--);
-    }
-#else
-    val = *((CELL*)from);
-#endif
-    return val;
+void init() {
+    here = sp = rsp = 0;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)12345;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)65;
+    pgm[here++] = doSWAP;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)444555;
+    pgm[here++] = do0BRANCH;
+    pgm[here++] = (funcPtr)333;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)1000;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)0;
+    pgm[here++] = doDO;
+    pgm[here++] = doI;
+    pgm[here++] = doDOTD;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)32;
+    pgm[here++] = doEMIT;
+    pgm[here++] = doLOOP;
+    pgm[here++] = doLIT;
+    pgm[here++] = (funcPtr)10;
+    pgm[here++] = doDUP;
+    pgm[here++] = doEMIT;
+    pgm[here++] = doEMIT;
+    pgm[here++] = doDOTD;
+    pgm[here++] = doEMIT;
+    pgm[here++] = 0;
 }
 
-void printStringF(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    printString(buf);
-}
-
-void skipTo(byte to, int isCreate) {
-    while (*pc) {
-        ir = *(pc++);
-        if (isCreate) { *(HERE++) = ir; }
-        if ((to == '"') && (ir != to)) { continue; }
-        if (ir == to) { return; }
-        if (ir == '\'') { ++pc; continue; }
-        if (ir == '(') { skipTo(')', isCreate); continue; }
-        if (ir == '?') { skipTo('!', isCreate); continue; }
-        if (ir == '[') { skipTo(']', isCreate); continue; }
-        if (ir == '"') { skipTo('"', isCreate); continue; }
-    }
-    isError = 1;
-}
-
-void doFor() {
-    CELL t = (NOS < TOS) ? TOS : NOS;
-    CELL f = (NOS < TOS) ? NOS : TOS;
-    DROP2;
-    LOOP_ENTRY_T* x = lpush();
-    x->start = pc;
-    INDEX = x->from = f;
-    x->to = t;
-    x->end = 0;
-}
-
-void doNext() {
-    LOOP_ENTRY_T* x = lAt();
-    x->from = ++INDEX;
-    if (x->from <= x->to) {
-        x->end = pc;
-        pc = x->start;
-    }
-    else {
-        INDEX = ldrop()->from;
-    }
-}
-
-void loopExit() {
-    if (!lsp) { isError = 1; return; }
-    LOOP_ENTRY_T* x = lAt();
-    ldrop();
-    char c = ((x->from) || (x->to)) ? ']' : '}';
-    if (c == '}') { DROP1; }
-    if (x->end) { pc = x->end; }
-    else {
-        skipTo(c, 0);
-    }
-}
-
-int isOk(int exp, const char* msg) {
-    isError = (exp == 0); if (isError) { printString(msg); }
-    return (isError == 0);
-}
-
-void doFloat() {
-    switch (*(pc++)) {
-    case '<': flpush((float)pop());                             return;
-    case '>': push((CELL)flpop());                              return;
-    case '+': fN += fT; fDROP1;                                 return;
-    case '-': fN -= fT; fDROP1;                                 return;
-    case '*': fN *= fT; fDROP1;                                 return;
-    case '/': if (isOk(fT != 0, "-0div-")) { fN /= fT; fDROP1; }  return;
-    case '.': printStringF("%g", flpop());                      return;
-    default:
-        isError = 1;
-        printString("-flt?-");
-    }
-}
-
-void doExt() {
-    ir = *(pc++);
-    switch (ir) {
-    case '%': t1 = pop(); TOS %= t1;  return; // MODULO
-    case 'I': ir = *(pc++);
-        if (ir == 'A') {
-            ir = *(pc++);
-            if (ir == 'F') { push((CELL)&func[0]); }
-            if (ir == 'H') { push((CELL)&HERE); }
-            if (ir == 'R') { push((CELL)&reg[0]); }
-            if (ir == 'U') { push((CELL)&user[0]); }
-            return;
-        };
-        if (ir == 'C') { push(CELL_SZ); }
-        if (ir == 'F') { push(NUM_FUNCS); }
-        if (ir == 'H') { push((CELL)HERE); }
-        if (ir == 'R') { push(NUM_REGS); }
-        if (ir == 'U') { push(USER_SZ); }
-        return;
-    // case 'E': doEditor();                            return;
-    case 'S': if (*pc == 'R') { ++pc; vmInit(); }    return;
-    case 'N': push(doMicros());                      return;
-    case 'T': push(doMillis());                      return;
-    case 'W': if (0 < TOS) { doDelay(TOS); } pop();  return;
-    case 'R': if (!seed) { seed = getSeed(); }
-            seed ^= (seed << 13);
-            seed ^= (seed >> 17);
-            seed ^= (seed << 5);
-            TOS = (TOS) ? ABS(seed) % TOS : seed;
-            return;
-    default:
-        break;
-        // pc = doCustom(ir, pc);
-    }
-}
-
-void setReg() {
-    CELL *rp = dstPop();
-    if (rp) { *(rp) = pop(); }
-}
-
-addr run(addr start) {
-    pc = start;
-    isError = rsp = lsp = locStart = fncSp = 0;
-    fncStk[0] = 0;
-    dstStk[0] = 0;
-    while (!isError && pc) {
-        while (BetweenI(*pc, 1, 32)) { pc++; }
-        ir = *(pc++);
-        switch (ir) {
-        case 0:                                                    return pc;
-        case '!': setReg();                                          break;  // 33 STORE
-        case '"': while (*(pc) != ir) { printChar(*(pc++)); }; ++pc; break;  // 34 PRINT
-        case '#': ir = *(pc++) - '0';
-            if (BetweenI(ir, 0, (LPC-1))) {
-                int x = (LPC <= locStart) ? locStart - LPC : locStart;
-                push(locals[x + ir]);
-            }
-            break;  // 35 local for (param)
-        case '$': t1 = TOS; TOS = NOS; NOS = t1;                   break;  // 36 SWAP
-        case '%':  ir = *(pc++) - '0';
-            if (BetweenI(ir, 0, (LPC-1))) {
-                if (*pc == ':') { dstPush(&locals[locStart + ir]); ++pc;  }
-                else {
-                    push(locals[locStart + ir]); 
-                }
-            }                                                      break;  // 37 local 0-9
-        case '&': /*FREE*/                                         break;  // 38
-        case '\'': push(*(pc++));                                  break;  // 39 CHAR-LIT
-        // case '(': if (!TOS) { skipTo(')', 0); } DROP1;             break;  // 40 IF
-        case ')': setReg(); t1 = (CELL)fncPop();
-            if (t1) {
-                rpush(pc);
-                // locStart += LPC;
-                pc = (addr)t1;
-            } break;  // 41 ENDIF
-        case '*': t1 = pop(); TOS *= t1;                           break;  // 42 MULTIPLY
-        case '+': t1 = pop(); TOS += t1;                           break;  // 43 ADD
-        case '-': t1 = pop(); TOS -= t1;                           break;  // 45 SUBTRACT
-        case ',': setReg(); // 99< lastReg => in () 
-            // if (99<lastReg) { dstPush(lastReg + 1); }
-            break;  // 46 COMMA
-        case '.': setReg();                                        break;  // 46 DOT
-        case '/': if (isOk(TOS, "-0div-")) { NOS /= TOS; DROP1; }  break;  // 47 DIVIDE
-        case '0': case '1': case '2': case '3': case '4':                  // 48-57 NUMBER
-        case '5': case '6': case '7': case '8': case '9':
-            push(ir - '0');
-            while (BetweenI(*pc, '0', '9')) {
-                TOS = (TOS * 10) + *(pc++) - '0';
-            } break;
-        case ':': ir = *(pc++);
-            if (!BetweenI(ir, 'a', 'z')) { isError = 1; break; }     // 58 CREATE
-            func[ir-'a'] = pc;
-            skipTo(';', 0);
-            HERE = (HERE < pc) ? pc : HERE;
-            break;
-        case ';': pc = rpop(); locStart -= (locStart) ? LPC : 0;   break;  // 59 RETURN
-        case '<': t1 = pop(); TOS = (TOS < t1) ? 1 : 0;            break;  // 60 LESS-THAN
-        case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;           break;  // 61 EQUALS
-        case '>': t1 = pop(); TOS = (TOS > t1) ? 1 : 0;            break;  // 62 GREATER-THAN
-        case '?': if (pop() == 0) { skipTo('!', 0); }              break;  // 63
-        case '@': TOS = getCell((byte*)TOS);                       break;  // 64 FETCH
-        case 'A': case 'B': case 'C': case 'D': case 'E': 
-        case 'F': case 'G': case 'H': case 'I': case 'J': 
-        case 'K': case 'L': case 'M': break;
-        case 'N': printString("\r\n"); break;
-        case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': 
-        case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            break;
-        case '[': doFor();                                         break;  // 91 FOR
-        case '\\': DROP1;                                          break;  // 92 DROP
-        case ']': doNext();                                        break;  // 93 NEXT
-        case '^': if (*pc == 'd') { printStringF("%d", pop()); ++pc; }
-                if (*pc == 'h') { printStringF("$%x", pop()); ++pc; }
-                break;  // 94 Exit LOOP
-        case '_': TOS = (TOS) ? 0 : 1;                             break;  // 95 NOT (LOGICAL)
-        case '`': doExt();
-            break;
-        case 'a': case 'b': case 'c': case 'd': case 'e':
-        case 'f': case 'g': case 'h': case 'i': case 'j':
-        case 'k': case 'l': case 'm': case 'n': case 'o':
-        case 'p': case 'q': case 'r': case 's': case 't':
-        case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
-            t1 = ir - 'a';
-            if (*(pc) == ':') {
-                dstPush(&reg[t1]);
-                ++pc;
-            } else if (*(pc) == '(') {
-                ++pc;
-                if (func[t1]) {
-                    fncPush((char *)func[t1]);
-                    locStart += LPC;
-                } else {
-                    skipTo(')', 0);
-                }
-            } else {
-                push(reg[t1]);
-            }
-            break;
-        case '{': { LOOP_ENTRY_T* x = lpush();                             // 123 BEGIN
-            x->start = pc; x->end = 0; x->from = x->to = 0;
-            // if (!TOS) { skipTo('}', 0); }
-        } break;
-        case '|':  /*FREE*/                                        break;  // 124
-        case '}': // if (!TOS) { ldrop(); DROP1; }                              // 125 WHILE
-                lAt()->end = pc; 
-                pc = lAt()->start;
-                break;
-        case '~': TOS = -TOS;                                      break;  // 126 NEGATE
-        }
-    }
-    return pc;
-}
-
-
-int main() {
-    vmInit();
-    FILE *fp = fopen("code.txt","rb");
-    if (fp) {
-        fread(user, 1, USER_SZ, fp);
-        fclose(fp);
-    }
-    run(user);
-    return 0;
+int main()
+{
+    init();
+    ip = 0;
+    next = pgm[ip++];
+    while (next) { next(); next = pgm[ip++]; }
 }
