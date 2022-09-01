@@ -1,15 +1,17 @@
 // pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 #include <stdio.h>
-// #include <time.h>
+#include <inttypes.h>
 
 #define PGM_SZ   65535
 #define DICT_SZ    511
 #define VAR_SZ   65535
+#define SRC_SZ    8191
 #define NAME_LEN    13
 
-typedef unsigned long CELL;
 typedef unsigned char byte;
+typedef long int32;
+typedef int32 CELL;
 typedef void (*funcPtr)();
 typedef struct {
     CELL xt;
@@ -29,14 +31,14 @@ typedef struct {
 #define LPUSH(x)  lstk[++lsp]=x
 #define LPOP      lstk[lsp--]
 #define FLG_IMM   0x80
-#define FLG_COL   0x40
+#define FLG_PRIM  0x40
 
-char sp, rsp, lsp;
+char sp, rsp, lsp, *toIn, src[SRC_SZ+1];
 CELL stk[32], lstk[32];
-CELL here, vhere, last, base, state, t, n;
+int here, vhere, last, base, state, t, n;
 funcPtr *ip, next;
 funcPtr pgm[PGM_SZ + 1], *rstk[32];
-byte vars[VAR_SZ + 1];
+byte vars[VAR_SZ+1];
 DICT_T dict[DICT_SZ + 1];
 
 int strLen(const char* src) {
@@ -57,16 +59,34 @@ byte strCpy(char* dst, const char* src, byte max) {
     return l;
 }
 
-int strCmp(char *src, const char *dst) {
+int strCmp(const char *src, const char *dst) {
     while ((*src) && (*dst) && (*src==*dst)) { ++src; ++dst; }
     return (*src)-(*dst);
+}
+
+int getWord(char *wd) {
+    int l = 0;
+    while (*toIn && *toIn<33) { ++toIn; }
+    while (*toIn && *toIn>32) { *(wd++) = *(toIn++); ++l; }
+    *wd = 0;
+    return l;
+}
+
+FILE *fOpen(const char *nm, const char *md) {
+#ifdef _WIN32
+    FILE *fp = NULL;
+    fopen_s(&fp, nm, md);
+    return fp;
+#else
+    return fopen(nm, md);
+#endif
 }
 
 void doNOP() { }
 void doBREAK() { /* TODO! */ }
 void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
 void doCOL() { funcPtr x=*(ip+1); if (x != doEXIT) { RPUSH(ip); } ip=(funcPtr*)(*ip); }
-void doEXEC() { funcPtr x=(funcPtr)POP; x(); }
+void doEXEC() { /*TODO: funcPtr x = (funcPtr)POP; x(); */ }
 void doDUP() { t = TOS; PUSH(t); }
 void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
 void doOVER() { t = NOS; PUSH(t); }
@@ -105,11 +125,6 @@ void doLAST() { PUSH((CELL)&last); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
-void doCompileXT() {
-    if (TOS & FLG_COL) { pgm[here++]=doCOL; pgm[here++]=(funcPtr)NOS; }
-    else { pgm[here++]=(funcPtr)NOS; }
-    DROP2;
-}
 void doCREATE() {
     ++last;
     dict[last].len = strCpy(dict[last].name, (char*)POP, NAME_LEN);
@@ -129,86 +144,89 @@ void doFIND() {
     }
 }
 void doIsNum() {
-    TOS = 0;
-    /* TODO!! */
+    char *wd = (char*)TOS, *end;
+    intmax_t x = strtoimax(wd, &end, 0);
+    if ((x == 0) && (strCmp(wd, "0"))) { TOS = 0; return; }
+    TOS = (CELL)x;
+    PUSH(1);
 }
 void doPARSE() {
-    char *wd = (char*)TOS;
-    doFIND();
-    if (POP) {
-        if (state) { doCompileXT(); }
-        else { /* TODO!! */ }
-        PUSH(1);
-        return;
+    char *wd = (char*)POP;
+    if (strCmp("[def]",wd)==0) {
+        if (getWord(wd)) { PUSH(here); PUSH((CELL)wd); doCREATE(); }
+        strCpy(wd, "[cmp]", 8);
     }
-    PUSH((CELL)wd);
-    doIsNum();
+    if (strCmp("[cmp]", wd)==0) { state = 1; PUSH(1); return; }
+    if (strCmp("[com]", wd)==0) { state = 2; PUSH(1); return; }
+    if (strCmp("[exe]", wd)==0) { state = 0; PUSH(1); return; }
+
+    if (state==2) { PUSH(1); return; }
+    
+    PUSH((CELL)wd); doFIND();
     if (POP) {
-        if (state) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
-        PUSH(1);
-        return;
+        if (state==1) {
+            if (TOS & FLG_PRIM) { pgm[here++]=(funcPtr)NOS; }
+            else { pgm[here++]=doCOL; pgm[here++]=(funcPtr)NOS; }
+        } else { doEXEC(); }
+        DROP; TOS=1; return;
+    }
+    PUSH((CELL)wd); doIsNum();
+    if (POP) {
+        if (state==1) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
+        PUSH(1); return;
     }
     printf("[%s]??", wd);
     state = 0;
     PUSH(0);
+}
+void doCOMPILE() {
+    toIn = &src[0];
+    char *wd = (char*)&vars[VAR_SZ-64];
+    while (getWord(wd)) {
+        PUSH((CELL)wd);
+        doPARSE();
+        if (POP==0) { return; }
+    }
+}
+void doLOAD() {
+    char nm[32];
+    sprintf_s(nm, 16, "blk-%03d.4th", POP);
+    FILE *fp=fOpen(nm, "rb");
+    if (fp) { fread(src, 1, SRC_SZ, fp); fclose(fp); }
+    else { printf("-nf-"); }
 }
 
 void primCreate(const char* nm, funcPtr xt) {
     PUSH((CELL)xt);
     PUSH((CELL)nm);
     doCREATE();
+    dict[last].flags = FLG_PRIM;
 }
 
 void init() {
     here = sp = rsp = lsp = 0;
     last = -1;
     for (int i = 0; i <= PGM_SZ; i++) { pgm[i] = 0; }
+    for (int i = 0; i <= VAR_SZ; i++) { vars[i] = 0; }
+    for (int i = 0; i <= SRC_SZ; i++) { src[i] = 0; }
 
+    primCreate("RET", doEXIT);
     primCreate("DUP", doDUP);
     primCreate("SWAP", doSWAP);
     primCreate("OVER", doOVER);
-    //PUSH((CELL)"OVER");
-    //doFIND();
-    //if (POP) {
-    //    doDOTD();
-    //    doDOTH();
-    //    printf("\n");
-    //} else {
-    //    printf("-nf-");
-    //}
-
-    pgm[here++] = doLIT;
-    pgm[here++] = (funcPtr)12345;
-    pgm[here++] = doLIT;
-    pgm[here++] = (funcPtr)65;
-    pgm[here++] = doSWAP;
-    pgm[here++] = doDOTD;
-    pgm[here++] = doEMIT;
-    pgm[here++] = doLIT;
-    pgm[here++] = (funcPtr)444555;
-    pgm[here++] = do0BRANCH;
-    pgm[here++] = 0;
-    pgm[here++] = doLIT;
-    pgm[here++] = (funcPtr)100;
-    pgm[here++] = doLIT;
-    pgm[here++] = (funcPtr)0;
-    pgm[here++] = doDO;
-    pgm[here++] = doI;
-    pgm[here++] = doDOTD;
-    pgm[here++] = doLOOP;
-    pgm[here++] = doLIT;
-    pgm[here++] = (funcPtr)10;
-    pgm[here++] = doDUP;
-    pgm[here++] = doDUP;
-    pgm[here++] = doEMIT;
-    pgm[here++] = doWORDS;
-    pgm[here++] = doEMIT;
-    pgm[here++] = 0;
+    primCreate("DO", doDO);
+    primCreate("I", doI);
+    primCreate("LOOP", doLOOP);
+    primCreate(".", doDOTD);
+    primCreate("EMIT", doEMIT);
 }
 
 int main()
 {
     init();
+    PUSH(0);
+    doLOAD();
+    doCOMPILE();
     ip = &pgm[0];
     while (*ip) { (*ip++)(); }
 }
