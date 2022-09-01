@@ -85,7 +85,11 @@ FILE *fOpen(const char *nm, const char *md) {
 void doNOP() { }
 void doBREAK() { /* TODO! */ }
 void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
-void doCOL() { funcPtr x=*(ip+1); if (x != doEXIT) { RPUSH(ip); } ip=(funcPtr*)(*ip); }
+void doCOL() {
+    t = *(int*)(ip++);
+    if (*ip != doEXIT) { RPUSH(ip); }
+    ip = &pgm[t];
+}
 void doEXEC() { /*TODO: funcPtr x = (funcPtr)POP; x(); */ }
 void doDUP() { t = TOS; PUSH(t); }
 void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
@@ -154,11 +158,12 @@ void doPARSE() {
     char *wd = (char*)POP;
     if (strCmp("[def]",wd)==0) {
         if (getWord(wd)) { PUSH(here); PUSH((CELL)wd); doCREATE(); }
-        strCpy(wd, "[cmp]", 8);
+        strCpy(wd, "]", 4);
     }
-    if (strCmp("[cmp]", wd)==0) { state = 1; PUSH(1); return; }
-    if (strCmp("[com]", wd)==0) { state = 2; PUSH(1); return; }
-    if (strCmp("[exe]", wd)==0) { state = 0; PUSH(1); return; }
+    if (strCmp("[", wd)==0) { state = 0; PUSH(1); return; }
+    if (strCmp("]", wd)==0) { state = 1; PUSH(1); return; }
+    if (strCmp("(", wd)==0) { state = 2; PUSH(1); return; }
+    if (strCmp(")", wd)==0) { state = 1; PUSH(1); return; }
 
     if (state==2) { PUSH(1); return; }
     
@@ -211,14 +216,42 @@ void init() {
     for (int i = 0; i <= SRC_SZ; i++) { src[i] = 0; }
 
     primCreate("RET", doEXIT);
+    primCreate("EXEC", doEXEC);
     primCreate("DUP", doDUP);
     primCreate("SWAP", doSWAP);
     primCreate("OVER", doOVER);
+    primCreate("DROP", doDROP);
+    primCreate("JMP", doJMP);
     primCreate("DO", doDO);
     primCreate("I", doI);
+    primCreate("J", doJ);
     primCreate("LOOP", doLOOP);
+    primCreate("BEGIN", doBEGIN);
+    primCreate("WHILE", doWHILE);
+    primCreate("AGAIN", doAGAIN);
     primCreate(".", doDOTD);
+    primCreate(".h", doDOTH);
     primCreate("EMIT", doEMIT);
+    primCreate("@", doFETCH);
+    primCreate("C@", doCFETCH);
+    primCreate("!", doSTORE);
+    primCreate("C!", doCSTORE);
+    primCreate("=", doEQ);
+    primCreate("<", doLT);
+    primCreate(">", doGT);
+    primCreate("+", doADD);
+    primCreate("-", doSUB);
+    primCreate("*", doMUL);
+    primCreate("/", doDIV);
+    primCreate("MOD", doMOD);
+    primCreate("AND", doAND);
+    primCreate("OR", doOR);
+    primCreate("XOR", doXOR);
+    primCreate("COM", doCOM);
+    primCreate("LAST", doLAST);
+    primCreate("HERE", doHERE);
+    primCreate("WORDS", doWORDS);
+    primCreate("IMMEDIATE", doIMMEDIATE);
 }
 
 int main()
@@ -227,6 +260,10 @@ int main()
     PUSH(0);
     doLOAD();
     doCOMPILE();
-    ip = &pgm[0];
+    CELL xt = dict[last].xt;
+    PUSH((CELL)"main");
+    doFIND();
+    if (POP) { DROP; xt = POP; }
+    ip = (funcPtr*)&pgm[xt];
     while (*ip) { (*ip++)(); }
 }

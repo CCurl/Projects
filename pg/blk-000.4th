@@ -1,6 +1,7 @@
-[def] test 100 0 DO I . LOOP RET
-[def] test1 test RET
-[def] start 65 EMIT RET
-[def] END [com] testing 1 2 3 [cmp] 66 EMIT RET
-[exe] [com] 100 0 test
-[def] test2 100000000 0 start DO LOOP END RET
+[def] test  ( t f-- ) DO I . LOOP RET
+[def] test1 ( -- ) test RET
+[def] cr    ( -- ) 10 EMIT RET
+[def] start ( -- ) 65 EMIT RET
+[def] end   ( -- ) 66 EMIT RET
+[def] test2 ( t f-- ) start DO LOOP end RET
+[def] life 21 1 test cr 10000000 0 test2 cr cr WORDS cr RET
