@@ -156,7 +156,7 @@ void doIsNum() {
 }
 void doPARSE() {
     char *wd = (char*)POP;
-    if (strCmp("[def]",wd)==0) {
+    if (strCmp(":",wd)==0) {
         if (getWord(wd)) { PUSH(here); PUSH((CELL)wd); doCREATE(); }
         strCpy(wd, "]", 4);
     }
