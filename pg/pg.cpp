@@ -64,6 +64,11 @@ int strCmp(const char *src, const char *dst) {
     return (*src)-(*dst);
 }
 
+int strCmpN(const char *src, const char *dst, int nc) {
+    while ((*src==*dst) && nc>0) { ++src; ++dst; --nc; }
+    return (*src)-(*dst);
+}
+
 int getWord(char *wd) {
     int l = 0;
     while (*toIn && *toIn<33) { ++toIn; }
@@ -156,14 +161,13 @@ void doIsNum() {
 }
 void doPARSE() {
     char *wd = (char*)POP;
-    if (strCmp(":",wd)==0) {
+    if (strCmp("[define]",wd)==0) {
         if (getWord(wd)) { PUSH(here); PUSH((CELL)wd); doCREATE(); }
-        strCpy(wd, "]", 4);
+        strCpy(wd, "[compile]", 16);
     }
-    if (strCmp("[", wd)==0) { state = 0; PUSH(1); return; }
-    if (strCmp("]", wd)==0) { state = 1; PUSH(1); return; }
-    if (strCmp("(", wd)==0) { state = 2; PUSH(1); return; }
-    if (strCmp(")", wd)==0) { state = 1; PUSH(1); return; }
+    if (strCmp("[exec]", wd)==0) { state = 0; PUSH(1); return; }
+    if (strCmp("[compile]", wd)==0) { state = 1; PUSH(1); return; }
+    if (strCmp("[comment]", wd)==0) { state = 2; PUSH(1); return; }
 
     if (state==2) { PUSH(1); return; }
     
@@ -195,10 +199,35 @@ void doCOMPILE() {
 }
 void doLOAD() {
     char nm[32];
-    sprintf_s(nm, 16, "blk-%03d.4th", POP);
+#ifdef _WIN32
+    sprintf_s(nm, 16, "blk-%03ld.4th", POP);
+#else 
+    sprintf(nm, "blk-%03ld.4th", POP);
+#endif
     FILE *fp=fOpen(nm, "rb");
     if (fp) { fread(src, 1, SRC_SZ, fp); fclose(fp); }
     else { printf("-nf-"); }
+}
+
+void GotoXY(int x, int y) { printf("\x1B[%d;%dH", y, x); }
+void CLS() { printf("\x1B[2J"); GotoXY(1, 1); }
+void CursorOn() { printf("\x1B[?25h"); }
+void CursorOff() { printf("\x1B[?25l"); }
+void FG(int clr) { printf("\x1B[%d;40m", 30+clr); }
+
+void doEdit() {
+    printf("-ed-");
+    int sz = strLen(src);
+    char *cp = src;
+    for (int i = 0; i < sz; i++) {
+        if (*cp == '[') {
+            if (strCmpN("[define]",  cp, 8)==0) { FG(33); cp += 8; continue; }
+            if (strCmpN("[compile]", cp, 9)==0) { FG(34); cp += 9; continue; }
+            if (strCmpN("[comment]", cp, 9)==0) { FG(35); cp += 9; continue; }
+            if (strCmpN("[exec]",    cp, 6)==0) { FG(36); cp += 6; continue; }
+        }
+        printf("%c", *cp);
+    }
 }
 
 void primCreate(const char* nm, funcPtr xt) {
@@ -252,6 +281,7 @@ void init() {
     primCreate("HERE", doHERE);
     primCreate("WORDS", doWORDS);
     primCreate("IMMEDIATE", doIMMEDIATE);
+    primCreate("EDIT", doEdit);
 }
 
 int main()
