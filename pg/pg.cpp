@@ -17,7 +17,7 @@ typedef struct {
     CELL xt;
     byte flags;
     byte len;
-    char name[NAME_LEN + 1];
+    char name[NAME_LEN+1];
 } DICT_T;
 
 #define TOS       stk[sp]
@@ -30,10 +30,12 @@ typedef struct {
 #define RPOP      rstk[rsp--]
 #define LPUSH(x)  lstk[++lsp]=x
 #define LPOP      lstk[lsp--]
+
 #define STATE_EXEC     0
 #define STATE_COMPILE  1
 #define STATE_COMMENT  2
 #define STATE_DEFINE   3
+
 #define FLG_IMM   0x80
 #define FLG_PRIM  0x40
 
@@ -41,9 +43,9 @@ char sp, rsp, lsp, *toIn, src[SRC_SZ+1];
 CELL stk[32], lstk[32];
 int here, vhere, last, base, state, t, n;
 funcPtr *ip, next;
-funcPtr pgm[PGM_SZ + 1], *rstk[32];
+funcPtr pgm[PGM_SZ+1], *rstk[32];
 byte vars[VAR_SZ+1];
-DICT_T dict[DICT_SZ + 1];
+DICT_T dict[DICT_SZ+1];
 
 int strLen(const char* src) {
     int len = 0;
@@ -52,14 +54,13 @@ int strLen(const char* src) {
 }
 
 byte strCpy(char* dst, const char* src, byte max) {
-    char* x = dst;
     int l = 0;
     if (max < 1) { max = 255; }
     while (*src && (l < max)) {
-        *(x++) = *(src++);
+        *(dst++) = *(src++);
         ++l;
     }
-    *x = 0;
+    *dst = 0;
     return l;
 }
 
@@ -98,11 +99,12 @@ void doEXEC() {
     funcPtr x = (funcPtr)POP;
     if (t & FLG_PRIM) { x(); }
     else {
-        pgm[here+10] = doCOL;
-        pgm[here+11] = x;
-        pgm[here+12] = doEXIT;
-        if (running) { RPUSH(ip); ip = &pgm[here+10]; }
-        else { run(&pgm[here+10]); }
+        n = PGM_SZ-3;
+        pgm[n] = doCOL;
+        pgm[n+1] = x;
+        pgm[n+2] = doEXIT;
+        if (running) { RPUSH(ip); ip = &pgm[n]; }
+        else { run(&pgm[n]); }
     }
 }
 void doNOP() { }
@@ -114,10 +116,12 @@ void doDROP() { if (sp) { DROP; } }
 void doJMP() { ip = (funcPtr*)*ip; }
 void doDO() { RPUSH(ip); LPUSH(NOS); LPUSH(TOS); DROP2; }
 void doI() { PUSH(lstk[lsp]); }
-void doJ() { PUSH(lstk[lsp - 4]); }
-void doLOOP() { if (++lstk[lsp] < lstk[lsp - 1]) { ip = rstk[rsp]; } else { rsp--; lsp -= 2; } }
+void doJ() { PUSH(lstk[lsp-2]); }
+void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { rsp--; lsp-=2; } }
+void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp--; } }
 void doBEGIN() { RPUSH(ip); }
-void doWHILE() { if (POP) { ip = rstk[rsp]; } else { rsp--; } }
+void doWHILE() { if (POP) { ip=rstk[rsp]; } else { rsp--; } }
+void doUNTIL() { if (POP==0) { ip=rstk[rsp]; } else { rsp--; } }
 void doAGAIN() { ip = rstk[rsp]; }
 void doLIT() { PUSH((CELL)*(ip++)); }
 void do0BRANCH() { if (POP == 0) { ip = (funcPtr*)*ip; } else { ++ip; } }
@@ -283,8 +287,10 @@ void init() {
     primCreate("I", doI);
     primCreate("J", doJ);
     primCreate("LOOP", doLOOP);
+    primCreate("UNLOOP", doUNLOOP);
     primCreate("BEGIN", doBEGIN);
     primCreate("WHILE", doWHILE);
+    primCreate("UNTIL", doUNTIL);
     primCreate("AGAIN", doAGAIN);
     primCreate(".", doDOTD);
     primCreate(".h", doDOTH);
