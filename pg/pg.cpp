@@ -66,7 +66,7 @@ int strCmp(const char *src, const char *dst) {
 
 int strCmpN(const char *src, const char *dst, int nc) {
     while ((*src==*dst) && nc>0) { ++src; ++dst; --nc; }
-    return (*src)-(*dst);
+    return nc == 0 ? 0 : 1;
 }
 
 int getWord(char *wd) {
@@ -216,17 +216,16 @@ void CursorOff() { printf("\x1B[?25l"); }
 void FG(int clr) { printf("\x1B[%d;40m", 30+clr); }
 
 void doEdit() {
-    printf("-ed-");
     int sz = strLen(src);
-    char *cp = src;
     for (int i = 0; i < sz; i++) {
-        if (*cp == '[') {
-            if (strCmpN("[define]",  cp, 8)==0) { FG(33); cp += 8; continue; }
-            if (strCmpN("[compile]", cp, 9)==0) { FG(34); cp += 9; continue; }
-            if (strCmpN("[comment]", cp, 9)==0) { FG(35); cp += 9; continue; }
-            if (strCmpN("[exec]",    cp, 6)==0) { FG(36); cp += 6; continue; }
+        char *cp = &src[i], c = *cp;
+        if (c == '[') {
+            if (strCmpN("[define]",  cp, 8)==0) { FG(1); i += 8; continue; }
+            if (strCmpN("[compile]", cp, 9)==0) { FG(2); i += 9; continue; }
+            if (strCmpN("[comment]", cp, 9)==0) { FG(3); i += 9; continue; }
+            if (strCmpN("[exec]",    cp, 6)==0) { FG(4); i += 6; continue; }
         }
-        printf("%c", *cp);
+        printf("%c", c);
     }
 }
 
