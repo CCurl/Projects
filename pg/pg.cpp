@@ -30,6 +30,10 @@ typedef struct {
 #define RPOP      rstk[rsp--]
 #define LPUSH(x)  lstk[++lsp]=x
 #define LPOP      lstk[lsp--]
+#define STATE_EXEC     0
+#define STATE_COMPILE  1
+#define STATE_COMMENT  2
+#define STATE_DEFINE   3
 #define FLG_IMM   0x80
 #define FLG_PRIM  0x40
 
@@ -69,14 +73,6 @@ int strCmpN(const char *src, const char *dst, int nc) {
     return nc == 0 ? 0 : 1;
 }
 
-int getWord(char *wd) {
-    int l = 0;
-    while (*toIn && *toIn<33) { ++toIn; }
-    while (*toIn && *toIn>32) { *(wd++) = *(toIn++); ++l; }
-    *wd = 0;
-    return l;
-}
-
 FILE *fOpen(const char *nm, const char *md) {
 #ifdef _WIN32
     FILE *fp = NULL;
@@ -87,15 +83,30 @@ FILE *fOpen(const char *nm, const char *md) {
 #endif
 }
 
+byte running;
+void run(funcPtr *start) {
+    ip = start;
+    running = 1;
+    while (*ip) { (*ip++)(); }
+    running = 0;
+}
+
+void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
+void doCOL() { t = *(int*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
+void doEXEC() {
+    t = POP;
+    funcPtr x = (funcPtr)POP;
+    if (t & FLG_PRIM) { x(); }
+    else {
+        pgm[here+10] = doCOL;
+        pgm[here+11] = x;
+        pgm[here+12] = doEXIT;
+        if (running) { RPUSH(ip); ip = &pgm[here+10]; }
+        else { run(&pgm[here+10]); }
+    }
+}
 void doNOP() { }
 void doBREAK() { /* TODO! */ }
-void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
-void doCOL() {
-    t = *(int*)(ip++);
-    if (*ip != doEXIT) { RPUSH(ip); }
-    ip = &pgm[t];
-}
-void doEXEC() { /*TODO: funcPtr x = (funcPtr)POP; x(); */ }
 void doDUP() { t = TOS; PUSH(t); }
 void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
 void doOVER() { t = NOS; PUSH(t); }
@@ -134,6 +145,13 @@ void doLAST() { PUSH((CELL)&last); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
+void doWORD() {
+    char* wd = (char*)TOS;
+    TOS = 0;
+    while (*toIn && *toIn < 33) { ++toIn; }
+    while (*toIn && *toIn > 32) { *(wd++) = *(toIn++); ++TOS; }
+    *wd = 0;
+}
 void doCREATE() {
     ++last;
     dict[last].len = strCpy(dict[last].name, (char*)POP, NAME_LEN);
@@ -161,33 +179,44 @@ void doIsNum() {
 }
 void doPARSE() {
     char *wd = (char*)POP;
-    if (strCmp("[define]",wd)==0) {
-        if (getWord(wd)) { PUSH(here); PUSH((CELL)wd); doCREATE(); }
-        strCpy(wd, "[compile]", 16);
-    }
-    if (strCmp("[exec]", wd)==0) { state = 0; PUSH(1); return; }
-    if (strCmp("[compile]", wd)==0) { state = 1; PUSH(1); return; }
-    if (strCmp("[comment]", wd)==0) { state = 2; PUSH(1); return; }
+    if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    PUSH(1); return; }
+    if (strCmp("[compile]", wd) == 0) { state = STATE_COMPILE; PUSH(1); return; }
+    if (strCmp("[comment]", wd) == 0) { state = STATE_COMMENT; PUSH(1); return; }
+    if (strCmp("[define]",  wd) == 0) { state = STATE_DEFINE;  PUSH(1); return; }
 
-    if (state==2) { PUSH(1); return; }
+    if (state == STATE_COMMENT) { PUSH(1); return; }
+
+    if (state == STATE_DEFINE) {
+        PUSH(here); PUSH((CELL)wd); doCREATE();
+        PUSH(1); return;
+    }
     
     PUSH((CELL)wd); doFIND();
     if (POP) {
-        if (state==1) {
+        if (state==STATE_COMPILE) {
             if (TOS & FLG_PRIM) { pgm[here++]=(funcPtr)NOS; }
             else { pgm[here++]=doCOL; pgm[here++]=(funcPtr)NOS; }
+            DROP2; 
         } else { doEXEC(); }
-        DROP; TOS=1; return;
+        PUSH(1); return;
     }
+
     PUSH((CELL)wd); doIsNum();
     if (POP) {
-        if (state==1) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
+        if (state==STATE_COMPILE) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
         PUSH(1); return;
     }
     printf("[%s]??", wd);
     state = 0;
     PUSH(0);
 }
+
+int getWord(char *wd) {
+    PUSH((CELL)wd);
+    doWORD();
+    return POP;
+}
+
 void doCOMPILE() {
     toIn = &src[0];
     char *wd = (char*)&vars[VAR_SZ-64];
@@ -221,9 +250,9 @@ void doEdit() {
         char *cp = &src[i], c = *cp;
         if (c == '[') {
             if (strCmpN("[define]",  cp, 8)==0) { FG(1); i += 8; continue; }
-            if (strCmpN("[compile]", cp, 9)==0) { FG(2); i += 9; continue; }
-            if (strCmpN("[comment]", cp, 9)==0) { FG(3); i += 9; continue; }
-            if (strCmpN("[exec]",    cp, 6)==0) { FG(4); i += 6; continue; }
+            if (strCmpN("[compile]", cp, 9)==0) { FG(3); i += 9; continue; }
+            if (strCmpN("[comment]", cp, 9)==0) { FG(2); i += 9; continue; }
+            if (strCmpN("[exec]",    cp, 6)==0) { FG(6); i += 6; continue; }
         }
         printf("%c", c);
     }
@@ -237,7 +266,7 @@ void primCreate(const char* nm, funcPtr xt) {
 }
 
 void init() {
-    here = sp = rsp = lsp = 0;
+    here = sp = rsp = lsp = running = 0;
     last = -1;
     for (int i = 0; i <= PGM_SZ; i++) { pgm[i] = 0; }
     for (int i = 0; i <= VAR_SZ; i++) { vars[i] = 0; }
@@ -289,10 +318,4 @@ int main()
     PUSH(0);
     doLOAD();
     doCOMPILE();
-    CELL xt = dict[last].xt;
-    PUSH((CELL)"main");
-    doFIND();
-    if (POP) { DROP; xt = POP; }
-    ip = (funcPtr*)&pgm[xt];
-    while (*ip) { (*ip++)(); }
 }
