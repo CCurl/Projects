@@ -117,11 +117,11 @@ void doJMP() { ip = (funcPtr*)*ip; }
 void doDO() { RPUSH(ip); LPUSH(NOS); LPUSH(TOS); DROP2; }
 void doI() { PUSH(lstk[lsp]); }
 void doJ() { PUSH(lstk[lsp-2]); }
-void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { rsp--; lsp-=2; } }
 void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp--; } }
-void doBEGIN() { RPUSH(ip); }
-void doWHILE() { if (POP) { ip=rstk[rsp]; } else { rsp--; } }
-void doUNTIL() { if (POP==0) { ip=rstk[rsp]; } else { rsp--; } }
+void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { doUNLOOP(); } }
+void doBEGIN() { RPUSH(ip); LPUSH(0); LPUSH(0); }
+void doWHILE() { if (POP) { ip=rstk[rsp]; } else { doUNLOOP(); } }
+void doUNTIL() { if (POP==0) { ip=rstk[rsp]; } else { doUNLOOP(); } }
 void doAGAIN() { ip = rstk[rsp]; }
 void doLIT() { PUSH((CELL)*(ip++)); }
 void do0BRANCH() { if (POP == 0) { ip = (funcPtr*)*ip; } else { ++ip; } }
