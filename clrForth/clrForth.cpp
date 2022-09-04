@@ -35,7 +35,9 @@ typedef struct {
 #define STATE_EXEC     0
 #define STATE_COMPILE  1
 #define STATE_COMMENT  2
-#define STATE_DEFINE   3
+#define STATE_CREATE   3
+#define STATE_VAR      4
+#define STATE_CONST    5
 
 #define FLG_IMM   0x80
 #define FLG_PRIM  0x40
@@ -188,22 +190,43 @@ void doPARSE() {
     if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    PUSH(1); return; }
     if (strCmp("[compile]", wd) == 0) { state = STATE_COMPILE; PUSH(1); return; }
     if (strCmp("[comment]", wd) == 0) { state = STATE_COMMENT; PUSH(1); return; }
-    if (strCmp("[create]",  wd) == 0) { state = STATE_DEFINE;  PUSH(1); return; }
+    if (strCmp("[create]",  wd) == 0) { state = STATE_CREATE;  PUSH(1); return; }
+    if (strCmp("[var]",     wd) == 0) { state = STATE_VAR;     PUSH(1); return; }
+    if (strCmp("[const]",   wd) == 0) { state = STATE_CONST;   PUSH(1); return; }
 
     if (state == STATE_COMMENT) { PUSH(1); return; }
 
-    if (state == STATE_DEFINE) {
+    if (state == STATE_CREATE) {
         PUSH(here); PUSH((CELL)wd); doCREATE();
         PUSH(1); return;
     }
-    
+
+    if (state == STATE_VAR) {
+        PUSH(here); PUSH((CELL)wd); doCREATE();
+        pgm[here++] = doLIT;
+        pgm[here++] = (funcPtr)vhere;
+        pgm[here++] = doEXIT;
+        vhere += sizeof(CELL);
+        PUSH(1); return;
+    }
+
+    if (state == STATE_CONST) {
+        PUSH(here); PUSH((CELL)wd); doCREATE();
+        pgm[here++] = doLIT;
+        pgm[here++] = (funcPtr)POP;
+        pgm[here++] = doEXIT;
+        PUSH(1); return;
+    }
+
     PUSH((CELL)wd); doFIND();
     if (POP) {
-        if (state==STATE_COMPILE) {
-            if (TOS & FLG_PRIM) { pgm[here++]=(funcPtr)NOS; }
-            else { pgm[here++]=doCOL; pgm[here++]=(funcPtr)NOS; }
-            DROP2; 
-        } else { doEXEC(); }
+        if ((state==STATE_EXEC) || (TOS & FLG_IMM)) {
+            doEXEC();
+        } else if (state==STATE_COMPILE) {
+            if (TOS & FLG_PRIM) { pgm[here++] = (funcPtr)NOS; }
+            else { pgm[here++] = doCOL; pgm[here++] = (funcPtr)NOS; }
+            DROP2;
+        }
         PUSH(1); return;
     }
 
@@ -258,7 +281,9 @@ void doEdit() {
             if (strCmpN("[create]",  cp, 8)==0) { FG(1); i += 8; continue; }
             if (strCmpN("[compile]", cp, 9)==0) { FG(3); i += 9; continue; }
             if (strCmpN("[comment]", cp, 9)==0) { FG(2); i += 9; continue; }
-            if (strCmpN("[exec]",    cp, 6)==0) { FG(6); i += 6; continue; }
+            if (strCmpN("[exec]",    cp, 6)==0) { FG(7); i += 6; continue; }
+            if (strCmpN("[var]",     cp, 5)==0) { FG(6); i += 5; continue; }
+            if (strCmpN("[const]",   cp, 7)==0) { FG(4); i += 7; continue; }
         }
         printf("%c", c);
     }
