@@ -148,7 +148,7 @@ void doAND() { NOS &= TOS; DROP; }
 void doOR() { NOS |= TOS; DROP; }
 void doXOR() { NOS ^= TOS; DROP; }
 void doCOM() { TOS = ~TOS; }
-void doLAST() { PUSH((CELL)&last); }
+void doLAST() { PUSH((CELL)&dict[last]); }
 void doTIMER() { PUSH(clock()); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
