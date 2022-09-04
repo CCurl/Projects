@@ -188,7 +188,7 @@ void doPARSE() {
     if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    PUSH(1); return; }
     if (strCmp("[compile]", wd) == 0) { state = STATE_COMPILE; PUSH(1); return; }
     if (strCmp("[comment]", wd) == 0) { state = STATE_COMMENT; PUSH(1); return; }
-    if (strCmp("[define]",  wd) == 0) { state = STATE_DEFINE;  PUSH(1); return; }
+    if (strCmp("[create]",  wd) == 0) { state = STATE_DEFINE;  PUSH(1); return; }
 
     if (state == STATE_COMMENT) { PUSH(1); return; }
 
@@ -255,7 +255,7 @@ void doEdit() {
     for (int i = 0; i < sz; i++) {
         char *cp = &src[i], c = *cp;
         if (c == '[') {
-            if (strCmpN("[define]",  cp, 8)==0) { FG(1); i += 8; continue; }
+            if (strCmpN("[create]",  cp, 8)==0) { FG(1); i += 8; continue; }
             if (strCmpN("[compile]", cp, 9)==0) { FG(3); i += 9; continue; }
             if (strCmpN("[comment]", cp, 9)==0) { FG(2); i += 9; continue; }
             if (strCmpN("[exec]",    cp, 6)==0) { FG(6); i += 6; continue; }
