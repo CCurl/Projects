@@ -149,9 +149,10 @@ void doXOR() { NOS ^= TOS; DROP; }
 void doCOM() { TOS = ~TOS; }
 void doLAST() { PUSH((CELL)&dict[last]); }
 void doTIMER() { PUSH(clock()); }
-void doHERE() { PUSH((CELL)&here); }
+void doHERE() { PUSH((CELL)&pgm[here]); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
+void doCELL() { PUSH(sizeof(CELL)); }
 void doWORD() {
     char* wd = (char*)TOS;
     TOS = 0;
@@ -302,6 +303,7 @@ void init() {
     for (int i = 0; i <= VAR_SZ; i++) { vars[i] = 0; }
     for (int i = 0; i <= SRC_SZ; i++) { src[i] = 0; }
 
+    primCreate("CELL", doCELL);
     primCreate("RET", doEXIT);
     primCreate("EXEC", doEXEC);
     primCreate("DUP", doDUP);

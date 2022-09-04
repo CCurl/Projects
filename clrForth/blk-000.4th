@@ -12,6 +12,10 @@
 [create] life  [compile] 16 10 testI cr TIMER ttt @ 0 bench elapsed . cr cr WORDS cr RET
 [create] IF [compile] 987654 . RET [exec] IMMEDIATE
 [create] THEN [compile] 456789 . RET [exec] IMMEDIATE
+[exec] 111 234 SWAP - . cr HERE DUP . cr
+[create] vvv [compile] life RET
+[exec] HERE DUP . SWAP - . CELL . cr
 [create] fgh [compile] IF THEN RET
-[exec] life EDIT
-[exec] IF THEN
+[comment] life EDIT
+[comment] IF THEN [exec] cr
+
