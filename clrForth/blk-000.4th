@@ -8,7 +8,6 @@
 [create] bench [comment] ( t f-- ) [compile] start cr DO LOOP end cr RET
 [create] elapsed [comment] ( t-- ) [compile] TIMER SWAP - RET
 [create] mil [comment] ( a--b ) [compile] 1000 DUP * * RET
-[create] IMMEDIATE [compile] 128 LAST 4 + C! RET
 [exec] 500 [const] BM [var] ttt [exec] BM mil ttt !
 [create] life  [compile] 16 10 testI cr TIMER ttt @ 0 bench elapsed . cr cr WORDS cr RET
 [create] IF [compile] 987654 . RET [exec] IMMEDIATE

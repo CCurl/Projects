@@ -1,5 +1,5 @@
-// pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+// clrForth.cpp: My color-forth inspired forth system
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <time.h>
@@ -30,7 +30,6 @@ typedef struct {
 #define RPUSH(x)  rstk[++rsp]=x
 #define RPOP      rstk[rsp--]
 #define LPUSH(x)  lstk[++lsp]=x
-#define LPOP      lstk[lsp--]
 
 #define STATE_EXEC     0
 #define STATE_COMPILE  1
