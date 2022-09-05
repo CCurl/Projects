@@ -94,7 +94,7 @@ byte running;
 void run(funcPtr *start) {
     ip = start;
     running = 1;
-    while (*ip) { (*ip++)(); }
+    while (ip && *ip) { (*ip++)(); }
     running = 0;
 }
 
@@ -164,6 +164,17 @@ void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name);
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
 void doCELL() { PUSH(sizeof(cell_t)); }
 void doIF() { if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; } }
+void doELSE() {
+    if (state == STATE_COMPILE) {
+        pgm[here++] = doJMP;
+        CELL x = here;
+        pgm[here++] = 0;
+        doHERE();
+        doSWAP();
+        doSTORE();
+        PUSH((CELL)&pgm[x]);
+    }
+}
 void doTHEN() { if (state==STATE_COMPILE) { doHERE(); doSWAP(); doSTORE(); }
 }
 void doWORD() {
@@ -361,6 +372,7 @@ void init() {
     primCreate("WORDS", doWORDS);
     primCreate("IMMEDIATE", doIMMEDIATE);
     primCreate("IF", doIF); doIMMEDIATE();
+    primCreate("ELSE", doELSE); doIMMEDIATE();
     primCreate("THEN", doTHEN); doIMMEDIATE();
     primCreate("EDIT", doEdit);
     primCreate(".S", doDotS);

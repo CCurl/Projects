@@ -13,7 +13,6 @@
 [var] ttt [exec] BM mil ttt !
 [create] life  [compile] 16 10 testI cr TIMER ttt @ 0 bench elapsed . cr cr WORDS cr RET
 [exec] 111 234 SWAP - . cr 
-[create] fgh [compile] IF 77 bc RET THEN 78 bc RET
+[create] fgh [compile] IF 77 ELSE 78 THEN bc RET
 [exec] life EDIT
 [exec] cr 1 fgh 0 fgh cr
-
