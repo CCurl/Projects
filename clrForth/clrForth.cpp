@@ -10,10 +10,14 @@
 #define SRC_SZ    8191
 #define NAME_LEN    13
 
-typedef unsigned char byte;
-typedef long int32;
-typedef int32 CELL;
 typedef void (*funcPtr)();
+typedef unsigned char byte;
+#if UINTPTR_MAX == 0xFFFFFFFF
+typedef int32_t cell_t;
+#else
+typedef int64_t cell_t;
+#endif
+typedef cell_t CELL;
 typedef struct {
     CELL xt;
     byte flags;
@@ -43,7 +47,7 @@ typedef struct {
 
 char sp, rsp, lsp, *toIn, src[SRC_SZ+1];
 CELL stk[32], lstk[32];
-int here, vhere, last, base, state, t, n;
+CELL here, vhere, last, base, state, t, n;
 funcPtr *ip, next;
 funcPtr pgm[PGM_SZ+1], *rstk[32];
 byte vars[VAR_SZ+1];
@@ -95,21 +99,26 @@ void run(funcPtr *start) {
 }
 
 void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
+void doDotS() {
+    printf("( "); for (int i = 1; i<=sp; i++) { printf("%ld ", stk[i]); }
+    printf(")");
+}
 void doCOL() { t = *(int*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
 void doEXEC() {
-    t = POP;
-    funcPtr x = (funcPtr)POP;
-    if (t & FLG_PRIM) { x(); }
+    doDotS(); t = POP;
+    funcPtr fp = (funcPtr)POP;
+    if (t & FLG_PRIM) { fp(); }
     else {
         n = PGM_SZ-3;
         pgm[n] = doCOL;
-        pgm[n+1] = x;
+        pgm[n+1] = fp;
         pgm[n+2] = doEXIT;
         if (running) { RPUSH(ip); ip = &pgm[n]; }
         else { run(&pgm[n]); }
     }
 }
 void doNOP() { }
+void doCOMMA() { pgm[here++]=(funcPtr)POP; }
 void doBREAK() { /* TODO! */ }
 void doDUP() { t = TOS; PUSH(t); }
 void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
@@ -152,7 +161,9 @@ void doTIMER() { PUSH(clock()); }
 void doHERE() { PUSH((CELL)&pgm[here]); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
-void doCELL() { PUSH(sizeof(CELL)); }
+void doCELL() { PUSH(sizeof(cell_t)); }
+void doIF() { printf("-doIF-"); if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; doDotS(); } }
+void doTHEN() { if (state==STATE_COMPILE) { doHERE(); doSWAP(); doDotS(); doSTORE(); } }
 void doWORD() {
     char* wd = (char*)TOS;
     TOS = 0;
@@ -344,7 +355,10 @@ void init() {
     primCreate("HERE", doHERE);
     primCreate("WORDS", doWORDS);
     primCreate("IMMEDIATE", doIMMEDIATE);
+    primCreate("IF", doIF); doIMMEDIATE();
+    primCreate("THEN", doTHEN); doIMMEDIATE();
     primCreate("EDIT", doEdit);
+    primCreate(".S", doDotS);
 }
 
 int main()

@@ -1,3 +1,4 @@
+[exec] 123 .S DROP
 [create] cr     [comment] ( -- )  [compile] 10 EMIT RET
 [create] bc     [comment] ( c-- ) [compile] 45 SWAP OVER EMIT EMIT EMIT RET
 [create] testJ  [comment] ( t f-- ) [compile] 105 bc DO J I * . LOOP 111 bc RET
@@ -10,12 +11,8 @@
 [create] mil [comment] ( a--b ) [compile] 1000 DUP * * RET
 [exec] 500 [const] BM [var] ttt [exec] BM mil ttt !
 [create] life  [compile] 16 10 testI cr TIMER ttt @ 0 bench elapsed . cr cr WORDS cr RET
-[create] IF    [compile] HERE RET         [exec] IMMEDIATE
-[create] THEN  [compile] HERE SWAP ! RET  [exec] IMMEDIATE
-[exec] 111 234 SWAP - . cr HERE DUP . cr
-[create] vvv [compile] life RET
-[exec] HERE DUP . SWAP - . CELL . cr
-[create] fgh [compile] IF THEN RET
-[comment] life EDIT
-[comment] IF THEN [exec] cr
+[exec] 111 234 SWAP - . cr 
+[create] fgh [comment] IF 1 bc RET THEN bc . RET
+[exec] life EDIT
+[exec] cr 1 fgh 0 fgh cr
 
