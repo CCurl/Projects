@@ -5,7 +5,8 @@
 ## Building clrForth
 
 ### Linux
-- Use the ./make shell script
+- clang -m64 -o clrForth clrForth.cpp
+- I have created a ./make shell script for ease of use.
 
 ### Windows
 - It is a Visual Studio solution
