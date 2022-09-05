@@ -105,7 +105,8 @@ void doDotS() {
 }
 void doCOL() { t = *(int*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
 void doEXEC() {
-    doDotS(); t = POP;
+    // doDotS();
+    t = POP;
     funcPtr fp = (funcPtr)POP;
     if (t & FLG_PRIM) { fp(); }
     else {
@@ -140,10 +141,10 @@ void doDOTD() { printf("%ld ", POP); }
 void doDOTH() { printf("%lx ", POP); }
 void doEMIT() { printf("%c", (char)POP); }
 void doSEMI() { pgm[here++] = doEXIT; state = 0; }
-void doFETCH() { TOS = *(CELL*)&vars[TOS]; }
-void doCFETCH() { TOS = vars[TOS]; }
-void doSTORE() { *(CELL*)&vars[TOS] = NOS; DROP2; }
-void doCSTORE() { vars[TOS] = (byte)NOS; DROP2; }
+void doFETCH() { TOS = *(CELL*)TOS; }
+void doCFETCH() { TOS = *(byte*)TOS; }
+void doSTORE() { *(CELL*)TOS = NOS; DROP2; }
+void doCSTORE() { *(byte*)TOS = (byte)NOS; DROP2; }
 void doEQ() { NOS = (NOS == TOS) ? 1 : 0; DROP; }
 void doLT() { NOS = (NOS < TOS) ? 1 : 0; DROP; }
 void doGT() { NOS = (NOS > TOS) ? 1 : 0; DROP; }
@@ -162,8 +163,9 @@ void doHERE() { PUSH((CELL)&pgm[here]); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
 void doCELL() { PUSH(sizeof(cell_t)); }
-void doIF() { printf("-doIF-"); if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; doDotS(); } }
-void doTHEN() { if (state==STATE_COMPILE) { doHERE(); doSWAP(); doDotS(); doSTORE(); } }
+void doIF() { if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; } }
+void doTHEN() { if (state==STATE_COMPILE) { doHERE(); doSWAP(); doSTORE(); }
+}
 void doWORD() {
     char* wd = (char*)TOS;
     TOS = 0;
@@ -215,7 +217,7 @@ void doPARSE() {
     if (state == STATE_VAR) {
         PUSH(here); PUSH((CELL)wd); doCREATE();
         pgm[here++] = doLIT;
-        pgm[here++] = (funcPtr)vhere;
+        pgm[here++] = (funcPtr)&vars[vhere];
         pgm[here++] = doEXIT;
         vhere += sizeof(CELL);
         PUSH(1); return;
@@ -231,8 +233,11 @@ void doPARSE() {
 
     PUSH((CELL)wd); doFIND();
     if (POP) {
-        if ((state==STATE_EXEC) || (TOS & FLG_IMM)) {
-            doEXEC();
+        if ((state == STATE_COMPILE) && (TOS & FLG_IMM)) {
+            int x = 1;
+        }
+        if ((state == STATE_EXEC) || (TOS & FLG_IMM)) {
+                doEXEC();
         } else if (state==STATE_COMPILE) {
             if (TOS & FLG_PRIM) { pgm[here++] = (funcPtr)NOS; }
             else { pgm[here++] = doCOL; pgm[here++] = (funcPtr)NOS; }
