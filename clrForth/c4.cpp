@@ -127,13 +127,13 @@ void doOVER() { t = NOS; PUSH(t); }
 void doDROP() { if (sp) { DROP; } }
 void doJMP() { ip = (funcPtr*)*ip; }
 void doDO() { RPUSH(ip); LPUSH(NOS); LPUSH(TOS); DROP2; }
-void doI() { PUSH(lstk[lsp]); }
-void doJ() { PUSH(lstk[lsp-2]); }
-void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { rsp--; lsp-=2; } }
-void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp--; } }
-void doBEGIN() { RPUSH(ip); }
-void doWHILE() { if (POP) { ip=rstk[rsp]; } else { rsp--; } }
-void doUNTIL() { if (POP==0) { ip=rstk[rsp]; } else { rsp--; } }
+void doI() { PUSH((0 < lsp) ? lstk[lsp] : 0); }
+void doJ() { PUSH((2 < lsp) ? lstk[lsp-2] : 0); }
+void doUNLOOP() { if (1 < lsp) { lsp -= 2; rsp--; } }
+void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { doUNLOOP(); } }
+void doBEGIN() { RPUSH(ip); LPUSH(0); LPUSH(0); }
+void doWHILE() { if (POP) { ip=rstk[rsp]; } else { doUNLOOP(); } }
+void doUNTIL() { if (POP==0) { ip=rstk[rsp]; } else { doUNLOOP(); } }
 void doAGAIN() { ip = rstk[rsp]; }
 void doLIT() { PUSH((CELL)*(ip++)); }
 void do0BRANCH() { if (POP == 0) { ip = (funcPtr*)*ip; } else { ++ip; } }
@@ -160,7 +160,7 @@ void doCOM() { TOS = ~TOS; }
 void doLAST() { PUSH((CELL)&dict[last]); }
 void doTIMER() { PUSH(clock()); }
 void doHERE() { PUSH((CELL)&pgm[here]); }
-void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
+void doWORDS() { for (CELL l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
 void doCELL() { PUSH(sizeof(cell_t)); }
 void doIF() { if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; } }
@@ -194,7 +194,7 @@ void doFIND() {
     char *nm = (char*)TOS;
     int l = strLen(nm);
     TOS = 0;
-    for (int i = last; 0 <= i; i--) {
+    for (CELL i = last; 0 <= i; i--) {
         if (l != dict[i].len) { continue; }
         if (strCmp(nm, dict[i].name)) { continue; }
         TOS = dict[i].xt;
@@ -267,7 +267,7 @@ void doPARSE() {
     PUSH(0);
 }
 
-int getWord(char *wd) {
+CELL getWord(char *wd) {
     PUSH((CELL)wd);
     doWORD();
     return POP;
@@ -285,7 +285,7 @@ void doCOMPILE() {
 void doLOAD() {
     char nm[32];
 #ifdef _WIN32
-    sprintf_s(nm, 16, "blk-%03ld.4th", POP);
+    sprintf_s(nm, 16, "blk-%03ld.c4", POP);
 #else 
     sprintf(nm, "blk-%03ld.4th", POP);
 #endif

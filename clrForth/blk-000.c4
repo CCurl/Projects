@@ -13,6 +13,10 @@
 [var] ttt [exec] BM mil ttt !
 [create] life  [compile] 16 10 testI cr TIMER ttt @ 0 bench elapsed . cr cr WORDS cr RET
 [exec] 111 234 SWAP - . cr 
-[create] fgh [compile] IF 77 ELSE 78 THEN bc RET
+[create] bt [compile] 40 BEGIN 1 + DUP . DUP 55 < WHILE DROP RET
+[create] bt [compile] 0 BEGIN 1 + DUP . DUP 10 = UNTIL DROP RET
+[create] b2 [compile] 17 BEGIN DUP . 1 - DUP 10 = IF UNLOOP DROP RET THEN AGAIN
+[create] f1 [compile] 55 22 DO I DUP . 33 = IF UNLOOP RET THEN LOOP
+[create] t1 [compile] IF 100 ELSE 101 THEN bc RET
 [exec] life EDIT
-[exec] cr 1 fgh 0 fgh cr
+[exec] cr 1 t1 0 t1 cr bt cr b2 cr f1 cr .S

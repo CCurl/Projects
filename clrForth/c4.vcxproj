@@ -24,7 +24,7 @@
     <ProjectGuid>{bdd1c19e-3eec-4ddf-ad67-406628bacccf}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>clrForth</ProjectName>
+    <ProjectName>c4</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -140,10 +140,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="blk-000.4th" />
+    <None Include="blk-000.c4" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="clrForth.cpp" />
+    <ClCompile Include="c4.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
