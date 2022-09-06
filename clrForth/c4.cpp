@@ -13,11 +13,10 @@
 typedef void (*funcPtr)();
 typedef unsigned char byte;
 #if UINTPTR_MAX == 0xFFFFFFFF
-typedef int32_t cell_t;
+typedef int32_t CELL;
 #else
-typedef int64_t cell_t;
+typedef int64_t CELL;
 #endif
-typedef cell_t CELL;
 typedef struct {
     CELL xt;
     byte flags;
@@ -34,6 +33,8 @@ typedef struct {
 #define RPUSH(x)  rstk[++rsp]=x
 #define RPOP      rstk[rsp--]
 #define LPUSH(x)  lstk[++lsp]=x
+#define BTW(x, a, b)  ((a<=x)&&(x<=b))
+#define RET(x)    PUSH(x); return
 
 #define STATE_EXEC     0
 #define STATE_COMPILE  1
@@ -105,7 +106,6 @@ void doDotS() {
 }
 void doCOL() { t = *(int*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
 void doEXEC() {
-    // doDotS();
     t = POP;
     funcPtr fp = (funcPtr)POP;
     if (t & FLG_PRIM) { fp(); }
@@ -162,7 +162,7 @@ void doTIMER() { PUSH(clock()); }
 void doHERE() { PUSH((CELL)&pgm[here]); }
 void doWORDS() { for (CELL l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
-void doCELL() { PUSH(sizeof(cell_t)); }
+void doCELL() { PUSH(sizeof(CELL)); }
 void doIF() { if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; } }
 void doELSE() {
     if (state == STATE_COMPILE) {
@@ -199,31 +199,44 @@ void doFIND() {
         if (strCmp(nm, dict[i].name)) { continue; }
         TOS = dict[i].xt;
         PUSH(dict[i].flags);
-        PUSH(1);
+        RET(1);
     }
 }
 void doIsNum() {
-    char *wd = (char*)TOS, *end;
-    intmax_t x = strtoimax(wd, &end, 0);
-    if ((x == 0) && (strCmp(wd, "0"))) { TOS = 0; return; }
-    TOS = (CELL)x;
-    PUSH(1);
+    char *wd = (char*)POP;
+    CELL x = 0, b = base, isNeg = 0, lastCh = '9';
+    if ((wd[0] == '\'') && (wd[2] == wd[0]) && (wd[3] == 0)) { PUSH(wd[1]); RET(1); }
+    if (*wd == '#') { b = 10;  ++wd; }
+    else if (*wd == '$') { b = 16;  ++wd; }
+    else if (*wd == '%') { b = 2;  ++wd; lastCh = '1'; }
+    if (b < 10) { lastCh = '0' + b - 1; }
+    if ((*wd == '-') && (b == 10)) { isNeg = 1;  ++wd; }
+    if (*wd == 0) { RET(0); }
+    while (*wd) {
+        char c = *(wd++);
+        int t = -1;
+        if (BTW(c, '0', lastCh)) { t = c - '0'; }
+        if ((b == 16) && (BTW(c, 'A', 'F'))) { t = c - 'A' + 10; }
+        if ((b == 16) && (BTW(c, 'a', 'f'))) { t = c - 'a' + 10; }
+        if (t < 0) { RET(0); }
+        x = (x * b) + t;
+    }
+    if (isNeg) { x = -x; }
+    PUSH(x);
+    RET(1);
 }
 void doPARSE() {
     char *wd = (char*)POP;
-    if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    PUSH(1); return; }
-    if (strCmp("[compile]", wd) == 0) { state = STATE_COMPILE; PUSH(1); return; }
-    if (strCmp("[comment]", wd) == 0) { state = STATE_COMMENT; PUSH(1); return; }
-    if (strCmp("[create]",  wd) == 0) { state = STATE_CREATE;  PUSH(1); return; }
-    if (strCmp("[var]",     wd) == 0) { state = STATE_VAR;     PUSH(1); return; }
-    if (strCmp("[const]",   wd) == 0) { state = STATE_CONST;   PUSH(1); return; }
+    if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    RET(1); }
+    if (strCmp("[compile]", wd) == 0) { state = STATE_COMPILE; RET(1); }
+    if (strCmp("[comment]", wd) == 0) { state = STATE_COMMENT; RET(1); }
+    if (strCmp("[create]",  wd) == 0) { state = STATE_CREATE;  RET(1); }
+    if (strCmp("[var]",     wd) == 0) { state = STATE_VAR;     RET(1); }
+    if (strCmp("[const]",   wd) == 0) { state = STATE_CONST;   RET(1); }
 
-    if (state == STATE_COMMENT) { PUSH(1); return; }
+    if (state == STATE_COMMENT) { RET(1); }
 
-    if (state == STATE_CREATE) {
-        PUSH(here); PUSH((CELL)wd); doCREATE();
-        PUSH(1); return;
-    }
+    if (state == STATE_CREATE) { PUSH(here); PUSH((CELL)wd); doCREATE(); RET(1); }
 
     if (state == STATE_VAR) {
         PUSH(here); PUSH((CELL)wd); doCREATE();
@@ -231,7 +244,7 @@ void doPARSE() {
         pgm[here++] = (funcPtr)&vars[vhere];
         pgm[here++] = doEXIT;
         vhere += sizeof(CELL);
-        PUSH(1); return;
+        RET(1);
     }
 
     if (state == STATE_CONST) {
@@ -239,7 +252,7 @@ void doPARSE() {
         pgm[here++] = doLIT;
         pgm[here++] = (funcPtr)POP;
         pgm[here++] = doEXIT;
-        PUSH(1); return;
+        RET(1);
     }
 
     PUSH((CELL)wd); doFIND();
@@ -254,17 +267,17 @@ void doPARSE() {
             else { pgm[here++] = doCOL; pgm[here++] = (funcPtr)NOS; }
             DROP2;
         }
-        PUSH(1); return;
+        RET(1);
     }
 
     PUSH((CELL)wd); doIsNum();
     if (POP) {
         if (state==STATE_COMPILE) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
-        PUSH(1); return;
+        RET(1);
     }
     printf("[%s]??", wd);
     state = 0;
-    PUSH(0);
+    RET(0);
 }
 
 CELL getWord(char *wd) {
@@ -310,7 +323,7 @@ void doEdit() {
             if (strCmpN("[comment]", cp, 9)==0) { FG(2); i += 9; continue; }
             if (strCmpN("[exec]",    cp, 6)==0) { FG(7); i += 6; continue; }
             if (strCmpN("[var]",     cp, 5)==0) { FG(6); i += 5; continue; }
-            if (strCmpN("[const]",   cp, 7)==0) { FG(4); i += 7; continue; }
+            if (strCmpN("[const]",   cp, 7)==0) { FG(5); i += 7; continue; }
         }
         printf("%c", c);
     }
@@ -326,6 +339,7 @@ void primCreate(const char* nm, funcPtr xt) {
 void init() {
     here = sp = rsp = lsp = running = 0;
     last = -1;
+    base = 10;
     for (int i = 0; i <= PGM_SZ; i++) { pgm[i] = 0; }
     for (int i = 0; i <= VAR_SZ; i++) { vars[i] = 0; }
     for (int i = 0; i <= SRC_SZ; i++) { src[i] = 0; }
