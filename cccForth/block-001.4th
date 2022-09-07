@@ -25,3 +25,14 @@ reset
 : FG ( fg -- ) 40 SWAP COLOR ;
 : CURSOR-ON  ( -- ) ." %e[?25h" ;
 : CURSOR-OFF ( -- ) ." %e[?25l" ;
+
+// for Jump table stuff
+// : V,  ( n-- )  vhere ! CELL va +! ;
+// : VC, ( c-- )  vhere C! 1 va +! ;
+// vhere constant jt
+// ha @ V, : T0 ." test1 " ;
+// ha @ V, : T0 ." test2 " ;
+// ha @ V, : T0 ." test3 " ;
+// ha @ V, : T0 ." test4 " ;
+// ha @ V, : T0 ." test5 " ;
+// 5 0 DO I CELLS jt + @ EXECUTE LOOP
