@@ -404,9 +404,11 @@ int main()
     doLOAD();
     doCOMPILE();
     while (1) {
-        printf(" OK\n");
+        printf(" OK "); doDotS(); printf("\n");
         fgets(src, SRC_SZ, stdin);
         state = STATE_EXEC;
         doCOMPILE();
+        if (sp < 1) { sp = 0; }
+        if (rsp < 1) { rsp = 0; }
     }
 }
