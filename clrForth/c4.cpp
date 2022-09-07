@@ -1,4 +1,4 @@
-// clrForth.cpp: My color-forth inspired forth system
+// c4.cpp: My color-forth inspired forth system
 
 #include <stdio.h>
 #include <inttypes.h>
