@@ -1,11 +1,11 @@
 # c4 - a color-Forth inspired project
 
 ## What is c4?
-C4 is a flavor of Forth that is inspired by colorForth. It is NOT an attempt to implement colorForth.
-
-My other implementations use a byteCoded implementation, that uss a giant SWITCH statement for the implementation of te primitives.
+C4 is a flavor of Forth that is inspired by colorForth. It is NOT colorForth, nor is it an attempt to implement colorForth.
 
 In this implementation, the primitives are "void" functions; functions that take no parameters and return no value. All parameters and return values are placed on the (user-defined) parameter stack. Additionally, the code is a simple list of function addresses to primitives. There are 2 other stacks: a return stack and loop stack.
+
+My other implementations use a byteCoded implementation, most of which use a giant SWITCH statement for the implementation of the primitives.
 
 ## Building c4
 
