@@ -1,6 +1,7 @@
 // c4.cpp: My color-forth inspired forth system
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <time.h>
 
@@ -120,6 +121,8 @@ void doEXEC() {
 }
 void doNOP() { }
 void doCOMMA() { pgm[here++]=(funcPtr)POP; }
+void doVCOMMA() { *(CELL*)&vars[here++] = POP; vhere += sizeof(CELL); }
+void doCCOMMA() { vars[vhere++]=(byte)POP; }
 void doBREAK() { /* TODO! */ }
 void doDUP() { t = TOS; PUSH(t); }
 void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
@@ -164,6 +167,7 @@ void doWORDS() { for (CELL l = last; 0 <= l; l--) { printf("%s\t", dict[l].name)
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
 void doCELL() { PUSH(sizeof(CELL)); }
 void doIF() { if (state==STATE_COMPILE) { pgm[here++]=do0BRANCH; doHERE(); pgm[here++]=0; } }
+void doTHEN() { if (state == STATE_COMPILE) { doHERE(); doSWAP(); doSTORE(); } }
 void doELSE() {
     if (state == STATE_COMPILE) {
         pgm[here++] = doJMP;
@@ -175,13 +179,11 @@ void doELSE() {
         PUSH((CELL)&pgm[x]);
     }
 }
-void doTHEN() { if (state==STATE_COMPILE) { doHERE(); doSWAP(); doSTORE(); }
-}
 void doWORD() {
-    char* wd = (char*)TOS;
-    TOS = 0;
+    byte *wd = &vars[vhere];
+    TOS = (CELL)wd;
     while (*toIn && *toIn < 33) { ++toIn; }
-    while (*toIn && *toIn > 32) { *(wd++) = *(toIn++); ++TOS; }
+    while (*toIn && *toIn > 32) { *(wd++) = *(toIn++); }
     *wd = 0;
 }
 void doCREATE() {
@@ -225,6 +227,7 @@ void doIsNum() {
     PUSH(x);
     RET(1);
 }
+void doBYE() { exit(0); }
 void doPARSE() {
     char *wd = (char*)POP;
     if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    RET(1); }
@@ -280,17 +283,12 @@ void doPARSE() {
     RET(0);
 }
 
-CELL getWord(char *wd) {
-    PUSH((CELL)wd);
-    doWORD();
-    return POP;
-}
-
 void doCOMPILE() {
     toIn = &src[0];
-    char *wd = (char*)&vars[VAR_SZ-64];
-    while (getWord(wd)) {
-        PUSH((CELL)wd);
+    while (1) {
+        PUSH(32);
+        doWORD();
+        if (strLen((char*)TOS) == 0) { DROP; return; }
         doPARSE();
         if (POP==0) { return; }
     }
@@ -352,6 +350,9 @@ void init() {
     primCreate("OVER", doOVER);
     primCreate("DROP", doDROP);
     primCreate("JMP", doJMP);
+    primCreate("WORD", doWORD);
+    primCreate("'", doFIND);
+    primCreate("[']", doFIND); doIMMEDIATE();
     primCreate("DO", doDO);
     primCreate("I", doI);
     primCreate("J", doJ);
@@ -369,6 +370,9 @@ void init() {
     primCreate("C@", doCFETCH);
     primCreate("!", doSTORE);
     primCreate("C!", doCSTORE);
+    primCreate(",", doCOMMA);
+    primCreate("V,", doVCOMMA);
+    primCreate("C,", doCCOMMA);
     primCreate("=", doEQ);
     primCreate("<", doLT);
     primCreate(">", doGT);
@@ -390,6 +394,7 @@ void init() {
     primCreate("THEN", doTHEN); doIMMEDIATE();
     primCreate("EDIT", doEdit);
     primCreate(".S", doDotS);
+    primCreate("BYE", doBYE);
 }
 
 int main()
@@ -398,4 +403,10 @@ int main()
     PUSH(0);
     doLOAD();
     doCOMPILE();
+    while (1) {
+        printf(" OK\n");
+        fgets(src, SRC_SZ, stdin);
+        state = STATE_EXEC;
+        doCOMPILE();
+    }
 }
