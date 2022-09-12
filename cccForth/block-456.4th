@@ -7,6 +7,7 @@
 variable lines #lines CELLS ALLOT
 variable src f-sz ALLOT
 variable pad 128 ALLOT
+variable st 0 st !
 
 : init-blk src f-sz 0 do 0 OVER C! 1+ loop drop ;
 
@@ -35,12 +36,38 @@ variable pad 128 ALLOT
     CR src qtype
     -TMPS ;
 
-: to-lines ;
+: to-lines src qtype ;
 
-: edit-loop ;
+: do-copy ." -copy-" ;
+: do-paste ." -paste-" ;
 
-: edit load-blk to-lines edit-loop ;
+: move-up ." -up-" ;
+: move-lf ." -lf-" ;
+: move-rt ." -rt-" ;
+: move-dn ." -dn-" ;
+: move-pgup ." -pgup-" ;
+: move-pgdn ." -pgdn-" ;
+: move-home ." -home-" ;
+: move-end  ." -end-" ;
 
-: reload 789 load ;
+: process-key ( k-- ) s1 
+    r1 'Q' = IF 999 st ! EXIT THEN
+    r1 23 = IF move-up   EXIT THEN
+    r1  4 = IF move-rt   EXIT THEN
+    r1  1 = IF move-lf   EXIT THEN
+    r1 19 = IF move-dn   EXIT THEN
+    r1 18 = IF move-pgup EXIT THEN
+    r1  6 = IF move-pgdn EXIT THEN
+    r1 17 = IF move-home EXIT THEN
+    r1  5 = IF move-end  EXIT THEN
+    r1  3 = IF do-copy   EXIT THEN
+    r1 22 = IF do-paste  EXIT THEN
+    r1 .
+    ;
+
+: done? st @ 999 = ;
+: edit 0 st ! load-blk to-lines begin key process-key done? until ;
+
+: reload 456 load ;
 
 0 edit
