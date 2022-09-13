@@ -52,18 +52,19 @@ variable st 0 st !
 
 : process-key ( k-- ) s1 
     r1 'Q' = IF 999 st ! EXIT THEN
-    r1 23 = IF move-up   EXIT THEN
-    r1  4 = IF move-rt   EXIT THEN
-    r1  1 = IF move-lf   EXIT THEN
-    r1 19 = IF move-dn   EXIT THEN
-    r1 18 = IF move-pgup EXIT THEN
-    r1  6 = IF move-pgdn EXIT THEN
-    r1 17 = IF move-home EXIT THEN
-    r1  5 = IF move-end  EXIT THEN
-    r1  3 = IF do-copy   EXIT THEN
-    r1 22 = IF do-paste  EXIT THEN
-    r1 .
-    ;
+    r1 'w' = IF move-up   EXIT THEN
+    r1 'd' = IF move-rt   EXIT THEN
+    r1 'a' = IF move-lf   EXIT THEN
+    r1 's' = IF move-dn   EXIT THEN
+    r1 'q' = IF move-home EXIT THEN
+    r1 'e' = IF move-end  EXIT THEN
+    r1 'r' = IF move-pgup EXIT THEN
+    r1 'f' = IF move-pgdn EXIT THEN
+    r1 'c' = IF do-copy   EXIT THEN
+    r1 'v' = IF do-paste  EXIT THEN
+    r1 32  < IF r1 .      EXIT THEN
+    r1 126 > IF r1 .      EXIT THEN
+    r1 EMIT ;
 
 : done? st @ 999 = ;
 : edit 0 st ! load-blk to-lines begin key process-key done? until ;
