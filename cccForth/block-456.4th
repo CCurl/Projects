@@ -13,6 +13,8 @@ variable (file-sz)
 variable pad 128 ALLOT
 variable st 0 st !
 variable src src-sz ALLOT
+variable (row)
+variable (col)
 
 : num-lines (num-lines) @ ;
 : scr-top   (scr-top) @ ;
@@ -20,12 +22,17 @@ variable src src-sz ALLOT
 : scr-cols  (scr-cols) @ ;
 : file-sz   (file-sz) @ ;
 : file-end  src file-sz + ;
+: row  (row) @ ;
+: row! (row) ! ;
+: col  (col) @ ;
+: col! (col) ! ;
 
 0 (scr-top) !
 25 (scr-rows) !
 80 (scr-cols) !
 
-: init-blk src src-sz 0 DO 0 OVER C! 1+ LOOP drop ;
+: init-blk src src-sz 0 DO 0 OVER C! 1+ LOOP drop
+    1 row! 1 col! ;
 
 : make-fn ( n-- )
     " block-" pad str-cpy
@@ -55,47 +62,49 @@ variable src src-sz ALLOT
     r9 (file-sz) ! r9 pad ." %n(%s: %d bytes)%n"
     -TMPS ;
 
-: to-lines src s0 lines s2 0 s3
-    r0 r2 ! c2 i3
-    file-sz 0 DO r0 C@ $7F AND s1
-        r1 $D = IF $8D r0 C! THEN // CR
-        r1 $A = IF $8A r0 C! THEN // LF
-        r1 $A = IF r0 r2 ! c2 i3 THEN // next-line
-        r0 C@ 32 < IF $20 r0 C! THEN // SPC
-        i0
-    LOOP
-    r3 (num-lines) ! ;
-
-: scr-upd 1 1 ->XY +TMPS
+: scr-upd CURSOR-OFF 1 1 ->XY +TMPS
     src scr-top + s0
-    scr-rows 0 DO
+    scr-rows 0 DO 
         scr-cols 0 DO
             r0 c@ s1
-            r1 0 = IF 17 s1 THEN
-            r1 $8D = IF $AE s1 THEN
-            r1 $8A = IF $B3 s1 THEN
+            r1  32 < IF 32 s1 THEN
+            r1 127 > IF 32 s1 THEN
             r1 EMIT
             r0 file-end < IF i0 THEN
         LOOP CR
     LOOP
-    -TMPS ;
+    -TMPS CURSOR-ON ;
+
+: rc->off row 1- scr-cols * col + 1- scr-top + src + ;
 
 : do-copy ." -copy-" ;
 : do-paste ." -paste-" ;
-: do-delch ." -delch-" ;
-: do-insch ." -insch:" KEY EMIT '-' EMIT ;
-: do-repch ." -repch:" KEY EMIT '-' EMIT ;
+: do-delch file-end rc->off 
+    DO I 1+ C@ I C! LOOP 
+    0 file-end c! 
+    -1 (file-sz) +! scr-upd ;
+: do-insch ." -insch:" KEY ." %c-" ;
+: do-repch ." -repch:" KEY ." %c-" ;
 
-: move-up ." -up-" ;
-: move-lf ." -lf-" ;
-: move-rt ." -rt-" ;
-: move-dn ." -dn-" ;
-: move-pgup  scr-top scr-cols - 
-    dup 0 < IF DROP 0 THEN 
-    (scr-top) ! scr-upd ;
-: move-pgdn  scr-top scr-cols + (scr-top) ! scr-upd ;
-: move-home ." -home-" ;
-: move-end  ." -end-" ;
+: norm-RC
+    row 1 < IF 1 row! THEN
+    col 1 < IF 1 col! THEN
+    row scr-rows >= IF scr-rows row! THEN
+    col scr-cols >= IF scr-cols col! THEN ;
+: ->RC norm-RC col row ->XY ;
+
+: do-pgup scr-top scr-cols - (scr-top) !
+    scr-top 0 < IF 0 (scr-top) ! THEN 
+    scr-upd ;
+: do-pgdn  scr-top scr-cols + (scr-top) ! scr-upd ;
+
+: do-home 1 col! ;
+: do-end  scr-cols col! ;
+
+: do-up  row 1- row! row 1 <         IF do-pgup row 1+ row! THEN ;
+: do-dn  row 1+ row! row scr-rows >= IF do-pgdn row 1- row! THEN ;
+: do-lf  col 1- col! col 1 <         IF do-up do-end  THEN ;
+: do-rt  col 1+ col! col scr-cols >= IF do-dn do-home THEN ;
 
 : win-key ( -- ) key s2
     r2 72 = IF 'w' s1 THEN
@@ -110,29 +119,29 @@ variable src src-sz ALLOT
 
 : process-key ( k-- ) s1 
     r1 'Q' = IF 999 st !  EXIT THEN
-    r1 'w' = IF move-up   EXIT THEN
-    r1 'd' = IF move-rt   EXIT THEN
-    r1 'a' = IF move-lf   EXIT THEN
-    r1 's' = IF move-dn   EXIT THEN
-    r1 'q' = IF move-home EXIT THEN
-    r1 'e' = IF move-end  EXIT THEN
-    r1 'r' = IF move-pgup EXIT THEN
-    r1 'f' = IF move-pgdn EXIT THEN
+    r1 'w' = IF do-up   EXIT THEN
+    r1 'd' = IF do-rt   EXIT THEN
+    r1 'a' = IF do-lf   EXIT THEN
+    r1 's' = IF do-dn   EXIT THEN
+    r1 'q' = IF do-home EXIT THEN
+    r1 'e' = IF do-end  EXIT THEN
+    r1 'r' = IF do-pgup EXIT THEN
+    r1 'f' = IF do-pgdn EXIT THEN
     r1 'c' = IF do-copy   EXIT THEN
     r1 'v' = IF do-paste  EXIT THEN
     r1 'p' = IF do-repch  EXIT THEN
     r1 'x' = IF do-delch  EXIT THEN
     r1 'i' = IF do-insch  EXIT THEN
-    r1  13 = IF move-home move-dn  EXIT THEN
+    r1  13 = IF do-home do-dn  EXIT THEN
     r1  32 < IF r1 .      EXIT THEN
     r1 126 > IF r1 .      EXIT THEN
     r1 EMIT ;
 
 : get-key ( --n ) key s1 r1 224 = IF win-key THEN r1 ;
 : done? st @ 999 = ;
-: edit 0 st ! load-blk to-lines CLS scr-upd
+: edit 0 st ! load-blk CLS scr-upd ->RC
     BEGIN
-        get-key process-key done?
+        get-key process-key ->RC done?
     UNTIL ;
 
 : reload 456 load ;
