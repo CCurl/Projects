@@ -118,8 +118,8 @@ variable (col)
     scr-upd ;
 : scroll-dn (top-line) +! scr-upd ;
 
-: do-pgup  3 scroll-up ;
-: do-pgdn  3 scroll-dn ;
+: do-pgup  3 scroll-up row 3 + row! ;
+: do-pgdn  3 scroll-dn row 3 - row! ;
 
 : do-home 0 col! ;
 : do-end  col 4 + col! ;
