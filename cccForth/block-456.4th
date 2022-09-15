@@ -4,6 +4,23 @@
 10000 CONSTANT src-sz
 500 CONSTANT max-lines
 
+  0 CONSTANT ST_INS
+  1 CONSTANT ST_REPL
+999 CONSTANT ST_EXIT
+
+2000 CONSTANT K-up
+2001 CONSTANT K-dn
+2002 CONSTANT K-lf
+2003 CONSTANT K-rt
+2004 CONSTANT K-home
+2005 CONSTANT K-end
+2006 CONSTANT K-pgup
+2007 CONSTANT K-pgdn
+2008 CONSTANT K-copy
+2010 CONSTANT K-paste
+2011 CONSTANT K-del
+2012 CONSTANT K-cr
+
 variable lines max-lines CELLS ALLOT
 variable (num-lines)
 variable (top-line)
@@ -103,6 +120,7 @@ variable (col)
     DO I 1+ C@ I C! LOOP 
     -1 (file-end) +! mark-end to-lines
     scr-upd ;
+: do-rep-char ( c-- ) rc->off C!  ;
 : do-ins-char ( c-- ) s9 
      1 (file-end) +!
     file-end s8 rc->off s7
@@ -110,8 +128,6 @@ variable (col)
     r9 r7 C!
     mark-end  to-lines
     scr-upd ;
-: do-insch KEY do-ins-char ;
-: do-repch ." -repch:" KEY ." %c-" ;
 
 : scroll-up ( n-- ) NEGATE (top-line) +!
     top-line 0 < IF 0 (top-line) ! THEN
@@ -132,47 +148,51 @@ variable (col)
 : tty-key ( -- ) key s1
     r1 91 != IF EXIT THEN
     key s2
-    r2 65 = IF 'w' s1 THEN
-    r2 66 = IF 's' s1 THEN
-    r2 67 = IF 'd' s1 THEN
-    r2 68 = IF 'a' s1 THEN ;
+    r2 65 = IF K-up   s1 THEN
+    r2 66 = IF K-dn   s1 THEN
+    r2 68 = IF K-lf   s1 THEN
+    r2 67 = IF K-rt   s1 THEN
+    r2 99 = IF K-home s1 THEN
+    r2 99 = IF K-end  s1 THEN
+    r2 99 = IF K-pgup s1 THEN
+    r2 99 = IF K-pgdn s1 THEN
+    r2 99 = IF K-del  s1 THEN ;
 
 : win-key ( -- ) key s2
-    r2 72 = IF 'w' s1 THEN
-    r2 80 = IF 's' s1 THEN
-    r2 75 = IF 'a' s1 THEN
-    r2 77 = IF 'd' s1 THEN
-    r2 73 = IF 'r' s1 THEN
-    r2 81 = IF 'f' s1 THEN
-    r2 71 = IF 'q' s1 THEN
-    r2 79 = IF 'e' s1 THEN
-    r2 83 = IF 'x' s1 THEN ;
+    r2 72 = IF K-up   s1 THEN
+    r2 80 = IF K-dn   s1 THEN
+    r2 75 = IF K-lf   s1 THEN
+    r2 77 = IF K-rt   s1 THEN
+    r2 71 = IF K-home s1 THEN
+    r2 79 = IF K-end  s1 THEN
+    r2 73 = IF K-pgup s1 THEN
+    r2 81 = IF K-pgdn s1 THEN
+    r2 83 = IF K-del  s1 THEN ;
 
 : process-key ( k-- ) s1 
-    r1 'Q' = IF 999 st !  EXIT THEN
-    r1 'w' = IF do-up     EXIT THEN
-    r1 'd' = IF do-rt     EXIT THEN
-    r1 'a' = IF do-lf     EXIT THEN
-    r1 's' = IF do-dn     EXIT THEN
-    r1 'q' = IF do-home   EXIT THEN
-    r1 'e' = IF do-end    EXIT THEN
-    r1 'r' = IF do-pgup   EXIT THEN
-    r1 'f' = IF do-pgdn   EXIT THEN
-    r1 'c' = IF do-copy   EXIT THEN
-    r1 'v' = IF do-paste  EXIT THEN
-    r1 'p' = IF do-repch  EXIT THEN
-    r1 'x' = IF do-delch  EXIT THEN
-    r1 'i' = IF do-insch  EXIT THEN
-    r1  13 = IF do-home do-dn  EXIT THEN
+    r1 'Q' = IF ST_EXIT st !  EXIT THEN
+    r1 K-up    = IF do-up     EXIT THEN
+    r1 K-dn    = IF do-dn     EXIT THEN
+    r1 K-lf    = IF do-lf     EXIT THEN
+    r1 K-rt    = IF do-rt     EXIT THEN
+    r1 K-home  = IF do-home   EXIT THEN
+    r1 K-end   = IF do-end    EXIT THEN
+    r1 K-pgup  = IF do-pgup   EXIT THEN
+    r1 K-pgdn  = IF do-pgdn   EXIT THEN
+    r1 K-copy  = IF do-copy   EXIT THEN
+    r1 K-paste = IF do-paste  EXIT THEN
+    r1 K-del   = IF do-delch  EXIT THEN
+    r1 K-cr    = IF do-home do-dn  EXIT THEN
     r1  32 < IF r1 .      EXIT THEN
     r1 126 > IF r1 .      EXIT THEN
-    r1 EMIT ;
+    st @ ST_INS = IF r1 do-ins-char do-rt EXIT THEN
+    r1 do-rep-char ;
 
 : get-key ( --n ) key s1 
     r1 224 = IF win-key THEN 
     r1  27 = IF tty-key THEN 
     r1 ;
-: done? st @ 999 = ;
+: done? st @ ST_EXIT = ;
 : edit 0 st ! load-blk CLS scr-upd ->RC
     BEGIN
         get-key process-key ->RC done?
