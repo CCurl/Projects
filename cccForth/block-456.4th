@@ -22,8 +22,9 @@ variable (col)
 : scr-top   top-line CELLS lines + @ ;
 : scr-rows  (scr-rows) @ ;
 : scr-cols  (scr-cols) @ ;
-: file-sz   (file-sz) @ ;
 : file-end  (file-end) @ ;
+: file-sz   file-end src - ;
+: mark-end 26 file-end C! ;
 : row  (row) @ ;
 : row! (row) ! ;
 : col  (col) @ ;
@@ -51,7 +52,7 @@ variable (col)
 
 : to-lines +TMPS 
     src s0 lines s9 
-    src r9 ! c9 ( 1st line )
+    src r9 ! c9
     file-end src DO
         I C@ 10 = IF I 1+ r9 ! c9 THEN
     LOOP
@@ -66,9 +67,7 @@ variable (col)
     init-blk src s2 
     make-fn pad 0 FOPEN s1
     r1 IF rd-file r1 FCLOSE THEN
-    26 r2 C!
-    r2 (file-end) !
-    file-end src - (file-sz) ! 
+    r2 (file-end) ! mark-end
     \ file-sz pad ." %n(%s: %d bytes)%n"
     to-lines
     -TMPS ;
@@ -96,15 +95,22 @@ variable (col)
     +TMPS T0 -TMPS
     CURSOR-ON ;
 
-: rc->off 0 ;
+: rc->off lines row CELLS + @ col + ;
 
 : do-copy ." -copy-" ;
 : do-paste ." -paste-" ;
-: do-delch file-end rc->off 
+: do-delch file-end rc->off
     DO I 1+ C@ I C! LOOP 
-    0 file-end c! 
-    -1 (file-sz) +! scr-upd ;
-: do-insch ." -insch:" KEY ." %c-" ;
+    -1 (file-end) +! mark-end to-lines
+    scr-upd ;
+: do-ins-char ( c-- ) s9 
+     1 (file-end) +!
+    file-end s8 rc->off s7
+    BEGIN r8 1- C@ r8 C! d8 r8 r7 > WHILE
+    r9 r7 C!
+    mark-end  to-lines
+    scr-upd ;
+: do-insch KEY do-ins-char ;
 : do-repch ." -repch:" KEY ." %c-" ;
 
 : scroll-up ( n-- ) NEGATE (top-line) +!
