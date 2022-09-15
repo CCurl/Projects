@@ -21,6 +21,7 @@ reset
 // Screen stuff
 : ->XY ( x y-- ) ." %e[%d;%dH" ;
 : CLS ." %e[2J" 1 DUP ->XY ;
+: CLR-EOL ." %e[0K" ;
 : COLOR ( bg fg -- ) ." %e[%d;%dm" ;
 : FG ( fg -- ) 40 SWAP COLOR ;
 : CURSOR-ON  ( -- ) ." %e[?25h" ;
