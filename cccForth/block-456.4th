@@ -20,6 +20,7 @@
 2010 CONSTANT K-paste
 2011 CONSTANT K-del
 2012 CONSTANT K-cr
+2013 CONSTANT K-esc
 
 variable lines max-lines CELLS ALLOT
 variable (num-lines)
@@ -33,6 +34,7 @@ variable st 0 st !
 variable src src-sz ALLOT
 variable (row)
 variable (col)
+variable (block-num)
 
 : num-lines (num-lines) @ ;
 : top-line  (top-line) @ ;
@@ -58,14 +60,13 @@ variable (col)
     3 pad str-catnw
     " .4th" pad str-cat ;
 
-: save-blk ( n-- ) +TMPS
-    make-fn pad 1 FOPEN s1
-    r1 IF 
-        src s2 
-        BEGIN r2 C@ DUP IF r1 FPUTC 1 i2 THEN WHILE
-        r1 FCLOSE
-    THEN
-    -TMPS ;
+: save-blk ( n-- )
+    make-fn pad ." Saving %s..."
+    pad 1 FOPEN s1
+    r1 0= IF ." failed!" EXIT THEN
+    file-end 1- src DO I C@ r1 FPUTC LOOP
+    r1 FCLOSE
+    ." saved." ;
 
 : to-lines +TMPS 
     src s0 lines s9 
@@ -89,6 +90,14 @@ variable (col)
     to-lines
     -TMPS ;
 
+: norm-RC
+    row 1 < IF 0 row! THEN
+    col 1 < IF 0 col! THEN
+    row scr-rows >= IF scr-rows row! THEN
+    col scr-cols >= IF scr-cols col! THEN ;
+
+: ->RC norm-RC col 1+ row 1+ ->XY ;
+
 : T0 scr-top s0 0 s2 
     BEGIN
         r0 c@ s1
@@ -100,19 +109,11 @@ variable (col)
         i0 r2 scr-rows <
     WHILE ;
 
-: norm-RC
-    row 1 < IF 0 row! THEN
-    col 1 < IF 0 col! THEN
-    row scr-rows >= IF scr-rows row! THEN
-    col scr-cols >= IF scr-cols col! THEN ;
-
-: ->RC norm-RC col 1+ row 1+ ->XY ;
-
 : scr-upd CURSOR-OFF 1 1 ->XY 
     +TMPS T0 -TMPS
     CURSOR-ON ;
 
-: rc->off lines row CELLS + @ col + ;
+: rc->off lines row top-line + CELLS + @ col + ;
 
 : do-copy ." -copy-" ;
 : do-paste ." -paste-" ;
@@ -145,7 +146,13 @@ variable (col)
 : do-lf  col 1- col! col 0 <         IF do-up do-end  THEN ;
 : do-rt  col 1+ col! col scr-cols >= IF do-dn do-home THEN ;
 
+: do-esc 1 scr-rows 1+ ->XY ." :" CLR-EOL key s1
+    r1 'W' = IF (block-num) @ save-blk EXIT THEN
+    r1 'Q' = IF ST_EXIT st ! EXIT THEN
+    . ;
+
 : tty-key ( -- ) key s1
+    r1 27 = IF K-esc s1 EXIT THEN
     r1 91 != IF EXIT THEN
     key s2
     r2 65 = IF K-up   s1 THEN
@@ -170,7 +177,7 @@ variable (col)
     r2 83 = IF K-del  s1 THEN ;
 
 : process-key ( k-- ) s1 
-    r1 'Q' = IF ST_EXIT st !  EXIT THEN
+    r1 K-esc   = IF do-esc    EXIT THEN
     r1 K-up    = IF do-up     EXIT THEN
     r1 K-dn    = IF do-dn     EXIT THEN
     r1 K-lf    = IF do-lf     EXIT THEN
@@ -193,11 +200,10 @@ variable (col)
     r1  27 = IF tty-key THEN 
     r1 ;
 : done? st @ ST_EXIT = ;
-: edit 0 st ! load-blk CLS scr-upd ->RC
+: edit DUP (block-num) ! load-blk CLS scr-upd ->RC 0 st !
     BEGIN
         get-key process-key ->RC done?
-    UNTIL ;
+    UNTIL
+    1 scr-rows 1+ ->XY CLR-EOL ;
 
 : reload 456 load ;
-
-456 edit
