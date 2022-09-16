@@ -2,7 +2,7 @@
 2 load
 
 10000 CONSTANT src-sz
-500 CONSTANT max-lines
+  500 CONSTANT max-lines
 
   0 CONSTANT ST_INS
   1 CONSTANT ST_REPL
@@ -159,11 +159,11 @@ variable (block-num)
     r2 66 = IF K-dn   s1 THEN
     r2 68 = IF K-lf   s1 THEN
     r2 67 = IF K-rt   s1 THEN
-    r2 99 = IF K-home s1 THEN
-    r2 99 = IF K-end  s1 THEN
-    r2 99 = IF K-pgup s1 THEN
-    r2 99 = IF K-pgdn s1 THEN
-    r2 99 = IF K-del  s1 THEN ;
+    r2 72 = IF K-home s1 THEN
+    r2 70 = IF K-end  s1 THEN
+    r2 53 = IF key DROP K-pgup s1 THEN
+    r2 54 = IF key DROP K-pgdn s1 THEN
+    r2 51 = IF key DROP K-del  s1 THEN ;
 
 : win-key ( -- ) key s2
     r2 72 = IF K-up   s1 THEN
@@ -190,6 +190,8 @@ variable (block-num)
     r1 K-paste = IF do-paste  EXIT THEN
     r1 K-del   = IF do-delch  EXIT THEN
     r1 K-cr    = IF do-home do-dn  EXIT THEN
+    r1   8 = IF do-lf do-delch EXIT THEN
+    r1 127 = IF do-lf do-delch EXIT THEN
     r1  32 < IF r1 .      EXIT THEN
     r1 126 > IF r1 .      EXIT THEN
     st @ ST_INS = IF r1 do-ins-char do-rt EXIT THEN
