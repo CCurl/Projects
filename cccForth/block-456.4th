@@ -8,6 +8,9 @@
   1 CONSTANT ST_REPL
 999 CONSTANT ST_EXIT
 
+   8 CONSTANT K-bs1
+ 127 CONSTANT K-bs2
+  13 CONSTANT K-cr
 2000 CONSTANT K-up
 2001 CONSTANT K-dn
 2002 CONSTANT K-lf
@@ -19,7 +22,6 @@
 2008 CONSTANT K-copy
 2010 CONSTANT K-paste
 2011 CONSTANT K-del
-2012 CONSTANT K-cr
 2013 CONSTANT K-esc
 
 variable lines max-lines CELLS ALLOT
@@ -55,12 +57,13 @@ variable (block-num)
 : init-blk 0 row! 0 col! 0 (top-line) !
     src-sz src + src DO 0 I C! LOOP ;
 
-: make-fn ( n-- )
+: make-fn ( -- )
+    (block-num) @
     " block-" pad str-cpy
     3 pad str-catnw
     " .4th" pad str-cat ;
 
-: save-blk ( n-- )
+: save-blk ( -- )
     make-fn pad ." Saving %s..."
     pad 1 FOPEN s1
     r1 0= IF ." failed!" EXIT THEN
@@ -81,7 +84,7 @@ variable (block-num)
         r2 C! i2 i8
     AGAIN ;
 
-: load-blk ( n-- ) +TMPS
+: load-blk ( -- ) +TMPS
     init-blk src s2 
     make-fn pad 0 FOPEN s1
     r1 IF rd-file r1 FCLOSE THEN
@@ -129,7 +132,6 @@ variable (block-num)
     r9 r7 C!
     mark-end  to-lines
     scr-upd ;
-
 : scroll-up ( n-- ) NEGATE (top-line) +!
     top-line 0 < IF 0 (top-line) ! THEN
     scr-upd ;
@@ -146,10 +148,17 @@ variable (block-num)
 : do-lf  col 1- col! col 0 <         IF do-up do-end  THEN ;
 : do-rt  col 1+ col! col scr-cols >= IF do-dn do-home THEN ;
 
+: do-bs do-lf do-delch ;
+: do-cr st @ ST_INS = IF 
+        10 do-ins-char 13 do-ins-char
+    THEN
+    do-dn do-home ;
+
 : do-esc 1 scr-rows 1+ ->XY ." :" CLR-EOL key s1
-    r1 'W' = IF (block-num) @ save-blk EXIT THEN
-    r1 'Q' = IF ST_EXIT st ! EXIT THEN
-    . ;
+    r1 'W' = IF save-blk EXIT THEN
+    r1 'Q' = IF save-blk 'q' s1 THEN
+    r1 'q' = IF ST_EXIT st ! EXIT THEN
+    r1 ." -%c?-" ;
 
 : tty-key ( -- ) key s1
     r1 27 = IF K-esc s1 EXIT THEN
@@ -189,20 +198,21 @@ variable (block-num)
     r1 K-copy  = IF do-copy   EXIT THEN
     r1 K-paste = IF do-paste  EXIT THEN
     r1 K-del   = IF do-delch  EXIT THEN
-    r1 K-cr    = IF do-home do-dn  EXIT THEN
-    r1   8 = IF do-lf do-delch EXIT THEN
-    r1 127 = IF do-lf do-delch EXIT THEN
-    r1  32 < IF r1 .      EXIT THEN
-    r1 126 > IF r1 .      EXIT THEN
-    st @ ST_INS = IF r1 do-ins-char do-rt EXIT THEN
-    r1 do-rep-char ;
+    r1 K-bs1   = IF do-bs     EXIT THEN
+    r1 K-bs2   = IF do-bs     EXIT THEN
+    r1 K-cr    = IF do-cr     EXIT THEN
+    r1   13    < IF r1 .      EXIT THEN
+    r1   32    < IF r1 .      EXIT THEN
+    r1  126    > IF r1 .      EXIT THEN
+    st @ ST_INS = IF r1 do-rep-char EXIT THEN
+    r1 do-ins-char do-rt ;
 
 : get-key ( --n ) key s1 
     r1 224 = IF win-key THEN 
     r1  27 = IF tty-key THEN 
     r1 ;
 : done? st @ ST_EXIT = ;
-: edit DUP (block-num) ! load-blk CLS scr-upd ->RC 0 st !
+: edit (block-num) ! load-blk CLS scr-upd ->RC 0 st !
     BEGIN
         get-key process-key ->RC done?
     UNTIL
