@@ -4,6 +4,9 @@
 10000 CONSTANT src-sz
   500 CONSTANT max-lines
 
+ 40 CONSTANT scr-rows
+100 CONSTANT scr-cols
+
   0 CONSTANT ST_INS
   1 CONSTANT ST_REPL
 999 CONSTANT ST_EXIT
@@ -27,12 +30,10 @@
 variable lines max-lines CELLS ALLOT
 variable (num-lines)
 variable (top-line)
-variable (scr-rows)
-variable (scr-cols)
 variable (file-sz)
 variable (file-end)
 variable pad 128 ALLOT
-variable st 0 st !
+variable st ST_INS st !
 variable src src-sz ALLOT
 variable (row)
 variable (col)
@@ -41,8 +42,6 @@ variable (block-num)
 : num-lines (num-lines) @ ;
 : top-line  (top-line) @ ;
 : scr-top   top-line CELLS lines + @ ;
-: scr-rows  (scr-rows) @ ;
-: scr-cols  (scr-cols) @ ;
 : file-end  (file-end) @ ;
 : file-sz   file-end src - ;
 : mark-end 26 file-end C! ;
@@ -50,9 +49,6 @@ variable (block-num)
 : row! (row) ! ;
 : col  (col) @ ;
 : col! (col) ! ;
-
-25 (scr-rows) !
-80 (scr-cols) !
 
 : init-blk 0 row! 0 col! 0 (top-line) !
     src-sz src + src DO 0 I C! LOOP ;
@@ -96,10 +92,10 @@ variable (block-num)
 : norm-RC
     row 1 < IF 0 row! THEN
     col 1 < IF 0 col! THEN
-    row scr-rows >= IF scr-rows row! THEN
-    col scr-cols >= IF scr-cols col! THEN ;
+    row scr-rows >= IF scr-rows row! THEN ;
 
 : ->RC norm-RC col 1+ row 1+ ->XY ;
+: ->cmd-row 1 scr-rows 1+ ->XY ;
 
 : T0 scr-top s0 0 s2 
     BEGIN
@@ -146,7 +142,7 @@ variable (block-num)
 : do-up  row 1- row! row 0 <         IF 1 scroll-up 0 row! THEN ;
 : do-dn  row 1+ row! row scr-rows >= IF 1 scroll-dn scr-rows 1- row! THEN ;
 : do-lf  col 1- col! col 0 <         IF do-up do-end  THEN ;
-: do-rt  col 1+ col! col scr-cols >= IF do-dn do-home THEN ;
+: do-rt  col 1+ col! ;
 
 : do-bs do-lf do-delch ;
 : do-cr st @ ST_INS = IF 
@@ -154,7 +150,7 @@ variable (block-num)
     THEN
     do-dn do-home ;
 
-: do-esc 1 scr-rows 1+ ->XY ." :" CLR-EOL key s1
+: do-esc ->cmd-row ." :" CLR-EOL key s1
     r1 'W' = IF save-blk EXIT THEN
     r1 'Q' = IF save-blk 'q' s1 THEN
     r1 'q' = IF ST_EXIT st ! EXIT THEN
@@ -204,7 +200,7 @@ variable (block-num)
     r1   13    < IF r1 .      EXIT THEN
     r1   32    < IF r1 .      EXIT THEN
     r1  126    > IF r1 .      EXIT THEN
-    st @ ST_INS = IF r1 do-rep-char EXIT THEN
+    st @ ST_REPL = IF r1 do-rep-char EXIT THEN
     r1 do-ins-char do-rt ;
 
 : get-key ( --n ) key s1 
