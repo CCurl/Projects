@@ -3,9 +3,9 @@
 
 10000 CONSTANT src-sz
   500 CONSTANT max-lines
+   30 CONSTANT scr-rows
 
- 40 CONSTANT scr-rows
-100 CONSTANT scr-cols
+scr-rows 2/ CONSTANT page-sz
 
   0 CONSTANT ST_INS
   1 CONSTANT ST_REPL
@@ -97,10 +97,12 @@ variable (block-num)
 : ->RC norm-RC col 1+ row 1+ ->XY ;
 : ->cmd-row 1 scr-rows 1+ ->XY ;
 
+: show-eof 26 emit CLR-EOS ;
+
 : T0 scr-top s0 0 s2 
     BEGIN
         r0 c@ s1
-        r1 26 = IF UNLOOP EXIT THEN
+        r1 26 = IF UNLOOP r0 (file-end) ! show-eof EXIT THEN
         r1  9 = IF 32 s1 THEN
         r1 13 = IF 0 s1 THEN
         r1 10 = IF CLR-EOL 13 EMIT i2 THEN
@@ -120,21 +122,13 @@ variable (block-num)
     DO I 1+ C@ I C! LOOP 
     -1 (file-end) +! mark-end to-lines
     scr-upd ;
-: do-rep-char ( c-- ) rc->off C!  ;
-: do-ins-char ( c-- ) s9 
-     1 (file-end) +!
-    file-end s8 rc->off s7
-    BEGIN r8 1- C@ r8 C! d8 r8 r7 > WHILE
-    r9 r7 C!
-    mark-end  to-lines
-    scr-upd ;
 : scroll-up ( n-- ) NEGATE (top-line) +!
     top-line 0 < IF 0 (top-line) ! THEN
     scr-upd ;
-: scroll-dn (top-line) +! scr-upd ;
+: scroll-dn ( n-- ) (top-line) +! scr-upd ;
 
-: do-pgup  3 scroll-up row 3 + row! ;
-: do-pgdn  3 scroll-dn row 3 - row! ;
+: do-pgup  page-sz scroll-up row page-sz + row! ;
+: do-pgdn  page-sz scroll-dn row page-sz - row! ;
 
 : do-home 0 col! ;
 : do-end  col 4 + col! ;
@@ -144,9 +138,16 @@ variable (block-num)
 : do-lf  col 1- col! col 0 <         IF do-up do-end  THEN ;
 : do-rt  col 1+ col! ;
 
+: do-rep-char ( c-- ) rc->off C! do-rt ;
+: do-ins-char ( c-- ) s9 
+    1 (file-end) +!
+    file-end s8 rc->off s7
+    BEGIN r8 1- C@ r8 C! d8 r8 r7 > WHILE
+    r9 r7 C! mark-end to-lines
+    scr-upd ;
 : do-bs do-lf do-delch ;
 : do-cr st @ ST_INS = IF 
-        10 do-ins-char 13 do-ins-char
+        10 do-ins-char 13 do-ins-char do-rt
     THEN
     do-dn do-home ;
 
@@ -211,7 +212,7 @@ variable (block-num)
 : edit (block-num) ! load-blk CLS scr-upd ->RC 0 st !
     BEGIN
         get-key process-key ->RC done?
-    UNTIL
-    1 scr-rows 1+ ->XY CLR-EOL ;
+   UNTIL
+   ->cmd-row ;
 
 : reload 456 load ;
