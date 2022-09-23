@@ -87,20 +87,35 @@ variable flag-v
     ;
 
 variable bp
-: b, ( c -- ) bp @ C! 1 bp +! ;
+variable loop1
+variable loop2
+: vmhere bp @ ;
+: b, ( c -- ) vmhere >vm C! 1 bp +! ;
+
+: LDA $A9 b, b, ;
+: LDX $A2 b, b, ;
+: LDY $A0 b, b, ;
+: DEX $CA b, ;
+: DEY $88 b, ;
+: STA $85 b, b, ;
+: INC $E6 b, b, ;
+: BNE $E6 b, bp @ - 1- b, ;
+: JMP $4C b, DUP $FF AND b, $100 / b, ;
 
 : testcode
-    org >vm bp !
-    $A9 b, $00 b,         \ start: LDA #0
-    $85 b, $08 b,         \        STA 08
-    $A2 b, $10 b,         \        LDX #10
-    $A0 b, $10 b,         \ loop1: LDY #10
-    $E6 b, $08 b,         \ loop2: INC 08
-    $88 b,                \        DEY
-    $D0 b, $FB b,         \        BNE loop2 (offset)
-    $CA b,                \        DEX
-    $D0 b, $F6 b,         \        BNE loop1
-    $4C b, $00 b, $08 b,  \        JMP start
+    org bp !
+    #00 LDA         \ start: LDA #0
+    #08 STA         \        STA 08
+    $10 LDX         \        LDX $10
+vmhere loop1 !
+    $10 LDY         \ loop1: LDY $10
+vmhere loop2 !
+    $08 INC         \ loop2: INC 08
+        DEY         \         DEY
+loop2 @ BNE         \         BNE loop2 ($FB)
+        DEX         \         DEX
+loop1 @ BNE         \         BNE loop2 ($F6)
+    org JMP         \         JMP start
     ;
 
 : init-vm testcode 0 cycle! org s5 ;
@@ -121,7 +136,7 @@ variable bp
 // 1 mil do-bench
 : reload #6502 load ;
 : step next-inst one-inst DROP .status cr 8 >vm c@ . ;
-
+: dump org >vm bp @ org - 0 DO DUP C@ . 1+ LOOP DROP ;
 init-vm ." 6502 VM initialized%n" 
 .status
 decimal
