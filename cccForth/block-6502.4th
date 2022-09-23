@@ -87,11 +87,12 @@ variable flag-v
     ;
 
 variable bp
-variable loop1
-variable loop2
+variable l1
+variable l2
 : vmhere bp @ ;
 : b, ( c -- ) vmhere >vm C! 1 bp +! ;
 
+: >word $100 /mod ;
 : LDA $A9 b, b, ;
 : LDX $A2 b, b, ;
 : LDY $A0 b, b, ;
@@ -100,25 +101,23 @@ variable loop2
 : STA $85 b, b, ;
 : INC $E6 b, b, ;
 : BNE $E6 b, bp @ - 1- b, ;
-: JMP $4C b, DUP $FF AND b, $100 / b, ;
+: JMP $4C b, >word b, b, ;
 
-: testcode
-    org bp !
-    #00 LDA         \ start: LDA #0
+org bp !
+    #00 LDA         \ org:   LDA #0
     #08 STA         \        STA 08
     $10 LDX         \        LDX $10
-vmhere loop1 !
+vmhere l1 !
     $10 LDY         \ loop1: LDY $10
-vmhere loop2 !
+vmhere l2 !
     $08 INC         \ loop2: INC 08
         DEY         \         DEY
-loop2 @ BNE         \         BNE loop2 ($FB)
+l2 @    BNE         \         BNE loop2 ($FB)
         DEX         \         DEX
-loop1 @ BNE         \         BNE loop2 ($F6)
-    org JMP         \         JMP start
-    ;
+l1 @    BNE         \         BNE loop1 ($F6)
+    org JMP         \         JMP org
 
-: init-vm testcode 0 cycle! org s5 ;
+: init-vm 0 cycle! org s5 ;
 
 : 6502emu ( cycles -- )
     BEGIN cycle OVER >
@@ -130,7 +129,7 @@ loop1 @ BNE         \         BNE loop2 ($F6)
 : bench6502 ( cycles-- ) 0 s7 init-vm 6502emu ;
 
 : elapsed timer swap - ;
-: do-bench timer SWAP bench6502 elapsed r7 ;
+: bench timer SWAP bench6502 elapsed r7 . . ;
 
 // decimal
 // 1 mil do-bench
