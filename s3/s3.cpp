@@ -67,7 +67,7 @@ int funcN(int x) {
     else if (u == '|') { NOS |= TOS; s--; }
     else if (u == '^') { NOS ^= TOS; s--; }
     else { putc(32, stdout); --p; } }
-/*  c  */ void fCOp() { u = stb[p++]; if (u == '@') { TOS = stb[TOS]; } else if (u == '!') { stb[TOS] = NOS; s -= 2; } }
+/*  c  */ void fCOp() { u=stb[p++]; if (u=='@') { TOS=stb[TOS]; } else if (u=='!') { stb[TOS]=(char)NOS; s-=2; } }
 /*  d  */ void fRegDec() { u = stb[p++]; if (btw(u, 'A', 'Z')) { st.i[u + 32]--; } else { --p; --TOS; } }
 /*  e  */ void fExec() { st.i[--r] = p; p = st.i[s--]; }
 /*  f  */ void fFloat() { u = stb[p++]; printf("-flt:%c-",u);
