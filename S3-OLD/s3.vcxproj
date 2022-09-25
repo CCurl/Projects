@@ -140,12 +140,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="pc-main.cpp" />
     <ClCompile Include="S3.cpp" />
     <Text Include="doc\examples.txt" />
     <Text Include="doc\reference.txt" />
-    <Text Include="history.txt" />
-    <Text Include="public\history.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="code.s3" />

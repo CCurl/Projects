@@ -1,4 +1,4 @@
-:C xIAU xIH 1-[rI c@ #, ';=(rI1+c@':=("%n"))];
+:C xIH xIAU[n c@ #, ';=(n1+c@':=(13,10,))];
 :R xIAR s1 0 25[r1@(r1@rI'A+"r%c: %d%n")n1];
 :A 1 2 3 ++ "sum: %d%n";
 :H "hello world!%n";

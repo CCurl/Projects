@@ -22,9 +22,9 @@ S3 examples:
     iX dY
 
 ; To print numbers from F to T:
-;   S3 code:             rF rT[rI." "]
-;   Forth equivalent:    F @ T @ FOR I . NEXT
-;   C equivalent:        for (int i = F; i <= T; i)) { printf("%d ", i); }
+;   S3 code:             rT rF[rI." "]
+;   Forth equivalent:    T @ F @ DO I . LOOP
+;   C equivalent:        for (int i = F; i < T; i)) { printf("%d ", i); }
 
 ; One way to copy N bytes from A to B (n f t--)
     N A B s2 s1 1[r1 c@ r2 c! i1 i2]
@@ -33,13 +33,15 @@ S3 examples:
     N A B s2 s1 1[r1 @ r2 ! n1 n2]
 
 ; A simple benchmark for a 100 million FOR loop:
-    1000#* 100* xT$ 1[] xT$-." ms"
+    :Bench 1000#** t$ 0[] t$-." usec";
+    100 Bench
 
 ; A simple benchmark for a 100 million WHILE loop:
-    1000#* 100* xT$ {1-} xT$-." ms"
+    :Bench 1000#** t$ {1-#}\ t$-." usec";
+    100 Bench
 
 ; Define a word to display the currently defined code:
-    :C xIAU xIH 1-[rI c@ #,';=(rI 1+ c@': =("%n"))];
+    :Code 0 @ 1[n c@ # 58=(n 1- c@ 59=(13,10,),];
 
 ; Exit S3:
     xQ
