@@ -1,4 +1,4 @@
-// S2.c - inspired by, and based on, STABLE from Sandor Schneider
+// s3.cpp - inspired by STABLE from Sandor Schneider
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
