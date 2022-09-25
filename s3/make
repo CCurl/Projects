@@ -1,3 +1,3 @@
 #/bin/sh
-clang s3.cpp
-ls -l 
+clang -Ofast -os3 s3.cpp
+ls -la ./s3
