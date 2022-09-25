@@ -1,279 +1,116 @@
-// S3 - A Minimal Interpreter
-
-#include "s3.h"
-
-SYS_T sys;
-byte ir, isBye = 0, isError = 0;
-short locBase, lastFunc;
-addr pc, HERE, func[26];
-CELL seed, t1, reg[26], locs[STK_SZ * LPC];
-byte user[USER_SZ];
-static char buf[64];
-
-void push(CELL v) { if (DSP < STK_SZ) { sys.dstack[++DSP] = v; } }
-CELL pop() { return (DSP) ? sys.dstack[DSP--] : 0; }
-
-inline void rpush(addr v) { if (RSP < STK_SZ) { sys.rstack[++RSP] = v; } }
-inline addr rpop() { return (RSP) ? sys.rstack[RSP--] : 0; }
-
-inline LOOP_ENTRY_T* lpush() { if (LSP < STK_SZ) { ++LSP; } return LTOS; }
-inline LOOP_ENTRY_T *ldrop() { if (0 < LSP) { --LSP; } return LTOS; }
-
-void vmInit() {
-    seed = DSP = RSP = LSP = lastFunc = 0;
-    for (int i = 0; i < 26; i++) { reg[i] = 0; }
-    for (int i = 0; i < USER_SZ; i++) { user[i] = 0; }
-    for (int i = 0; i < 26; i++) { func[i] = 0; }
-    HERE = user;
-    reg[21] = (CELL) (user + (USER_SZ / 2)); // register v
-}
-
-void setCell(byte* to, CELL val) {
-#ifdef _NEEDS_ALIGN_
-    *(to++) = (byte)val; 
-    for (int i = 1; i < CELL_SZ; i++) {
-        val = (val >> 8);
-        *(to++) = (byte)val;
-    }
-#else
-    *((CELL *)to) = val;
-#endif
-}
-
-CELL getCell(byte* from) {
-    CELL val = 0;
-#ifdef _NEEDS_ALIGN_
-    from += (CELL_SZ - 1);
-    for (int i = 0; i < CELL_SZ; i++) {
-        val = (val << 8) + *(from--);
-    }
-#else
-    val = *((CELL *)from);
-#endif
-    return val;
-}
-
-void dumpStack() {
-    printChar('(');
-    for (UCELL i = 1; i <= DSP; i++) {
-        printStringF("%s%ld", (i > 1 ? " " : ""), (CELL)sys.dstack[i]);
-    }
-    printChar(')');
-}
-
-void printStringF(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    printString(buf);
-}
-
-void toHere(addr f, addr t) {
-    while (f <= t) { *(HERE++) = *(f++); }
-}
-
-void skipTo(byte to) {
-    while (*pc) {
-        ir = *(pc++);
-        if (ir == to) { return; }
-        if (ir == '(') { skipTo(')'); continue; }
-        if (ir == '[') { skipTo(']'); continue; }
-        if (ir == '"') { skipTo('"'); continue; }
-        if (ir == '\'') { ir = *(pc++); }
-    }
-    PERR("-skip-");
-}
-
-void doRegOp(int op) {
-    CELL *pCell = 0;
-    if (BetweenI(*pc, '0', ('0'+LPC-1))) { pCell = &locs[locBase + (*(pc++) - '0')];} 
-    else if (BetweenI(*pc, 'A', 'Z')) { pCell = &reg[(*(pc++) - 'A')]; }
-    if (!pCell) { return; }
-    switch (op) {
-    case 'd': (*pCell)--;         return;
-    case 'i': (*pCell)++;         return;
-    case 'r': push(*pCell);       return;
-    case 's': *pCell = pop();     return;
-    case 'n': *pCell += CELL_SZ;  return;
-    }
-}
-
-void loopBreak() {
-    if (LSP == 0) { return; }
-    LOOP_ENTRY_T* x = LTOS;
-    int isFor = (x->from <= x->to) ? 1 : 0;
-    if (isFor) { INDEX = ldrop()->from; }
-    else { ldrop(); }
-    if (x->end) { pc = x->end; }
-    else { skipTo(isFor ? ']' : '}'); }
-}
-
-void doWhile() {
-    lpush()->start = pc;
-    LTOS->end = 0;
-    LTOS->from = 1;
-    LTOS->to = 0;
-}
-
-void doFor() {
-    CELL f = (N < TOS) ? N : TOS;
-    CELL t = (N < TOS) ? TOS : N;
-    DROP2;
-    LOOP_ENTRY_T *x = lpush();
-    x->start = pc;
-    x->end = 0;
-    INDEX = x->from = f;
-    x->to = t;
-}
-
-void doNext() {
-    LOOP_ENTRY_T* x = LTOS;
-    x->from = ++INDEX;
-    if (x->from <= x->to) {
-        x->end = pc;
-        pc = x->start;
-    } else {
-        INDEX = ldrop()->from;
-    }
-}
-
-int isNot0(int exp) {
-    if (exp == 0) PERR("-0div-");
-    return isError == 0;
-}
-
-void doExt() {
-    ir = *(pc++);
-    switch (ir) {
-    case 'A': TOS = (TOS < 0) ? -TOS : TOS;                return;
-    case 'R': if (seed == 0) { seed = getSeed(); }         // RAND
-        seed ^= (seed << 13);
-        seed ^= (seed >> 17);
-        seed ^= (seed << 5);
-        TOS = (TOS) ? (abs(seed) % TOS) : seed;            return;
-    case 'J': if (TOS) { pc = AOS; } DROP1;                return;
-    case 'K': ir = *(pc++);
-        if (ir == '?') { push(charAvailable()); }
-        if (ir == '@') { push(getChar()); }
-        return;
-    case 'Z': printString((char *)pop());                  return;
-    case 'I': ir = *(pc++);
-        if (ir == 'A') {
-          ir = *(pc++);
-          if (ir == 'F') { push((CELL)&func[0]); }
-          if (ir == 'H') { push((CELL)&HERE); }
-          if (ir == 'R') { push((CELL)&reg[0]); }
-          if (ir == 'U') { push((CELL)&user[0]); }
-          return;
-        }
-        if (ir == 'C') { push(CELL_SZ); }
-        if (ir == 'H') { push((CELL)HERE); }
-        if (ir == 'U') { push(USER_SZ); }
-        return;
-    case 'S': ir = *(pc++);
-        if (ir == 'R') { vmInit();   }
-        if (ir == '.') { dumpStack(); }
-            return;
-    default:
-        pc = doCustom(ir, pc);
-    }
-}
-
-addr run(addr start) {
-    pc = start;
-    locBase = isError = 0;
-    RSP = LSP = 0;
-    while (!isError && pc) {
-        ir = *(pc++);
-        switch (ir) {
-        case 0: return pc;
-        case ' ': while (BetweenI(*pc, 1, 32)) { pc++; }               break;  // 32
-        case '!': setCell(AOS, N); DROP2;                              break;  // 33 (STORE)
-        case '"': while (*pc && (*pc != '"')) {                                // 34 PRINT
-            ir = *(pc++); if (ir == '%') {
-                ir = *(pc++);
-                if (ir == 'c') { printChar((char)pop()); }
-                else if (ir == 'd') { printStringF("%ld", pop()); }
-                else if (ir == 'x') { printStringF("%x", pop()); }
-                else if (ir == 'n') { printString("\r\n"); }
-                else { printChar(ir); }
-            }
-            else { printChar(ir); }
-        } ++pc;   break;  // 34
-        case '#': push(TOS);                                           break;  // 35 (DUP)
-        case '$': t1 = N; N = TOS; TOS = t1;                           break;  // 36 (SWAP)
-        case '%': push(N);                                             break;  // 37 (OVER)
-        case '&': if (isNot0(TOS)) { t1=TOS; TOS=N%t1; N/=t1; }        break;  // 38 (/MOD)
-        case '\'': push(*(pc++));                                      break;  // 39
-        case '(': if (pop() == 0) { skipTo(')'); }                     break;  // 40 (IF)
-        case ')': /* endIf() */                                        break;  // 41
-        case '*': t1 = pop(); TOS *= t1;                               break;  // 42
-        case '+': t1 = pop(); TOS += t1;                               break;  // 43
-        case ',': t1 = pop(); printChar((char)t1);                     break;  // 44
-        case '-': t1 = pop(); TOS -= t1;                               break;  // 45
-        case '.': t1 = pop();  printStringF("%ld", t1);                break;  // 46
-        case '/': t1 = pop(); if (isNot0(t1)) { TOS /= t1; }           break;  // 47
-        case '0': case '1': case '2': case '3': case '4':                      // 48-57
-        case '5': case '6': case '7': case '8': case '9':
-            push(ir - '0'); ir = *(pc);
-            while (BetweenI(ir, '0', '9')) {
-                TOS = (TOS * 10) + (ir - '0');
-                ir = *(++pc);
-            } break;
-        case ':': t1 = (CELL)(pc-1); ir = *(pc)-'A';
-            if (!BetweenI(ir, 0, 25)) { PERR("-FN-"); break; }
-            else { func[ir] = HERE+2; skipTo(';'); }
-            toHere((addr)t1, pc-1);
-            break;  // 58
-        case ';': pc = rpop(); locBase -= LPC;                          break;  // 59
-        case '<': t1 = pop(); TOS = TOS < t1 ? 1 : 0;                  break;  // 60
-        case '=': t1 = pop(); TOS = TOS == t1 ? 1 : 0;                 break;  // 61
-        case '>': t1 = pop(); TOS = TOS > t1 ? 1 : 0;                  break;  // 62
-        case '?': /* FREE */                                           break;  // 63
-        case '@': TOS = getCell(AOS);                                  break;  // 64
-        case 'A': case 'B': case 'C': case 'D': case 'E':                      // 65-90
-        case 'F': case 'G': case 'H': case 'I': case 'J':
-        case 'K': case 'L': case 'M': case 'N': case 'O':
-        case 'P': case 'Q': case 'R': case 'S': case 'T':
-        case 'U': case 'V': case 'W': case 'X': case 'Y': 
-        case 'Z': ir -= 'A';
-            if (*pc != ';') { locBase += LPC; rpush(pc); }
-            pc = func[ir];                                             break;
-        case '[': doFor();                                             break;  // 91
-        case '\\': DROP1;                                              break;  // 92 (DROP)
-        case ']': doNext();                                            break;  // 93
-        case '^': t1 = pop(); if (isNot0(t1)) { TOS %= t1; }           break;  // 94 (MODULO)
-        case '_': TOS = -TOS;                                          break;  // 95 (NEGATE)
-        case '`': push(TOS);                                                   // 96
-            while (*pc && (*pc != ir)) { *(AOS++) = *(pc++); }
-            *(AOS++) = 0; ++pc;                                        break;
-        case 'a': case 'e': case 'f': case 'g': case 'j':  /* FREE */  break;  // 97-122
-        case 'k': case 'l': case 'm': case 'o':            /* FREE */  break;
-        case 'p': case 'q': case 't': case 'u': case 'v':  /* FREE */  break;
-        case 'b': ir = *(pc++);                                                // BIT ops
-            if (ir == '&') { N &= TOS; DROP1; }                                // AND
-            if (ir == '|') { N |= TOS; DROP1; }                                // OR
-            if (ir == '^') { N ^= TOS; DROP1; }                                // XOR
-            if (ir == '~') { TOS = ~TOS; }                             break;  // NOT
-        case 'c': ir = *(pc++);                                                // c! / c@
-            if (ir == '!') { *AOS = (byte)N; DROP2; }
-            if (ir == '@') { TOS = *AOS; }                             break;
-        case 'h': push(0); t1 = 1; while (0 <= t1) {
-                t1 = BetweenI(*pc, '0', '9') ? (*pc - '0') : -1;
-                t1 = BetweenI(*pc, 'A', 'F') ? (*pc - 'A') + 10 : t1;
-                if (0 <= t1) { TOS = (TOS * 0x10) + t1; ++pc; }
-            } break;
-        case 'd': case 'i': case 'r': case 's': case 'n': doRegOp(ir); break;
-        case 'x': doExt();                                             break;
-        case 'w': case 'y':  case 'z':                                 break;
-        case '{': if (TOS) { doWhile(); }                                      // 123
-                else { DROP1;  skipTo('}'); }                          break;
-        case '|': loopBreak();                                         break;  // 124
-        case '}': if (!TOS) { ldrop(); DROP1; }                                // 125
-                else { LTOS->end = pc; pc = LTOS->start; }             break;
-        case '~': TOS = (TOS) ? 0 : 1;                                 break;  // 126
-        }
-    }
-    return pc;
+// S2.c - inspired by, and based on, STABLE from Sandor Schneider
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#define btw(a,b,c) ((b<=a) && (a<=c))
+#define TOS st.i[s]
+#define NOS st.i[s-1]
+#define SZ 10000
+union fib { float f[SZ / 4]; int i[SZ / 4]; char b[SZ]; }; static union fib st;
+static char ex[80], * y; static int c, cb = 800, h, p, lb = 125, rg = 68, rb = 64, r, sb = 4, s, t, u;
+/* <33 */ void X() { if (u && (u != 10)) printf("-IR %d (%c)?", u, u); p = 0; } void N() {}
+/*  !  */ void fStore() { st.i[TOS] = NOS; s -= 2; }
+/*  "  */ void fDotQ() { while (st.b[p] != '"') { putc(st.b[p++], stdout); } ++p; }
+/*  #  */ void fDup() { t = TOS; st.i[++s] = t; }
+/*  $  */ void fSwap() { t = TOS; TOS = NOS; NOS = t; }
+/*  %  */ void fOver() { t = NOS; st.i[++s] = t; }
+/*  &  */ void fSlMod() { u = NOS; t = TOS; NOS = u / t; TOS = u % t; }
+/*  '  */ void fAscii() { st.i[++s] = st.b[p++]; }
+/*  (  */ void fIf() { if (st.i[s--] == 0) { while (st.b[p++] != ')'); } }
+/*  *  */ void fMult() { NOS *= TOS; s--; }
+/*  +  */ void fAdd() { NOS += TOS; s--; }
+/*  ,  */ void fEmit() { putc(st.i[s--], stdout); }
+/*  -  */ void fSub() { NOS -= TOS; s--; }
+/*  .  */ void fDot() { printf("%d", st.i[s--]); }
+/*  /  */ void fDiv() { NOS /= TOS; s--; }
+/* 0-9 */ void n09() {
+    st.i[++s] = (u - '0'); while (btw(st.b[p], '0', '9')) { TOS = (TOS * 10) + st.b[p++] - '0'; }
+    if (st.b[p] == 'e') { ++p; st.f[s] = (float)TOS; } }
+/*  :  */ void fFunc() {
+    u = st.b[p++]; if (!btw(u, 'A', 'Z')) { return; } if (st.b[p] == ' ') { ++p; }
+    st.i[u] = p; while (st.b[p++] != ';'); if (h < p) { h = p; } st.i[0] = h; }
+/*  ;  */ void fRet() { p = st.i[r++]; if (rb < r) { r = rb; p = 0; } }
+/*  <  */ void fLT() { t = TOS; u = NOS; s--; TOS = (u < t) ? -1 : 0; if (st.b[p] == '=') { ++p; TOS = (u <= t) ? -1 : 0; } }
+/*  =  */ void fEq() { NOS = (NOS == TOS) ? -1 : 0; s--; }
+/*  >  */ void fGT() { t = TOS; u = NOS; s--; TOS = (u > t) ? -1 : 0; if (st.b[p] == '=') { ++p; TOS = (u >= t) ? -1 : 0; } }
+/*  ?  */ void fKey() { c = fgetc(stdin); st.i[++s] = (c != EOF) ? c : 0; }
+/*  @  */ void fFetch() { TOS = st.i[TOS]; }
+/* A-Z */ void AZ() { if (st.i[u]) { if (st.b[p] != ';') { st.i[--r] = p; } p = st.i[u]; } }
+/*  \  */ void fDrop() { --s; }
+/*  [  */ void fDo() { r -= 3; st.i[r+2]=p; st.i[r]=st.i[s--]; st.i[r+1]=st.i[s--]; }
+/* n/a */ void fLoopS(int x) { if ((x==1) && (st.i[r]<st.i[r+1])) { p=st.i[r+2]; return; }
+            if ((x==0) && (st.i[r]>st.i[r+1])) { p=st.i[r+2]; return; }
+            r+=3; }
+/*  ]  */ void fLoop() { ++st.i[r]; fLoopS(1); }
+/*  ^  */ void f94() { p = st.i[r++]; }
+/*  _  */ void fNeg() { TOS = -TOS; }
+/*  `  */ void fSys() { y = ex; while ((31 < st.b[p]) && (st.b[p] != '`')) { *(y++) = st.b[p++]; } *y = 0; ++p; system(ex); }
+/*  b  */ void fBit() {
+    u = st.b[p++]; if (u == '~') { TOS = ~TOS; }
+    else if (u == '&') { NOS &= TOS; s--; }
+    else if (u == '|') { NOS |= TOS; s--; }
+    else if (u == '^') { NOS ^= TOS; s--; }
+    else { putc(32, stdout); --p; } }
+/*  c  */ void fCOp() { u = st.b[p++]; if (u == '@') { TOS = st.b[TOS]; } else if (u == '!') { st.b[TOS] = NOS; s -= 2; } }
+/*  d  */ void fRDec() { u = st.b[p++]; if (btw(u, 'A', 'Z')) { st.i[u + 32]--; } else { --p; --TOS; } }
+/*  e  */ void fExec() { st.i[--r] = p; p = st.i[s--]; }
+/*  f  */ void fFloat() {
+    u = st.b[p++];                                if (u == '.') { printf("%g", st.f[s--]); }
+    else if (u == '@') { st.f[s] = st.f[TOS]; }
+    else if (u == '!') { st.f[TOS] = st.f[s - 1]; s -= 2; }
+    else if (u == '+') { st.f[s - 1] += st.f[s]; s--; }
+    else if (u == '<') { TOS = (st.f[s - 1] < st.f[s]) ? -1 : 0; }
+    else if (u == '-') { st.f[s - 1] -= st.f[s]; s--; }
+    else if (u == '>') { TOS = (st.f[s - 1] > st.f[s]) ? -1 : 0; }
+    else if (u == '*') { st.f[s - 1] *= st.f[s]; s--; }
+    else if (u == 'i') { TOS = (int)st.f[s]; }
+    else if (u == '/') { st.f[s-1] /= st.f[s]; s--; }
+    else if (u == 'f') { st.f[s] = (float)TOS; }
+    else if (u == 's') { st.f[s] = (float)sqrt(st.f[s]); }
+    else if (u == 't') { st.f[s] = (float)tanh(st.f[s]); }
+    else if (u == 'O') { y = &st.b[NOS]; t = TOS; NOS = (int)fopen(y, (t) ? "wb" : "rb"); s--; }
+    else if (u == 'C') { if (TOS) { fclose((FILE*)TOS); } s--; }
+    else if (u == 'R') { s++; TOS = 0; if (NOS) fread((void*)&TOS, 1, 1, (FILE*)NOS); }
+    else if (u == 'W') { if (TOS) { fwrite((void*)&NOS, 1, 1, (FILE*)TOS); } s -= 2; } }
+/*  i  */ void fRInc() { u = st.b[p++]; if (btw(u, 'A', 'Z')) { st.i[u + 32]++; } else { --p; ++TOS; } }
+/*  l  */ void fLoc() {
+            u = st.b[p++]; if (btw(u, '0', '9')) { st.i[++s] = lb + u - '0'; }
+            else if (u == '+') { lb += (lb < 185) ? 10 : 0; }
+            else if (u == '-') { lb -= (125 < lb) ? 10 : 0; }}
+/*  n  */ void fIndex() { st.i[++s] = st.i[r]; }
+/*  q  */ void fDotS() { int i; for (i = sb; i <= s; i++) { printf("%c%d", (i == sb) ? 0 : 32, st.i[i]); } }
+/*  r  */ void fReg() { u = st.b[p++]; if (btw(u, 'A', 'Z')) { st.i[++s] = st.i[u + 32]; } }
+/*  s  */ void fRSet() { u = st.b[p++]; if (btw(u, 'A', 'Z')) { st.i[u + 32] = st.i[s--]; } }
+/*  t  */ void fClk() { st.i[++s] = clock(); }
+/*  x  */ void fExt() {
+    u = st.b[p++]; if (u == 'U') { ++r; }
+    else if (u == 'W') { while (st.b[p++] != '}'); r++; }
+    else if (u == 'F') { while (st.b[p++] != ']'); r += 3; }
+    else if (u == '%') { NOS %= TOS; s--; }
+    else if (u == 'L') { r+=3; }
+    else if (u == ']') { u=(st.i[r]<st.i[r+1])?1:0; st.i[r]+=st.i[s--]; fLoopS(u); }
+    else if (u == 'Q') { exit(0); }}
+/*  {  */ void fBegin() { r-=3; st.i[r]=p; }
+/*  |  */ void fQt() { while (st.b[p] != '|') { st.b[TOS++] = st.b[p++]; } st.b[TOS++] = 0; ++p; }
+/*  }  */ void fWhile() { if (st.i[s--]) { p=st.i[r]; } else { r+=3; } }
+/*  ~  */ void fLNot() { TOS=(TOS)?0:-1; }
+void (*q[127])() = { X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,N,fStore,fDotQ,fDup,fSwap,fOver,fSlMod,
+    fAscii,fIf,N,fMult,fAdd,fEmit,fSub,fDot,fDiv,n09,n09,n09,n09,n09,n09,n09,n09,n09,n09,fFunc,fRet,fLT,fEq,fGT,fKey,fFetch,
+    AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,fDo,fDrop,fLoop,f94,fNeg,fSys,X,
+    fBit,fCOp,fRDec,fExec,fFloat,X,X,fRInc,X,X,fLoc,X,fIndex,X,X,fDotS,fReg,fRSet,fClk,X,X,X,fExt,X,N,fBegin,fQt,fWhile,fLNot };
+void R(int x) { s = (s < sb) ? (sb - 1) : s; r = rb; p = x; while (p) { u = st.b[p++]; q[u](); } }
+void H(char* s) { FILE* fp = fopen("h.txt", "at"); if (fp) { fprintf(fp, "%s", s); fclose(fp); } }
+void L() { y = &st.b[h]; printf("\ns3:("); fDotS(); printf(")>"); fgets(y, 128, stdin); H(y); R(h); }
+void main(int argc, char* argv[]) {
+    int i, j; s=sb-1; h=cb; u=SZ-500; for (i=0; i<(SZ/4); i++) { st.i[i]=0; }
+    st.i[lb] = argc; for (i=1; i<argc; ++i) {
+        y=argv[i]; t=atoi(y);
+        if ((t) || (y[0] == '0' && y[1]==0)) { st.i[lb+i]=t; }
+        else { st.i[lb+i]=u; for (j=0; y[j]; j++) { st.b[u++]=y[j]; } st.b[u++]=0; } }
+    if ((argc>1) && (argv[1][0]!='-')) {
+        FILE* fp = fopen(argv[1], "rb");
+        if (fp) { while ((c=fgetc(fp))!=EOF) { if (btw(c,32,126)) st.b[h++]=c; } fclose(fp); st.i[0]=h; R(cb); }
+    } while (1) { L(); };
 }
