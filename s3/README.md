@@ -96,7 +96,8 @@ A     (--)        Execute/call word/function A
                      To enter a negative number, use "negate" (eg - 490_).
 hNNN   (--h)      h: NNN as a HEX number (0-9, A-F, UPPERCASE only).
 'x     (--n)      n: the ASCII value of x
-`XXX`  (a--a b)   Copies XXX to address a, b is the next address after the NULL terminator.
+|XXX|  (a--a b)   Copies XXX to address a, b is the next address after the NULL terminator.
+`XXX`  (--)       Sends XXX to system().
 xZ     (a--)      Output the NULL terminated string starting at address a.
 xK?    (--f)      f: 1 if a character is waiting in the input buffer, else 0.
 xK@    (--c)      c: next character from the input buffer. If no character, wait.
@@ -140,6 +141,7 @@ xIF   (--n)       INFO: n: number of words/functions
 xIH   (--n)       INFO: n: value of HERE variable
 xIR   (--n)       INFO: n: number of registers
 xIU   (--n)       INFO: n: number of bytes in the USER area
+xY    (A--)       Sends string at A to system() (example: 1000#|ls|\xY).
 xSR   (--)        S3 system reset
 xQ    (--)        PC: Exit S3
 ```
