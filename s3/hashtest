@@ -1,0 +1,16 @@
+:CR 13,10,;
+:Code 0@1[nc@#58=(n1-c@59=(CR),];
+:H    0(a--)     64 - rH 64 * rH b^ + sH;
+:Hash 0(a n--h)  5381 sH $ sX 0[rX c@ H iX] rH 1023 b&;
+:Ra   0(--c)     xR 1 b& #('A$)~('a) xR 31 b& 26 x% +;
+:Rnm  0(--a n)   1000 sF rF sX rL 0[Ra rX c! iX] rF rL;
+:Init 0(--)      10 sL 2000 sB rB sI 1024 0[0 rI ! iI];
+:St   0(n--)     rB + # @ 1+ $ !;
+:Lp   0(n--)     0[Rnm Hash St];
+:Rpt  0(--)      0sX rB sI 1024 0[rI @ 1 > (iX) iI]rX.b;
+:Run  0(n--)     Init Lp Rpt;
+:Runs 0(n c--)   0[# Run]\CR;
+:X    #." WORDS" CR 25 Runs;
+100 X
+200 X
+250 X

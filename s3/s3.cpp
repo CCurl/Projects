@@ -15,11 +15,12 @@ union fib { float f[ISZ]; long i[ISZ]; }; static union fib st;
 static char *y, stb[BSZ]; 
 static int c, cb=1, h, p, sb=4, rb=64, rg=68, lb=125, r, s, t, u;
 static unsigned short fn, fa, funcs[MAX_FN+1];
+static long sd;
 
 int funcN(int x) { 
     unsigned long hh = 5381;
-    while (btw(stb[x],33,126) && (stb[x]!=';')) { hh = ((hh << 6) + hh) + stb[x++]; }
-    fn = (hh & MAX_FN); fa=funcs[fn]; //printf("\n(fn:%d,fa:%d)",fn, fa);
+    while (btw(stb[x],'A','Z') || btw(stb[x],'a','z')) { hh=((hh<<5)^hh)+(stb[x++]-'A'); }
+    fn = (hh & MAX_FN); fa=funcs[fn]; // printf("\n(fn:%d,fa:%d)",fn, fa);
     return x;
 }
 /* <33 */ void X() { if (u && (u != 10)) printf("-IR %d (%c)?", u, u); p = 0; } void N() {}
@@ -102,7 +103,10 @@ int funcN(int x) {
 /*  x  */ void fExt() { u = stb[p++]; if (u == '%') { NOS %= TOS; s--; }
         else if (u == 'L') { r+=3; }
         else if (u == ']') { u=(st.i[r]<st.i[r+1])?1:0; st.i[r]+=st.i[s--]; fLoopS(u); }
-        else if (u == 'Q') { exit(0); }}
+        else if (u == 'R') { sd = sd ? sd : (long)&cb;
+            sd = (sd<<13)^sd; sd = (sd>>17)^sd; sd = (sd<<5)^sd;
+            st.i[++s]=sd;
+        } else if (u == 'Q') { exit(0); }}
 /*  {  */ void fBegin() { r-=3; st.i[r]=p; }
 /*  |  */ void fQt() { while (stb[p] != '|') { stb[TOS++] = stb[p++]; } stb[TOS++] = 0; ++p; }
 /*  }  */ void fWhile() { if (st.i[s--]) { p=st.i[r]; } else { r+=3; } }
@@ -130,7 +134,7 @@ int main(int argc, char* argv[]) {
     if ((argc>1) && (argv[1][0]!='-')) {
         FILE* fp = fopen(argv[1], "rb");
         if (fp) { 
-            while ((c=fgetc(fp))!=EOF) { stb[h++]=btw(c,33,126) ? c:32; }
+            while ((c=fgetc(fp))!=EOF) { if (btw(c,32,126)) { stb[h++]=c; } }
             fclose(fp); st.i[0]=h; R(cb);
         }
     } while (1) { L(); }; return 0;
