@@ -30,12 +30,8 @@ Many interpreted environments use tokens and a large SWITCH statement in a loop 
   - NOTE: this part is currently under development
 ```
 
-## Reference
+## s3 Reference
 ```
-************************************
-*     S3 Reference                 *
-************************************
-
 *** ARITHMETIC ***
 +   (a b--n)      n: a+b - addition
 -   (a b--n)      n: a-b - subtraction

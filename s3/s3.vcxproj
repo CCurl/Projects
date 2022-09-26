@@ -143,11 +143,11 @@
     <Text Include="doc\examples.txt" />
     <Text Include="doc\reference.txt" />
     <Text Include="examples.txt" />
-    <Text Include="reference.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\architecture.md" />
     <None Include="doc\extendingS3.md" />
+    <None Include="hashtest" />
     <None Include="LICENSE" />
     <None Include="make" />
     <None Include="public\block-001.s3" />
