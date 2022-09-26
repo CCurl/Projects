@@ -1,14 +1,18 @@
 :CR 13,10,;
 :Code 0@1[nc@#58=(n1-c@59=(13,10,),];
+:YN #("y")~("n");
 :Regs "(Regs:Todo)";
-:A 1 2 3 ++ "(sum: ".")" CR ;
-:HelloWorld "hello world!" CR;
-:Locs l3! l4! l3@ l4@ + "(locals: ".")" CR;
-:Ver "s3 v0.0.1" CR;
+:HelloWorld "hello world!";
+:Locs l3! l4! l3@ l4@ + "(locals: ".")";
+:Ver "s3 v0.0.1";
 :Bench t$ 0[] Elapsed;
 :Elapsed t$-." usecs";
 :Mil 1000#**;
 :Benches 0 [# Mil Bench CR ]\;
-111 222 Ver HelloWorld A Locs Code CR
-100 Mil Bench
+Ver
+CR HelloWorld
+CR 1 YN 0 YN
+CR 111 222 Locs
+CR 100 Mil Bench
+CR Code CR
 0(xQ)
