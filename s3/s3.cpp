@@ -150,7 +150,7 @@ void dotQ(int delim) {
 /*  q  */ void fDotS() { int i; for (i = sb; i <= s; i++) { printf("%c%ld", (i == sb) ? 0 : 32, st.i[i]); } }
 /*  r  */ void fRegGet() { u = stb[p++]; if (btw(u, 'A', 'Z')) { PUSH = st.i[u + 32]; } }
 /*  s  */ void fRegSet() { u = stb[p++]; if (btw(u, 'A', 'Z')) { st.i[u + 32] = POP; } }
-/*  t  */ void fType() { y=(char*)(&POP); puts(y); }
+/*  t  */ void fType() { y=(char*)&stb[POP]; puts(y); }
 /*  u  */ void fUser() { p=funcN(p); if (fa) { st.i[--r]=p; p=fa; } }
 /*  x  */ void fExt() { u = stb[p++];
         if (u == '%') { NOS %= TOS; s--; } // MOD
