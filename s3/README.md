@@ -58,10 +58,12 @@ xA (a--b)         b: abs(a)                        (Absolute)
 
 
 *** MEMORY ***
-c@    (a--n)      Fetch BYTE n from address a
-@     (a--n)      Fetch CELL n from address a
-c!    (n a--)     Store BYTE n to address a
-!     (n a--)     Store CELL n to address a
+@     (a--n)      Fetch CELL n from CELL address a
+!     (n a--)     Store CELL n to CELL address a
+c@    (a--n)      Fetch BYTE n from BYTE address a
+c!    (n a--)     Store BYTE n to BYTE address a
+m@    (a--n)      Fetch BYTE n from ABSOLUTE address a
+m!    (n a--)     Store BYTE n to ABSOLUTE address a
 
 
 *** REGISTERS and LOCALS ***
@@ -78,27 +80,34 @@ nA  (--)          increment register A by the size of a cell (next cell)
 *** WORDS/FUNCTIONS ***
         NOTE: Word/Function names are identified by 1 UPPERCASE character [A..Z]. 
 :     (--)        Define word/function. Copy chars to (HERE++) until closing ';'.
-A     (--)        Execute/call word/function A
+Abc   (--)        Execute/call word/function Abc
 ;     (--)        Return: PC = rpop()
-        NOTE: Returning while inside of a loop is not supported; use '|' to break out of the loop first.
+^     (--)        Return: PC = rpop()
+        NOTE: To return while inside of a loop, use '^' to un-wind the loop stack first.
 
 
 *** INPUT/OUTPUT ***
+0..9   (--n)      Scan DECIMAL number. For multiple numbers, separate them by space (47 33).
+        NOTE: To enter a negative number, use "negate" (eg - 490_).
+'x     (--n)      n: the ASCII value of x
+hNNN   (--h)      h: NNN as a HEX number (0-9, A-F, UPPERCASE only).
 .      (N--)      Output N as decimal number.
 ,      (N--)      Output N as character (Forth EMIT).
-"      (?--?)     Output characters until the next '"'.
-        NOTES: 1) %d outputs TOS as an integer
-               2) %x outputs TOS as a hex number
-               3) %c outputs TOS as a character
-               4) %n outputs CR/LF
-               5) %<x> outputs <x> (eg - "x%" %% %"x" outputs x" % "x)
-0..9   (--n)      Scan DECIMAL number. For multiple numbers, separate them by space (47 33).
-                     To enter a negative number, use "negate" (eg - 490_).
-hNNN   (--h)      h: NNN as a HEX number (0-9, A-F, UPPERCASE only).
-'x     (--n)      n: the ASCII value of x
+b       (--)      Output a single SPACE.
+"      (?--?)     Output a formatted string until the next '"'.
+    NOTES: - %d outputs TOS as an integer
+           - %X outputs TOS as a hex number (A-F are uppercase)
+           - %x outputs TOS as a hex number (A-F are lowercase)
+           - %c outputs TOS as a character
+           - %n outputs CR/LF
+           - %e outputs an ESCAPE (27)
+           - %q outputs a QUOTE
+           - %<x> outputs <x> (eg - %% outputs %)
+`XXX`  (--)       Calls system("XXX").
+xY     (a--)      Calls system(a).
 |XXX|  (a--a b)   Copies XXX to address a, b is the next address after the NULL terminator.
-`XXX`  (--)       Sends XXX to system().
-xZ     (a--)      Output the NULL terminated string starting at address a.
+z      (a--)      ZTYPE: Output the NULL terminated string starting at address a (see ").
+t      (a--)      TYPE: Output the NULL terminated string starting at address a (QUICK).
 xK?    (--f)      f: 1 if a character is waiting in the input buffer, else 0.
 xK@    (--c)      c: next character from the input buffer. If no character, wait.
 
@@ -108,15 +117,14 @@ xK@    (--c)      c: next character from the input buffer. If no character, wait
 =     (a b--f)    f: (a = b) ? 1 : 0;
 >     (a b--f)    f: (a > b) ? 1 : 0;
 ~     (n -- f)    f: (a = 0) ? 1 : 0; (Logical NOT)
-[     (F T--)     FOR: start a For/Next loop. if (T < F), swap T and F
-rI    (--n)       n: the index of the current FOR loop
-]     (--)        NEXT: increment index (rI) and restart loop if (rI <= T)
-        NOTE: A FOR loop always runs at least one iteration.
-              It can be put it inside a '()' to keep it from running.
-{     (f--f)      BEGIN: if (f == 0) skip to matching '}'
-}     (f--f?)     WHILE: if (f != 0) jump to matching '{', else drop f and continue
-|     (--)        BREAK: Break out of current WHILE of FOR loop
-(     (f--)       IF: if (f != 0), continue into '()', else skip to matching ')'
+[     (T F--)     For: start a For/Next loop.
+n     (--n)       n: the index of the current FOR loop
+]     (--)        NEXT: increment index (n) and stop if (T<=n)
+x]    (N--)       +NEXT: Add N to the index (n) and stop if (n==T) or (n crosses T)
+{     (--)        BEGIN: if (f == 0) skip to matching '}'
+}     (f--)       WHILE: if (f != 0) jump to matching '{', else drop f and continue
+xU    (--)        UNLOOP: Unwind he LOOP stack
+(     (f--)       IF: if (f != 0), continue into '()', else skip to next ')'
 
 
 *** OTHER ***
@@ -127,21 +135,12 @@ xPRA  (p--n)      Arduino: Pin Read Analog  (n = analogRead(p))
 xPRD  (p--n)      Arduino: Pin Read Digital (n = digitalRead(p))
 xPWA  (n p--)     Arduino: Pin Write Analog  (analogWrite(p, n))
 xPWD  (n p--)     Arduino: Pin Write Digital (digitalWrite(p, n))
-xR    (n--r)      r: a random number in the range [0..(n-1)]
-                     NOTE: if n=0, r is the entire 32-bit random number
-xT    (--n)       Milliseconds (Arduino: millis(), Windows: GetTickCount())
+xR    (--)        r: a random number in the range [0..0xFFFFFFFF]
+xT     (--n)       Milliseconds (Arduino: millis(), Windows/Linux: clock())
 xN    (--n)       Microseconds (Arduino: micros(), Windows: N/A)
 xW    (n--)       Wait (Arduino: delay(),  Windows: Sleep())
-xIAF  (--a)       INFO: a: address of first function vector
-xIAH  (--a)       INFO: a: address of HERE variable
-xIAR  (--a)       INFO: a: address of first register vector
-xIAS  (--a)       INFO: a: address of beeginning of system structure
-xIAU  (--a)       INFO: a: address of beeginning of user area
-xIF   (--n)       INFO: n: number of words/functions
-xIH   (--n)       INFO: n: value of HERE variable
-xIR   (--n)       INFO: n: number of registers
-xIU   (--n)       INFO: n: number of bytes in the USER area
+0@    (--n)       Value of HERE variable
 xY    (A--)       Sends string at A to system() (example: 1000#|ls|\xY).
-xSR   (--)        S3 system reset
+xX    (--)        S3 system reset
 xQ    (--)        PC: Exit S3
 ```

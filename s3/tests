@@ -5,8 +5,8 @@
 :HelloWorld "hello world!";
 :Locs l3! l4! l3@ l4@ + "(locals: ".")";
 :Ver "s3 v0.0.1";
-:Bench t$ 0[] Elapsed;
-:Elapsed t$-." usecs";
+:Bench xT$ 0[] Elapsed;
+:Elapsed xT$-." usecs";
 :Mil 1000#**;
 :Benches 0 [# Mil Bench CR ]\;
 Ver
