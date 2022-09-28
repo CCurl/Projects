@@ -113,8 +113,8 @@ b       (--)      Output a single SPACE.
 `XXX`  (--)       Calls system("XXX").
 xY     (a--)      Calls system(a).
 |XXX|  (a--b)     Copies XXX to address a, b is the next address after the NULL terminator.
-z      (a--)      ZTYPE: Output the NULL terminated string starting at address a (see ").
-t      (a--)      TYPE: Output the NULL terminated string starting at address a (no formatting).
+z      (a--)      ZTYPE: Output the formatted string at address a (see ").
+t      (a--)      TYPE: Output the string at address a (no formatting).
 xK?    (--f)      TODO: f: 1 if a character is waiting in the input buffer, else 0.
 xK@    (--c)      TODO: c: next character from the input buffer. If no character, wait.
 
@@ -128,10 +128,10 @@ xK@    (--c)      TODO: c: next character from the input buffer. If no character
 n     (--n)       n: the index of the current FOR loop
 ]     (--)        NEXT: increment index (n) and stop if (T<=n)
 x]    (N--)       +NEXT: Add N to the index (n) and stop if (n==T) or (n crosses T)
-{     (--)        BEGIN: if (f == 0) skip to matching '}'
-}     (f--)       WHILE: if (f != 0) jump to matching '{', else drop f and continue
+{     (--)        BEGIN While loop
+}     (f--)       WHILE: if (f != 0) jump back to BEGIN, else continue
 xU    (--)        UNLOOP: Unwind the LOOP stack
-(     (f--)       IF: if (f != 0), continue into '()', else skip to next ')'
+(     (f--)       IF: if (f == 0), skip to next ')'.
 
 
 *** OTHER ***
@@ -146,7 +146,7 @@ xPWD  (n p--)     Arduino: Pin Write Digital (digitalWrite(p, n))
 xR    (--r)       r: a random number in the range [0..0xFFFFFFFF]
 xT    (--n)       Milliseconds (Arduino: millis(), Windows/Linux: clock())
 xN    (--n)       Microseconds (Arduino: micros(), Windows/Linux: clock())
-xW    (n--)       Wait (Arduino: delay(),  Windows: Sleep())
+xW    (n--)       TODO: Wait (Arduino: delay(),  Windows: Sleep())
 0@    (--n)       Value of HERE variable
 xY    (A--)       Sends string at A to system() (example: 1000#|ls|\xY).
 xX    (--)        s3 system reset/clear.
