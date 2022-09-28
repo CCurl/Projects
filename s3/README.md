@@ -1,10 +1,10 @@
 # s3 - A minimal interpreter for PCs and Development boards
 
 ## What is s3?
-- A full-featured, interactive, stack-based interpreter/VM, implemented in less than 200 lines of C code.
+- A full-featured, interactive, stack-based interpreter/VM, implemented in about 200 lines of C code.
 - Supports up to 1023 (MAX_FN) function variable-length definitions.
 - Provides 26 registers, rA - rZ.
-- Supports locals, 10 at a time, l0 - l9.
+- Supports locals, 10 at a time, [l0..l9].
 - Supports file operations, open, read, write, close, load.
 - Supports floating point math.
 
@@ -66,33 +66,40 @@ m@    (a--n)      Fetch BYTE n from ABSOLUTE address a
 m!    (n a--)     Store BYTE n to ABSOLUTE address a
 
 
-*** REGISTERS and LOCALS ***
-  NOTES: 1) Register names are 1 UPPERCASE character: [rA..rZ]
-         2) LOCALS: S3 provides 10 locals per call [r0..r9].
-         3) Register rI is the FOR Loop index **special**
+*** REGISTERS ***
+  NOTES: Register names are 1 UPPERCASE character: [rA..rZ]
 rA  (--n)         n: value of register A
-sA  (n--)         n: value to store in register A
-iA  (--)          increment register A
-dA  (--)          decrement register A
-nA  (--)          increment register A by the size of a cell (next cell)
+sX  (n--)         n: value to store in register X
+iV  (--)          increment register V
+dN  (--)          Decrement register N
+nA  (--)          Increment register A by the size of a cell (next cell)
+
+
+*** LOCALS ***
+    NOTES: s3 allocates 10 locals at a time, l0..l9.
+l+  (--)          Allocate 10 locals, [l0..l9]
+l-  (--)          De-allocate current set of locals.
+l3  (--a)         Address of local #3 (for use with @ or !).
 
 
 *** WORDS/FUNCTIONS ***
-        NOTE: Word/Function names are identified by 1 UPPERCASE character [A..Z]. 
+        NOTE: Word names are alphabetic (A-z) and start with a Capital letter.
 :     (--)        Define word/function. Copy chars to (HERE++) until closing ';'.
 Abc   (--)        Execute/call word/function Abc
-;     (--)        Return: PC = rpop()
-^     (--)        Return: PC = rpop()
-        NOTE: To return while inside of a loop, use '^' to un-wind the loop stack first.
+;     (--)        End of word definition. Also Exit Word.
+^     (--)        Exit Word.
+        NOTE: To exit a word while inside of a loop, use 'xU^'.
+              example: 100 1 [n . n 32= ("-out" xU ^) ", "]
 
 
 *** INPUT/OUTPUT ***
 0..9   (--n)      Scan DECIMAL number. For multiple numbers, separate them by space (47 33).
-        NOTE: To enter a negative number, use "negate" (eg - 490_).
+        NOTEs: (1) To enter a negative number, use "negate" (eg - 490_).
+               (2) To enter a float, end with 'e' (eg - 1234e).
 'x     (--n)      n: the ASCII value of x
-hNNN   (--h)      h: NNN as a HEX number (0-9, A-F, UPPERCASE only).
+hNNN   (--h)      h: NNN as a HEX number (0-9, A-F, a-f).
 .      (N--)      Output N as decimal number.
-,      (N--)      Output N as character (Forth EMIT).
+,      (N--)      Output N an ASCII character.
 b       (--)      Output a single SPACE.
 "      (?--?)     Output a formatted string until the next '"'.
     NOTES: - %d outputs TOS as an integer
@@ -105,11 +112,11 @@ b       (--)      Output a single SPACE.
            - %<x> outputs <x> (eg - %% outputs %)
 `XXX`  (--)       Calls system("XXX").
 xY     (a--)      Calls system(a).
-|XXX|  (a--a b)   Copies XXX to address a, b is the next address after the NULL terminator.
+|XXX|  (a--b)     Copies XXX to address a, b is the next address after the NULL terminator.
 z      (a--)      ZTYPE: Output the NULL terminated string starting at address a (see ").
-t      (a--)      TYPE: Output the NULL terminated string starting at address a (QUICK).
-xK?    (--f)      f: 1 if a character is waiting in the input buffer, else 0.
-xK@    (--c)      c: next character from the input buffer. If no character, wait.
+t      (a--)      TYPE: Output the NULL terminated string starting at address a (no formatting).
+xK?    (--f)      TODO: f: 1 if a character is waiting in the input buffer, else 0.
+xK@    (--c)      TODO: c: next character from the input buffer. If no character, wait.
 
 
 *** CONDITIONS/LOOPS/FLOW CONTROL ***
@@ -123,11 +130,12 @@ n     (--n)       n: the index of the current FOR loop
 x]    (N--)       +NEXT: Add N to the index (n) and stop if (n==T) or (n crosses T)
 {     (--)        BEGIN: if (f == 0) skip to matching '}'
 }     (f--)       WHILE: if (f != 0) jump to matching '{', else drop f and continue
-xU    (--)        UNLOOP: Unwind he LOOP stack
+xU    (--)        UNLOOP: Unwind the LOOP stack
 (     (f--)       IF: if (f != 0), continue into '()', else skip to next ')'
 
 
 *** OTHER ***
+xL    (a--)       Load from file a (eg - 1000#|tests|\xL).
 xPI   (p--)       Arduino: Pin Input  (pinMode(p, INPUT))
 xPU   (p--)       Arduino: Pin Pullup (pinMode(p, INPUT_PULLUP))
 xPO   (p--)       Arduino: Pin Output (pinMode(p, OUTPUT)
@@ -135,12 +143,12 @@ xPRA  (p--n)      Arduino: Pin Read Analog  (n = analogRead(p))
 xPRD  (p--n)      Arduino: Pin Read Digital (n = digitalRead(p))
 xPWA  (n p--)     Arduino: Pin Write Analog  (analogWrite(p, n))
 xPWD  (n p--)     Arduino: Pin Write Digital (digitalWrite(p, n))
-xR    (--)        r: a random number in the range [0..0xFFFFFFFF]
-xT     (--n)       Milliseconds (Arduino: millis(), Windows/Linux: clock())
-xN    (--n)       Microseconds (Arduino: micros(), Windows: N/A)
+xR    (--r)       r: a random number in the range [0..0xFFFFFFFF]
+xT    (--n)       Milliseconds (Arduino: millis(), Windows/Linux: clock())
+xN    (--n)       Microseconds (Arduino: micros(), Windows/Linux: clock())
 xW    (n--)       Wait (Arduino: delay(),  Windows: Sleep())
 0@    (--n)       Value of HERE variable
 xY    (A--)       Sends string at A to system() (example: 1000#|ls|\xY).
-xX    (--)        S3 system reset
-xQ    (--)        PC: Exit S3
+xX    (--)        s3 system reset/clear.
+xQ    (--)        PC: Exit s3
 ```
