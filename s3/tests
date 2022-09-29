@@ -1,10 +1,10 @@
-xX
+xX 0(reset s3)
 :CR 13,10,;
 :Code 0@1[nc@#58=(n1-c@59=(13,10,),];
 :YN #("y")~("n");
 :Regs "(Regs:Todo)";
 :HelloWorld "hello world!";
-:Locs l3! l4! l3@ l4@ + "(locals: ".")";
+:Locs s3 s4 i3 d4 r3 r4 + "locals: %d";
 :Ver "s3 v0.0.1";
 :Bench xT$ 0[] Elapsed;
 :Elapsed xT$-." usecs";
