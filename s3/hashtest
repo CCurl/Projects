@@ -1,30 +1,32 @@
-xX
+xX 0(Reset s3)
 :CR 13,10,;
-:Code 0@1[nc@#58=(n1-c@59=(CR),];
+:Code  0@1[nc@#58=(n1-c@59=(CR),];
+:Type  0[#c@,i]\;
 :DotS  "("q")";
-:Hsub  0(c--)    8* rH 2/ + rH b^ sH;
-:Hash  0(a n--h) 5381 sH $ sX 0[rX c@ Hsub iX] rH HSz 1- b&;
-:Coll 0(c--) rX c! iX;
-:U    0(--)  xR a 25 x% 'A+ Coll;
-:L    0(--)  xR a 25 x% 'a+ Coll;
-:N    0(--)  xR 8*a 10 x% '0+ Coll;
-:HSz   h400;
-:StrB  3000;
+:HSz   1024;
+:StrB  4000;
 :CntB  2000;
-:RandW 0(--a l)  StrB sX U L U L L L N StrB 7;
-:NextW 0(--a l)  rW c@~(RandW^) rW 0{rW c@ 32> #s2 (1+) iW r2};
-:ReadF 0(--)     StrB #sW StrB#|hashwords|\ 0 fO s1 {r1 fR $ rW c! iW} sW r1 fC;
+:Hsub  0(c--)    rS- rH # rM* b^ + sH;
+:Hash  0(a n--h) 5381 sH $ sX 0[rX c@ Hsub iX] rH HSz 1- b&;
+:Coll  0(c--) rX c! iX;
+:U     0(--)  xR a 25 x% 'A+ Coll;
+:L     0(--)  xR a 25 x% 'a+ Coll;
+:N     0(--)  xR 8*a 10 x% '0+ Coll;
+:SRand StrB d c!;
+:QRand StrB d c@;
+:RandW 0(--a l)  StrB sX U L L L L L L StrB 7;
+:NextW 0(--a l)  QRand (RandW^) rW 0{rW c@ 32> #s2 (i) iW r2};
+:ReadF 0(--)     StrB #sW QRand (0$c!^) StrB#|hashwords|\ 0 fO s1 {r1 fR $ rW c! iW} sW r1 fC;
 :Init  0(--)     CntB sI HSz 0[0 rI ! iI] ReadF;
 :Store 0(h--)    CntB+#@i$!;
 :Loop  0(n--)    0[NextW Hash Store];
-:Cnt0  0(--n)    0sX CntB sI 0 HSz 0[rI @ 0= (1+) iI];
-:Cnt1  0(--n)    0sX CntB sI 0 HSz 0[rI @ 1= (1+) iI];
+:Cnt0  0(--n)    0sX CntB sI 0 HSz 0[rI @ 0= (i) iI];
+:Cnt1  0(--n)    0sX CntB sI 0 HSz 0[rI @ 1= (i) iI];
 :Stats 0(--)     Cnt0 . Cnt1 . ;
 :Run   0(n1--n2) Init Loop Cnt1;
 :Runs  0(--)     0sT rR 0[rN Run rT+sT]rT 100* rNrR* / " (avg: %d%%)" CR;
-:Go    0(n--)    #sN "%d WORDS" Runs;
-:Tests           100 Go 200 Go 250 Go 300 Go 450 Go;
+:Test  0(n--)    #sN "%d WORDS" Runs;
+:RunTests        100 Test 200 Test 250 Test 300 Test 450 Test;
 :Reload 0(--)    2000#|hashtest|\xL;
-1 sR 8 sM 0 sS
-0(Tests)
-(xQ)
+1 sR 16 sM 96 sS 0 SRand
+RunTests
