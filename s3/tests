@@ -1,25 +1,33 @@
 xX 0(reset s3)
-:CR 13,10,;
-:Code 0@1[nc@#58=(n1-c@59=(13,10,),];
-:YN #("y")~("n");
-:Regs "(Regs:Todo)";
-:HelloWorld "hello world!";
-:Locs s3 s4 i3 d4 r3 r4 + "locals: %d";
-:Ver "s3 v0.0.1";
-:Bench xT$ 0[] Elapsed;
-:Elapsed xT$-." usecs";
-:Mil 1000#**;
-:Benches 0 [# Mil Bench CR ]\;
-:ULTestD "UnloopTest-DO: " 100 1[n .b n 23=("-out"xU^)] "ERROR!";
-:ULTestW "UnloopTest-WHILE: " 100{# 73=("-out"\xU^)# .b 1-#} "ERROR!";
-:Reload 1000#|tests|\xL;
-Ver
-CR Regs
-CR HelloWorld
-CR 1 YN 0 YN
-CR 111 222 Locs
-CR 50 Mil Bench
-CR ULTestD
-CR ULTestW
-CR Code CR
+
+0(Code)
+:1    0@1[Ic@#58=(I1-c@59=(N),];
+0(Regs)
+:3    'Z 1+ 'A [I@(I@I"%c: %d%n")];
+0(Bench: n--)
+:66   xT$ 0[] C70;
+0(Benches: n--)
+:67   0 [# C1000 C66 N ]\;
+0(Elapsed: t--)
+:70   xT$-." usecs";
+:91   #("y")~("n");
+0(100: Hello World!)
+:100  "Hello World!";
+:110  "UnloopTest-DO: " 100 1[I.B I 23=("-out"xU^)] "ERROR!";
+:111  "UnloopTest-WHILE: " 100{# 73=("-out"\xU^)# .B 1-#} "ERROR!";
+:150  s3 s4 i3 d4 r3 r4 + "locals: %d";
+0(Mil: n--m)
+:999  1000#|tests|\xL;
+:1000 1000#**;
+:1023 "s3 v0.0.1 - Chris Curl";
+
+C1023
+N C3
+N C100
+N 1 C91 0 C91
+N 111 222 C150
+N 50 C1000 C66
+N C110
+N C111
+N C1 N
 0(xQ)
