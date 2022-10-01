@@ -1,32 +1,45 @@
 xX 0(Reset s3)
-:CR 13,10,;
-:Code  0@1[nc@#58=(n1-c@59=(CR),];
-:Type  0[#c@,i]\;
-:DotS  "("q")";
-:HSz   1024;
-:StrB  4000;
-:CntB  2000;
-:Hsub  0(c--)    rS- rH # rM* b^ + sH;
-:Hash  0(a n--h) 5381 sH $ sX 0[rX c@ Hsub iX] rH HSz 1- b&;
-:Coll  0(c--) rX c! iX;
-:U     0(--)  xR a 25 x% 'A+ Coll;
-:L     0(--)  xR a 25 x% 'a+ Coll;
-:N     0(--)  xR 8*a 10 x% '0+ Coll;
-:SRand StrB d c!;
-:QRand StrB d c@;
-:RandW 0(--a l)  StrB sX U L L L L L L StrB 7;
-:NextW 0(--a l)  QRand (RandW^) rW 0{rW c@ 32> #s2 (i) iW r2};
-:ReadF 0(--)     StrB #sW QRand (0$c!^) StrB#|hashwords|\ 0 fO s1 {r1 fR $ rW c! iW} sW r1 fC;
-:Init  0(--)     CntB sI HSz 0[0 rI ! iI] ReadF;
-:Store 0(h--)    CntB+#@i$!;
-:Loop  0(n--)    0[NextW Hash Store];
-:Cnt0  0(--n)    0sX CntB sI 0 HSz 0[rI @ 0= (i) iI];
-:Cnt1  0(--n)    0sX CntB sI 0 HSz 0[rI @ 1= (i) iI];
-:Stats 0(--)     Cnt0 . Cnt1 . ;
+0(Hashing)
+:7     0(c--)    rS- rH # rM* b^ + sH;
+:8     0(a n--h) 5381 sH $ sX 0[rX c@ C7 iX] rH C300 1- b&;
+
+0(hashing stats)
+:400   2000;
+:9     0(h--)    C400 + #@ 1+ $ !;
+:910   0(--n)    0sX C400 sI 0 C300 0[rI @ 0= (i) iI];
+:911   0(--n)    0sX C400 sI 0 C300 0[rI @ 1= (i) iI];
+:912   0(--)     C910 . C911 . ;
+
+0(Strings to hash)
+:10    4000;
+:120   0(--)     C10 #sW 991 (0$c!^) C10#|hashwords|\ 0 fO s1 {r1 fR $ rW c! iW} sW r1 fC;
+:74    0(--a l)  0{rW c@ 32> #s2 (i) iW r2};
+:75    0(--a l)  C12 (73G) C74;
+
+0(Random strings or not)
+:11    0(n--)    C10 1- c!;
+:12    0(--n)    C10 1- c@;
+
+0(Hash loop)
+:905    0(n--)    0[C75 C8 C9];
+
+0(Next word or random)
+
+0(A random char/word)
+:30   0(c--)    C10 rX + c! iX;
+:31   0(--)     xR a 25 x% 'A+ C30;
+:32   0(--)     xR a 25 x% 'a+ C30;
+:33   0(--)     xR 8*a 10 x% '0+ C30;
+:73   0(--a l)  0 sX C31 C32 C32 C32 C32 C32 0 rX c! C10 rX;
+
+:300   1024;
+:Init  0(--)     C400 sI C300 0[0 rI ! iI] C120;
 :Run   0(n1--n2) Init Loop Cnt1;
-:Runs  0(--)     0sT rR 0[rN Run rT+sT]rT 100* rNrR* / " (avg: %d%%)" CR;
+:Runs  0(--)     0sT rR 0[rN Run rT+sT]rT 100* rNrR* / " (avg: %d%%%n)";
 :Test  0(n--)    #sN "%d WORDS" Runs;
 :RunTests        100 Test 200 Test 250 Test 300 Test 450 Test;
-:Reload 0(--)    2000#|hashtest|\xL;
-1 sR 16 sM 96 sS 0 SRand
+:333   0(--)     C10#|hashtest|\xL;
+:998   0[# c@ , i]\;
+:999   0@ 1[I c@ #58=(I 1- c@ 59=(N),];
+1 sR 16 sM 96 sS 0 990
 RunTests
