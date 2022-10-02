@@ -1,9 +1,11 @@
 xX 0(Reset s3)
 0(hash table, size, algo, stats)
 :C200 0(HashTbl:--n) 2000;
-:C210 0(HashSZ:--n) 1024;
-:C7 0(HSub:c--) rS- rH # rM* b^ + sH;
-:C8 0(Hash:a n--h) 5381 sH $ sX 0[rX c@ C7 iX] rH C210 1- b&;
+:C210 0(HashSZ:--n) 2048;
+:C5 0(HInit:a n--) \\ 5381 sB;
+:C6 0(HInit:a n--) 1(C5^) 0 sB 0[# c@ rB 32* + sB i]\ 0(rB.B);
+:C7 0(HSub:c--) rS- rH rM* rH b^ + sH;
+:C8 0(Hash:a n--h) %% C6 rB sH $ sX 0[rX c@ C7 iX] rH C210 1- b&;
 :C9 0(Mark:h--) C200+ #@i$!;
 :C810 0(Init:--) C200 C210 0[0 % ! i]\;
 :C910 0(Cnt0:--n) 0sX C200 sI 0 C210 0[rI @ 0= (i) iI];
@@ -15,10 +17,11 @@ xX 0(Reset s3)
 :C111 0(OpenFile:--f) C110#|hashwords|\ 0 fO #s1;
 :C112 0(ReadFile:--) C111 0=(1 C150^) C110 s2 {r1 fR $ r2 c! i2} r1 fC d2;
 :C120 0(ReadFile?:--) C151 0=(C112 C110 sW);
-:C30 0(Collect:ch--) C110 rX + c! iX 0 rX c!;
+:C30 0(Collect:ch--) rX c! iX;
 :C31 0(GenCh:ch--) xR a 25 x% + C30;
 :C32 0(Upper--) 'a $(\'A) C31;
-:C73 0(RandW:--addr len) 0 sX 1 C32 5 0[0 C32] C110 rX;
+:C72 0(RandL--n) xR 7 b& i s9;
+:C73 0(RandW:--addr len) C72 C110 sX 1 C32 r9 0[0 C32] 0 C30 C110 r9 i;
 :C74 0(FileW:--addr len) rW 0{rW c@ 32> #s2 (i) iW r2};
 :C75 0(NextW:--addr len) C151 (C73^) C74;
 :C150 0(isRand!:f--) C110 1- c!;
@@ -33,5 +36,8 @@ xX 0(Reset s3)
 :C333 0(Reload:--) C200#|hashtest|\xL;
 :C998 0(Type:addr n--) 0[# c@ , i]\;
 :C999 0(Code:--) 0@ 1[I c@ #58=(I 1- c@ 59=(N),];
-1 sR 16 sM 96 sS
-0(C931)
+5381 sB 16 sM 96 sS 
+"Words from the file ...%n"
+1 sR 0 C150 C931
+0("%n Random words ...%n")
+0(250 sR 1 C150 C931)
