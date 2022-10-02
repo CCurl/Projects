@@ -36,7 +36,7 @@ xX 0(Reset s3)
 :C333 0(Reload:--) C200#|hashtest|\xL;
 :C998 0(Type:addr n--) 0[# c@ , i]\;
 :C999 0(Code:--) 0@ 1[I c@ #58=(I 1- c@ 59=(N),];
-5381 sB 16 sM 96 sS 
+5381 sB 16 sM 65 sS 
 "Words from the file ...%n"
 1 sR 0 C150 C931
 0("%n Random words ...%n")
