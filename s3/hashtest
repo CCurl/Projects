@@ -1,45 +1,37 @@
 xX 0(Reset s3)
-0(Hashing)
-:7     0(c--)    rS- rH # rM* b^ + sH;
-:8     0(a n--h) 5381 sH $ sX 0[rX c@ C7 iX] rH C300 1- b&;
+0(hash table, size, algo, stats)
+:C200 0(HashTbl:--n) 2000;
+:C210 0(HashSZ:--n) 1024;
+:C7 0(HSub:c--) rS- rH # rM* b^ + sH;
+:C8 0(Hash:a n--h) 5381 sH $ sX 0[rX c@ C7 iX] rH C210 1- b&;
+:C9 0(Mark:h--) C200+ #@i$!;
+:C810 0(Init:--) C200 C210 0[0 % ! i]\;
+:C910 0(Cnt0:--n) 0sX C200 sI 0 C210 0[rI @ 0= (i) iI];
+:C911 0(Cnt1:--n) 0sX C200 sI 0 C210 0[rI @ 1= (i) iI];
+:C912 0(Stats:--) C911 C910 "num 0: %d, 1:%d" ;
 
-0(hashing stats)
-:400   2000;
-:9     0(h--)    C400 + #@ 1+ $ !;
-:910   0(--n)    0sX C400 sI 0 C300 0[rI @ 0= (i) iI];
-:911   0(--n)    0sX C400 sI 0 C300 0[rI @ 1= (i) iI];
-:912   0(--)     C910 . C911 . ;
+0(Input strings, file or random)
+:C110 0(StringBuf:--n) 4000;
+:C111 0(OpenFile:--f) C110#|hashwords|\ 0 fO #s1;
+:C112 0(ReadFile:--) C111 0=(1 C150^) C110 s2 {r1 fR $ r2 c! i2} r1 fC d2;
+:C120 0(ReadFile?:--) C151 0=(C112 C110 sW);
+:C30 0(Collect:ch--) C110 rX + c! iX 0 rX c!;
+:C31 0(GenCh:ch--) xR a 25 x% + C30;
+:C32 0(Upper--) 'a $(\'A) C31;
+:C73 0(RandW:--addr len) 0 sX 1 C32 5 0[0 C32] C110 rX;
+:C74 0(FileW:--addr len) rW 0{rW c@ 32> #s2 (i) iW r2};
+:C75 0(NextW:--addr len) C151 (C73^) C74;
+:C150 0(isRand!:f--) C110 1- c!;
+:C151 0(isRand?:--f) C110 1- c@;
 
-0(Strings to hash)
-:10    4000;
-:120   0(--)     C10 #sW 991 (0$c!^) C10#|hashwords|\ 0 fO s1 {r1 fR $ rW c! iW} sW r1 fC;
-:74    0(--a l)  0{rW c@ 32> #s2 (i) iW r2};
-:75    0(--a l)  C12 (73G) C74;
-
-0(Random strings or not)
-:11    0(n--)    C10 1- c!;
-:12    0(--n)    C10 1- c@;
-
-0(Hash loop)
-:905    0(n--)    0[C75 C8 C9];
-
-0(Next word or random)
-
-0(A random char/word)
-:30   0(c--)    C10 rX + c! iX;
-:31   0(--)     xR a 25 x% 'A+ C30;
-:32   0(--)     xR a 25 x% 'a+ C30;
-:33   0(--)     xR 8*a 10 x% '0+ C30;
-:73   0(--a l)  0 sX C31 C32 C32 C32 C32 C32 0 rX c! C10 rX;
-
-:300   1024;
-:Init  0(--)     C400 sI C300 0[0 rI ! iI] C120;
-:Run   0(n1--n2) Init Loop Cnt1;
-:Runs  0(--)     0sT rR 0[rN Run rT+sT]rT 100* rNrR* / " (avg: %d%%%n)";
-:Test  0(n--)    #sN "%d WORDS" Runs;
-:RunTests        100 Test 200 Test 250 Test 300 Test 450 Test;
-:333   0(--)     C10#|hashtest|\xL;
-:998   0[# c@ , i]\;
-:999   0@ 1[I c@ #58=(I 1- c@ 59=(N),];
-1 sR 16 sM 96 sS 0 990
-RunTests
+:C900 0(Loop:num--) 0[C75 C8 C9];
+:C920 0(Run:num--cnt) C810 C120 C900 C911;
+:C921 0(Avg:--) rT 100* rN rR */ " (avg: %d%%)%n";
+:C925 0(Runs:--) 0sT rR 0[rN C920 rT+sT] C921;
+:C930 0(Test:n--) #sN "%d WORDS" C925;
+:C931 0(Tests:--) 50 5 0[# C930 100+]\;
+:C333 0(Reload:--) C200#|hashtest|\xL;
+:C998 0(Type:addr n--) 0[# c@ , i]\;
+:C999 0(Code:--) 0@ 1[I c@ #58=(I 1- c@ 59=(N),];
+1 sR 16 sM 96 sS
+0(C931)
