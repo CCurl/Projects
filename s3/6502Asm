@@ -1,0 +1,48 @@
+0( Registers )
+0( rH: "Here" )
+0( rA: Accumulator )
+0( rX: X register )
+0( rY: Y register )
+0( rZ: Zero flag )
+0( rN: Negative flag )
+0( rC: Carry flag )
+0( rP: Program counter )
+
+:Org 2000;
+:BCom 0(b--) rH c! iH;
+:WCom 0(w--) rH w! iH iH;
+
+:LDAI 0(b--) hA9 BCom BCom;
+:LDXI 0(b--) hA2 BCom BCom;
+:LDYI 0(b--) hA0 BCom BCom;
+:DEX 0(--)   hCA BCom;
+:DEY 0(--)   h88 BCom;
+:STA 0(b--)  h85 BCom BCom;
+:INC 0(n-)   hE6 BCom BCom;
+:BNE 0(--)   hE6 BCom rH - 1- BCom;
+:JMP 0(--)   h4C BCom WCom;
+
+:JT 1000;
+:JTSet  0(a n--) JT+!;
+:JTGet  0(a n--) JT+@;
+:JTJmp  0(a--)   JT+@e;
+:JtInit 0(--)    TJ 256 0[0#!1+]\;
+
+:SetFlgs 0(n--) ;
+
+:_rPc@iP#SetFlgs; hA9 JTSet 0(LDAI)
+
+:VmInit Org sH
+    0   LDA
+    8   STA
+    h10 LDX
+rH s1
+    h10 LDY
+rH s2
+    $08 INC
+        DEY
+    r2  BNE
+        DEX
+    r1  BNE
+    Org JMP
+;
