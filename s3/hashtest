@@ -1,43 +1,42 @@
 xX 0(Reset s3)
 0(hash table, size, algo, stats)
-:C200 0(HashTbl:--n) 2000;
-:C210 0(HashSZ:--n) 2048;
-:C5 0(HInit:a n--) \\ 5381 sB;
-:C6 0(HInit:a n--) 1(C5^) 0 sB 0[# c@ rB 32* + sB i]\ 0(rB.B);
-:C7 0(HSub:c--) rS- rH rM* rH b^ + sH;
-:C8 0(Hash:a n--h) %% C6 rB sH $ sX 0[rX c@ C7 iX] rH C210 1- b&;
-:C9 0(Mark:h--) C200+ #@i$!;
-:C810 0(Init:--) C200 C210 0[0 % ! i]\;
-:C910 0(Cnt0:--n) 0sX C200 sI 0 C210 0[rI @ 0= (i) iI];
-:C911 0(Cnt1:--n) 0sX C200 sI 0 C210 0[rI @ 1= (i) iI];
-:C912 0(Stats:--) C911 C910 "num 0: %d, 1:%d" ;
+:HashTbl 0(HashTbl:--n) 2000;
+:HashSZ 0(--n) 2048;
+:H5381 0(a n--) \\ 5381 sH;
+:HInit 0(a n--) 1(H5381^) 0 sH 0[# c@ rB 32* + sH i]\ 0(rH.b);
+:HSub 0(c--) rS- rH rM* rH b^ + sH;
+:Hash 0(a n--h) %% HInit $ sX 0[rX c@ HSub iX] rH HashSZ 1- b&;
+:HSet 0(Mark:h--) HashTbl+ #@i$!;
+:ClrHashTbl 0(--) HashTbl HashSZ 0[0 % ! i]\;
+:Count0 0(Cnt0:--n) 0sX HashTbl sI 0 HashSZ 0[rI @ 0= (i) iI];
+:Count1 0(Cnt1:--n) 0sX HashTbl sI 0 HashSZ 0[rI @ 1= (i) iI];
+:Stats 0(Stats:--) Count1 Count0 "num 0: %d, 1:%d" ;
 
 0(Input strings, file or random)
-:C110 0(StringBuf:--n) 4000;
-:C111 0(OpenFile:--f) C110#|hashwords|\ 0 fO #s1;
-:C112 0(ReadFile:--) C111 0=(1 C150^) C110 s2 {r1 fR $ r2 c! i2} r1 fC d2;
-:C120 0(ReadFile?:--) C151 0=(C112 C110 sW);
-:C30 0(Collect:ch--) rX c! iX;
-:C31 0(GenCh:ch--) xR a 25 x% + C30;
-:C32 0(Upper--) 'a $(\'A) C31;
-:C72 0(RandL--n) xR 7 b& i s9;
-:C73 0(RandW:--addr len) C72 C110 sX 1 C32 r9 0[0 C32] 0 C30 C110 r9 i;
-:C74 0(FileW:--addr len) rW 0{rW c@ 32> #s2 (i) iW r2};
-:C75 0(NextW:--addr len) C151 (C73^) C74;
-:C150 0(isRand!:f--) C110 1- c!;
-:C151 0(isRand?:--f) C110 1- c@;
+:StrBuf 0(StringBuf:--n) 4000;
+:OpenF 0(OpenFile:--f) StrBuf#|hashwords|\ 0 fO #s1;
+:ReadF 0(ReadFile:--) OpenF 0=(1 C150^) StrBuf s2 {r1 fR $ r2 c! i2} r1 fC d2;
+:QReadF 0(ReadFile?:--) C151 0=(ReadF StrBuf sW);
+:Coll 0(Collect:ch--) rX c! iX;
+:GenCh 0(GenCh:ch--) xR a 25 x% + Coll;
+:UL 0(Upper--) 'a $(\'A) GenCh;
+:RandLen 0(RandL--n) xR 7 b& i s9;
+:RandW 0(RandW:--addr len) RandLen StrBuf sX 1 UL r9 0[0 UL] 0 Coll StrBuf r9 i;
+:FileW 0(FileW:--addr len) rW 0{rW c@ 32> #s2 (i) iW r2};
+:NextW 0(NextW:--addr len) C151 (RandW^) FileW;
+:C150 0(isRand!:f--) StrBuf 1- c!;
+:C151 0(isRand?:--f) StrBuf 1- c@;
 
-:C900 0(Loop:num--) 0[C75 C8 C9];
-:C920 0(Run:num--cnt) C810 C120 C900 C911;
-:C921 0(Avg:--) rT 100* rN rR */ " (avg: %d%%)%n";
-:C925 0(Runs:--) 0sT rR 0[rN C920 rT+sT] C921;
-:C930 0(Test:n--) #sN "%d WORDS" C925;
-:C931 0(Tests:--) 50 5 0[# C930 100+]\;
-:C333 0(Reload:--) C200#|hashtest|\xL;
-:C998 0(Type:addr n--) 0[# c@ , i]\;
-:C999 0(Code:--) 0@ 1[I c@ #58=(I 1- c@ 59=(N),];
-5381 sB 16 sM 65 sS 
-"Words from the file ...%n"
-1 sR 0 C150 C931
-"%n Random words ...%n"
-500 sR 1 C150 C931
+:Loop 0(numWords--) 0[NextW Hash HSet];
+:Run1 0(numWords--cnt) ClrHashTbl QReadF Loop Count1;
+:Avg 0(--) rT 100* rN rR */ " (avg: %d%%)%n";
+:Runs 0(Runs:--) 0sT rR 0[rN Run1 rT+sT] Avg;
+:RunTest 0(Test:n--) #sN "%d WORDS" Runs;
+:RunTests 0(Tests:--) 50 5 0[# RunTest 100+]\;
+:Reload 0(Reload:--) StrBuf#|hashtest|\xL;
+:Type 0(Type:addr n--) 0[# c@ , i]\;
+:Code 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
+:DoFile "Words from the file ...%n" 1 sR 0 C150 RunTests;
+:DoRand "%n Random words ...%n" 500 sR 1 C150 RunTests;
+16 sM 65 sS 
+DoFile DoRand
