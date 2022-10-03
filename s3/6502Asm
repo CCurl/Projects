@@ -15,12 +15,12 @@
 :LDAI 0(b--) hA9 BCom BCom;
 :LDXI 0(b--) hA2 BCom BCom;
 :LDYI 0(b--) hA0 BCom BCom;
-:DEX 0(--)   hCA BCom;
-:DEY 0(--)   h88 BCom;
-:STA 0(b--)  h85 BCom BCom;
-:INC 0(n-)   hE6 BCom BCom;
-:BNE 0(--)   hE6 BCom rH - 1- BCom;
-:JMP 0(--)   h4C BCom WCom;
+:DEX  0(--)  hCA BCom;
+:DEY  0(--)  h88 BCom;
+:STA  0(b--) h85 BCom BCom;
+:INCZ 0(n-)  hE6 BCom BCom;
+:BNE  0(--)  hE6 BCom rH - 1- BCom;
+:JMP  0(--)  h4C BCom WCom;
 
 :JT 1000;
 :JTSet  0(a n--) JT+!;
@@ -30,16 +30,16 @@
 
 :SetFlgs 0(n--) ;
 
-:_rPc@iP#SetFlgs; hA9 JTSet 0(LDAI)
+:_rP c@ iP# SetFlgs; hA9 JTSet 0(LDAI)
 
 :VmInit Org sH
-    0   LDA
+    0   LDAI
     8   STA
-    h10 LDX
+    h10 LDXI
 rH s1
-    h10 LDY
+    h10 LDYI
 rH s2
-    $08 INC
+    $08 INCZ
         DEY
     r2  BNE
         DEX
