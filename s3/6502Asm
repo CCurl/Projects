@@ -1,3 +1,5 @@
+xX
+
 0( Registers )
 0( rH: "Here" )
 0( rA: Accumulator )
@@ -7,42 +9,64 @@
 0( rN: Negative flag )
 0( rC: Carry flag )
 0( rP: Program counter )
+0( rL: Cycles )
 
-:Org 2000;
-:BCom 0(b--) rH c! iH;
-:WCom 0(w--) rH w! iH iH;
 
-:LDAI 0(b--) hA9 BCom BCom;
-:LDXI 0(b--) hA2 BCom BCom;
-:LDYI 0(b--) hA0 BCom BCom;
+:Code 0@1[nc@#58=(n1-c@59=(13,10,),];
+:Reload 2000#|6502Asm|\xL;
+
+:Mem 3000;
+:JT  1000;
+:MemSet 0(b a--) Mem+c!;
+:MemGet 0(a--b)  Mem+c@;
+:BCom 0(b--) rH iH MemSet;
+
+:LDAi 0(b--) hA9 BCom BCom;
+:LDXi 0(b--) hA2 BCom BCom;
+:LDYi 0(b--) hA0 BCom BCom;
 :DEX  0(--)  hCA BCom;
 :DEY  0(--)  h88 BCom;
-:STA  0(b--) h85 BCom BCom;
-:INCZ 0(n-)  hE6 BCom BCom;
-:BNE  0(--)  hE6 BCom rH - 1- BCom;
+:STAz  0(b--) h85 BCom BCom;
+:INCz 0(n-)  hE6 BCom BCom;
+:BNE  0(--)  hD0 BCom rH - 1- BCom;
 :JMP  0(--)  h4C BCom WCom;
 
-:JT 1000;
+:Org h200; 0(Offset on 6502)
 :JTSet  0(a n--) JT+!;
 :JTGet  0(a n--) JT+@;
-:JTJmp  0(a--)   JT+@e;
+:JTJmp  0(a--)   JT+@#(e^)\;
 :JtInit 0(--)    TJ 256 0[0#!1+]\;
 
-:SetFlgs 0(n--) ;
+:NxtI 0(--b) rP Mem+ c@ iP 2 Cycle;
+:Cycle 0(n--) rL+sL;
 
-:_rP c@ iP# SetFlgs; hA9 JTSet 0(LDAI)
+:SetFlgs 0(n--) #~sZ h80 b& sN;
+
+:_NxtI #sA SetFlgs;               hA9 JTSet  0(LDAi)
+:_NxtI #sX SetFlgs;               hA2 JTSet  0(LDXi)
+:_NxtI #sY SetFlgs;               hA2 JTSet  0(LDXi)
+:_NxtI rA NxtI Mem+ c!;           h85 JTSet  0(STAz)
+:_NxtI Mem+# c@ 1+ #SetFlgs $c!;  xE6 JTSet  0(Incz)
 
 :VmInit Org sH
-    0   LDAI
-    8   STA
-    h10 LDXI
+    76  LDAi
+    8   STAz
+    h10 LDXi
 rH s1
-    h10 LDYI
+    h10 LDYi
 rH s2
-    $08 INCZ
+    8   INCz
         DEY
     r2  BNE
         DEX
     r1  BNE
     Org JMP
 ;
+
+:CR "%n";
+:Regs rN rZ rY rX rA "A:%d, X:%d Y:%d Z:%d N:%d";
+:Dump rH Org[n MemGet "%x "];
+
+:Emu 0(a--) sP 0[NxtI JTJmp CR Regs];
+VmInit Dump
+Org 5 Emu
