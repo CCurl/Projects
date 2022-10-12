@@ -3,8 +3,14 @@
 xX
 :Code 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
 
+0(CurOff [--] Curson off)
+0(CurOn [--]: Curson on)
+0(ToXY [x y--]: Goto XY)
 :ToXY "%e[%d"59,"%dH";
+:CurOff 27"%c[?25l";
+:CurOn 27"%c[?25h";
 :Cls "%e[2J"1#ToXY;
+:Cr "%n";
 
 0(rR: Rows)
 0(rC: Cols)
@@ -16,33 +22,38 @@ xX
 0(rP: Population)
 0(rB: Working Population)
 0(rL: Address of line for output)
-2000 sP rP 200- sL
+2000 sP rP 400- sL
 
-:T5 0(a--b) #c@ 1+ % c! 1+ ;
-:Alive 0(--)
-    r4 1- rC - T5 T5 T5 \
-    r4 1-      T5 1+ T5 \
-    r4 1- rC + T5 T5 T5 \ ;
+0(T5 [a--b]: )
+:T5 #c@i%c!i;
 
-:LiveQ 0(a b--c) # 2=(\^) 3=(\1^) \0;
+0(Alive [a--]: Cell is alive)
+:Alive 0(a--)
+ #d rC- T5 T5 T5
+ \#d T5 i T5
+ \d rC+ T5 T5 T5\;
+
+0(LQ [a b--c]: Live?)
+:LQ #2=(\^)3=(\1^)\0;
 
 :RandPop 0(--) rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
 :ClrBak 0(--) rB s0 rM 0[0 r0 c! i0];
-:BakToPop 0(--) rM 0[n rB+ s1 n rP+ s2 r2 c@ r1 c@ LiveQ r2 c! 0 r1 c!];
+:BakToPop 0(--) rB s1 rP s2 rM 0[r2 c@ r1 c@ LQ r2 c! 0 r1 c! i1 i2];
 
 :ToPop 0(c r--v) rC*+rP+;
 :ToBak 0(c r--v) rC*+rB+;
 
-:PRow 0(--) rC 1+ 1[32 s0 r c@ ('*s0) r0 r6! i6 i1] 0 r6 c! rL t CR;
-:PPop 0(--) 1# ToXY rR 1+ 1[1 n ToPop s1 rL s6 PRow];
+0(PRow [n a--]: Print row n)
+0(PPop [--]: Print population)
+:PRow $1$ToPop s1 #s6 rC 0[32 r1 c@(\'*) r6 c! i6 i1] 0 r6 c! t;
+:PPop 1# ToXY rR 0[n 1+ rL PRow Cr];
 
-:OneGen 1 1 ToBak sB
-    rC rR ToPop 1 1 ToPop[n c@ (Alive) i4]
-    BakToPop PPop r7 . i7;
+:Proc 1#ToBak s4 rC rR ToPop 1#ToPop[n c@(r4 Alive) i4];
+:OneGen Proc BakToPop PPop;
 
 25 SetRows 100 SetCols
 0(: Gen1  key? ;)
-:Gens 0[OneGen];
-:Life 1 s7 ClrBak RandPop CursorOff Cls 2000 Gens CursorOn ;
+:Gens 0[OneGen r7.i7];
+:Life 1 s7 ClrBak RandPop CurOff Cls 2000 Gens CurOn;
 :Reload 1000#|life|\xL;
 0(Life)
