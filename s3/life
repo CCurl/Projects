@@ -1,0 +1,48 @@
+0(Conway's game of life)
+
+xX
+:Code 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
+
+:ToXY "%e[%d"59,"%dH";
+:Cls "%e[2J"1#ToXY;
+
+0(rR: Rows)
+0(rC: Cols)
+0(rM: Max Population Size)
+:SetRows 0(n--) sR SetPopSz;
+:SetCols 0(n--) sC SetPopSz;
+:SetPopSz rR 2+ rC 2+ * sM rP rM+ 100+ sB;
+
+0(rP: Population)
+0(rB: Working Population)
+0(rL: Address of line for output)
+2000 sP rP 200- sL
+
+:T5 0(a--b) #c@ 1+ % c! 1+ ;
+:Alive 0(--)
+    r4 1- rC - T5 T5 T5 \
+    r4 1-      T5 1+ T5 \
+    r4 1- rC + T5 T5 T5 \ ;
+
+:LiveQ 0(a b--c) # 2=(\^) 3=(\1^) \0;
+
+:RandPop 0(--) rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
+:ClrBak 0(--) rB s0 rM 0[0 r0 c! i0];
+:BakToPop 0(--) rM 0[n rB+ s1 n rP+ s2 r2 c@ r1 c@ LiveQ r2 c! 0 r1 c!];
+
+:ToPop 0(c r--v) rC*+rP+;
+:ToBak 0(c r--v) rC*+rB+;
+
+:PRow 0(--) rC 1+ 1[32 s0 r c@ ('*s0) r0 r6! i6 i1] 0 r6 c! rL t CR;
+:PPop 0(--) 1# ToXY rR 1+ 1[1 n ToPop s1 rL s6 PRow];
+
+:OneGen 1 1 ToBak sB
+    rC rR ToPop 1 1 ToPop[n c@ (Alive) i4]
+    BakToPop PPop r7 . i7;
+
+25 SetRows 100 SetCols
+0(: Gen1  key? ;)
+:Gens 0[OneGen];
+:Life 1 s7 ClrBak RandPop CursorOff Cls 2000 Gens CursorOn ;
+:Reload 1000#|life|\xL;
+0(Life)
