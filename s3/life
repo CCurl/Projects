@@ -28,25 +28,24 @@ xX
 :T5 #c@i%c!i;
 
 0(Alive [a--]: Cell is alive)
-:Alive 0(a--)
- #d rC- T5 T5 T5
- \#d T5 i T5
- \d rC+ T5 T5 T5\;
+:Alive d# rC- T5 T5 T5 \# T5 i T5 \rC+ T5 T5 T5\;
 
 0(LQ [a b--c]: Live?)
 :LQ #2=(\^)3=(\1^)\0;
 
-:RandPop 0(--) rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
-:ClrBak 0(--) rB s0 rM 0[0 r0 c! i0];
-:BakToPop 0(--) rB s1 rP s2 rM 0[r2 c@ r1 c@ LQ r2 c! 0 r1 c! i1 i2];
+:RandPop rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
+:ClrBak rB s0 rM 0[0 r0 c! i0];
+:BakToPop rBs1 rPs2 rM 0[r2c@ r1c@ LQ r2c! 0r1c! i1i2];
 
-:ToPop 0(c r--v) rC*+rP+;
-:ToBak 0(c r--v) rC*+rB+;
+0(ToPop [c r--a])
+0(ToBak [c r--a])
+:ToPop rC*+rP+;
+:ToBak rC*+rB+;
 
 0(PRow [n a--]: Print row n)
 0(PPop [--]: Print population)
-:PRow $1$ToPop s1 #s6 rC 0[32 r1 c@(\'*) r6 c! i6 i1] 0 r6 c! t;
-:PPop 1# ToXY rR 0[n 1+ rL PRow Cr];
+:PRow $1$ToPop s1#s6rC0[32r1c@(\'*)r6c! i6i1] 0r6c!t;
+:PPop 1#ToXY rR 0[n i rL PRow Cr];
 
 :Proc 1#ToBak s4 rC rR ToPop 1#ToPop[n c@(r4 Alive) i4];
 :OneGen Proc BakToPop PPop;
@@ -54,6 +53,6 @@ xX
 25 SetRows 100 SetCols
 0(: Gen1  key? ;)
 :Gens 0[OneGen r7.i7];
-:Life 1 s7 ClrBak RandPop CurOff Cls 2000 Gens CurOn;
+:Life 1 s7 ClrBak RandPop CurOff Cls 1000 Gens CurOn;
 :Reload 1000#|life|\xL;
 0(Life)
