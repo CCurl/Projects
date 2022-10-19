@@ -4,11 +4,11 @@ reset
 : decimal #10 base ! ;
 : binary %10 base ! ;
 
-: vhere va @ vb + ;
-: here ha @ cb + ;
-: last la @ 1- 20 * db + ;
+: vhere (vhere) @ vb + ;
+: here (here) @ cb + ;
+: last (last) @ 1- 20 * db + ;
 
-: num-words la @ ;
+: num-words (last) @ ;
 : used here cb - ;
 
 : T1 ( a-- ) DUP 4 + SWAP W@ ." %n%i: %s" ;
@@ -29,8 +29,8 @@ reset
 : CURSOR-OFF ( -- ) ." %e[?25l" ;
 
 // for Jump table stuff
-// : V,  ( n-- )  vhere ! CELL va +! ;
-// : VC, ( c-- )  vhere C! 1 va +! ;
+// : V,  ( n-- )  vhere ! CELL (vhere) +! ;
+// : VC, ( c-- )  vhere C! 1 (vhere) +! ;
 // vhere constant jt
 // ha @ V, : T0 ." test1 " ;
 // ha @ V, : T0 ." test2 " ;
