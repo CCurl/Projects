@@ -1,5 +1,6 @@
 // pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+#include <windows.h>
 #include <stdio.h>
 #include <inttypes.h>
 
@@ -39,9 +40,9 @@ typedef struct {
 #define FLG_IMM   0x80
 #define FLG_PRIM  0x40
 
-char sp, rsp, lsp, *toIn, src[SRC_SZ+1];
+char *toIn, src[SRC_SZ+1];
 CELL stk[32], lstk[32];
-int here, vhere, last, base, state, t, n;
+int here, vhere, last, base, state, t, n, sp, rsp, lsp;
 funcPtr *ip, next;
 funcPtr pgm[PGM_SZ+1], *rstk[32];
 byte vars[VAR_SZ+1];
@@ -149,6 +150,7 @@ void doLAST() { PUSH((CELL)&last); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
+void doTimer() { PUSH(GetTickCount()); }
 void doWORD() {
     char* wd = (char*)TOS;
     TOS = 0;
@@ -316,6 +318,7 @@ void init() {
     primCreate("WORDS", doWORDS);
     primCreate("IMMEDIATE", doIMMEDIATE);
     primCreate("EDIT", doEdit);
+    primCreate("TIMER", doTimer);
 }
 
 int main()
