@@ -1,0 +1,50 @@
+// Steganographer
+
+load init
+
+variable (src)
+variable (dst)
+variable (txt)
+
+: src! (src) ! ; : src (src) @ ;
+: dst! (dst) ! ; : dst (dst) @ ;
+: txt! (txt) ! ; : txt (txt) @ ;
+
+: open-src ( fn--fh ) 0 fopen DUP src! ;
+: open-dst ( fn--fh ) 1 fopen DUP dst! ;
+: open-txt ( fn--fh ) 0 fopen DUP txt!  ;
+
+: close-src ( -- ) src ?DUP IF fclose 0 src! THEN ;
+: close-dst ( -- ) dst ?DUP IF fclose 0 dst! THEN ;
+: close-txt ( -- ) txt ?DUP IF fclose 0 txt! THEN ;
+
+: read-src  ( -- c ) src ?DUP .IF FGETC .IF EXIT .THEN close-src ;
+: read-txt  ( -- c ) txt ?DUP .IF FGETC .IF EXIT .THEN close-txt ;
+: write-dst ( c -- ) dst FPUTC ;
+
+variable (cur-byte)
+ : cur-byte! (cur-byte) ! ;
+ : cur-byte  (cur-byte) @ ;
+
+variable (#bit)
+ : #bit! (#bit) ! ;
+ : #bit  (#bit) @ ;
+ : #bit++ #bit 1+ #bit! ;
+
+: next-bit ( --b )
+    #bit 7 > IF read-txt cur-byte! 0 #bit! THEN
+    cur-byte 2 /MOD SWAP cur-byte! #bit++ ;
+: encrypt-1 read-src %11111110 AND next-bit OR write-dst ;
+: do-encrypt 8 #bit! BEGIN encrypt-1 src WHILE ;
+: copy-hdr 54 0 DO read-src write-dst LOOP ;
+: encrypt 
+    r2 open-src NOT IF           ." -src?" 0 EXIT THEN
+    r3 open-dst NOT IF DROP      ." -dst?" 0 EXIT THEN
+    r4 open-txt NOT IF DROP DROP ." -txt?" 0 EXIT THEN
+    copy-hdr do-encrypt ;
+
+: skip-hdr 54 0 DO read-src DROP LOOP ;
+: do-decrypt ;
+: decrypt 
+    r1 open-src NOT IF           ." -src?" 0 EXIT THEN
+    skip-hdr do-decrypt ;
