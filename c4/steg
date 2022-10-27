@@ -12,15 +12,16 @@ variable (txt)
 
 : open-src ( fn--fh ) 0 fopen DUP src! ;
 : open-dst ( fn--fh ) 1 fopen DUP dst! ;
-: open-txt ( fn--fh ) 0 fopen DUP txt!  ;
+: open-txt ( fn--fh ) 0 fopen DUP txt! ;
 
 : close-src ( -- ) src ?DUP IF fclose 0 src! THEN ;
 : close-dst ( -- ) dst ?DUP IF fclose 0 dst! THEN ;
 : close-txt ( -- ) txt ?DUP IF fclose 0 txt! THEN ;
 
-: read-src  ( -- c ) src ?DUP .IF FGETC .IF EXIT .THEN close-src ;
-: read-txt  ( -- c ) txt ?DUP .IF FGETC .IF EXIT .THEN close-txt ;
-: write-dst ( c -- ) dst FPUTC ;
+: read-src   ( -- c ) src DUP .IF FGETC .IF EXIT .THEN close-src ;
+: read-txt   ( -- c ) txt DUP .IF FGETC .IF EXIT .THEN close-txt ;
+: write-dst  ( c -- ) dst FPUTC ;
+: write-dst2 ( c -- ) ?DUP IF dst FPUTC THEN ;
 
 variable (cur-byte)
  : cur-byte! (cur-byte) ! ;
@@ -37,14 +38,18 @@ variable (#bit)
 : encrypt-1 read-src %11111110 AND next-bit OR write-dst ;
 : do-encrypt 8 #bit! BEGIN encrypt-1 src WHILE ;
 : copy-hdr 54 0 DO read-src write-dst LOOP ;
-: encrypt 
-    r2 open-src NOT IF           ." -src?" 0 EXIT THEN
-    r3 open-dst NOT IF DROP      ." -dst?" 0 EXIT THEN
-    r4 open-txt NOT IF DROP DROP ." -txt?" 0 EXIT THEN
-    copy-hdr do-encrypt ;
+: encrypt ( -- )
+    r2 open-src NOT IF ." -src?" EXIT THEN
+    r3 open-dst NOT IF ." -dst?" EXIT THEN
+    r4 open-txt NOT IF ." -txt?" EXIT THEN
+    copy-hdr do-encrypt close-dst ;
 
 : skip-hdr 54 0 DO read-src DROP LOOP ;
-: do-decrypt ;
+: decrypt-1 ( --c ) 1 s9 0
+    8 0 DO read-src 1 AND IF r9 OR THEN r9 2* s9 LOOP
+    ;
+: do-decrypt BEGIN decrypt-1 DUP write-dst2 WHILE ;
 : decrypt 
-    r1 open-src NOT IF           ." -src?" 0 EXIT THEN
-    skip-hdr do-decrypt ;
+    r3 open-src NOT IF ." -src?" 0 EXIT THEN
+    r4 open-dst NOT IF ." -dst?" 0 EXIT THEN
+    skip-hdr do-decrypt close-src close-dst ;
