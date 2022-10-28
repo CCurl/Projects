@@ -1,0 +1,3 @@
+: go BEGIN r1 FGETC NOT IF DROP r1 FCLOSE EXIT THEN EMIT AGAIN ;
+: cat ( fn-- ) 0 fopen DUP s1 0= IF ." -noFile-" EXIT THEN go ;
+r2 cat bye

@@ -1,0 +1,10 @@
+// wc: word-count
+: T0 ( -- )  ;
+: go ( -- ) 0 s8 0 s4 BEGIN 
+        r1 FGETC 0= IF DROP UNLOOP EXIT THEN
+        s3   r3 33 <   r4 32 >   AND 
+        IF i8 THEN
+        r3 s4 
+    AGAIN ;
+r2 0 fopen DUP s1 0= IF ." -noFile-" BYE THEN
+go r8 . r1 FCLOSE BYE
