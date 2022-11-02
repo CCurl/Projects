@@ -1,0 +1,61 @@
+load init
+: padawan " Hello World!    " 0 CURSOR-OFF
+    begin 16 0 DO 2DUP + C@ EMIT 1+ 15 AND LOOP
+        33 ms 13 EMIT 1+ 15 AND 
+        key?
+    until KEY DROP 2DROP CURSOR-ON ;
+\ padawan
+
+\ The Jedi challenge ...
+
+: cBL "        |       |       |       |       |       |       |       |" ;
+: c!! "   **   | ****  | ****  |  **   |  **   |       |  **   |  **   |" ;
+: cA  "    *   |  * *  | *   * |*     *|*******|*     *|*     *|*     *|" ;
+: cB  " ****** |*     *|*     *|****** |*     *|*     *|*     *|****** |" ;
+: cC  "  ***** |*     *|*      |*      |*      |*      |*     *| ***** |" ;
+: cD  " ****** |*     *|*     *|*     *|*     *|*     *|*     *|****** |" ;
+: cE  " *******|*      |*      |****   |*      |*      |*      |*******|" ;
+: cF  " *******|*      |*      |****   |*      |*      |*      |*      |" ;
+: cG  "  ***** |*      |*      |*  ****|*     *|*     *|*     *| ***** |" ;
+: cH  " *     *|*     *|*     *|*******|*     *|*     *|*     *|*     *|" ;
+: cI  "  ***** |   *   |   *   |   *   |   *   |   *   |   *   | ***** |" ;
+: cJ  "       *|      *|      *|      *|*     *|*     *|*     *| ***** |" ;
+: cK  " *     *|*   *  |*  *   |**     |* *    |*  *   |*    * |*     *|" ;
+: cL  " *      |*      |*      |*      |*      |*      |*      |*******|" ;
+: cO  "  ***** |*     *|*     *|*     *|*     *|*     *|*     *| ***** |" ;
+: cP  " ****** |*     *|*     *|****** |*      |*      |*      |*      |" ;
+: cRR " ****** |*     *|*     *|****** |*  *   |*   *  |*    * |*     *|" ;
+: cS  "  ***** |*     *|*      |  **   |    ** |      *|*     *| ***** |" ;
+: cT  " *******|   *   |   *   |   *   |   *   |   *   |   *   |   *   |" ;
+: cW  " *     *|*     *|*     *|*     *|*  *  *|* * * *|**   **|*     *|" ;
+
+: TSlice  ( a n-- ) 8 * + 7 type 2 spaces ;
+: TChar  ( a-- ) 8 0 DO dup I TSlice CR LOOP DROP CR ;
+VARIABLE msg 32 CELLS ALLOT
+VARIABLE (len)
+VARIABLE (clr)
+: len (len) @ ;
+: len! (len) ! ;
+: len++ 1 (len) +! ;
+: msg! ( a-- ) len CELLS msg + ! len++ ;
+: msg@ ( n--a ) CELLS msg + @ ;
+: clr (clr) @ 30 + ;
+: clr! 6 MOD 1+ (clr) ! ;
+: clr++ clr 1+ clr! clr FG ;
+
+: jedi-1 ( n-- ) 8 0 DO DUP len 0 DO dup msg@ J TSlice 1+ len MOD LOOP DROP CR LOOP DROP ;
+: j-init ( -- ) 0 len! 0 FG 1 clr! ;
+: j-init 0 len! 0 FG 0 clr! ;
+: jedi CURSOR-OFF BEGIN len 0 DO 1 1 ->XY I jedi-1 25 ms LOOP clr++ KEY? UNTIL KEY DROP CURSOR-ON 0 FG ;
+: j-test j-init 
+    cT msg! cE msg! cS msg! cT msg! 
+    4 0 DO cBL msg! LOOP
+    jedi ;
+: j-hw j-init
+    cH msg! cE msg! cL  msg! cL msg! cO msg! cBL msg! 
+    cW msg! cO msg! cRR msg! cL msg! cD msg! c!! msg! 
+    4 0 DO cBL msg! LOOP 
+    jedi ;
+cK TChar
+
+

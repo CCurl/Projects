@@ -1,5 +1,6 @@
 reset
 
+: CELLS CELL * ;
 : hex $10 base ! ;
 : decimal #10 base ! ;
 : binary %10 base ! ;

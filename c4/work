@@ -1,4 +1,4 @@
-load startup
+load init
 load strings
 
 : pad vhere ;
