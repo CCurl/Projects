@@ -5,5 +5,5 @@
         IF i8 THEN
         r3 s4 
     AGAIN ;
-r2 0 fopen DUP s1 0= IF ." -noFile-" BYE THEN
+r2 FOPEN-R DUP s1 0= IF ." -noFile-" BYE THEN
 wc r8 . r1 FCLOSE BYE

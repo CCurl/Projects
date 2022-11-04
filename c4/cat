@@ -1,3 +1,3 @@
-r2 0 fopen s1 r1 0= IF ." -noFile-" BYE THEN
+r2 FOPEN-R s1 r1 0= IF ." -noFile-" BYE THEN
 r1 FGETC DROP BEGIN EMIT r1 FGETC WHILE 
-BYE
+r1 FCLOSE BYE

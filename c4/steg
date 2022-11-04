@@ -14,9 +14,9 @@ variable (txt)
 : dst! (dst) ! ; : dst (dst) @ ;
 : txt! (txt) ! ; : txt (txt) @ ;
 
-: open-src ( fn--fh ) 0 fopen DUP src! ;
-: open-dst ( fn--fh ) 1 fopen DUP dst! ;
-: open-txt ( fn--fh ) 0 fopen DUP txt! ;
+: open-src ( fn--fh ) fopen-r DUP src! ;
+: open-dst ( fn--fh ) fopen-w DUP dst! ;
+: open-txt ( fn--fh ) fopen-r DUP txt! ;
 
 : close-src ( -- ) src IF src fclose 0 src! THEN ;
 : close-dst ( -- ) dst IF dst fclose 0 dst! THEN ;
