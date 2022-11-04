@@ -8,30 +8,30 @@ load init
 
 \ The Jedi challenge ...
 
-: cBL "        |       |       |       |       |       |       |       |" ;
-: c!! "   **   | ****  | ****  |  **   |  **   |       |  **   |  **   |" ;
-: cA  "    *   |  * *  | *   * |*     *|*******|*     *|*     *|*     *|" ;
-: cB  " ****** |*     *|*     *|****** |  *   *|*     *|*     *|****** |" ;
-: cC  "  ***** |*     *|*      |*      |*      |*      |*     *| ***** |" ;
-: cD  " ****** |*     *|*     *|*     *|*     *|*     *|*     *|****** |" ;
-: cE  " *******|*      |*      |****   |*      |*      |*      |*******|" ;
-: cF  " *******|*      |*      |****   |*      |*      |*      |*      |" ;
-: cG  "  ***** |*      |*      |*  ****|*     *|*     *|*     *| ***** |" ;
-: cH  " *     *|*     *|*     *|*******|*     *|*     *|*     *|*     *|" ;
-: cI  "  ***** |   *   |   *   |   *   |   *   |   *   |   *   | ***** |" ;
-: cJ  "       *|      *|      *|      *|*     *|*     *|*     *| ***** |" ;
-: cK  " *     *|*   *  |*  *   |**     |* *    |*  *   |*    * |*     *|" ;
-: cL  " *      |*      |*      |*      |*      |*      |*      |*******|" ;
-: cO  "  ***** |*     *|*     *|*     *|*     *|*     *|*     *| ***** |" ;
-: cP  " ****** |*     *|*     *|****** |*      |*      |*      |*      |" ;
-: cRR " ****** |*     *|*     *|****** |*  *   |*   *  |*    * |*     *|" ;
-: cS  "  ***** |*     *|*      |  **   |    ** |      *|*     *| ***** |" ;
-: cT  " *******|   *   |   *   |   *   |   *   |   *   |   *   |   *   |" ;
-: cW  " *     *|*     *|*     *|*     *|*  *  *|* * * *|**   **|*     *|" ;
-: ca  "        |       |       | ****  |     * |  **** | *   * |  **** |" ;
-: cb  " *      |*      |*      |****** |*     *|*     *|*     *| ***** |" ;
-: cc  "        |       |       | ***** |*      |*      |*      | ***** |" ;
-: cd  "       *|      *|      *| ******|*     *|*     *|*     *| ***** |" ;
+: ch-   "        |       |       |       |       |       |       |       |" ;
+: ch-!  "   **   | ****  | ****  |  **   |  **   |       |  **   |  **   |" ;
+: ch-A  "    *   |  * *  | *   * |*     *|*******|*     *|*     *|*     *|" ;
+: ch-B  " ****** |*     *|*     *|****** |  *   *|*     *|*     *|****** |" ;
+: ch-C  "  ***** |*     *|*      |*      |*      |*      |*     *| ***** |" ;
+: ch-D  " ****** |*     *|*     *|*     *|*     *|*     *|*     *|****** |" ;
+: ch-E  " *******|*      |*      |****   |*      |*      |*      |*******|" ;
+: ch-F  " *******|*      |*      |****   |*      |*      |*      |*      |" ;
+: ch-G  "  ***** |*      |*      |*  ****|*     *|*     *|*     *| ***** |" ;
+: ch-H  " *     *|*     *|*     *|*******|*     *|*     *|*     *|*     *|" ;
+: ch-I  "  ***** |   *   |   *   |   *   |   *   |   *   |   *   | ***** |" ;
+: ch-J  "       *|      *|      *|      *|*     *|*     *|*     *| ***** |" ;
+: ch-K  " *     *|*   *  |*  *   |**     |* *    |*  *   |*    * |*     *|" ;
+: ch-L  " *      |*      |*      |*      |*      |*      |*      |*******|" ;
+: ch-O  "  ***** |*     *|*     *|*     *|*     *|*     *|*     *| ***** |" ;
+: ch-P  " ****** |*     *|*     *|****** |*      |*      |*      |*      |" ;
+: ch-RR " ****** |*     *|*     *|****** |*  *   |*   *  |*    * |*     *|" ;
+: ch-S  "  ***** |*     *|*      |  **   |    ** |      *|*     *| ***** |" ;
+: ch-T  " *******|   *   |   *   |   *   |   *   |   *   |   *   |   *   |" ;
+: ch-W  " *     *|*     *|*     *|*     *|*  *  *|* * * *|**   **|*     *|" ;
+: ch-a  "        |       |       | ****  |     * |  **** | *   * |  **** |" ;
+: ch-b  " *      |*      |*      |****** |*     *|*     *|*     *| ***** |" ;
+: ch-c  "        |       |       | ***** |*      |*      |*      | ***** |" ;
+: ch-d  "       *|      *|      *| ******|*     *|*     *|*     *| ***** |" ;
 
 // -----------------------
 //       |
@@ -45,10 +45,9 @@ load init
 // --------------------------
 // a
 
-
 : TSlice  ( a n-- ) 8 * + 7 type 2 spaces ;
 : TChar  ( a-- ) 8 0 DO dup I TSlice CR LOOP DROP CR ;
-VARIABLE msg 32 CELLS ALLOT
+VARIABLE msg 64 CELLS ALLOT
 VARIABLE (len)
 VARIABLE (clr)
 : len (len) @ ;
@@ -61,16 +60,21 @@ VARIABLE (clr)
 : clr++ clr 1+ clr! clr FG ;
 
 : jedi-1 ( n-- ) 8 0 DO DUP len 0 DO dup msg@ J TSlice 1+ len MOD LOOP DROP CR LOOP DROP ;
-: j-init ( -- ) 0 len! 0 FG 1 clr! ;
-: j-init 0 len! 0 FG 0 clr! ;
-: jedi CURSOR-OFF BEGIN len 0 DO 1 1 ->XY I jedi-1 25 ms LOOP clr++ KEY? UNTIL KEY DROP CURSOR-ON 0 FG ;
-: j-test j-init 
-    cT msg! cE msg! cS msg! cT msg! 
-    4 0 DO cBL msg! LOOP
-    jedi ;
-: j-hw j-init
-    cH msg! cE msg! cL  msg! cL msg! cO msg! ca msg! 
-    cW msg! cO msg! cRR msg! cL msg! cD msg! c!! msg! 
-    4 0 DO cBL msg! LOOP 
-    jedi ;
-cd TChar ca TChar cb TChar cc TChar
+: j-init ( -- )  0 len! 0 FG 0 clr! ;
+: jedi CURSOR-OFF BEGIN len 0 DO 1 1 ->XY I jedi-1 25 ms LOOP ( clr++ ) KEY? UNTIL KEY DROP CURSOR-ON 0 FG ;
+
+: j-gen ( a n-- ) " the-msg" FOPEN-W s1
+    S" j-init" r1 FWRITE DROP
+    #13 r1 FPUTC #10 r1 FPUTC
+    S" : j-msg ( -- ) " r1 FWRITE DROP
+    OVER + SWAP DO 
+        S" ch-" r1 FWRITE DROP 
+        I C@ r1 FPUTC
+        #32 r1 FPUTC
+    LOOP
+    ';' r1 FPUTC
+    r1 FCLOSE ;
+
+S" HELLO WORLD!!   " j-gen
+// load the-msg
+// jedi
