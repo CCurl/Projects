@@ -24,14 +24,19 @@ load init
 : ch-L  " *      |*      |*      |*      |*      |*      |*      |*******|" ;
 : ch-O  "  ***** |*     *|*     *|*     *|*     *|*     *|*     *| ***** |" ;
 : ch-P  " ****** |*     *|*     *|****** |*      |*      |*      |*      |" ;
-: ch-RR " ****** |*     *|*     *|****** |*  *   |*   *  |*    * |*     *|" ;
+: ch-R  " ****** |*     *|*     *|****** |*  *   |*   *  |*    * |*     *|" ;
 : ch-S  "  ***** |*     *|*      |  **   |    ** |      *|*     *| ***** |" ;
 : ch-T  " *******|   *   |   *   |   *   |   *   |   *   |   *   |   *   |" ;
 : ch-W  " *     *|*     *|*     *|*     *|*  *  *|* * * *|**   **|*     *|" ;
-: ch-a  "        |       |       | ****  |     * |  **** | *   * |  **** |" ;
+: ch-a  "        |       | ****  |     * |  **** | *   * | *   * |  **** |" ;
 : ch-b  " *      |*      |*      |****** |*     *|*     *|*     *| ***** |" ;
 : ch-c  "        |       |       | ***** |*      |*      |*      | ***** |" ;
 : ch-d  "       *|      *|      *| ******|*     *|*     *|*     *| ***** |" ;
+: ch-e  "        |       | ***** |*     *|*******|*      |*     *| ***** |" ;
+: ch-h  " *      |*      |*      |****** |*     *|*     *|*     *|*     *|" ;
+: ch-l  "  **    |  *    |  *    |  *    |  *    |  *    |  *    | ***   |" ;
+: ch-o  "        |       | ***** |*     *|*     *|*     *|*     *| ***** |" ;
+: ch-r  "        |       |* **** |**    *|*      |*      |*      |*      |" ;
 
 // -----------------------
 //       |
@@ -61,20 +66,19 @@ VARIABLE (clr)
 
 : jedi-1 ( n-- ) 8 0 DO DUP len 0 DO dup msg@ J TSlice 1+ len MOD LOOP DROP CR LOOP DROP ;
 : j-init ( -- )  0 len! 0 FG 0 clr! ;
-: jedi CURSOR-OFF BEGIN len 0 DO 1 1 ->XY I jedi-1 25 ms LOOP ( clr++ ) KEY? UNTIL KEY DROP CURSOR-ON 0 FG ;
+: jedi CURSOR-OFF BEGIN len 0 DO 1 1 ->XY I jedi-1 100 ms LOOP ( clr++ ) KEY? UNTIL KEY DROP CURSOR-ON 0 FG ;
 
+: f-CR ( fh-- ) #13 OVER FPUTC #10 SWAP FPUTC ;
 : j-gen ( a n-- ) " the-msg" FOPEN-W s1
-    S" j-init" r1 FWRITE DROP
-    #13 r1 FPUTC #10 r1 FPUTC
-    S" : j-msg ( -- ) " r1 FWRITE DROP
+    S" : j-msg ( -- ) j-init " r1 FWRITE DROP r1 f-CR
     OVER + SWAP DO 
         S" ch-" r1 FWRITE DROP 
         I C@ r1 FPUTC
-        #32 r1 FPUTC
+        S"  msg! " r1 FWRITE DROP r1 f-CR
     LOOP
-    ';' r1 FPUTC
-    r1 FCLOSE ;
+    ';' r1 FPUTC r1 FCLOSE ;
 
-S" HELLO WORLD!!   " j-gen
-// load the-msg
-// jedi
+S" Hello World!!   " j-gen
+load the-msg
+j-msg jedi
+( bye )
