@@ -1,18 +1,17 @@
 : j-msg ( -- ) j-init 
-ch-H msg! 
-ch-e msg! 
-ch-l msg! 
-ch-l msg! 
-ch-o msg! 
-ch-  msg! 
-ch-W msg! 
-ch-o msg! 
-ch-r msg! 
-ch-l msg! 
-ch-d msg! 
-ch-! msg! 
-ch-! msg! 
-ch-  msg! 
-ch-  msg! 
-ch-  msg! 
-;
+    ch-H msg! 
+    ch-e msg! 
+    ch-l msg! 
+    ch-l msg! 
+    ch-o msg! 
+    ch-  msg! 
+    ch-W msg! 
+    ch-o msg! 
+    ch-r msg! 
+    ch-l msg! 
+    ch-d msg! 
+    ch-! msg! 
+    ch-! msg! 
+    ch-  msg! 
+    ch-  msg! 
+    ch-  msg! ;

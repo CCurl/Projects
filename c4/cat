@@ -1,3 +1,7 @@
-r2 FOPEN-R s1 r1 0= IF ." -noFile-" BYE THEN
-r1 FGETC DROP BEGIN EMIT r1 FGETC WHILE 
-r1 FCLOSE BYE
+: cat ( fn-- ) FOPEN-R DUP
+    IF 
+        DUP FGETC DROP BEGIN EMIT DUP FGETC WHILE
+        DROP FCLOSE EXIT
+    THEN
+    DROP ." -noFile-%n" ;
+r2 cat BYE

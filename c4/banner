@@ -70,13 +70,15 @@ VARIABLE (clr)
 
 : f-CR ( fh-- ) #13 OVER FPUTC #10 SWAP FPUTC ;
 : j-gen ( a n-- ) " the-msg" FOPEN-W s1
-    S" : j-msg ( -- ) j-init " r1 FWRITE DROP r1 f-CR
+    S" : j-msg ( -- ) j-init " r1 FWRITE DROP
     OVER + SWAP DO 
-        S" ch-" r1 FWRITE DROP 
+        r1 f-CR
+        S"     ch-" r1 FWRITE DROP 
         I C@ r1 FPUTC
-        S"  msg! " r1 FWRITE DROP r1 f-CR
+        S"  msg! " r1 FWRITE DROP
     LOOP
-    ';' r1 FPUTC r1 FCLOSE ;
+    ';' r1 FPUTC r1 f-CR
+    r1 FCLOSE ;
 
 S" Hello World!!   " j-gen
 load the-msg
