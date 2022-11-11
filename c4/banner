@@ -1,13 +1,14 @@
 load init
+
+\ The padawan challenge
 : padawan " Hello World!    " 0 CURSOR-OFF
     begin 16 0 DO 2DUP + C@ EMIT 1+ 15 AND LOOP
         33 ms 13 EMIT 1+ 15 AND 
         key?
     until KEY DROP 2DROP CURSOR-ON ;
-\ padawan
 
 \ The Jedi challenge ...
-
+\ Some of the chars in the char set
 : ch-   "        |       |       |       |       |       |       |       |" ;
 : ch-!  "   **   | ****  | ****  |  **   |  **   |       |  **   |  **   |" ;
 : ch-A  "    *   |  * *  | *   * |*     *|*******|*     *|*     *|*     *|" ;
@@ -38,18 +39,6 @@ load init
 : ch-o  "        |       | ***** |*     *|*     *|*     *|*     *| ***** |" ;
 : ch-r  "        |       |* **** |**    *|*      |*      |*      |*      |" ;
 
-// -----------------------
-//       |
-//       |
-//       |
-//  **** |
-//      *|
-//   ****|
-//  *   *|
-//   ****|
-// --------------------------
-// a
-
 : TSlice  ( a n-- ) 8 * + 7 type 2 spaces ;
 : TChar  ( a-- ) 8 0 DO dup I TSlice CR LOOP DROP CR ;
 VARIABLE msg 64 CELLS ALLOT
@@ -69,6 +58,10 @@ VARIABLE (clr)
 : jedi CURSOR-OFF BEGIN len 0 DO 1 1 ->XY I jedi-1 100 ms LOOP ( clr++ ) KEY? UNTIL KEY DROP CURSOR-ON 0 FG ;
 
 : f-CR ( fh-- ) #13 OVER FPUTC #10 SWAP FPUTC ;
+
+\ This is not the most straightforward way to do this, but I wanted to 
+\ generate and load c4 code because it presents an interesting challenge.
+
 : j-gen ( a n-- ) " the-msg" FOPEN-W s1
     S" : j-msg ( -- ) j-init " r1 FWRITE DROP
     OVER + SWAP DO 
