@@ -1,8 +1,8 @@
 // itc.c : This is to play around with indirect threading, using a color-forth inspired paradigm
 //
-#include <Windows.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <time.h>
 
 #define PGM_SZ   65535
 #define DICT_SZ    511
@@ -11,8 +11,7 @@
 #define NAME_LEN    13
 
 typedef unsigned char byte;
-typedef long int32;
-typedef int32 CELL;
+typedef int64_t CELL;
 typedef void (*funcPtr)();
 typedef struct {
     CELL xt;
@@ -95,14 +94,14 @@ void run(funcPtr *start) {
 
 void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
 void doCOL() { t = *(int*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
-void doEXEC() {
-    t = POP;
-    funcPtr x = (funcPtr)POP;
-    if (t & FLG_PRIM) { x(); }
+void doEXEC() {  // ( xt f-- )
+    CELL f = POP;
+    funcPtr xt = (funcPtr)POP;
+    if (f & FLG_PRIM) { xt(); }
     else {
         n = PGM_SZ-3;
         pgm[n] = doCOL;
-        pgm[n+1] = x;
+        pgm[n+1] = xt;
         pgm[n+2] = doEXIT;
         if (running) { RPUSH(ip); ip = &pgm[n]; }
         else { run(&pgm[n]); }
@@ -146,7 +145,7 @@ void doAND() { NOS &= TOS; DROP; }
 void doOR() { NOS |= TOS; DROP; }
 void doXOR() { NOS ^= TOS; DROP; }
 void doCOM() { TOS = ~TOS; }
-void doTIMER() { PUSH(GetTickCount()); }
+void doTIMER() { PUSH(clock()); }
 void doLAST() { PUSH((CELL)&last); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
@@ -201,7 +200,10 @@ void doPARSE() {
     if (POP) {
         if (state==STATE_COMPILE) {
             if (TOS & FLG_PRIM) { pgm[here++]=(funcPtr)NOS; }
-            else { pgm[here++]=doCOL; pgm[here++]=(funcPtr)NOS; }
+            else {
+                pgm[here++]=doCOL;
+                pgm[here++]=(funcPtr)NOS;
+            }
             DROP2; 
         } else { doEXEC(); }
         PUSH(1); return;
@@ -209,7 +211,10 @@ void doPARSE() {
 
     PUSH((CELL)wd); doIsNum();
     if (POP) {
-        if (state==STATE_COMPILE) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
+        if (state == STATE_COMPILE) {
+            pgm[here++] = doLIT;
+            pgm[here++] = (funcPtr)POP;
+        }
         PUSH(1); return;
     }
     printf("[%s]??", wd);
