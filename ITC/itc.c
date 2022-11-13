@@ -1,5 +1,6 @@
 // itc.c : This is to play around with indirect threading, using a color-forth inspired paradigm
 //
+#include <Windows.h>
 #include <stdio.h>
 #include <inttypes.h>
 
@@ -34,14 +35,14 @@ typedef struct {
 #define STATE_EXEC     0
 #define STATE_COMPILE  1
 #define STATE_COMMENT  2
-#define STATE_DEFINE   3
+#define STATE_CREATE   3
 
 #define FLG_IMM   0x80
 #define FLG_PRIM  0x40
 
-char sp, rsp, lsp, *toIn, src[SRC_SZ+1];
+char *toIn, src[SRC_SZ + 1];
 CELL stk[32], lstk[32];
-int here, vhere, last, base, state, t, n;
+int sp, rsp, lsp, here, vhere, last, base, state, t, n;
 funcPtr *ip, next;
 funcPtr pgm[PGM_SZ+1], *rstk[32];
 byte vars[VAR_SZ+1];
@@ -119,9 +120,9 @@ void doI() { PUSH(lstk[lsp]); }
 void doJ() { PUSH(lstk[lsp-2]); }
 void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { rsp--; lsp-=2; } }
 void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp--; } }
-void doBEGIN() { RPUSH(ip); }
-void doWHILE() { if (POP) { ip=rstk[rsp]; } else { rsp--; } }
-void doUNTIL() { if (POP==0) { ip=rstk[rsp]; } else { rsp--; } }
+void doBEGIN() { RPUSH(ip); LPUSH(0); LPUSH(0); }
+void doWHILE() { if (POP) { ip = rstk[rsp]; } else { rsp--; lsp -= 2; } }
+void doUNTIL() { if (POP == 0) { ip = rstk[rsp]; } else { rsp--; lsp -= 2; } }
 void doAGAIN() { ip = rstk[rsp]; }
 void doLIT() { PUSH((CELL)*(ip++)); }
 void do0BRANCH() { if (POP == 0) { ip = (funcPtr*)*ip; } else { ++ip; } }
@@ -145,6 +146,7 @@ void doAND() { NOS &= TOS; DROP; }
 void doOR() { NOS |= TOS; DROP; }
 void doXOR() { NOS ^= TOS; DROP; }
 void doCOM() { TOS = ~TOS; }
+void doTIMER() { PUSH(GetTickCount()); }
 void doLAST() { PUSH((CELL)&last); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
@@ -186,11 +188,11 @@ void doPARSE() {
     if (strCmp("[exec]",    wd) == 0) { state = STATE_EXEC;    PUSH(1); return; }
     if (strCmp("[compile]", wd) == 0) { state = STATE_COMPILE; PUSH(1); return; }
     if (strCmp("[comment]", wd) == 0) { state = STATE_COMMENT; PUSH(1); return; }
-    if (strCmp("[define]",  wd) == 0) { state = STATE_DEFINE;  PUSH(1); return; }
+    if (strCmp("[create]",  wd) == 0) { state = STATE_CREATE;  PUSH(1); return; }
 
     if (state == STATE_COMMENT) { PUSH(1); return; }
 
-    if (state == STATE_DEFINE) {
+    if (state == STATE_CREATE) {
         PUSH(here); PUSH((CELL)wd); doCREATE();
         PUSH(1); return;
     }
@@ -253,7 +255,7 @@ void doEdit() {
     for (int i = 0; i < sz; i++) {
         char *cp = &src[i], c = *cp;
         if (c == '[') {
-            if (strCmpN("[define]",  cp, 8)==0) { FG(1); i += 8; continue; }
+            if (strCmpN("[create]",  cp, 8)==0) { FG(1); i += 8; continue; }
             if (strCmpN("[compile]", cp, 9)==0) { FG(3); i += 9; continue; }
             if (strCmpN("[comment]", cp, 9)==0) { FG(2); i += 9; continue; }
             if (strCmpN("[exec]",    cp, 6)==0) { FG(6); i += 6; continue; }
@@ -311,6 +313,7 @@ void init() {
     primCreate("OR", doOR);
     primCreate("XOR", doXOR);
     primCreate("COM", doCOM);
+    primCreate("TIMER", doTIMER);
     primCreate("LAST", doLAST);
     primCreate("HERE", doHERE);
     primCreate("WORDS", doWORDS);
