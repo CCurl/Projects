@@ -1,8 +1,9 @@
 // pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-#include <windows.h>
+// #include <windows.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <time.h>
 
 #define PGM_SZ   65535
 #define DICT_SZ    511
@@ -153,7 +154,7 @@ void doLAST() { PUSH((CELL)&last); }
 void doHERE() { PUSH((CELL)&here); }
 void doWORDS() { for (int l = last; 0 <= l; l--) { printf("%s\t", dict[l].name); } }
 void doIMMEDIATE() { dict[last].flags |= FLG_IMM; }
-void doTimer() { PUSH(GetTickCount()); }
+void doTimer() { PUSH(clock()); }
 void doWORD() {
     char* wd = (char*)TOS;
     TOS = 0;

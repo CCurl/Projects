@@ -1,5 +1,6 @@
-// itc.c : This is to play around with indirect threading, using a color-forth inspired paradigm
+// pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+// #include <windows.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <time.h>
@@ -9,9 +10,11 @@
 #define VAR_SZ   65535
 #define SRC_SZ    8191
 #define NAME_LEN    13
+#define STK_SZ      64
 
 typedef unsigned char byte;
-typedef int64_t CELL;
+typedef long int32;
+typedef int32 CELL;
 typedef void (*funcPtr)();
 typedef struct {
     CELL xt;
@@ -20,14 +23,15 @@ typedef struct {
     char name[NAME_LEN+1];
 } DICT_T;
 
-#define TOS       stk[sp]
-#define NOS       stk[sp-1]
-#define PUSH(x)   stk[++sp]=x
-#define POP       stk[sp--]
+#define TOS       stk.i[sp]
+#define NOS       stk.i[sp-1]
+#define PUSH(x)   stk.i[++sp]=x
+#define POP       stk.i[sp--]
 #define DROP      sp--
 #define DROP2     sp-=2
-#define RPUSH(x)  rstk[++rsp]=x
-#define RPOP      rstk[rsp--]
+#define RTOS      stk.p[rsp]
+#define RPUSH(x)  stk.p[--rsp]=x
+#define RPOP      stk.p[rsp++]
 #define LPUSH(x)  lstk[++lsp]=x
 #define LPOP      lstk[lsp--]
 
@@ -39,11 +43,11 @@ typedef struct {
 #define FLG_IMM   0x80
 #define FLG_PRIM  0x40
 
-char *toIn, src[SRC_SZ + 1];
-CELL stk[32], lstk[32];
-int sp, rsp, lsp, here, vhere, last, base, state, t, n;
-funcPtr *ip, next;
-funcPtr pgm[PGM_SZ+1], *rstk[32];
+union { float f[STK_SZ+1]; CELL i[STK_SZ+1]; funcPtr *p[STK_SZ+1]; } stk;
+char *toIn, *src;
+CELL t, lstk[32];
+int here, vhere, last, base, state, n, sp, rsp, lsp;
+funcPtr pgm[PGM_SZ+1], *ip;
 byte vars[VAR_SZ+1];
 DICT_T dict[DICT_SZ+1];
 
@@ -92,16 +96,16 @@ void run(funcPtr *start) {
     running = 0;
 }
 
-void doEXIT() { if (rsp) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
-void doCOL() { t = *(int*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
+void doEXIT() { if (rsp<STK_SZ) { ip = RPOP; } else { ip = &pgm[PGM_SZ]; *ip = 0; } }
+void doCOL() { t = *(CELL*)(ip++); if (*ip != doEXIT) { RPUSH(ip); } ip = &pgm[t]; }
 void doEXEC() {  // ( xt f-- )
-    CELL f = POP;
-    funcPtr xt = (funcPtr)POP;
-    if (f & FLG_PRIM) { xt(); }
+    t = POP;
+    funcPtr x = (funcPtr)POP;
+    if (t & FLG_PRIM) { x(); }
     else {
         n = PGM_SZ-3;
         pgm[n] = doCOL;
-        pgm[n+1] = xt;
+        pgm[n+1] = x;
         pgm[n+2] = doEXIT;
         if (running) { RPUSH(ip); ip = &pgm[n]; }
         else { run(&pgm[n]); }
@@ -117,12 +121,12 @@ void doJMP() { ip = (funcPtr*)*ip; }
 void doDO() { RPUSH(ip); LPUSH(NOS); LPUSH(TOS); DROP2; }
 void doI() { PUSH(lstk[lsp]); }
 void doJ() { PUSH(lstk[lsp-2]); }
-void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = rstk[rsp]; } else { rsp--; lsp-=2; } }
-void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp--; } }
+void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp++; } }
+void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = RTOS; } else { doUNLOOP(); } }
 void doBEGIN() { RPUSH(ip); LPUSH(0); LPUSH(0); }
-void doWHILE() { if (POP) { ip = rstk[rsp]; } else { rsp--; lsp -= 2; } }
-void doUNTIL() { if (POP == 0) { ip = rstk[rsp]; } else { rsp--; lsp -= 2; } }
-void doAGAIN() { ip = rstk[rsp]; }
+void doWHILE() { if (POP) { ip=RTOS; } else { doUNLOOP(); } }
+void doUNTIL() { if (POP==0) { ip=RTOS; } else { doUNLOOP(); } }
+void doAGAIN() { ip=RTOS; }
 void doLIT() { PUSH((CELL)*(ip++)); }
 void do0BRANCH() { if (POP == 0) { ip = (funcPtr*)*ip; } else { ++ip; } }
 void doDOTD() { printf("%ld ", POP); }
@@ -196,45 +200,38 @@ void doPARSE() {
         PUSH(1); return;
     }
     
+    PUSH((CELL)wd); doIsNum();
+    if (POP) {
+        if (state==STATE_COMPILE) { pgm[here++]=doLIT; pgm[here++]=(funcPtr)POP; }
+        PUSH(1); return;
+    }
+
     PUSH((CELL)wd); doFIND();
     if (POP) {
         if (state==STATE_COMPILE) {
             if (TOS & FLG_PRIM) { pgm[here++]=(funcPtr)NOS; }
-            else {
-                pgm[here++]=doCOL;
-                pgm[here++]=(funcPtr)NOS;
-            }
+            else { pgm[here++]=doCOL; pgm[here++]=(funcPtr)NOS; }
             DROP2; 
         } else { doEXEC(); }
         PUSH(1); return;
     }
 
-    PUSH((CELL)wd); doIsNum();
-    if (POP) {
-        if (state == STATE_COMPILE) {
-            pgm[here++] = doLIT;
-            pgm[here++] = (funcPtr)POP;
-        }
-        PUSH(1); return;
-    }
     printf("[%s]??", wd);
     state = 0;
     PUSH(0);
 }
 
-int getWord(char *wd) {
-    PUSH((CELL)wd);
-    doWORD();
-    return POP;
-}
-
 void doCOMPILE() {
     toIn = &src[0];
     char *wd = (char*)&vars[VAR_SZ-64];
-    while (getWord(wd)) {
+    PUSH((CELL)wd);
+    doWORD();
+    while (POP) {
         PUSH((CELL)wd);
         doPARSE();
         if (POP==0) { return; }
+        PUSH((CELL)wd);
+        doWORD();
     }
 }
 void doLOAD() {
@@ -277,11 +274,12 @@ void primCreate(const char* nm, funcPtr xt) {
 }
 
 void init() {
-    here = sp = rsp = lsp = running = 0;
+    here = sp = lsp = running = 0;
+    rsp = STK_SZ;
     last = -1;
+    src = (char*)&vars[VAR_SZ - SRC_SZ - 1];
     for (int i = 0; i <= PGM_SZ; i++) { pgm[i] = 0; }
     for (int i = 0; i <= VAR_SZ; i++) { vars[i] = 0; }
-    for (int i = 0; i <= SRC_SZ; i++) { src[i] = 0; }
 
     primCreate("RET", doEXIT);
     primCreate("EXEC", doEXEC);
@@ -318,12 +316,12 @@ void init() {
     primCreate("OR", doOR);
     primCreate("XOR", doXOR);
     primCreate("COM", doCOM);
-    primCreate("TIMER", doTIMER);
-    primCreate("LAST", doLAST);
-    primCreate("HERE", doHERE);
+    primCreate("(LAST)", doLAST);
+    primCreate("(HERE)", doHERE);
     primCreate("WORDS", doWORDS);
     primCreate("IMMEDIATE", doIMMEDIATE);
     primCreate("EDIT", doEdit);
+    primCreate("TIMER", doTIMER);
 }
 
 int main()
