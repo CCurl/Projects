@@ -1,0 +1,3 @@
+: vhere (vhere) @ vb + ;
+begin vhere 256 stdin fgets vhere qtype d2 r2 while
+bye

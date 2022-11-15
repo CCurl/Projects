@@ -36,6 +36,7 @@ struct DICT_E {
 #define RPUSH(x)  stk.p[--rsp]=x
 #define RPOP      stk.p[rsp++]
 #define LPUSH(x)  lstk[++lsp]=x
+#define LTOS      lstk[lsp]
 #define LPOP      lstk[lsp--]
 
 #define STATE_EXEC     0
@@ -48,9 +49,11 @@ struct DICT_E {
 
 union { float f[STK_SZ+1]; CELL i[STK_SZ+1]; CELL p[STK_SZ+1]; } stk;
 union { char *b; funcPtr p[PGM_SZ+1]; CELL i[PGM_SZ+1]; } st;
-char *toIn, *tib, *here, isBYE = 0;
-CELL t, lstk[32], vhere, base, state, n, sp, rsp, lsp, ip;
+char *toIn, *tib, *here, isBYE = 0, running = 0;
+CELL t, lstk[32], vhere, base, state, n, sp, rsp, lsp, ip, w, xt;
+funcPtr xa;
 DICT_E *last;
+
 
 int strLen(const char* src) {
     int len = 0;
@@ -90,14 +93,18 @@ FILE *fOpen(const char *nm, const char *md) {
 #endif
 }
 
-int running;
-void run(CELL start) {
-    ip = start;
+void doNEXT() {
+    xt = *(CELL*)w;
+    xa = *(funcPtr)xt;
+    w += CELL_SZ;
+}
+void run(CELL startXT) {
     running = 1;
-    while (*(funcPtr*)ip) {
-        funcPtr x = *(funcPtr*)(ip);
-        ip += CELL_SZ;
-        x();
+    w = startXT;
+    doNEXT();
+    while (xa) {
+        xa();
+        doNEXT();
     }
     running = 0;
 }
@@ -105,24 +112,13 @@ void run(CELL start) {
 void iComma(CELL v) { *(CELL*)here = v; here += sizeof(CELL); }
 void iCComma(CELL v) { *(byte*)here = (byte)v; ++here; }
 
-void align() {
-    CELL mod = (CELL)here % FUNCPTR_SZ;
-    if (mod) {
-        while (++mod < FUNCPTR_SZ) { here++; }
-    }
-}
 void doBYE() { isBYE = 1; }
-void doEXIT() { if (rsp<STK_SZ) { ip = RPOP; } else { ip = 0; } }
-void doCOL() {
-    RPUSH(ip+CELL_SZ);
-    // if (*(funcPtr*)ip != doEXIT) { RPUSH(ip); }
-    ip = *(CELL*)(ip);
-}
 void doEXEC() {
-    funcPtr xt = (funcPtr)POP;
-    xt = *(funcPtr*)xt;
-    xt();
+    RPUSH(w);
+    w = POP;
 }
+void doEXIT() { w = RPOP; }
+void doCOL() { RPUSH(w); w = xt; }
 void doNOP() { }
 void doBREAK() { /* TODO! */ }
 void doDUP() { t = TOS; PUSH(t); }
@@ -133,13 +129,13 @@ void doJMP() { ip = 0; }
 void doDO() { RPUSH(ip); LPUSH(NOS); LPUSH(TOS); DROP2; }
 void doI() { PUSH(lstk[lsp]); }
 void doJ() { PUSH(lstk[lsp-2]); }
-void doUNLOOP() { if (1 < lsp) { lsp-=2; rsp++; } }
+void doUNLOOP() { if (1 < lsp) { lsp-=3; } }
 void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = RTOS; } else { doUNLOOP(); } }
-void doBEGIN() { RPUSH(ip); LPUSH(0); LPUSH(0); }
+void doBEGIN() { LPUSH(0); LPUSH(0); LPUSH(w); }
 void doWHILE() { if (POP) { ip=RTOS; } else { doUNLOOP(); } }
 void doUNTIL() { if (POP==0) { ip=RTOS; } else { doUNLOOP(); } }
-void doAGAIN() { ip=RTOS; }
-void doLIT() { PUSH(*(CELL*)(ip++)); }
+void doAGAIN() { w=LTOS; }
+void doLIT() { PUSH(*(CELL*)(w)); w += CELL_SZ; }
 void do0BRANCH() { if (POP == 0) { ip = 0; } else { ++ip; } }
 void doDOTD() { printf("%ld ", POP); }
 void doDOTH() { printf("%lx ", POP); }
@@ -236,16 +232,7 @@ void doPARSE() {
 
     CELL t1 = POP;
     CELL xt = POP;
-    funcPtr xa = *(funcPtr*)xt;
-    if ((state == STATE_EXEC) || (t1 & FLG_IMM)) {
-        if (!running) {
-            t1 = PGM_SZ - 4;
-            st.p[t1] = xa;
-            st.i[t1 + 1] = 0;
-            run((CELL)&st.i[t1]);
-        }
-        else { xa(); }
-    }
+    if ((state == STATE_EXEC) || (t1 & FLG_IMM)) { run(xt); }
     else { iComma((CELL)xt); }
     PUSH(1); return;
 }
@@ -350,7 +337,8 @@ void iCompile(const char* src) {
 int main()
 {
     init();
-    iCompile(": cr 13 EMIT 10 EMIT ;");
-    iCompile("cr 12345 . cr");
+    iCompile(": dash 45 ;");
+    iCompile(": main BEGIN DUP . dash 1+ AGAIN ;");
+    iCompile("main");
     return 0;
 }
