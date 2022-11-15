@@ -47,7 +47,7 @@ struct DICT_E {
 #define FLG_PRIM  0x40
 
 union { float f[STK_SZ+1]; CELL i[STK_SZ+1]; CELL p[STK_SZ+1]; } stk;
-union { char *b; funcPtr p[PGM_SZ+1];} st;
+union { char *b; funcPtr p[PGM_SZ+1]; CELL i[PGM_SZ+1]; } st;
 char *toIn, *tib, *here, isBYE = 0;
 CELL t, lstk[32], vhere, base, state, n, sp, rsp, lsp, ip;
 DICT_E *last;
@@ -94,7 +94,11 @@ int running;
 void run(CELL start) {
     ip = start;
     running = 1;
-    while (*(funcPtr*)ip) { (*(funcPtr)ip++)(); }
+    while (*(funcPtr*)ip) {
+        funcPtr x = *(funcPtr*)(ip);
+        ip += CELL_SZ;
+        x();
+    }
     running = 0;
 }
 
@@ -230,12 +234,17 @@ void doPARSE() {
         PUSH(0); return;
     }
 
-    CELL f = POP;
+    CELL t1 = POP;
     CELL xt = POP;
     funcPtr xa = *(funcPtr*)xt;
-    if ((state == STATE_EXEC) || (f & FLG_IMM)) {
-        if (!running) { ip = xt; }
-        xa();
+    if ((state == STATE_EXEC) || (t1 & FLG_IMM)) {
+        if (!running) {
+            t1 = PGM_SZ - 4;
+            st.p[t1] = xa;
+            st.i[t1 + 1] = 0;
+            run((CELL)&st.i[t1]);
+        }
+        else { xa(); }
     }
     else { iComma((CELL)xt); }
     PUSH(1); return;
