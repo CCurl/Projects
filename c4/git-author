@@ -1,15 +1,13 @@
+( usage: git ls-tree -r --name-only HEAD | grep .py | c4 .\git-author )
 
-( usage: ls-tree -r --name-only HEAD | c4 .\git-author )
-
-
-load init
-: pad vhere 1000 + ;
-: do-pre
+: vhere ( --a ) (vhere) @ vb + ;
+: pad ( --a) vhere 1000 + ;
+: work-it ( -- ) // file-name is in r1
+	r1 str-rtrim drop
     " git log --pretty=%aN,%as --reverse " pad str-cpy
-    r1 pad str-cat 
-    pad str-rtrim
+    '"' pad str-catc r1 pad str-cat '"' pad str-catc
     " | c4 top 1" pad str-cat
-    r1 str-rtrim r1 qtype ." , " pad system ;
-: go begin r1 256 stdin fgets 0= IF UNLOOP EXIT THEN do-pre again ;
+    r1 qtype ." , " pad system ;
+: go begin r1 256 stdin fgets 0= IF UNLOOP EXIT THEN work-it again ;
 vhere 256 + s1 go
 bye
