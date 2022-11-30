@@ -9,4 +9,4 @@ load strings
 : gz-bw  " gz-bw "     pad str-cpy pad str-catn pad system ;
 : gz-app " gz-server " pad str-cpy pad str-catn  "  a" pad str-cat pad system ;
 : gz-web " gz-server " pad str-cpy pad str-catn  "  w" pad str-cat pad system ;
-cr ." %nAdded words: %n" last 7 0 do dup 4 + ." %t%s" 20 - loop drop cr
+cr ." %nAdded words: %n" last 7 0 do dup 5 + ." %t%s" 20 - loop drop cr
