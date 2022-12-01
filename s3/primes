@@ -1,17 +1,15 @@
-; Block.220
-
 "%nCount of primes"
 
-; rC:             Register for count of primes
-; P: (n l--f)     Is Prime Number routine
-; Primts: (n1--n2)    Count of Primes routine
-; Bench: (n--)    Benchmark routine
-; CpLoop: (n--)   Loop for multiple benchmarks
+; rC:               Register for count of primes
+; P: (n l--f)       Is Prime Number routine
+; Primes: (n1--n2)  Count of Primes routine
+; Bench: (n--)      Benchmark routine
+; CpLoop: (n--)     Loop for multiple benchmarks
 
 :Code 0@1[nc@#58=(n1-c@59=(13,10,),];
 :CR "%n";
-:P %%&~(\=^)%<(\^)ii P;
+:P %%&~(\=^)%<(\^)2+P;
 :Primes 4 sC 11[n3P(iC)2x]rC;
 :Bench CR"# primes in "#." - "xT$ Primes . xT$- " (" . " usecs)";
 :CpLoop 256$1[#+#Bench]\;
-0(10 CpLoop)
+10 CpLoop

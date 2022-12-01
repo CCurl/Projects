@@ -49,10 +49,12 @@ xX 0(Reset s3)
 :Proc 1#ToBak s4 rC rR ToPop 1#ToPop[n c@(r4 Alive) i4];
 0(BakToPop: copy working pop to real pop)
 :BakToPop rBs1 rPs2 rM 0[r2c@ r1c@ LQ r2c! 0 r1c! i1i2];
+0(OneGen: One generation)
 :OneGen Proc BakToPop PPop;
 
+0(Change these for grid size)
 25 SetRows 100 SetCols
-0(: Gen1  key? ;)
+
 :Gens 0[OneGen r7.i7];
 :Life 1 s7 ClrBak RandPop CurOff Cls 1000 Gens CurOn;
 :Reload 1000#|life|\xL;

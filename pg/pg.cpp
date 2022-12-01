@@ -1,344 +1,103 @@
-// pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-// #include <windows.h>
+// S2.c - inspired by, STABLE from Sandor Schneider
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
-#include <inttypes.h>
+#include <stdlib.h>
+#include <math.h>
 #include <time.h>
+#define btw(a,b,c) ((b<=a) && (a<=c))
+#define TOS st.i[s]
+#define NOS st.i[s-1]
+#define SZ 16000
+union fib { float f[SZ/4]; int i[SZ/4]; char b[SZ]; }; static union fib st;
+static char ex[80], *y;
+static int c, cb=4000, h, p, lb=750, rg=68, rb=64, r, sb=4, s, t, u, cr, regs[26];
+int fn(int x) { u=st.b[x++]; if (btw(st.b[x],'A','Z')) { u=(st.b[x++]-'A')*26+u; } return x; }
+/* <33 */ void N() {} void X() { if (u && (u!=10)) printf("-IR %d (%c)?", u, u); p=0; }
+/*  !  */ void f33() { st.i[TOS]=NOS; s-=2; }
+/*  "  */ void f34() { while (st.b[p]!='"') { putc(st.b[p++], stdout); } ++p; }
+/*  #  */ void f35() { t=TOS; st.i[++s]=t; }
+/*  $  */ void f36() { t=TOS; TOS=NOS; NOS=t; }
+/*  %  */ void f37() { t=NOS; st.i[++s]=t; }
+/*  &  */ void f38() { u=NOS; t=TOS; NOS=u/t; TOS=u%t; }
+/*  '  */ void f39() { st.i[++s]=st.b[p++]; }
+/*  (  */ void f40() { if (st.i[s--]==0) { while (st.b[p++]!=')'); } }
+/*  *  */ void f42() { NOS *= TOS; s--; }
+/*  +  */ void f43() { NOS += TOS; s--; }
+/*  ,  */ void f44() { putc(st.i[s--], stdout); }
+/*  -  */ void f45() { NOS -= TOS; s--; }
+/*  .  */ void f46() { printf("%d", st.i[s--]); }
+/*  /  */ void f47() { NOS /= TOS; s--; }
+/* 0-9 */ void n09() { st.i[++s]=(u-'0'); while (btw(st.b[p],'0','9')) { TOS=(TOS*10)+st.b[p++]-'0'; }
+            if (st.b[p]=='e') { ++p; st.f[s]=(float)TOS; } }
+/*  :  */ void f58() { p=fn(p); if (btw(u,65,65+(26*26))) { while (st.b[p]==' ') { ++p; }
+            st.i[u]=p; while (st.b[p++]!=';') {} h=(h<p)?p:h; st.i[0]=h; } }
+/*  ;  */ void f59() { p=st.i[r++]; if (rb<r) { r=rb; p=0; } }
+/*  <  */ void f60() { t=TOS; u=NOS; s--; TOS=(u<t)?-1:0; if (st.b[p]=='=') { ++p; TOS=(u<=t)?-1:0; } }
+/*  =  */ void f61() { NOS=(NOS==TOS)?-1:0; s--; }
+/*  <  */ void f62() { t=TOS; u=NOS; s--; TOS=(u>t)?-1:0; if (st.b[p]=='=') { ++p; TOS=(u>=t)?-1:0; } }
+/*  ?  */ void f63() { c=fgetc(stdin); st.i[++s]=(c!=EOF)?c:0; }
+/*  @  */ void f64() { TOS=st.i[TOS]; }
+/* A-Z */ void AZ()  { p=fn(p-1); if (st.i[u]) { if (st.b[p]!=';') { st.i[--r]=p; } p=st.i[u]; } }
+/*  [  */ void f91() { st.i[--r]=p; st.i[--r]=st.i[s--]; st.i[--r]=st.i[s--]; }
+/*  \  */ void f92() { --s; }
+/*  ]  */ void f93() { ++st.i[r]; if (st.i[r] <= st.i[r+1]) { p=st.i[r+2]; } else { r+=3; } }
+/*  ^  */ void f94() { p=st.i[r++]; }
+/*  _  */ void f95() { TOS=-TOS; }
+/*  `  */ void f96() { y=ex; while ((31<st.b[p]) && (st.b[p]!='`')) { *(y++)=st.b[p++]; } *y=0; ++p; system(ex); }
+/*  b  */ void f98() { u=st.b[p++]; if (u=='~') { TOS = ~TOS; }
+            else if (u=='&') { NOS&=TOS; s--; }
+            else if (u=='|') { NOS|=TOS; s--; }
+            else if (u=='^') { NOS^=TOS; s--; }
+            else { putc(32, stdout); --p; } }
+/*  c  */ void f99()  { u=st.b[p++]; if (u=='@') { TOS=st.b[TOS]; } else if (u=='!') { st.b[TOS]=NOS; s -= 2; } }
+/*  e  */ void f101() { st.i[--r]=p; p=st.i[s--]; }
+/*  f  */ void f102() { u=st.b[p++];                                if (u=='.') { printf("%g", st.f[s--]); }
+            else if (u=='@') { st.f[s]=st.f[TOS]; }            else if (u=='!') { st.f[TOS]=st.f[s-1]; s-=2; }
+            else if (u=='+') { st.f[s-1]+=st.f[s]; s--; }      else if (u=='<') { TOS=(st.f[s-1] < st.f[s]) ? -1 : 0; }
+            else if (u=='-') { st.f[s-1]-=st.f[s]; s--; }      else if (u=='>') { TOS=(st.f[s-1] > st.f[s]) ? -1 : 0; }
+            else if (u=='*') { st.f[s-1]*=st.f[s]; s--; }      else if (u=='i') { TOS=(int)st.f[s]; }
+            else if (u=='/') { st.f[s-1]/=st.f[s]; s--; }      else if (u=='f') { st.f[s]=(float)TOS; }
+            // else if (u=='s') { st.f[s]=(float)sqrt(st.f[s]); } else if (u=='t') { st.f[s]=(float)tanh(st.f[s]); }
+            else if (u=='O') { y=&st.b[NOS]; t=TOS; NOS=(int)fopen(y, (t)?"wb":"rb"); s--; }
+            else if (u=='C') { if (TOS) { fclose((FILE*)TOS); } s--; }
+            else if (u=='R') { s++; TOS=0; if (NOS) fread((void*)&TOS, 1, 1, (FILE*)NOS); }
+            else if (u=='W') { if (TOS) { fwrite((void*)&NOS, 1, 1, (FILE*)TOS); } s-=2; } }
+/*  l  */ void f108() { u=st.b[p++]; if (btw(u,'0','9')) { st.i[++s]=lb+u-'0'; }
+        else if (u=='+') { lb+=(lb<840)?10:0; }
+        else if (u=='-') { lb-=(750<lb)?10:0; } }
+/*  m  */ void f109() { NOS %= TOS; s--; }
+/*  n  */ void f110() { st.i[++s]=st.i[r]; }
+/*  p  */ void f112() { st.i[r]+=st.i[s--]; }
+/*  q  */ void f113() { int i; for (i=sb; i<=s; i++) { printf("%c%d", (i==sb)?0:32, st.i[i]); } }
 
-typedef uint8_t byte;
-typedef int32_t CELL;
-typedef void (*funcPtr)();
+/*  c  */ void fCur() { cr=st.b[p++]-'A'; }
+/*  d  */ void fDec() { regs[cr]--; }
+/*  i  */ void fInc() { regs[cr]++; }
+/*  r  */ void fReg() { st.i[++s]=regs[cr]; }
+/*  s  */ void fSet() { regs[cr]=st.i[s--]; }
 
-#define CELL_SZ       sizeof(CELL)
-#define FUNCPTR_SZ    sizeof(funcPtr)
-#define MEM_SZ          65536
-#define PGM_SZ        (MEM_SZ/FUNCPTR_SZ)
-#define DICT_SZ           511
-#define VAR_SZ          65535
-#define SRC_SZ           8191
-#define STK_SZ             64
-#define NAME_MAX           15
-
-// NB: sizeof(DICT_T) should be a multiple of (CELL_SZ)
-struct DICT_E {
-    DICT_E *next;
-    byte flags;
-    char name[NAME_MAX];
-};
-
-#define TOS       stk.i[sp]
-#define NOS       stk.i[sp-1]
-#define PUSH(x)   stk.i[++sp]=(CELL)(x)
-#define POP       stk.i[sp--]
-#define DROP      sp--
-#define DROP2     sp-=2
-#define RTOS      stk.p[rsp]
-#define RPUSH(x)  stk.p[--rsp]=x
-#define RPOP      stk.p[rsp++]
-#define LPUSH(x)  lstk[++lsp]=x
-#define LTOS      lstk[lsp]
-#define LPOP      lstk[lsp--]
-
-#define STATE_EXEC     0
-#define STATE_COMPILE  1
-#define STATE_COMMENT  2
-#define STATE_DEFINE   3
-
-#define FLG_IMM   0x80
-#define FLG_PRIM  0x40
-
-union { float f[STK_SZ+1]; CELL i[STK_SZ+1]; CELL p[STK_SZ+1]; } stk;
-union { char *b; funcPtr p[PGM_SZ+1]; CELL i[PGM_SZ+1]; } st;
-char *toIn, *tib, *here, isBYE = 0, running = 0;
-CELL t, lstk[32], vhere, base, state, n, sp, rsp, lsp, ip, w, xt;
-funcPtr xa;
-DICT_E *last;
-
-
-int strLen(const char* src) {
-    int len = 0;
-    while (*(src++)) { ++len; }
-    return len;
-}
-byte strCpy(char* dst, const char* src, byte max) {
-    int l = 0;
-    if (max < 1) { max = 255; }
-    while (*src && (l < max)) {
-        *(dst++) = *(src++);
-        ++l;
-    }
-    *dst = 0;
-    return l;
-}
-int strCmp(const char *src, const char *dst) {
-    while ((*src) && (*dst) && (*src==*dst)) { ++src; ++dst; }
-    return (*src)-(*dst);
-}
-int strCmpC(const char *src, const char *dst) {
-    for (int i=0; i <=src[0]; i++) { if (src[i] != dst[i]) { return 0; } }
-    return 1;
-}
-int strCmpN(const char *src, const char *dst, int nc) {
-    while ((*src==*dst) && nc>0) { ++src; ++dst; --nc; }
-    return nc == 0 ? 0 : 1;
-}
-
-FILE *fOpen(const char *nm, const char *md) {
-#ifdef _WIN32
-    FILE *fp = NULL;
-    fopen_s(&fp, nm, md);
-    return fp;
-#else
-    return fopen(nm, md);
-#endif
-}
-
-void doNEXT() {
-    xt = *(CELL*)w;
-    xa = *(funcPtr)xt;
-    w += CELL_SZ;
-}
-void run(CELL startXT) {
-    running = 1;
-    w = startXT;
-    doNEXT();
-    while (xa) {
-        xa();
-        doNEXT();
-    }
-    running = 0;
-}
-
-void iComma(CELL v) { *(CELL*)here = v; here += sizeof(CELL); }
-void iCComma(CELL v) { *(byte*)here = (byte)v; ++here; }
-
-void doBYE() { isBYE = 1; }
-void doEXEC() {
-    RPUSH(w);
-    w = POP;
-}
-void doEXIT() { w = RPOP; }
-void doCOL() { RPUSH(w); w = xt; }
-void doNOP() { }
-void doBREAK() { /* TODO! */ }
-void doDUP() { t = TOS; PUSH(t); }
-void doSWAP() { t = TOS; TOS = NOS; NOS = t; }
-void doOVER() { t = NOS; PUSH(t); }
-void doDROP() { if (sp) { DROP; } }
-void doJMP() { ip = 0; }
-void doDO() { RPUSH(ip); LPUSH(NOS); LPUSH(TOS); DROP2; }
-void doI() { PUSH(lstk[lsp]); }
-void doJ() { PUSH(lstk[lsp-2]); }
-void doUNLOOP() { if (1 < lsp) { lsp-=3; } }
-void doLOOP() { if (++lstk[lsp] < lstk[lsp-1]) { ip = RTOS; } else { doUNLOOP(); } }
-void doBEGIN() { LPUSH(0); LPUSH(0); LPUSH(w); }
-void doWHILE() { if (POP) { ip=RTOS; } else { doUNLOOP(); } }
-void doUNTIL() { if (POP==0) { ip=RTOS; } else { doUNLOOP(); } }
-void doAGAIN() { w=LTOS; }
-void doLIT() { PUSH(*(CELL*)(w)); w += CELL_SZ; }
-void do0BRANCH() { if (POP == 0) { ip = 0; } else { ++ip; } }
-void doDOTD() { printf("%ld ", POP); }
-void doDOTH() { printf("%lx ", POP); }
-void doEMIT() { printf("%c", (char)POP); }
-void doSEMI() { iComma((CELL)doEXIT); state = 0; }
-void doFETCH() { TOS = *(CELL*)TOS; }
-void doCFETCH() { TOS = *(byte*)TOS; }
-void doSTORE() { *(CELL*)TOS = NOS; DROP2; }
-void doCSTORE() { *(byte*)TOS = (byte)NOS; DROP2; }
-void doEQ() { NOS = (NOS == TOS) ? 1 : 0; DROP; }
-void doLT() { NOS = (NOS < TOS) ? 1 : 0; DROP; }
-void doGT() { NOS = (NOS > TOS) ? 1 : 0; DROP; }
-void doADD() { NOS += TOS; DROP; }
-void doSUB() { NOS -= TOS; DROP; }
-void doMUL() { NOS *= TOS; DROP; }
-void doDIV() { NOS /= TOS; DROP; }
-void doMOD() { NOS %= TOS; DROP; }
-void doAND() { NOS &= TOS; DROP; }
-void doOR() { NOS |= TOS; DROP; }
-void doXOR() { NOS ^= TOS; DROP; }
-void doCOM() { TOS = ~TOS; }
-void doLAST() { PUSH((CELL)&last); }
-void doHERE() { PUSH((CELL)&here); }
-void doIMMEDIATE() { last->flags |= FLG_IMM; }
-void doTimer() { PUSH(clock()); }
-void doWORD() {
-    byte ch = (char)TOS, *wd = (byte*)(here+32);
-    TOS = (CELL)wd;
-    wd[0] = 0;
-    while (*toIn && *toIn == ch) { ++toIn; }
-    while (*toIn && *toIn != ch) { wd[++wd[0]] = *(toIn++); }
-    wd[wd[0]+1] = 0;
-    if (*toIn == ch) { ++toIn;  }
-}
-void doCREATE() {
-    PUSH(32);
-    doWORD();
-    char *wd = (char*)POP;
-    if (wd[0] == 0) { PUSH(0); return; }
-    DICT_E *dp = (DICT_E*)here;
-    for (int i=0; i<=wd[0]; i++) { dp->name[i] = wd[i]; }
-    dp->next = last;
-    dp->flags = 0;
-    last = dp;
-    here += sizeof(DICT_E);
-    PUSH(here);
-}
-void doCOLON() {
-    doCREATE();
-    state = STATE_COMPILE;
-    iComma((CELL)doCOL);
-}
-void doSEMICOLON() {
-    iComma((CELL)doEXIT);
-    state = STATE_EXEC;
-}
-void doFIND() {
-    char *nm = (char*)TOS;
-    int l = nm[0];
-    TOS = 0;
-    DICT_E *dp = last;
-    while (dp) {
-        if (strCmpC(nm, dp->name) == 0) { dp = dp->next;  continue; }
-        TOS = (CELL)(dp);
-        TOS += sizeof(DICT_E);
-        PUSH(dp->flags);
-        PUSH(1);
-        return;
-    }
-}
-void doIsNum() {
-    char *wd = (char*)TOS+1, *end;
-    intmax_t x = strtoimax(wd, &end, 0);
-    if ((x == 0) && (strCmp(wd, "0"))) { TOS = 0; return; }
-    TOS = (CELL)x;
-    PUSH(1);
-}
-void doPARSE() {
-    DICT_E* dp = (DICT_E*)here;
-    dp->next = last;
-    char *wd = (char*)POP;
-    PUSH((CELL)wd); doIsNum();
-    if (POP) {
-        if (state==STATE_COMPILE) { iComma((CELL)doLIT); iComma(POP); }
-        PUSH(1); return;
-    }
-
-    PUSH((CELL)wd); doFIND();
-    if (POP == 0) {
-        printf("[%s]??", wd);
-        state = 0;
-        PUSH(0); return;
-    }
-
-    CELL t1 = POP;
-    CELL xt = POP;
-    if ((state == STATE_EXEC) || (t1 & FLG_IMM)) { run(xt); }
-    else { iComma((CELL)xt); }
-    PUSH(1); return;
-}
-
-void doCOMPILE() {
-    toIn = &tib[0];
-    PUSH(32);
-    doWORD();
-    while (isBYE == 0) {
-        char *wd = (char*)TOS;
-        if (wd[0] == 0) { DROP; return; }
-        doPARSE();
-        if (POP==0) { return; }
-        PUSH(32);
-        doWORD();
-    }
-}
-void doLOAD() {
-    char nm[32];
-    tib = (here + 128);
-#ifdef _WIN32
-    sprintf_s(nm, 16, "blk-%03ld.4th", POP);
-#else 
-    sprintf(nm, "blk-%03ld.4th", POP);
-#endif
-    FILE *fp=fOpen(nm, "rb");
-    if (fp) {
-        int n = fread(tib, 1, SRC_SZ, fp);
-        fclose(fp);
-        for (int i = 0; i < n; i++) { if (tib[i]<32) { tib[i]=32; } }
-    }
-    else { printf("-nf-"); }
-}
-
-void primCreate(const char *nm, funcPtr xt) {
-    DICT_E *de = (DICT_E*)here;
-    de->next = last;
-    de->flags = FLG_PRIM;
-    de->name[0] = strLen(nm);
-    strCpy(&de->name[1],nm,0);
-    last = de;
-    here += sizeof(DICT_E);
-    iComma((CELL)xt);
-}
-
-void init() {
-    sp = lsp = running = 0;
-    rsp = STK_SZ;
-    last = 0;
-    here = st.b = (char*)&st.p[0];
-    for (int i = 0; i <= PGM_SZ; i++) { st.p[i] = 0; }
-
-    primCreate("BYE", doBYE);
-    primCreate("RET", doEXIT);
-    primCreate("EXEC", doEXEC);
-    primCreate("DUP", doDUP);
-    primCreate("SWAP", doSWAP);
-    primCreate("OVER", doOVER);
-    primCreate("DROP", doDROP);
-    primCreate("JMP", doJMP);
-    primCreate("DO", doDO);
-    primCreate("I", doI);
-    primCreate("J", doJ);
-    primCreate("LOOP", doLOOP);
-    primCreate("UNLOOP", doUNLOOP);
-    primCreate("BEGIN", doBEGIN);
-    primCreate("WHILE", doWHILE);
-    primCreate("UNTIL", doUNTIL);
-    primCreate("AGAIN", doAGAIN);
-    primCreate(".", doDOTD);
-    primCreate(".h", doDOTH);
-    primCreate("EMIT", doEMIT);
-    primCreate("@", doFETCH);
-    primCreate("C@", doCFETCH);
-    primCreate("!", doSTORE);
-    primCreate("C!", doCSTORE);
-    primCreate("=", doEQ);
-    primCreate("<", doLT);
-    primCreate(">", doGT);
-    primCreate("+", doADD);
-    primCreate("-", doSUB);
-    primCreate("*", doMUL);
-    primCreate("/", doDIV);
-    primCreate("MOD", doMOD);
-    primCreate("AND", doAND);
-    primCreate("OR", doOR);
-    primCreate("XOR", doXOR);
-    primCreate("COM", doCOM);
-    primCreate("(LAST)", doLAST);
-    primCreate("(HERE)", doHERE);
-    primCreate("IMMEDIATE", doIMMEDIATE);
-    primCreate("TIMER", doTimer);
-    primCreate(":", doCOLON);
-    primCreate(";", doSEMICOLON); doIMMEDIATE();
-}
-
-void iCompile(const char* src) {
-    tib = (here + 64);
-    strCpy(tib, src, 0);
-    doCOMPILE();
-}
-int main()
-{
-    init();
-    iCompile(": dash 45 ;");
-    iCompile(": main BEGIN DUP . dash 1+ AGAIN ;");
-    iCompile("main");
-    return 0;
+/*  t  */ void f116() { st.i[++s]=clock(); }
+/*  x  */ void f120() { u=st.b[p++]; if (u=='U') { ++r; }
+            else if (u=='W') { while (st.b[p++]!='}') {} r++; }
+            else if (u=='F') { while (st.b[p++]!=']') {} r+=3; }
+            else if (u=='Q') { exit(0); } }
+/*  {  */ void f123() { st.i[--r]=p; if (TOS==0) { while (st.b[p]!='}') { ++p; } } }
+/*  |  */ void f124() { while (st.b[p]!='|') { st.b[TOS++]=st.b[p++]; } st.b[TOS++]=0; ++p; }
+/*  }  */ void f125() { if (TOS) { p=st.i[r]; } else { ++r; --s; } }
+/*  ~  */ void f126() { TOS=(TOS)?0:-1; }
+void (*q[127])()={ X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,N,f33,f34,f35,f36,f37,f38,
+    f39,f40,N,f42,f43,f44,f45,f46,f47,n09,n09,n09,n09,n09,n09,n09,n09,n09,n09,f58,f59,f60,f61,f62,f63,f64,
+    AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,f91,f92,f93,f94,f95,f96,X,
+    f98,fCur,fDec,f101,f102,X,X,fInc,X,X,f108,f109,f110,X,f112,f113,fReg,fSet,f116,X,X,X,f120,X,N,f123,f124,f125,f126 };
+void R(int x) { s=(s<sb)?(sb-1):s; r=rb; p=x; while (p) { u=st.b[p++]; q[u](); } }
+void H(char *s) { FILE *fp=fopen("h.txt", "at"); if (fp) { fprintf(fp, "%s", s); fclose(fp); } }
+void L() { y=&st.b[h]; printf("\ns2:("); f113(); printf(")>"); fgets(y, 128, stdin); H(y); R(h); }
+int main(int argc, char *argv[]) {
+    int i,j; s=sb-1; h=cb; u=SZ-500; for (i=0; i<(SZ/4); i++) { st.i[i]=0; }
+    st.i[0]=h; st.i[lb]=argc; for (i=1; i < argc; ++i) { y=argv[i]; t=atoi(y);
+        if ((t) || (y[0]=='0' && y[1]==0)) { st.i[lb+i]=t; }
+        else { st.i[lb+i]=u; for (j=0; y[j]; j++) { st.b[u++]=y[j]; } st.b[u++]=0; } }
+    if ((argc>1) && (argv[1][0]!='-')) { FILE *fp=fopen(argv[1], "rb"); 
+        if (fp) {while ((c=fgetc(fp))!=EOF) { if (btw(c,32,126)) st.b[h++]=c; } fclose(fp); st.i[0]=h; R(cb); }
+    } while (1) { L(); } return 0;
 }
