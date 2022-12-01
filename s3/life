@@ -1,13 +1,13 @@
 0(Conway's game of life)
 
-xX
+xX 0(Reset s3)
 :Code 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
 
-0(CurOff [--] Curson off)
-0(CurOn [--]: Curson on)
 0(ToXY [x y--]: Goto XY)
 :ToXY "%e[%d"59,"%dH";
+0(CurOff [--] Curson off)
 :CurOff 27"%c[?25l";
+0(CurOn [--]: Curson on)
 :CurOn 27"%c[?25h";
 :Cls "%e[2J"1#ToXY;
 :Cr "%n";
@@ -24,30 +24,31 @@ xX
 0(rL: Address of line for output)
 2000 sP rP 400- sL
 
-0(T5 [a--b]: )
+0(T5 [a--b]: Increment neighbor)
 :T5 #c@i%c!i;
 
-0(Alive [a--]: Cell is alive)
+0(Alive [a--]: Cell is alive - inc neighbors)
 :Alive d# rC- T5 T5 T5 \# T5 i T5 \rC+ T5 T5 T5\;
-
 0(LQ [a b--c]: Live?)
 :LQ #2=(\^)3=(\1^)\0;
 
 :RandPop rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
 :ClrBak rB s0 rM 0[0 r0 c! i0];
-:BakToPop rBs1 rPs2 rM 0[r2c@ r1c@ LQ r2c! 0r1c! i1i2];
 
 0(ToPop [c r--a])
 0(ToBak [c r--a])
 :ToPop rC*+rP+;
 :ToBak rC*+rB+;
 
-0(PRow [n a--]: Print row n)
+0(PRow [n a--]: Print row n, a is address of buffer for output)
 0(PPop [--]: Print population)
 :PRow $1$ToPop s1#s6rC0[32r1c@(\'*)r6c! i6i1] 0r6c!t;
 :PPop 1#ToXY rR 0[n i rL PRow Cr];
 
+0(Proc: process population)
 :Proc 1#ToBak s4 rC rR ToPop 1#ToPop[n c@(r4 Alive) i4];
+0(BakToPop: copy working pop to real pop)
+:BakToPop rBs1 rPs2 rM 0[r2c@ r1c@ LQ r2c! 0 r1c! i1i2];
 :OneGen Proc BakToPop PPop;
 
 25 SetRows 100 SetCols
