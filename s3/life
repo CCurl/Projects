@@ -7,7 +7,7 @@ xX
 :TOXY "%e[%d"59,"%dH";
 :CUROFF 27"%c[?25l";
 :CURON 27"%c[?25h";
-:CLS "%e[2J"1# TOXY;
+:CLS "%e[2J%e[H";
 :CR "%n";
 
 0(rR: Rows)
@@ -40,10 +40,10 @@ xX
 :TOPOP rC*+rP+;
 :TOBAK rC*+rB+;
 
-0(PROW [n a--]: Print row n)
+0(PROW [n--]: Print row n)
 0(PPOP [--]: Print population)
-:PROW $1$TOPOPs1#s6rC0[32r1c@(\'*)r6c!i6i1]0r6c!t;
-:PPOP 1#TOXY rR 0[n i rL PROW CR];
+:PROW 1$TOPOP s1 rLs6 rC1[32r1c@(\'*)r6c!i6i1]0r6c! rLt;
+:PPOP 1#TOXY rR 1[n PROW CR];
 
 :PROC 1#TOBAK s4 rC rR TOPOP 1#TOPOP[n c@(r4 ALIVE) i4];
 :ONEGEN PROC BAKTOPOP PPOP k?;
