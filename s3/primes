@@ -1,15 +1,14 @@
 "%nCount of primes"
 
-; rC:               Register for count of primes
-; P: (n l--f)       Is Prime Number routine
-; Primes: (n1--n2)  Count of Primes routine
-; Bench: (n--)      Benchmark routine
-; CpLoop: (n--)     Loop for multiple benchmarks
+; rC:              Register for count of primes
+; P: (n l--f)      Is Prime Number routine
+; PRIMES: (n1--n2) Count of Primes routine
+; BENCH: (n--)     Benchmark routine
+; CPLOOP: (n--)    Loop for multiple benchmarks
 
-:Code 0@1[nc@#58=(n1-c@59=(13,10,),];
-:CR "%n";
-:P %%&~(\=^)%<(\^)2+P;
-:Primes 4 sC 11[n3P(iC)2x]rC;
-:Bench CR"# primes in "#." - "xT$ Primes . xT$- " (" . " usecs)";
-:CpLoop 256$1[#+#Bench]\;
-10 CpLoop
+:CODE 0@1[nc@#58=(n1-c@59=(13,10,),];
+:P %%&~(\=^)%<(\^)ii P;
+:PRIMES 4 sC 11[n3P(iC)2x]rC;
+:BENCH "%n# primes in "#." - "xT$ PRIMES . xT$- " (" . " usecs)";
+:CPLOOP 256$ 1[#+#BENCH]\;
+10 CPLOOP

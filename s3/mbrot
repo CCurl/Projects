@@ -1,10 +1,10 @@
 :CR 13,10,;
-:Hdr "The Mandelbrot Set%n";
+:HDR "The Mandelbrot Set%n";
 :Q iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rJsM^) rArB*100/rY+sB rCrD-rX+sA iJ;
 :L 0sA 0sB 0sJ rSsM {Q rJ rM<};
 :O L rJ 40+#126>(\32),;
 :X 490_ sX 95 0[O rX 8+sX]CR;
 :Y 340_ sY 35 0[X rY20+sY];
 200 sS 1000000 sK
-Hdr 0 sT xT Y xT$- CR rT." iterations, time=".
+HDR 0 sT xT Y xT$- CR rT." iterations, time=".
 0(xQ)

@@ -1,61 +1,55 @@
 0(Conway's game of life)
 
-xX 0(Reset s3)
-:Code 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
+xX
+:CODE 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
 
 0(ToXY [x y--]: Goto XY)
-:ToXY "%e[%d"59,"%dH";
-0(CurOff [--] Curson off)
-:CurOff 27"%c[?25l";
-0(CurOn [--]: Curson on)
-:CurOn 27"%c[?25h";
-:Cls "%e[2J"1#ToXY;
-:Cr "%n";
+:TOXY "%e[%d"59,"%dH";
+:CUROFF 27"%c[?25l";
+:CURON 27"%c[?25h";
+:CLS "%e[2J"1# TOXY;
+:CR "%n";
 
 0(rR: Rows)
 0(rC: Cols)
 0(rM: Max Population Size)
-:SetRows 0(n--) sR SetPopSz;
-:SetCols 0(n--) sC SetPopSz;
-:SetPopSz rR 2+ rC 2+ * sM rP rM+ 100+ sB;
+:SETROWS 0(n--) sR SETPOPSZ;
+:SETCOLS 0(n--) sC SETPOPSZ;
+:SETPOPSZ rR 2+ rC 2+ * sM rP rM+ 100+ sB;
 
 0(rP: Population)
 0(rB: Working Population)
 0(rL: Address of line for output)
 2000 sP rP 400- sL
 
-0(T5 [a--b]: Increment neighbor)
-:T5 #c@i%c!i;
+0(T [a--b]: )
+:T #c@i%c!i;
 
-0(Alive [a--]: Cell is alive - inc neighbors)
-:Alive d# rC- T5 T5 T5 \# T5 i T5 \rC+ T5 T5 T5\;
+0(ALIVE [a--]: Cell is alive)
+:ALIVE d# rC- T T T \# T i T \rC+ T T T\;
+
 0(LQ [a b--c]: Live?)
 :LQ #2=(\^)3=(\1^)\0;
 
-:RandPop rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
-:ClrBak rB s0 rM 0[0 r0 c! i0];
+:RANDPOP rP s0 rM 0[xR hFF b& 200 > r0 c! i0];
+:CLRBAK rB s0 rM 0[0 r0 c! i0];
+:BAKTOPOP rBs1 rPs2 rM 0[r2c@ r1c@ LQ r2c! 0r1c! i1i2];
 
-0(ToPop [c r--a])
-0(ToBak [c r--a])
-:ToPop rC*+rP+;
-:ToBak rC*+rB+;
+0(TOPOP [c r--a])
+0(TOBAK [c r--a])
+:TOPOP rC*+rP+;
+:TOBAK rC*+rB+;
 
-0(PRow [n a--]: Print row n, a is address of buffer for output)
-0(PPop [--]: Print population)
-:PRow $1$ToPop s1#s6rC0[32r1c@(\'*)r6c! i6i1] 0r6c!t;
-:PPop 1#ToXY rR 0[n i rL PRow Cr];
+0(PROW [n a--]: Print row n)
+0(PPOP [--]: Print population)
+:PROW $1$TOPOPs1#s6rC0[32r1c@(\'*)r6c!i6i1]0r6c!t;
+:PPOP 1#TOXY rR 0[n i rL PROW CR];
 
-0(Proc: process population)
-:Proc 1#ToBak s4 rC rR ToPop 1#ToPop[n c@(r4 Alive) i4];
-0(BakToPop: copy working pop to real pop)
-:BakToPop rBs1 rPs2 rM 0[r2c@ r1c@ LQ r2c! 0 r1c! i1i2];
-0(OneGen: One generation)
-:OneGen Proc BakToPop PPop;
+:PROC 1#TOBAK s4 rC rR TOPOP 1#TOPOP[n c@(r4 ALIVE) i4];
+:ONEGEN PROC BAKTOPOP PPOP k?;
 
-0(Change these for grid size)
-25 SetRows 100 SetCols
-
-:Gens 0[OneGen r7.i7];
-:Life 1 s7 ClrBak RandPop CurOff Cls 1000 Gens CurOn;
-:Reload 1000#|life|\xL;
-0(Life)
+25 SETROWS 100 SETCOLS
+:GENS 0[ONEGEN r7.i7 (xU^)];
+:LIFE 1 s7 CLRBAK RANDPOP CUROFF CLS 1000 GENS CURON;
+:RELOAD 1000#|life|\xL;
+0(LIFE)
