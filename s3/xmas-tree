@@ -1,5 +1,17 @@
-:B0[b];:S"*";:N"%n";
-:L20%-B#0[S]S0[S]N];
-20B S N 4 1[nL]
-5 1[n2*1-L]5 1[n3*1-L]1L1L
-xQ
+xX
+:COFF "%e[?25l";
+:CON "%e[?25h"; 
+:TORC "%e[%d"59,"%dH";
+:COL "%e[40"59,"%dm";
+:RCOL 7 RND 31+COL;
+:B 0[b];
+:S rR(RCOL)"*";
+:N "%n";
+:RND xRa$x%;
+:L 20%-B#0[S]S0[S]N;
+:TREE 1 sR 20B S N 4 1[nL] 5 1[n2*1-L] 5 1[n3*1-L] 33COL 0 sR 1L1L;
+:DLY rD 1000#**0[];10sD
+:LIT COFF {1# TORC TREE DLY k?~}k@\ 0 COL CON;
+:CODE 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
+:RELOAD 1000#|xmas-tree|\xL;
+LIT

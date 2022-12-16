@@ -1,10 +1,11 @@
 :TORC "%e[%d"59,"%dH";
 :COFF "%e[?25l";
-:CON "%e%c[?25h";
-:COL "%e[40"59,"%dm";
-:CLS "%e[2J%e[H";
+:CON "%e%c[?25h"; 
 :RND xRa$x%;
-:LIGHTS COFF{8 RND 30+ COL rX RND rY RND TORC "*" k?~}k@\0 COL CON;
+:COL "%e[40"59,"%dm";
+:RCOL 8 RND 30+COL;
+:CLS "%e[2J%e[H";
+:LIGHTS COFF{RCOL rX RND rY RND TORC "*" k?~}k@\0 COL CON;
 :CODE 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
 :RELOAD 1000#|xmas-lights|\xL;
 50 sY 150 sX
