@@ -20,27 +20,23 @@ xX
 0(AN: count neighbor: a1--a2)
 :AN #c@(iN)i;
 
-0(AA: live?: --f)
-:AA rN2=(rIc@^)rN3=(1^)0;
+0(LQ: live?: --f)
+:LQ rN2=(rIc@^)rN3=(1^)0;
 
 0(AD: display: --)
 :AD 27,"[H" rBsY rAsX rR 0[rC 0[32 rYc@#rXc!(\'O),iXiY]10,];
 
 0(AW: work cell rI: a--f)
-:AW 0sN rC-1-AN AN AN rC+3-AN1+AN rC+3-AN AN AN \AA;
+:AW 0sN rC-1-AN AN AN rC+3-AN1+AN rC+3-AN AN AN \LQ;
 
-0(OG: One generation: --)
-:OG rSrC- rCi[rAn+#sI AW rBn+c!]AD;
-
-0(Init)
 0(AR: return base for row: n--a)
 :AR rC*rB+;
 
-0(CP: : to from count--)
+0(CP: copy bytes: to from count--)
 :CP l+ s3s2s1 r3 0[r2c@r1c!i1i2] l-;
 
 0(Set variables)
-40sC 25sR rRrC*sS 0@100+sA rArS+sB 
+40sC 25sR rRrC*sS 0@1000+sA rArS+sB 
 
 0(Init the cells)
  0 AR x|........................................|CP
@@ -55,21 +51,18 @@ xX
  9 AR x|............OO..........................|CP
 10 AR x|........................................|CP
 0(Normalize initial data)
-rBsI rS 1[0 rI c@ 'O=(i) rI c! iI]
+rBsI rS 1[0 nrB+ c@ 'O=(i) rI c! iI]
 
-0(Cursor off)
-:OF 27,"[?25l";
-
-0(clear screen, initial display)
+0(Screen stuff)
 :CL 27#,"[2J","[H" AD;
-
-0(run X generations)
-:GO CL OF 1[OG] ON;
-
-0(Cursor on)
+:OF 27,"[?25l";
 :ON 27,"[?25h";
 
-500 GO
+0(OG: One generation: --)
+:OG rSrC- rCi[rAn+#sI AW rBn+c!]AD;
 
-0(quit)
-0(xQ)
+0(run X generations or until keypress)
+:GO {OG k?(k@\xU^)1};
+
+CL OF GO ON
+xQ
