@@ -14,20 +14,20 @@
 xX
 :RL 1000#|glider|\xL;
 
-0(CD: show code)
-:CD 0@1[nc@#,59=(10,)];
+0(CODE: show code)
+:CODE 0l@1[nc@#,59=(10,)];
 
-0(AN: count neighbor: a1--a2)
-:AN #c@(iN)i;
+0(N: count neighbor: a1--a2)
+:N #c@(iN)i;
 
 0(LQ: live?: --f)
 :LQ rN2=(rIc@^)rN3=(1^)0;
 
-0(AD: display: --)
-:AD 27,"[H" rBsY rAsX rR 0[rC 0[32 rYc@#rXc!(\'O),iXiY]10,];
+0(D: display: --)
+:D 27,"[H" rBsY rAsX rR 0[rC 0[32 rYc@#rXc!(\'O),iXiY]10,];
 
-0(AW: work cell rI: a--f)
-:AW 0sN rC-1-AN AN AN rC+3-AN1+AN rC+3-AN AN AN \LQ;
+0(W: work cell rI: a--f)
+:W 0sN rC-d N N N rC+3-N i N rC+3-N N N \LQ;
 
 0(AR: return base for row: n--a)
 :AR rC*rB+;
@@ -36,7 +36,7 @@ xX
 :CP l+ s3s2s1 r3 0[r2c@r1c!i1i2] l-;
 
 0(Set variables)
-40sC 25sR rRrC*sS 0@1000+sA rArS+sB 
+40sC 25sR rRrC*sS 0l@1000+sA rArS+sB 
 
 0(Init the cells)
  0 AR x|........................................|CP
@@ -54,15 +54,15 @@ xX
 rBsI rS 1[0 nrB+ c@ 'O=(i) rI c! iI]
 
 0(Screen stuff)
-:CL 27#,"[2J","[H" AD;
-:OF 27,"[?25l";
+:CLS 27#,"[2J","[H" D;
+:OFF 27,"[?25l";
 :ON 27,"[?25h";
 
 0(OG: One generation: --)
-:OG rSrC- rCi[rAn+#sI AW rBn+c!]AD;
+:OG rSrC- rCi[rAn+#sI W rBn+c!]D;
 
 0(run X generations or until keypress)
 :GO {OG k?(k@\xU^)1};
 
-CL OF GO ON
+CLS OFF GO ON
 xQ
