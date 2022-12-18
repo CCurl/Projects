@@ -6,9 +6,9 @@
 ; BENCH: (n--)     Benchmark routine
 ; CPLOOP: (n--)    Loop for multiple benchmarks
 
-:CODE 0@1[nc@#58=(n1-c@59=(13,10,),];
+:CODE 0l@1[nc@#58=(ndc@59=("%n"),];
 :P %%&~(\=^)%<(\^)ii P;
 :PRIMES 4 sC 11[n3P(iC)2x]rC;
-:BENCH "%n# primes in "#." - "xT$ PRIMES . xT$- " (" . " usecs)";
+:BENCH "%n# primes in "#." - "xT$ PRIMES . xT$- " (" . " ms)";
 :CPLOOP 256$ 1[#+#BENCH]\;
 10 CPLOOP

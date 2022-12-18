@@ -1,7 +1,7 @@
 0(Conway's game of life)
 
 xX
-:CODE 0(Code:--) 0@ 1[n c@ #58=(n 1- c@ 59=("%n"),];
+:CODE 0l@1[nc@#58=(ndc@59=("%n"),];
 
 0(ToXY [x y--]: Goto XY)
 :TOXY "%e[%d"59,"%dH";
