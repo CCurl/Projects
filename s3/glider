@@ -62,7 +62,7 @@ rBsI rS 1[0 nrB+ c@ 'O=(i) rI c! iI]
 :OG rSrC- rCi[rAn+#sI W rBn+c!]D;
 
 0(run X generations or until keypress)
-:GO {OG k?(k@\xU^)1};
+:GO 0[OG k?(k@\xU^)];
 
-CLS OFF GO ON
+CLS OFF 5000 GO ON
 xQ
