@@ -14,10 +14,10 @@ xX
 :CODE 0@1[nc@#,59=("%n")];
 :RL 0@100+#|6502Asm|\xL;
 
-:MEM 3000;
-:JT 100;
-0(a--b):MGET MEM+c@;
-:MSET 0(b a--) MEM+c!;
+3000:vMEM;
+100:vJT;
+0(a--b) :MGET vMEM+c@;
+0(b a--):MSET vMEM+c!;
 :BCOM 0(b--)  rH MSET iH;
 :WCOM 0(w--)  256 & BCOM BCOM;
 
@@ -32,8 +32,8 @@ xX
 :JMP  0(a--) h4C BCOM WCOM;
 
 :ORG h200; 0(Offset on 6502)
-:JTSET  0(a n--) JT+!;
-:JTGET  0(a--n)  JT+@;
+:JTSET  0(a n--) vJT+!;
+:JTGET  0(a--n)  vJT+@;
 :JTJMP  0(a--)   JTGET#(#q<)\;
 256 0[0 n JTSET]
 0(--b):NI rPMGETiPiLiL;
@@ -48,7 +48,7 @@ xX
 :_dX rX SETF;               hCA JTSET  0(DEX)
 :_dY rY SETF;               h88 JTSET  0(DEY)
 :_NI s1rZ~(r1 256-rP+sP);   hD0 JTSET  0(BNE)
-:_NI MEM+#c@i#SETF$c!;      hE6 JTSET  0(INCz)
+:_NI vMEM+#c@i#SETF$c!;     hE6 JTSET  0(INCz)
 :_NI NI 256*+sP;            h4C JTSET  0(JMP)
 
 :VMINIT ORG sH
@@ -66,11 +66,11 @@ rH s2
     ORG JMP;
 
 :CR "%n";
+:MIL 1000#**;
 :REGS rN rZ rY rX rA rP "P:%d A:%d, X:%d Y:%d Z:%d N:%d";
 :DUMP rH ORG[n MGET "%x "];
 
 :STS CR REGS rP MGET " (%x)" ;
 :EMU 0(n a--) 0sL sP 0[NI JTJMP];
-VMINIT
 :GO xT$ DUMP ORG EMU CR "8:" 8 MGET . xT$-" (%d ms)";
-1000000 GO
+VMINIT 1 MIL GO
