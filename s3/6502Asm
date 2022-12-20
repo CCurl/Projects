@@ -70,6 +70,7 @@ rH s2
 :DUMP rH ORG[n MGET "%x "];
 
 :STS CR REGS rP MGET " (%x)" ;
-:EMU 0(a--) sP 0[NI JTJMP];
-VMINIT DUMP
-:GO ORG EMU CR "8:" 8 MGET . ;
+:EMU 0(n a--) 0sL sP 0[NI JTJMP];
+VMINIT
+:GO xT$ DUMP ORG EMU CR "8:" 8 MGET . xT$-" (%d ms)";
+1000000 GO
