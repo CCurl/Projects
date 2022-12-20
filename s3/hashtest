@@ -35,7 +35,7 @@ xX 0(Reset s3)
 :RunTests 0(Tests:--) 50 5 0[# RunTest 100+]\;
 :Reload 0(Reload:--) StrBuf#|hashtest|\xL;
 :Type 0(Type:addr n--) 0[# c@ , i]\;
-:Code 0(Code:--) 0 l@ 1[n c@ #58=(n d c@ 59=("%n"),];
+:Code 0(Code:--) 0 @ 1[n c@ #58=(n d c@ 59=("%n"),];
 :DoFile "Words from the file ...%n" 1 sR 0 C150 RunTests;
 :DoRand "%n Random words ...%n" 500 sR 1 C150 RunTests;
 16 sM 65 sS 

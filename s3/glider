@@ -15,7 +15,7 @@ xX
 :RL 1000#|glider|\xL;
 
 0(CODE: show code)
-:CODE 0l@1[nc@#,59=(10,)];
+:CODE 0@1[nc@#,59=(10,)];
 
 0(N: count neighbor: a1--a2)
 :N #c@(iN)i;
@@ -36,7 +36,7 @@ xX
 :CP l+ s3s2s1 r3 0[r2c@r1c!i1i2] l-;
 
 0(Set variables)
-40sC 25sR rRrC*sS 0l@1000+sA rArS+sB 
+40sC 25sR rRrC*sS 0@1000+sA rArS+sB 
 
 0(Init the cells)
  0 AR x|........................................|CP

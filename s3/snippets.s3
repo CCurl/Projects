@@ -1,8 +1,8 @@
 xX 0(reset s3)
 :CR "%n";
-:CODE 0l@1[nc@#58=(ndc@59=("%n"),];
+:CODE 0@1[nc@#58=(ndc@59=("%n"),];
 :YN #("y")~("n");
-:REGS 'Zi'A[nl@(nl@n"%n%c: %d")];
+:REGS 'Zi'A[n@(n@n"%n%c: %d")];
 :HELLOWORLD "hello world!";
 :LOCS s3 s4 i3 d4 r3 r4 + "locals: %d";
 :VER "s3 v0.0.1";
@@ -18,8 +18,8 @@ xX 0(reset s3)
 " function";
 10000
 :vJMPTBL;
-:JTSET  0(a n--) 1l@*vJMPTBL+!;
-:JTGET  0(n--a)  1l@*vJMPTBL+@;
+:JTSET  0(a n--) 1@*vJMPTBL+!;
+:JTGET  0(n--a)  1@*vJMPTBL+@;
 :JTEXEC 0(n--)   JTGETq<;
 :_"-anonynous A-"; 'A JTSET
 :_"-anonynous B-"; 'B JTSET
@@ -39,4 +39,4 @@ CR ULTESTW "-back"
 CR MULTI
 CR 'A JTEXEC 'B JTEXEC
 CR CR CODE CR
-0 l@ 100+ #|snippets.s3|\FILESZ"%n%d bytes in src.s3"
+0 @ 100+ #|snippets.s3|\FILESZ"%n%d bytes in src.s3"
