@@ -4,7 +4,9 @@ xX
 0( rH: "Here" )
 0( rA: Accumulator )
 0( rX: X register )
+0( rS: Stack Pointer )
 0( rY: Y register )
+0( rV: Overflow flag )
 0( rZ: Zero flag )
 0( rN: Negative flag )
 0( rC: Carry flag )
@@ -14,6 +16,7 @@ xX
 :CODE 0@1[nc@#,59=("%n")];
 :RL 0@100+#|6502Asm|\xL;
 
+h200:vORG; 0(Offset on 6502)
 3000:vMEM;
 100:vJT;
 0(a--b) :MGET vMEM+c@;
@@ -31,7 +34,6 @@ xX
 :BNE  0(a--) hD0 BCOM rH - d BCOM;
 :JMP  0(a--) h4C BCOM WCOM;
 
-:ORG h200; 0(Offset on 6502)
 :JTSET  0(a n--) vJT+!;
 :JTGET  0(a--n)  vJT+@;
 :JTJMP  0(a--)   JTGET#(#q<)\;
@@ -39,7 +41,13 @@ xX
 0(--b):NI rPMGETiPiLiL;
 :CYC 0(n--) rL+sL;
 
-:SETF 0(n--) #~sZ h80 b& sN;
+0(n--):SETF #~2b&sZ 128b&sN;
+0(n--):SETSR #1b&sC #2b&sZ #64b&zV 128b&sN;
+0(--n):GETSR rC rZb| rVb| rNb|;
+
+:NS rS hFF b& sS; 0(Normalize SP)
+:PS rS h100+ MSET dS NS; 0(PS: Push [n--])
+:PP iS NS rs h100+ MGET; 0(PP: Pop  [--n])
 
 :_NI #sA SETF;              hA9 JTSET  0(LDAi)
 :_NI #sX SETF;              hA2 JTSET  0(LDXi)
@@ -50,8 +58,12 @@ xX
 :_NI s1rZ~(r1 256-rP+sP);   hD0 JTSET  0(BNE)
 :_NI vMEM+#c@i#SETF$c!;     hE6 JTSET  0(INCz)
 :_NI NI 256*+sP;            h4C JTSET  0(JMP)
+:_rAPS;  h48 JTSET  0(PHA)
+:_PPsA;  h68 JTSET  0(PLA)
+:_;            h08 JTSET  0(PHP)
+:_;            h28 JTSET  0(PLP)
 
-:VMINIT ORG sH
+:VMINIT vORG sH
     0   LDAI
     8   STAZ
     hff LDXI
@@ -63,14 +75,14 @@ rH s2
     r2  BNE
         DEX
     r1  BNE
-    ORG JMP;
+    vORG JMP;
 
 :CR "%n";
 :MIL 1000#**;
 :REGS rN rZ rY rX rA rP "P:%d A:%d, X:%d Y:%d Z:%d N:%d";
-:DUMP rH ORG[n MGET "%x "];
+:DUMP rH vORG[n MGET "%x "];
 
 :STS CR REGS rP MGET " (%x)" ;
 :EMU 0(n a--) 0sL sP 0[NI JTJMP];
-:GO xT$ DUMP ORG EMU CR "8:" 8 MGET . xT$-" (%d ms)";
+:GO xT$ DUMP vORG EMU CR "8:" 8 MGET . xT$-" (%d ms)";
 VMINIT 1 MIL GO
