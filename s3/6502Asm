@@ -75,8 +75,9 @@ h200:vORG; 0(Offset on 6502)
 :_PPsF;                     h28 JTSET  0(PLP)
 
 vORG sH
-    10  LDAI
+    0  LDAI
     8   STAZ
+    9   STAZ
 rH s0
     hFF LDXI
 rH s1
@@ -87,6 +88,7 @@ rH s2
     r2  BNE
         DEX
     r1  BNE
+    9   INCZ
     r0  JMP
 
 :CR "%n";
