@@ -23,7 +23,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* - */ void f45() { printf("[%c]",u); }
 /* . */ void f46() { printf("[%c]",u); }
 /* / */ void f47() { printf("[%c]",u); }
-/* 0 */ void f48() { printf("[0]",u); }
+/* 0 */ void f48() { printf("[0]"); }
 /* 1 */ void f49() { printf("[%c]",u); }
 /* 2 */ void f50() { printf("[%c]",u); }
 /* 3 */ void f51() { printf("[%c]",u); }
@@ -40,7 +40,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* > */ void f62() { printf("[%c]",u); }
 /* ? */ void f63() { printf("[%c]",u); }
 /* @ */ void f64() { printf("[%c]",u); }
-/* A */ void f65() { printf("[A]",u); }
+/* A */ void f65() { printf("[A]"); }
 /* B */ void f66() { printf("[%c]",u); }
 /* C */ void f67() { printf("[%c]",u); }
 /* D */ void f68() { printf("[%c]",u); }
@@ -72,7 +72,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* ^ */ void f94() { printf("[%c]",u); }
 /* _ */ void f95() { printf("[%c]",u); }
 /* ` */ void f96() { printf("[%c]",u); }
-/* a */ void f97() { printf("[a]",u); }
+/* a */ void f97() { printf("[a]"); }
 /* b */ void f98() { printf("[%c]",u); }
 /* c */ void f99() { printf("[%c]",u); }
 /* d */ void f100() { printf("[%c]",u); }
@@ -101,7 +101,7 @@ static int cb, h, sb, s, rb, r, p, u, t;
 /* { */ void f123() { printf("[%c]",u); }
 /* | */ void f124() { printf("[%c]",u); }
 /* } */ void f125() { printf("[%c]",u); }
-/* ~ */ void f126() { printf("[~]",u); }
+/* ~ */ void f126() { printf("[~]"); }
 void (*q[127])()={X,X,X,X,X,X,X,X,X,X,N,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,N,
     f33,f34,f35,f36,f37,f38,f39,f40,f41,f42,f43,f44,f45,f46,f47,f48,f49,f50,f51,f52,
     f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65,f66,f67,f68,f69,f70,f71,f72,f73,
