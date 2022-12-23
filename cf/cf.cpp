@@ -33,7 +33,7 @@ void printStringF(const char* fmt, ...) {
 }
 
 #define WFO(l) (user[l+1]*256 | user[l])
-#define WFA(l) { (*(l+1)*256) | (*l))
+#define WFA(l) ((*(l+1)*256) | (*l))
 void wsa(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
 void wso(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
 
