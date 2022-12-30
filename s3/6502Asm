@@ -31,10 +31,11 @@ h200:vORG; 0(Offset on 6502)
 :BNE  0(a--) hD0 BCOM rH - d BCOM;
 :JMP  0(a--) h4C BCOM WCOM;
 
-:JTSET  0(a n--) vJT+!;
-:JTGET  0(a--n)  vJT+@;
-:JTJMP  0(a--)   vJT+@q<;
+0(a n--):JTSET  vJT+!;
+0(a--n) :JTGET  vJT+@;
+0(a--)  :JTJMP  vJT+@r<;
 256 0[0 n JTSET]
+
 0(--b):NI rPiPMGET;
 0(n--):CYC rL+sL;
 

@@ -1,103 +1,130 @@
-// S2.c - inspired by, STABLE from Sandor Schneider
-#define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <stdio.h>
 #include <time.h>
-#define btw(a,b,c) ((b<=a) && (a<=c))
-#define TOS st.i[s]
-#define NOS st.i[s-1]
-#define SZ 16000
-union fib { float f[SZ/4]; int i[SZ/4]; char b[SZ]; }; static union fib st;
-static char ex[80], *y;
-static int c, cb=4000, h, p, lb=750, rg=68, rb=64, r, sb=4, s, t, u, cr, regs[26];
-int fn(int x) { u=st.b[x++]; if (btw(st.b[x],'A','Z')) { u=(st.b[x++]-'A')*26+u; } return x; }
-/* <33 */ void N() {} void X() { if (u && (u!=10)) printf("-IR %d (%c)?", u, u); p=0; }
-/*  !  */ void f33() { st.i[TOS]=NOS; s-=2; }
-/*  "  */ void f34() { while (st.b[p]!='"') { putc(st.b[p++], stdout); } ++p; }
-/*  #  */ void f35() { t=TOS; st.i[++s]=t; }
-/*  $  */ void f36() { t=TOS; TOS=NOS; NOS=t; }
-/*  %  */ void f37() { t=NOS; st.i[++s]=t; }
-/*  &  */ void f38() { u=NOS; t=TOS; NOS=u/t; TOS=u%t; }
-/*  '  */ void f39() { st.i[++s]=st.b[p++]; }
-/*  (  */ void f40() { if (st.i[s--]==0) { while (st.b[p++]!=')'); } }
-/*  *  */ void f42() { NOS *= TOS; s--; }
-/*  +  */ void f43() { NOS += TOS; s--; }
-/*  ,  */ void f44() { putc(st.i[s--], stdout); }
-/*  -  */ void f45() { NOS -= TOS; s--; }
-/*  .  */ void f46() { printf("%d", st.i[s--]); }
-/*  /  */ void f47() { NOS /= TOS; s--; }
-/* 0-9 */ void n09() { st.i[++s]=(u-'0'); while (btw(st.b[p],'0','9')) { TOS=(TOS*10)+st.b[p++]-'0'; }
-            if (st.b[p]=='e') { ++p; st.f[s]=(float)TOS; } }
-/*  :  */ void f58() { p=fn(p); if (btw(u,65,65+(26*26))) { while (st.b[p]==' ') { ++p; }
-            st.i[u]=p; while (st.b[p++]!=';') {} h=(h<p)?p:h; st.i[0]=h; } }
-/*  ;  */ void f59() { p=st.i[r++]; if (rb<r) { r=rb; p=0; } }
-/*  <  */ void f60() { t=TOS; u=NOS; s--; TOS=(u<t)?-1:0; if (st.b[p]=='=') { ++p; TOS=(u<=t)?-1:0; } }
-/*  =  */ void f61() { NOS=(NOS==TOS)?-1:0; s--; }
-/*  <  */ void f62() { t=TOS; u=NOS; s--; TOS=(u>t)?-1:0; if (st.b[p]=='=') { ++p; TOS=(u>=t)?-1:0; } }
-/*  ?  */ void f63() { c=fgetc(stdin); st.i[++s]=(c!=EOF)?c:0; }
-/*  @  */ void f64() { TOS=st.i[TOS]; }
-/* A-Z */ void AZ()  { p=fn(p-1); if (st.i[u]) { if (st.b[p]!=';') { st.i[--r]=p; } p=st.i[u]; } }
-/*  [  */ void f91() { st.i[--r]=p; st.i[--r]=st.i[s--]; st.i[--r]=st.i[s--]; }
-/*  \  */ void f92() { --s; }
-/*  ]  */ void f93() { ++st.i[r]; if (st.i[r] <= st.i[r+1]) { p=st.i[r+2]; } else { r+=3; } }
-/*  ^  */ void f94() { p=st.i[r++]; }
-/*  _  */ void f95() { TOS=-TOS; }
-/*  `  */ void f96() { y=ex; while ((31<st.b[p]) && (st.b[p]!='`')) { *(y++)=st.b[p++]; } *y=0; ++p; system(ex); }
-/*  b  */ void f98() { u=st.b[p++]; if (u=='~') { TOS = ~TOS; }
-            else if (u=='&') { NOS&=TOS; s--; }
-            else if (u=='|') { NOS|=TOS; s--; }
-            else if (u=='^') { NOS^=TOS; s--; }
-            else { putc(32, stdout); --p; } }
-/*  c  */ void f99()  { u=st.b[p++]; if (u=='@') { TOS=st.b[TOS]; } else if (u=='!') { st.b[TOS]=NOS; s -= 2; } }
-/*  e  */ void f101() { st.i[--r]=p; p=st.i[s--]; }
-/*  f  */ void f102() { u=st.b[p++];                                if (u=='.') { printf("%g", st.f[s--]); }
-            else if (u=='@') { st.f[s]=st.f[TOS]; }            else if (u=='!') { st.f[TOS]=st.f[s-1]; s-=2; }
-            else if (u=='+') { st.f[s-1]+=st.f[s]; s--; }      else if (u=='<') { TOS=(st.f[s-1] < st.f[s]) ? -1 : 0; }
-            else if (u=='-') { st.f[s-1]-=st.f[s]; s--; }      else if (u=='>') { TOS=(st.f[s-1] > st.f[s]) ? -1 : 0; }
-            else if (u=='*') { st.f[s-1]*=st.f[s]; s--; }      else if (u=='i') { TOS=(int)st.f[s]; }
-            else if (u=='/') { st.f[s-1]/=st.f[s]; s--; }      else if (u=='f') { st.f[s]=(float)TOS; }
-            // else if (u=='s') { st.f[s]=(float)sqrt(st.f[s]); } else if (u=='t') { st.f[s]=(float)tanh(st.f[s]); }
-            else if (u=='O') { y=&st.b[NOS]; t=TOS; NOS=(int)fopen(y, (t)?"wb":"rb"); s--; }
-            else if (u=='C') { if (TOS) { fclose((FILE*)TOS); } s--; }
-            else if (u=='R') { s++; TOS=0; if (NOS) fread((void*)&TOS, 1, 1, (FILE*)NOS); }
-            else if (u=='W') { if (TOS) { fwrite((void*)&NOS, 1, 1, (FILE*)TOS); } s-=2; } }
-/*  l  */ void f108() { u=st.b[p++]; if (btw(u,'0','9')) { st.i[++s]=lb+u-'0'; }
-        else if (u=='+') { lb+=(lb<840)?10:0; }
-        else if (u=='-') { lb-=(750<lb)?10:0; } }
-/*  m  */ void f109() { NOS %= TOS; s--; }
-/*  n  */ void f110() { st.i[++s]=st.i[r]; }
-/*  p  */ void f112() { st.i[r]+=st.i[s--]; }
-/*  q  */ void f113() { int i; for (i=sb; i<=s; i++) { printf("%c%d", (i==sb)?0:32, st.i[i]); } }
 
-/*  c  */ void fCur() { cr=st.b[p++]-'A'; }
-/*  d  */ void fDec() { regs[cr]--; }
-/*  i  */ void fInc() { regs[cr]++; }
-/*  r  */ void fReg() { st.i[++s]=regs[cr]; }
-/*  s  */ void fSet() { regs[cr]=st.i[s--]; }
+#define NEXT goto next
+#define PS(x)  stk[++sp]=(x)
+#define PP     stk[sp--]
+#define S0     stk[sp]
+#define S1     stk[sp-1]
+#define S2     stk[sp-2]
+#define RPS(x) rstk[++rsp]=(x)
+#define RPP    rstk[rsp--]
+#define R0     rstk[rsp]
+#define R1     rstk[rsp-1]
+#define R2     rstk[rsp-2]
+#define D1     sp--
+#define D2     sp-=2
+#define L0     lstk[lsp]
+#define L1     lstk[lsp-1]
+#define L2     lstk[lsp-2]
+#define BTW(a,b,c) ((b<=a)&&(a<=c))
 
-/*  t  */ void f116() { st.i[++s]=clock(); }
-/*  x  */ void f120() { u=st.b[p++]; if (u=='U') { ++r; }
-            else if (u=='W') { while (st.b[p++]!='}') {} r++; }
-            else if (u=='F') { while (st.b[p++]!=']') {} r+=3; }
-            else if (u=='Q') { exit(0); } }
-/*  {  */ void f123() { st.i[--r]=p; if (TOS==0) { while (st.b[p]!='}') { ++p; } } }
-/*  |  */ void f124() { while (st.b[p]!='|') { st.b[TOS++]=st.b[p++]; } st.b[TOS++]=0; ++p; }
-/*  }  */ void f125() { if (TOS) { p=st.i[r]; } else { ++r; --s; } }
-/*  ~  */ void f126() { TOS=(TOS)?0:-1; }
-void (*q[127])()={ X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,N,f33,f34,f35,f36,f37,f38,
-    f39,f40,N,f42,f43,f44,f45,f46,f47,n09,n09,n09,n09,n09,n09,n09,n09,n09,n09,f58,f59,f60,f61,f62,f63,f64,
-    AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,f91,f92,f93,f94,f95,f96,X,
-    f98,fCur,fDec,f101,f102,X,X,fInc,X,X,f108,f109,f110,X,f112,f113,fReg,fSet,f116,X,X,X,f120,X,N,f123,f124,f125,f126 };
-void R(int x) { s=(s<sb)?(sb-1):s; r=rb; p=x; while (p) { u=st.b[p++]; q[u](); } }
-void H(char *s) { FILE *fp=fopen("h.txt", "at"); if (fp) { fprintf(fp, "%s", s); fclose(fp); } }
-void L() { y=&st.b[h]; printf("\ns2:("); f113(); printf(")>"); fgets(y, 128, stdin); H(y); R(h); }
-int main(int argc, char *argv[]) {
-    int i,j; s=sb-1; h=cb; u=SZ-500; for (i=0; i<(SZ/4); i++) { st.i[i]=0; }
-    st.i[0]=h; st.i[lb]=argc; for (i=1; i < argc; ++i) { y=argv[i]; t=atoi(y);
-        if ((t) || (y[0]=='0' && y[1]==0)) { st.i[lb+i]=t; }
-        else { st.i[lb+i]=u; for (j=0; y[j]; j++) { st.b[u++]=y[j]; } st.b[u++]=0; } }
-    if ((argc>1) && (argv[1][0]!='-')) { FILE *fp=fopen(argv[1], "rb"); 
-        if (fp) {while ((c=fgetc(fp))!=EOF) { if (btw(c,32,126)) st.b[h++]=c; } fclose(fp); st.i[0]=h; R(cb); }
-    } while (1) { L(); } return 0;
+char u, *pc;
+long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t;
+
+void run(const char *x) {
+    pc = (char *)x;
+    next:
+    u = *(pc++);
+
+    switch(u) {
+    case ' ': NEXT;
+    case '!': printf("%c",u); NEXT;
+    case '"': printf("%c",u); NEXT;
+    case '#': t=S0; PS(t); NEXT;
+    case '$': t=S0; S0=S1; S1=t; NEXT;
+    case '%': t=S1; PS(t); NEXT;
+    case '&': printf("%c",u); NEXT;
+    case '\'': D1; NEXT;
+    case '(': if (PP==0) { while (*(pc++)!=')') {} } NEXT;
+    case ')': printf("%c",u); NEXT;
+    case '*': S1*=S0; D1; NEXT;
+    case '+': S1+=S0; D1; NEXT;
+    case ',': printf("%c",u); NEXT;
+    case '-': S1-=S0; D1; NEXT;
+    case '.': printf(" %ld",PP); NEXT;
+    case '/': S1/=S0; D1; NEXT;
+    case '0': case '1': case '2': case '3': 
+    case '4': case '5': case '6': case '7': 
+    case '8': case '9': PS(u-'0');
+        while (BTW(*pc,'0','9')) { S0=(S0*10)+(*(pc++)-'0'); }
+        NEXT;
+    case ':': printf("%c",u); NEXT;
+    case ';': printf("%c",u); NEXT;
+    case '<': S1=(S1<S0)?-1:0;  D1; NEXT;
+    case '=': S1=(S1==S0)?-1:0; D1; NEXT;
+    case '>': S1=(S1>S0)?-1:0;  D1; NEXT;
+    case '?': printf("%c",u); NEXT;
+    case '@': printf("%c",u); NEXT;
+    case 'A': printf("%c",u); NEXT;
+    case 'B': printf("%c",u); NEXT;
+    case 'C': printf("%c",u); NEXT;
+    case 'D': printf("%c",u); NEXT;
+    case 'E': printf("%c",u); NEXT;
+    case 'F': printf("%c",u); NEXT;
+    case 'G': printf("%c",u); NEXT;
+    case 'H': printf("%c",u); NEXT;
+    case 'I': PS(L0); NEXT;
+    case 'J': printf("%c",u); NEXT;
+    case 'K': printf("%c",u); NEXT;
+    case 'L': printf("%c",u); NEXT;
+    case 'M': printf("%c",u); NEXT;
+    case 'N': printf("%c",10); NEXT;
+    case 'O': printf("%c",u); NEXT;
+    case 'P': printf("%c",u); NEXT;
+    case 'Q': exit(0); NEXT;
+    case 'R': printf("%c",u); NEXT;
+    case 'S': printf("%c",u); NEXT;
+    case 'T': PS(clock()); NEXT;
+    case 'U': printf("%c",u); NEXT;
+    case 'V': printf("%c",u); NEXT;
+    case 'W': printf("%c",u); NEXT;
+    case 'X': printf("%c",u); NEXT;
+    case 'Y': printf("%c",u); NEXT;
+    case 'Z': printf("%c",u); NEXT;
+    case '[': lsp+=3; L0=PP; L1=PP; L2=(long)pc; NEXT;
+    case '\\': if (0<sp) sp--; NEXT;
+    case ']': if (++L0<L1) { pc=(char *)L2; }
+        else { lsp-=3; } NEXT;
+    case '^': printf("%c",u); NEXT;
+    case '_': printf("%c",u); NEXT;
+    case '`': printf("%c",u); NEXT;
+    case 'a': printf("%c",u); NEXT;
+    case 'b': printf("%c",u); NEXT;
+    case 'c': printf("%c",u); NEXT;
+    case 'd': --S0; NEXT;
+    case 'e': printf("%c",u); NEXT;
+    case 'f': printf("%c",u); NEXT;
+    case 'g': printf("%c",u); NEXT;
+    case 'h': printf("%c",u); NEXT;
+    case 'i': ++S0; NEXT;
+    case 'j': printf("%c",u); NEXT; 
+    case 'k': printf("%c",u); NEXT;
+    case 'l': printf("%c",u); NEXT;
+    case 'm': printf("%c",u); NEXT;
+    case 'n': printf("%c",u); NEXT;
+    case 'o': printf("%c",u); NEXT;
+    case 'p': printf("%c",u); NEXT;
+    case 'q': printf("%c",u); NEXT;
+    case 'r': printf("%c",u); NEXT;
+    case 's': printf("%c",u); NEXT;
+    case 't': printf("%c",u); NEXT;
+    case 'u': printf("%c",u); NEXT;
+    case 'v': printf("%c",u); NEXT;
+    case 'w': printf("%c",u); NEXT;
+    case 'x': printf("%c",u); NEXT;
+    case 'y': printf("%c",u); NEXT;
+    case 'z': printf("%c",u); NEXT;
+    case '{': lsp+=3; L2=(long)pc; NEXT;
+    case '|': printf("%c",u); NEXT;
+    case '}': if (PP) { pc=(char*)L2; } else { lsp -=3; } NEXT;
+    case '~': printf("%c",u); NEXT;
+    }
+}
+
+int main() {
+    sp = rsp = lsp = 0;
+    run("10 0[T500 1000#**0[]T$-.N]");
+    run("5 0[T500 1000#**{d#}\\T$-.N]");
 }
