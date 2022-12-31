@@ -25,6 +25,7 @@ long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t;
 
 void run(const char *x) {
     pc = (char *)x;
+    printf("(exec): %s\n", x);
     next:
     u = *(pc++);
 
@@ -43,7 +44,7 @@ void run(const char *x) {
     case '+': S1+=S0; D1; NEXT;
     case ',': printf("%c",u); NEXT;
     case '-': S1-=S0; D1; NEXT;
-    case '.': printf(" %ld",PP); NEXT;
+    case '.': printf("%ld",PP); NEXT;
     case '/': S1/=S0; D1; NEXT;
     case '0': case '1': case '2': case '3': 
     case '4': case '5': case '6': case '7': 
@@ -91,7 +92,7 @@ void run(const char *x) {
     case '_': printf("%c",u); NEXT;
     case '`': printf("%c",u); NEXT;
     case 'a': printf("%c",u); NEXT;
-    case 'b': printf("%c",u); NEXT;
+    case 'b': printf(" "); NEXT;
     case 'c': printf("%c",u); NEXT;
     case 'd': --S0; NEXT;
     case 'e': printf("%c",u); NEXT;
@@ -125,6 +126,6 @@ void run(const char *x) {
 
 int main() {
     sp = rsp = lsp = 0;
-    run("10 0[T500 1000#**0[]T$-.N]");
-    run("5 0[T500 1000#**{d#}\\T$-.N]");
+    run("20 0[T500 1000#**0[]T$-.b]N");
+    run("20 0[T200 1000#**{d#}\\T$-.b]");
 }
