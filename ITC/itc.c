@@ -1,4 +1,4 @@
-// pg.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// itc.cpp : test for indirect threaded stuff
 //
 // #include <windows.h>
 #include <stdio.h>
@@ -6,7 +6,7 @@
 #include <time.h>
 
 typedef uint8_t byte;
-typedef int32_t CELL;
+typedef long CELL;
 typedef void (*funcPtr)();
 
 #define CELL_SZ       sizeof(CELL)
@@ -20,11 +20,11 @@ typedef void (*funcPtr)();
 #define NAME_MAX           15
 
 // NB: sizeof(DICT_T) should be a multiple of (CELL_SZ)
-struct DICT_E {
-    DICT_E *next;
+typedef struct DICT_E {
+    struct DICT_E *next;
     byte flags;
     char name[NAME_MAX];
-};
+} DICT_T;
 
 #define TOS       stk.i[sp]
 #define NOS       stk.i[sp-1]
@@ -52,7 +52,7 @@ union { char *b; funcPtr p[PGM_SZ+1]; CELL i[PGM_SZ+1]; } st;
 char *toIn, *tib, *here, isBYE = 0, running = 0;
 CELL t, lstk[32], vhere, base, state, n, sp, rsp, lsp, ip, w, xt;
 funcPtr xa;
-DICT_E *last;
+DICT_T *last;
 
 
 int strLen(const char* src) {
@@ -175,12 +175,12 @@ void doCREATE() {
     doWORD();
     char *wd = (char*)POP;
     if (wd[0] == 0) { PUSH(0); return; }
-    DICT_E *dp = (DICT_E*)here;
+    DICT_T *dp = (DICT_T*)here;
     for (int i=0; i<=wd[0]; i++) { dp->name[i] = wd[i]; }
     dp->next = last;
     dp->flags = 0;
     last = dp;
-    here += sizeof(DICT_E);
+    here += sizeof(DICT_T);
     PUSH(here);
 }
 void doCOLON() {
@@ -196,11 +196,11 @@ void doFIND() {
     char *nm = (char*)TOS;
     int l = nm[0];
     TOS = 0;
-    DICT_E *dp = last;
+    DICT_T *dp = last;
     while (dp) {
         if (strCmpC(nm, dp->name) == 0) { dp = dp->next;  continue; }
         TOS = (CELL)(dp);
-        TOS += sizeof(DICT_E);
+        TOS += sizeof(DICT_T);
         PUSH(dp->flags);
         PUSH(1);
         return;
@@ -214,7 +214,7 @@ void doIsNum() {
     PUSH(1);
 }
 void doPARSE() {
-    DICT_E* dp = (DICT_E*)here;
+    DICT_T* dp = (DICT_T*)here;
     dp->next = last;
     char *wd = (char*)POP;
     PUSH((CELL)wd); doIsNum();
@@ -268,13 +268,13 @@ void doLOAD() {
 }
 
 void primCreate(const char *nm, funcPtr xt) {
-    DICT_E *de = (DICT_E*)here;
+    DICT_T *de = (DICT_T*)here;
     de->next = last;
     de->flags = FLG_PRIM;
     de->name[0] = strLen(nm);
     strCpy(&de->name[1],nm,0);
     last = de;
-    here += sizeof(DICT_E);
+    here += sizeof(DICT_T);
     iComma((CELL)xt);
 }
 
