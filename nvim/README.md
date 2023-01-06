@@ -1,3 +1,5 @@
+# NVIM setup guide
+
 This isn't really a guide on how to set up nvim ... it's more of a record of what I did, so that I can hopefully replicate it on my other computers.
 
 nvim config stuff is here on Windows: %LOCALAPPDATA%\nvim 
@@ -5,60 +7,46 @@ Note that on my system that is: C:\Users\<user>\AppData\Local\nvim
 
 Here is how mine is setup:
 
-lua/
-  - init.lua
-  - config/
-    - init.lua
-    - options.lua
-    - packer.lua
-    - telescope.lua
+## There are 2 files:
 
+- lua/init.lua
+- lua/config/init.lua
 
-contents of init.lua
+### contents of lua/init.lua:
 ```
 require("config")
 ```
 
-contents of config/init.lua
+### contents of lua/config/init.lua:
 ```
-require("config.packer")
-require("config.telescope")
-require("config.options")
-require('github-theme').setup({
-	theme_style = "dark_default",
-	-- other config
-})
-```
-
-contents of packer.lua
-```
+-- **********************************************
+-- packer ...
+-- **********************************************
 vim.cmd [[packadd packer.nvim]]
 
-return require('packer').startup(function(use)
+require('packer').startup(function(use)
   -- Packer can manage itself
   use('wbthomason/packer.nvim')
+  use ({ 'projekt0n/github-nvim-theme' })
   use {
     'nvim-telescope/telescope.nvim', tag = '0.1.0',
     requires = { {'nvim-lua/plenary.nvim'} }
   }
-  use ({ 'projekt0n/github-nvim-theme' })
 end)
-```
 
 
-contents of options.lua
-```
-local opt = vim.opt
-
-opt.number = true
-opt.relativenumber = true
-opt.ruler = false
-opt.scrolloff = 8
-```
+-- **********************************************
+-- color scheme/theme ...
+-- **********************************************
+require('github-theme').setup({
+	theme_style = "dark_default",
+	-- other config
+})
 
 
-contents of telescope.lua
-```
+-- **********************************************
+-- telescope ...
+-- **********************************************
 local builtin = require('telescope.builtin')
 vim.g.mapleader = ' '
 vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
@@ -96,4 +84,15 @@ require('telescope').setup{
     -- please take a look at the readme of the extension you want to configure
   }
 }
+
+
+-- **********************************************
+-- other options ...
+-- **********************************************
+local opt = vim.opt
+
+opt.number = true
+opt.relativenumber = true
+opt.ruler = false
+opt.scrolloff = 8
 ```
