@@ -3,8 +3,10 @@
 This isn't really a guide on how to set up nvim ... it's more of a record of what I did, so that I can hopefully replicate it on my other computers.
 
 On Windows, nvim configuration stuff is here: %LOCALAPPDATA%\nvim 
+- On my system, that is: C:\Users\CCurl\AppData\Local\nvim
 
-On my system that is: C:\Users\CCurl\AppData\Local\nvim
+On Linux, nvim configuration stuff is here: ?
+- On my system, that is: ?
 
 Here is how mine is setup:
 
