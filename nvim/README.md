@@ -2,22 +2,24 @@
 
 This isn't really a guide on how to set up nvim ... it's more of a record of what I did, so that I can hopefully replicate it on my other computers.
 
-nvim config stuff is here on Windows: %LOCALAPPDATA%\nvim 
-Note that on my system that is: C:\Users\<user>\AppData\Local\nvim
+On Windows, nvim configuration stuff is here: %LOCALAPPDATA%\nvim 
+
+On my system that is: C:\Users\CCurl\AppData\Local\nvim
 
 Here is how mine is setup:
 
-## There are 2 files:
+## There are 2 files under that folder:
+There is also a plugin folder that we can ignore.
 
 - lua/init.lua
 - lua/config/init.lua
 
-### contents of lua/init.lua:
+### Contents of lua/init.lua:
 ```
 require("config")
 ```
 
-### contents of lua/config/init.lua:
+### Contents of lua/config/init.lua:
 ```
 -- **********************************************
 -- packer ...
