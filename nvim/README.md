@@ -19,7 +19,6 @@ require("config")
 ### On Linux, there is 1 configuration file:
 - ~/.config/nvim/init.lua
 
-## The main setup file:
 ## Contents of the main config file:
 - Windows: %LOCALAPPDATA%/nvim/lua/config/init.lua
 - Linux: ~/.config/nvim/init.lua
