@@ -6,23 +6,20 @@ This isn't really a guide on how to set up nvim ... it's more of a record of wha
 On Windows, the nvim configuration is here: %LOCALAPPDATA%\nvim
 - On my system, that is: C:\Users\CCurl\AppData\Local\nvim
 
-### There are 2 configuration files:
+### On Windows, there are 2 configuration files:
 - lua/init.lua
 - lua/config/init.lua
 
-## Linux
-On Linux, the nvim configuration is here: ~/.config/nvim
-
-### There is 1 file under that folder:
-- init.lua
-
-## The setup files:
-
-### Windows only - Contents of %LOCALAPPDATA%/nvim/lua/init.lua:
+### Contents of %LOCALAPPDATA%/nvim/lua/init.lua (Windows only):
 ```
 require("config")
 ```
 
+## Linux
+### On Linux, there is 1 configuration file:
+- ~/.config/nvim/init.lua
+
+## The main setup file:
 ## Contents of the main config file:
 - Windows: %LOCALAPPDATA%/nvim/lua/config/init.lua
 - Linux: ~/.config/nvim/init.lua
