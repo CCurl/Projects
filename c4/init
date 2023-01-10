@@ -5,16 +5,13 @@ reset
 : decimal #10 base ! ;
 : binary %10 base ! ;
 
+: ohere (ohere) @ cb + ;
+: here  (here)  @ cb + ;
 : vhere (vhere) @ vb + ;
-: used (here) @ ;
-: here used cb + ;
-: num-words (last) @ ;
-: last num-words 1- 20 * db + ;
+: last  (last)  @ mem + ;
 
 : ?DUP DUP .IF DUP .THEN ;
-
-: T1 ( a-- ) DUP 4 + SWAP W@ ." %n%i: %s" ;
-: words-l db num-words 0 DO DUP T1 20 + LOOP DROP ;
+: C4 0 (lex) ! ;
 
 ( n a b -betw- f )
 : betw +tmps s3 s2 s1  r2 r1 <=  r1 r3 <=  and -tmps ;
