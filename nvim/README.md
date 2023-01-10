@@ -2,26 +2,26 @@
 
 This isn't really a guide on how to set up nvim ... it's more of a record of what I did, so that I can hopefully replicate it on my other computers.
 
-On Windows, nvim configuration stuff is here: %LOCALAPPDATA%\nvim 
+## Windows
+On Windows, the nvim configuration is here: %LOCALAPPDATA%\nvim
 - On my system, that is: C:\Users\CCurl\AppData\Local\nvim
 
-On Linux, nvim configuration stuff is here: ?
-- On my system, that is: ?
-
-Here is how mine is setup:
-
-## There are 2 files under that folder:
-There is also a plugin folder that we can ignore.
-
+### On Windows, there are 2 configuration files:
 - lua/init.lua
 - lua/config/init.lua
 
-### Contents of lua/init.lua:
+### Contents of %LOCALAPPDATA%/nvim/lua/init.lua (Windows only):
 ```
 require("config")
 ```
 
-### Contents of lua/config/init.lua:
+## Linux
+### On Linux, there is 1 configuration file:
+- ~/.config/nvim/init.lua
+
+## Contents of the main config file:
+- Windows: %LOCALAPPDATA%/nvim/lua/config/init.lua
+- Linux: ~/.config/nvim/init.lua
 ```
 -- **********************************************
 -- packer ...
@@ -36,7 +36,8 @@ require('packer').startup(function(use)
     'nvim-telescope/telescope.nvim', tag = '0.1.0',
     requires = { {'nvim-lua/plenary.nvim'} }
   }
-end)
+  end
+)
 
 
 -- **********************************************
