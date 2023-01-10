@@ -21,16 +21,16 @@
 #define BTW(a,b,c) ((b<=a)&&(a<=c))
 
 char u, *pc;
-long stk[32], rstk[32], lstk[30], regs[26], sp, rsp, lsp, t;
-long locs[100], lb;
+long stk[32], rstk[32], lstk[30], reg[256], sp, rsp, lsp, t;
+long locs[100], lb, t1, t2, t3;
 
 void run(const char *x) {
     pc = (char *)x;
     printf("(exec): %s\n", x);
+    u = '?';
     next:
-    u = *(pc++);
 
-    switch(u) {
+    switch(*(pc++)) {
     case ' ': NEXT;
     case '!': printf("%c",u); NEXT;
     case '"': printf("%c",u); NEXT;
@@ -42,14 +42,18 @@ void run(const char *x) {
     case '(': if (PP==0) { while (*(pc++)!=')') {} } NEXT;
     case ')': NEXT;
     case '*': NOS*=TOS; D1; NEXT;
-    case '+': NOS+=TOS; D1; NEXT;
-    case ',': printf("%c",u); NEXT;
-    case '-': NOS-=TOS; D1; NEXT;
+    case '+': if (*(pc) == '+') { ++TOS; ++pc; }
+            else { NOS += TOS; D1; }
+            NEXT;
+    case ',': printf("%c",(char)PP); NEXT;
+    case '-': if (*(pc) == '-') { --TOS; ++pc; }
+            else { NOS -= TOS; D1; }
+            NEXT;
     case '.': printf("%ld",PP); NEXT;
     case '/': NOS/=TOS; D1; NEXT;
     case '0': case '1': case '2': case '3': 
     case '4': case '5': case '6': case '7': 
-    case '8': case '9': PS(u-'0');
+    case '8': case '9': PS(*(pc-1)-'0');
         while (BTW(*pc,'0','9')) { TOS=(TOS*10)+(*(pc++)-'0'); }
         NEXT;
     case ':': printf("%c",u); NEXT;
@@ -60,7 +64,7 @@ void run(const char *x) {
     case '?': printf("%c",u); NEXT;
     case '@': printf("%c",u); NEXT;
     case 'A': printf("%c",u); NEXT;
-    case 'B': printf("%c",u); NEXT;
+    case 'B': printf(" "); NEXT;
     case 'C': printf("%c",u); NEXT;
     case 'D': printf("%c",u); NEXT;
     case 'E': printf("%c",u); NEXT;
@@ -70,7 +74,9 @@ void run(const char *x) {
     case 'I': PS(L0); NEXT;
     case 'J': PS(L3); NEXT;
     case 'K': printf("%c",u); NEXT;
-    case 'L': printf("%c",u); NEXT;
+    case 'L': t1=*(pc++); t2=*(pc++); t3=*(pc++);
+        if (++reg[t1] < reg[t2]) pc = (char*)reg[t3];
+        NEXT;
     case 'M': printf("%c",u); NEXT;
     case 'N': printf("%c",10); NEXT;
     case 'O': printf("%c",u); NEXT;
@@ -95,10 +101,7 @@ void run(const char *x) {
     case 'a': printf("%c",u); NEXT;
     case 'b': printf(" "); NEXT;
     case 'c': printf("%c",u); NEXT;
-    case 'd': u = *(pc++); if (BTW(u,'A','Z')) { --regs[u-'A']; }
-        else if (BTW(u,'0','9')) { --locs[lb+u-'0']; }
-        else { --pc; --TOS; }
-        NEXT;
+    case 'd': --reg[*(pc++)]; NEXT;
     case 'e': printf("%c",u); NEXT;
     case 'f': printf("%c",u); NEXT;
     case 'g': printf("%c",u); NEXT;
@@ -108,10 +111,7 @@ void run(const char *x) {
             if (t<0) { break; }
             TOS=(TOS*16)+t; ++pc;
         } NEXT;
-    case 'i': u = *(pc++); if (BTW(u,'A','Z')) { ++regs[u-'A']; }
-        else if (BTW(u,'0','9')) { ++locs[lb+u-'0']; }
-        else { --pc; ++TOS; }
-        NEXT;
+    case 'i': ++reg[*(pc++)]; NEXT;
     case 'j': printf("%c",u); NEXT; 
     case 'k': printf("%c",u); NEXT;
     case 'l': u = *(pc++); if (u=='+') { lb+=(lb<90)?10:0; }
@@ -122,12 +122,8 @@ void run(const char *x) {
     case 'o': printf("%c",u); NEXT;
     case 'p': printf("%c",u); NEXT;
     case 'q': printf("%c",u); NEXT;
-    case 'r': u=*(pc++); if (BTW(u,'A','Z')) { PS(regs[u-'A']); }
-        else if (BTW(u,'0','9')) { PS(locs[lb+u-'0']); }; 
-        NEXT;
-    case 's': u=*(pc++);if (BTW(u,'A','Z')) { regs[u-'A']=PP; }
-        else if (BTW(u,'0','9')) { locs[lb+u-'0']=PP; }; 
-        NEXT;
+    case 'r': PS(reg[*(pc++)]); NEXT;
+    case 's': reg[*(pc++)] = PP; NEXT;
     case 't': printf("%c",u); NEXT;
     case 'u': printf("%c",u); NEXT;
     case 'v': printf("%c",u); NEXT;
@@ -144,6 +140,6 @@ void run(const char *x) {
 
 int main() {
     sp = rsp = lsp = lb = 0;
-    run("20 0[T500 1000#**0[]T$-.b]N");
-    run("20 0[T200 1000#**{d#}\\T$-.b]");
+    run("20 0[TsS 500000000 0[] TrS-.B]N");
+    run("10 0[TsS 200000000{--#}\\TrS-.B]");
 }
