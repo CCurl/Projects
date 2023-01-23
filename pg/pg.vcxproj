@@ -141,6 +141,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="blk-000.4th" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pg.cpp" />
