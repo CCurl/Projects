@@ -1,0 +1,61 @@
+reset
+load init
+
+: EDITOR 123 (lex) ! ;
+EDITOR
+
+VARIABLE msg 64 ALLOT
+VARIABLE buf 32 1024 * ALLOT
+VARIABLE (sz)
+VARIABLE (rows) 45 (rows) !
+VARIABLE (r)
+VARIABLE (c)
+VARIABLE (pos)
+
+: buf! ( ch pos-- ) buf + C! ;
+: buf@ ( pos--ch ) buf + C@ ;
+: sz (sz) @ ; : sz! (sz) ! ;
+: row (r) @ ; : row! (r) ! ;
+: rows (rows) @ ; : rows! (rows) ! ;
+: col (c) @ ; : col! (c) ! ;
+: pos (pos) @ ; : pos! (pos) ! ;
+
+: read-file ( fn-- ) 0 buf !
+    FOPEN-R ?DUP not IF " -file not found-" msg STR-CPY exit THEN
+    +TMPS s1 buf s2 0 s3
+    BEGIN
+        r1 FGETC s5 s4
+        r4 13 != IF r4 r3 buf! i3 THEN
+        r5
+    WHILE
+    r1 FCLOSE
+    0 r3 buf! r3 sz! -TMPS ;
+
+: pos->rc 0 row! 0 col!
+    pos 0= IF EXIT THEN
+    +TMPS 0 s1 0 s2
+    pos 0 DO
+        I buf@ s3
+        r3 10 = IF i1 0 s2 THEN
+        r3 10 != IF i2 THEN
+    LOOP r1 row! r2 col! -TMPS ;
+
+: ->pos pos->rc col 1+ row 1+ ->XY ;
+
+: T0 pos buf@ DUP s9 10 = IF 32 s9 THEN ;
+: show-cur ->pos T0 33 FG r9 EMIT 0 FG ;
+: unshow-cur ->pos T0 0 FG r9 EMIT ;
+
+: show ( -- ) 1 1 ->XY
+    +TMPS 1 s3
+    sz 0 DO
+        I buf@ DUP EMIT
+        10 = IF
+            i3 r3 rows > IF -TMPS UNLOOP EXIT THEN
+        THEN
+    LOOP
+    -TMPS ;
+
+: reload " editor" SLOAD ;
+" editor" read-file 
+1 IF CLS show THEN
