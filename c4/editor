@@ -4,10 +4,12 @@ load init
 : EDITOR 123 (lex) ! ;
 EDITOR
 
+32 1024 * constant buf-sz
+
 VARIABLE msg 64 ALLOT
 VARIABLE buf 32 1024 * ALLOT
 VARIABLE (sz)
-VARIABLE (rows) 45 (rows) !
+VARIABLE (rows) 30 (rows) !
 VARIABLE (r)
 VARIABLE (c)
 VARIABLE (pos)
@@ -22,14 +24,7 @@ VARIABLE (pos)
 
 : read-file ( fn-- ) 0 buf !
     FOPEN-R ?DUP not IF " -file not found-" msg STR-CPY exit THEN
-    +TMPS s1 buf s2 0 s3
-    BEGIN
-        r1 FGETC s5 s4
-        r4 13 != IF r4 r3 buf! i3 THEN
-        r5
-    WHILE
-    r1 FCLOSE
-    0 r3 buf! r3 sz! -TMPS ;
+    s9 buf buf-sz r9 fread sz! r9 fclose ;
 
 : pos->rc 0 row! 0 col!
     pos 0= IF EXIT THEN
@@ -46,13 +41,15 @@ VARIABLE (pos)
 : show-cur ->pos T0 33 FG r9 EMIT 0 FG ;
 : unshow-cur ->pos T0 0 FG r9 EMIT ;
 
+: T0 r1 13 = if exit then
+     r1 10 = if i3 13 emit then 
+     r1 emit ;
+
 : show ( -- ) 1 1 ->XY
     +TMPS 1 s3
     sz 0 DO
-        I buf@ DUP EMIT
-        10 = IF
-            i3 r3 rows > IF -TMPS UNLOOP EXIT THEN
-        THEN
+        I buf@ s1 T0
+        r3 rows > IF -TMPS UNLOOP EXIT THEN
     LOOP
     -TMPS ;
 
