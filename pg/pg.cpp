@@ -24,7 +24,7 @@
 
 // #define ACC          regs[dstReg]
 #define RG(x)        regs[(x)]
-// #define RG(x)        regs[(x)-'A']
+#define RGA(x)        regs[(x)-'A']
 
 #define PC           *(pc)
 #define IR           *(pc-1)
@@ -38,16 +38,18 @@
 #define CELLS(x)      mem.c[x]
 
 typedef long cell_t;
-typedef union { cell_t c; unsigned char b[sizeof(cell_t)]; } val_t;
+typedef uint8_t byte;
+typedef union { cell_t c; byte b[sizeof(cell_t)]; } val_t;
 union { cell_t c[MEM_SZ/sizeof(cell_t)]; char b[MEM_SZ]; } mem;
 typedef struct { char name[16]; cell_t p; } dict_t;
 
 cell_t stk[STK_SZ], sp;
 cell_t st[64], s;
 cell_t lstk[LSTK_SZ+1], lsp;
-cell_t regs[REGS_SZ], last, here, chere;
+cell_t regs[REGS_SZ], last, here, chere, bhere;
 val_t pgm[1024];
 dict_t dict[1024];
+byte bytes[2048];
 
 #ifdef isPC
 FILE *input_fp;
@@ -55,8 +57,7 @@ int isBye;
 #endif
 
 void init() {
-    here = 0;
-    last = 0;
+    here = last = bhere = 0;
     pgm[here++].b[0] = ';';
 }
 
@@ -117,12 +118,13 @@ int getword(char *w) {
 #define JMP   'J'
 #define LNOT  '~'
 #define DOT   '.'
-#define TIMER 'T'
+#define EMIT  ','
+#define EXT   'x'
 
 #define PGC(x) pgm[x].c
 #define PGB(x,y) pgm[x].b[y]
 
-void comp(unsigned char ir, char a1, char a2, char a3) {
+void comp(byte ir, char a1, char a2, char a3) {
     PGB(here, 0) = ir;
     PGB(here, 1) = a1;
     PGB(here, 2) = a2;
@@ -166,7 +168,7 @@ const char *getNum(const char *str) {
 #define S3 *(src+3)
 
 void parse(const char *src) {
-    cell_t t1, t2, b1;
+    cell_t t1; // , t2, b1;
     //char r1;
     //cc_t cc;
 
@@ -181,20 +183,23 @@ void parse(const char *src) {
                 break;
             case 'm': if (S0=='v') { comp(MOV,S1,S2,0); src += 3; }
                     break;
+            case '%': comp(MOD, 0, 0, 0); break;
             case '+': comp(ADD, RA(S0), RA(S1), RA(S2)); src+=3; break;
             case '-': comp(SUB, RA(S0), RA(S1), RA(S2)); src+=3; break;
-            case '*': comp(MUL, RA(S0), RA(S1), RA(S2)); src += 3; break;
-            case '%': comp(MOD, 0, 0, 0); break;
+            case '*': comp(MUL, RA(S0), RA(S1), RA(S2)); src+=3; break;
+            case '/': if (S0 == '%') { comp(SMOD, S1, S2, 0); src += 3; }
+                    else { comp(DIV, RA(S0), RA(S1), RA(S2)); src += 3; }
+                    break;
             case '<': if (S0 == '=') { comp(LTE, 0, 0, 0); ++src; }
                     else { comp(LT, 0, 0, 0); }
                     break;
             case '=': comp(EQ, 0, 0, 0); break;
             case '>': if (S0 == '=') { comp(GTE, 0, 0, 0); ++src; }
+                    // else if (S0 == '>') { comp(SHR, 0, 0, 0); ++src; }
                     else { comp(GT, 0, 0, 0); }
                     break;
             case '.': comp(DOT, NS, 0, 0); break;
-            case '/': if (S0 == '%') { comp(SMOD, S1, S2, 0); src += 3; }
-                    else { comp(DIV, RA(S0), RA(S1), RA(S2)); src += 3; }break;
+            case ',': comp(EMIT, NS, 0, 0); break;
             case '(': st[++s]=here; comp(IF, 0, 0, 0); break;
             case ')': t1=st[s--]; pgm[t1].c=(here<<8); PGB(t1,0)=IF; break;
             case '[': comp(FOR,0,0,0); break;
@@ -202,7 +207,7 @@ void parse(const char *src) {
             case ']': comp(NXT,0,0,0); break;
             case 'r': comp(PREG,RA(NS),0,0); break;
             case 's': comp(SREG,RA(NS),0,0); break;
-            case 'x': t1 = NS; if (t1=='T') { comp(TIMER,0,0,0); }
+            case 'x': comp(EXT, NS, 0, 0); break;
                 break;
             case '~': comp(LNOT,0,0,0); break;
             //case '!': pgm[here].b[0] = cc.op;
@@ -214,6 +219,14 @@ void parse(const char *src) {
     }
     pgm[here].c = 0;
 }
+
+//cell_t getArg(char t, char a) { 
+//    switch (t) {
+//    case 0: return ;
+//    case 1: break;
+//    }
+//}
+inline cell_t getArg(char op) { return regs[op]; }
 
 #define NEXT goto next
 #define IRB(x) ir->b[x]
@@ -234,19 +247,25 @@ next:
     case LIT2: st[++s] = (pc++)->c; NEXT;
     case RLIT1: regs[IRB(1)] = ir->c >> 16; NEXT;
     case RLIT2: regs[IRB(1)] = (pc++)->c; NEXT;
-    case FOR: lsp+=3; L0=st[s--]; L1=st[s--]; L2=(cell_t)pc; NEXT;
-    case NDX: st[++s] = L0; NEXT;
-    case NXT: if (++L0<L1) { pc=(val_t*)L2; } else { lsp-=3; } NEXT;
+    case FOR: lsp+=3; L0=regs[RA('I')]; regs[RA('I')]=st[s--]; L1=st[s--]; L2=(cell_t)pc; NEXT;
+    case NDX: st[++s] = regs[RA('I')]; NEXT;
+    case NXT: if (++regs[RA('I')]<L1) { pc=(val_t*)L2; } else { regs[RA('I')]=L0; lsp-=3; } NEXT;
     case DOT: t1 = IRB(1); if (t1 == '.') { printf("%ld", st[s--]); }
             else if (t1 == 'b') { printf(" "); }
             else if (t1 == 'n') { printf("\n"); }
             else if (BTW(t1, 'A', 'Z')) { printf("%ld", regs[RA(IRB(1))]); }
             NEXT;
+    case EMIT: t1 = IRB(1); if (t1 == '.') { printf("%c", (char)st[s--]); }
+            else if (BTW(t1, 'A', 'Z')) { printf("%c", (char)regs[RA(IRB(1))]); }
+            NEXT;
     case MOV: regs[IRB(1)] = regs[IRB(2)]; NEXT;
-    case ADD: regs[IRB(1)] = regs[IRB(2)] + regs[IRB(3)]; NEXT;
-    case SUB: regs[IRB(1)] = regs[IRB(2)] - regs[IRB(3)]; NEXT;
-    case MUL: regs[IRB(1)] = regs[IRB(2)] * regs[IRB(3)]; NEXT;
-    case DIV: regs[IRB(1)] = regs[IRB(2)] / regs[IRB(3)]; NEXT;
+    case ADD: regs[IRB(1)] = IRB(2) + IRB(3); NEXT;
+    // case ADD_SS: s--; st[s] += st[s+1]; NEXT;
+    // case ADD_RS: regs[IRB(1)] = getArg(IRB(2)) + getArg(IRB(3)); NEXT;
+    // case ADD_SR: regs[IRB(1)] = getArg(IRB(2)) + getArg(IRB(3)); NEXT;
+    case SUB: regs[IRB(1)] = getArg(IRB(2)) - getArg(IRB(3)); NEXT;
+    case MUL: regs[IRB(1)] = getArg(IRB(2)) * getArg(IRB(3)); NEXT;
+    case DIV: regs[IRB(1)] = getArg(IRB(2)) / getArg(IRB(3)); NEXT;
     case MOD: --s; st[s] = st[s] % st[s+1]; NEXT;
     case SMOD: --s; regs['Q'] = st[s] % st[s+1];
         regs['R'] = st[s] % st[s+1]; --s; NEXT;
@@ -261,7 +280,9 @@ next:
     case PREG: st[++s]= regs[IRB(1)]; NEXT;
     case SREG: regs[IRB(1)]=st[s--]; NEXT;
     case LNOT: st[s] = st[s] ? 0 : -1; NEXT;
-    case TIMER: st[++s] = clock(); NEXT;
+    case EXT: t1 = IRB(1); if (t1 == 'T') { st[++s] = clock(); }
+            else if (t1 == 'Q') { isBye = 1; }
+            NEXT;
     default: printf("-[%d]?-",(int)IRB(0));
     }
 }
@@ -290,21 +311,9 @@ void Loop() {
     }
 }
 
-void test(const char *src) {
-    init();
-    parse(src);
-    cell_t s = clock();
-    Run(1);
-    cell_t e = clock();
-    printf("time: %ld (%ld)\n", e - s, (e - s) / 1000);
-}
-
 int main(int argc, char *argv[]) {
     // int r='A';
     // for (i=1; i<argc; ++i) { y=argv[i]; RG(r++) = atoi(y); }
-    //test("1 2 < (12345sD)");
-    // test("500000000 1[*YMX+YYB]");
-    // test("500000000 1[I 3 % ~ (123 sF)]");
     init();
     input_fp = fopen("src.q5", "rb");
     while (isBye == 0) { Loop(); }
