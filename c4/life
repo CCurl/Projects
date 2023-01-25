@@ -55,4 +55,5 @@ variable ln cols allot
    CURSOR-OFF
    CLS 2000 gens
    CURSOR-ON ;
+
 life
