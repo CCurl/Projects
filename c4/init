@@ -10,13 +10,13 @@ reset
 : vhere (vhere) @ vb + ;
 : last  (last)  @ mem + ;
 
-: ?DUP DUP .IF DUP .THEN ;
+: ?DUP DUP if DUP .THEN ;
 : C4 0 (lex) ! ;
 
 ( n a b -betw- f )
 : betw +tmps s3 s2 s1  r2 r1 <=  r1 r3 <=  and -tmps ;
-: min ( a b--x ) OVER OVER > .if SWAP .then DROP ;
-: max ( a b--x ) OVER OVER < .if SWAP .then DROP ;
+: min ( a b--x ) OVER OVER > if SWAP .then DROP ;
+: max ( a b--x ) OVER OVER < if SWAP .then DROP ;
 
 // Screen stuff
 : ->XY ." %e[%d;%dH" ;
