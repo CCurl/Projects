@@ -56,4 +56,6 @@ variable ln cols allot
    CLS 2000 gens
    CURSOR-ON ;
 
+: reload " life" SLOAD ;
+
 life
