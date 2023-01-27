@@ -2,9 +2,10 @@ load init
 load strings
 
 : WORK 12 (lex) ! ; WORK
+
+VARIABLE pad 64 ALLOT
 : reload " work" SLOAD ;
 : edit " nvim work" system ;
-: pad vhere ;
 : pw " pw" system ;
 : li " chrome https://fwut-proc-a.mmm.com:1443/netaccess/loginuser.html" system ;
 : dev " gz-server ccc" system ;
