@@ -2,14 +2,17 @@
 
 load init
 
-variable (r) 100 (r) !
-variable (c) 300 (c) !
-: rows   (r) @ ; 
-: rows!  (r) ! ; 
-: cols   (c) @ ;
-: cols!  (c) ! ;
+: LIFE 17 (lex) ! ;
+LIFE
+
+variable (r)
+variable (c)
+
+: rows   (r) @ ; : rows!  (r) ! ; 
+: cols   (c) @ ; : cols!  (c) ! ;
 : pop-sz rows 2 + cols 2 + * ;
 
+100 rows! 300 cols!
 variable pop pop-sz allot
 variable bak pop-sz allot
 variable ln cols allot
@@ -47,8 +50,8 @@ variable ln cols allot
     DO I C@ IF b++ THEN i4 LOOP
     bak->pop .pop r7 . i7 ;
 
-// 65 (r) ! 200 (c) !
-60 rows! 150 cols!
+: pc 53 rows! 150 cols! ;
+: laptop 25 rows! 50 cols! ;
 : gen? one-gen key? ;
 : gens 0 DO gen? IF key DROP UNLOOP EXIT THEN LOOP ;
 : life 1 s7 clr-bak rand-pop 
@@ -58,4 +61,4 @@ variable ln cols allot
 
 : reload " life" SLOAD ;
 
-life
+pc life

@@ -8,6 +8,7 @@ VARIABLE pad 64 ALLOT
 : edit " nvim work" system ;
 : pw " pw" system ;
 : li " chrome https://fwut-proc-a.mmm.com:1443/netaccess/loginuser.html" system ;
+: yahoo " chrome http://mail.yahoo.com" system ;
 : dev " gz-server ccc" system ;
 : gz-360 " gz-sys "    pad str-cpy pad str-catn pad system ;
 : gz-bw  " gz-bw "     pad str-cpy pad str-catn pad system ;
