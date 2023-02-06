@@ -20,6 +20,14 @@
 #define REGS_SZ           128 // 'z'-'A'+1
 #define FUNCS_SZ         1023
 
+#define TOS (*sp)
+#define NOS (*(sp-1))
+#define PUSH(x) *(++sp)=(cell_t)(x)
+#define POP *(sp--)
+#define DROP1 sp--
+#define DROP2 sp-=2
+#define RET(x) PUSH(x); return;
+
 #define BTW(a,b,c) ((b<=a) && (a<=c))
 
 // #define ACC          regs[dstReg]
@@ -39,284 +47,241 @@
 
 typedef long cell_t;
 typedef uint8_t byte;
-typedef union { cell_t c; byte b[sizeof(cell_t)]; } val_t;
 union { cell_t c[MEM_SZ/sizeof(cell_t)]; char b[MEM_SZ]; } mem;
-typedef struct { char name[16]; cell_t p; } dict_t;
+typedef struct { char name[16]; char *xt; int f; } dict_t;
 
-cell_t stk[STK_SZ], sp;
-cell_t st[64], s;
+cell_t stk[STK_SZ], *sp, rsp;
+char *rstk[STK_SZ];
+cell_t state, base;
 cell_t lstk[LSTK_SZ+1], lsp;
-cell_t regs[REGS_SZ], last, here, chere, bhere;
-val_t pgm[1024];
+cell_t regs[REGS_SZ];
 dict_t dict[1024];
 byte bytes[2048];
+char *here, *pc, tib[128], *in;
+dict_t *last;
 
 #ifdef isPC
 FILE *input_fp;
 int isBye;
 #endif
 
-void init() {
-    here = last = bhere = 0;
-    pgm[here++].b[0] = ';';
+void CComma() {*here = (char)POP; here += 1; }
+void Comma() {*(cell_t *)here = POP; here += sizeof(cell_t); }
+
+// ( d s--d )
+void strCat() {
+    char *s = (char*)POP;
+    char *d = (char*)TOS;
+    while (*d) ++d;
+    while (*s) { *(d++)=*(s++); }
+    *d = 0;
+    DROP1;
 }
 
-int create(const char *name, int addr) {
-    strcpy(dict[last].name, name);
-    dict[last].p = addr;
-    return (last++);
+// ( d s--d )
+void strCpy() {
+    char *d = (char*)NOS;
+    *d = 0;
+    strCat();
 }
 
-int find(const char *name) {
-    for (int i=0; i<last; i++) {
-        if (strcmp(dict[i].name, name) == 0) { return dict[i].p; }
+int lower(int x) { return BTW(x,'A','Z') ? x+32: x; }
+
+// ( d s--n )
+void strCmpI() {
+    char *s = (char*)POP;
+    char *d = (char*)TOS;
+    while (*s && *d) {
+        if (lower(*s) != lower(*d)) { break; }
     }
-    return 0;
+    TOS = (*s==*d) ? -1 : 0;
 }
 
-int isnum(char *w, cell_t *val) {
-    *val = 0;
-    cell_t t1, neg = (*w=='-') ? 1 : 0;
-    w += (neg) ? 1 : 0;
-    if (!BTW(*w, '0', '9')) { return 0; }
-    t1 = *(w++) - '0';
-    while (BTW(*w, '0', '9')) { t1 = (t1 * 10) + *(w++) - '0'; }
-    if (*w) { return 0; }
-    *val = neg ? -t1 : t1;
-    return 1;
+// ( d s--n )
+void strCmp() {
+    char *s = (char*)POP;
+    char *d = (char*)TOS;
+    while (*s && *d) { if (*s != *d) { break; } }
+    TOS = (*s==*d) ? -1 : 0;
 }
 
-int getword(char *w) {
-    int l = 0;
-    *w = 0;
-    return l;
+// ( nm-- )
+void Create() {
+    --last;
+    PUSH(0); TOS=NOS;
+    NOS = (cell_t)&last->name[0];
+    strCpy();
+    last->xt = here;
+    last->f = 0;
 }
 
-#define LIT1   1
-#define LIT2   2
-#define RLIT1  3
-#define RLIT2  4
-#define FOR    '['
-#define NXT    ']'
-#define NDX    'I'
-#define MOV   10
-#define ADD   '+'
-#define SUB   '-'
-#define MUL   '*'
-#define DIV   '/'
-#define MOD   '%'
-#define SMOD  25
-#define PUSH  30
-#define PREG  31
-#define SREG  32
-#define LT    '<'
-#define LTE   '<'+128
-#define EQ    '='
-#define GTE   '>'+128
-#define GT    '>'
-#define IF    '?'
-#define JMP   'J'
-#define LNOT  '~'
-#define DOT   '.'
-#define EMIT  ','
-#define EXT   'x'
-
-#define PGC(x) pgm[x].c
-#define PGB(x,y) pgm[x].b[y]
-
-void comp(byte ir, char a1, char a2, char a3) {
-    PGB(here, 0) = ir;
-    PGB(here, 1) = a1;
-    PGB(here, 2) = a2;
-    PGB(here++, 3) = a3;
-}
-
-void compLit(cell_t num, char reg, int isReg) {
-    char lit1 = isReg ? RLIT1 : LIT1;
-    char lit2 = isReg ? RLIT2 : LIT2;
-    cell_t mx = isReg ? 0x0000FFFF : 0x00FFFFFF;
-    if (num <= mx) {
-        PGC(here) = isReg ? (num << 16) : (num << 8);
-        if (isReg) { PGB(here, 1) = reg; }
-        PGB(here++, 0) = lit1;
-    } else {
-        PGB(here, 0) = lit2;
-        PGB(here++, 1) = reg;
-        pgm[here++].c = num;
-    }
-}
-
-typedef struct { char op, src, dst; cell_t num; } cc_t;
-
-const char *getNum(const char *str) {
-    st[++s]=0;
-    while (*str==' ') { ++str; }
-    if (BTW(*str,'0','9')) {
-        st[s] = *(str++) - '0';
-        while (BTW(*str, '0', '9')) { st[s] = (st[s] * 10) + *(str++) - '0'; }
-        st[++s]=1;
-        while (*str == ' ') { ++str; }
-    }
-    return str;
-}
-
-#define RA(x) ((x)-'A')
-#define NS *(src++)
-#define S0 *(src)
-#define S1 *(src+1)
-#define S2 *(src+2)
-#define S3 *(src+3)
-
-void parse(const char *src) {
-    cell_t t1; // , t2, b1;
-    //char r1;
-    //cc_t cc;
-
-    while (*src) {
-        switch(*(src++)) {
-            case ' ': break;
-            case '0': case '1': case '2': case '3': case '4':
-            case '5': case '6': case '7': case '8': case '9':
-                src = getNum(src - 1); --s;
-                if (S0 == 's') { ++src; compLit(st[s--],RA(NS),1); }
-                else { compLit(st[s--], 0, 0); }
-                break;
-            case 'm': if (S0=='v') { comp(MOV,S1,S2,0); src += 3; }
-                    break;
-            case '%': comp(MOD, 0, 0, 0); break;
-            case '+': comp(ADD, RA(S0), RA(S1), RA(S2)); src+=3; break;
-            case '-': comp(SUB, RA(S0), RA(S1), RA(S2)); src+=3; break;
-            case '*': comp(MUL, RA(S0), RA(S1), RA(S2)); src+=3; break;
-            case '/': if (S0 == '%') { comp(SMOD, S1, S2, 0); src += 3; }
-                    else { comp(DIV, RA(S0), RA(S1), RA(S2)); src += 3; }
-                    break;
-            case '<': if (S0 == '=') { comp(LTE, 0, 0, 0); ++src; }
-                    else { comp(LT, 0, 0, 0); }
-                    break;
-            case '=': comp(EQ, 0, 0, 0); break;
-            case '>': if (S0 == '=') { comp(GTE, 0, 0, 0); ++src; }
-                    // else if (S0 == '>') { comp(SHR, 0, 0, 0); ++src; }
-                    else { comp(GT, 0, 0, 0); }
-                    break;
-            case '.': comp(DOT, NS, 0, 0); break;
-            case ',': comp(EMIT, NS, 0, 0); break;
-            case '(': st[++s]=here; comp(IF, 0, 0, 0); break;
-            case ')': t1=st[s--]; pgm[t1].c=(here<<8); PGB(t1,0)=IF; break;
-            case '[': comp(FOR,0,0,0); break;
-            case 'I': comp(NDX,0,0,0); break;
-            case ']': comp(NXT,0,0,0); break;
-            case 'r': comp(PREG,RA(NS),0,0); break;
-            case 's': comp(SREG,RA(NS),0,0); break;
-            case 'x': comp(EXT, NS, 0, 0); break;
-                break;
-            case '~': comp(LNOT,0,0,0); break;
-            //case '!': pgm[here].b[0] = cc.op;
-            //    pgm[here].b[1] = cc.dst;
-            //    pgm[here++].b[2] = cc.src;
-            //    if (cc.op == LIT) { pgm[here++].c = cc.num; }
-            //    break;
+// ( nm--xt flags 1 )
+// ( nm--0 )
+void find() {
+    cell_t nm = POP;
+    dict_t *x = last;
+    while (x < (dict_t*)&BYTES(MEM_SZ)) {
+        PUSH(nm); PUSH(&x->name[0]);
+        strCmpI();
+        if (POP) {
+            PUSH(x->xt);
+            PUSH(x->f);
+            RET(1);
         }
+        ++x;
     }
-    pgm[here].c = 0;
+    PUSH(0);
 }
 
-//cell_t getArg(char t, char a) { 
-//    switch (t) {
-//    case 0: return ;
-//    case 1: break;
-//    }
-//}
-inline cell_t getArg(char op) { return regs[op]; }
+// ( nm--n 1 )
+// ( nm--0 )
+void isNum() {
+    char *w = (char*)TOS;
+    TOS = 0;
+    cell_t neg = (*w=='-') ? 1 : 0;
+    w += (neg) ? 1 : 0;
+    if (!BTW(*w, '0', '9')) { return; }
+    TOS = *(w++) - '0';
+    while (BTW(*w, '0', '9')) { TOS = (TOS * 10) + *(w++) - '0'; }
+    if (*w) { TOS = 0; return; }
+    if (neg) { TOS = -TOS; }
+    PUSH(1);
+}
+
+void getInput() {
+    in = tib;
+    printf("\nok:()> ");
+    fgets(tib, sizeof(tib), stdin);
+}
+
+// ( --addr len )
+// ( --0 )
+void getword() {
+    while (*in && (*in < 32)) { ++in; }
+    if (*in == 0) { RET(0); }
+    PUSH(in);
+    PUSH(0);
+    while (32 < *in) { ++in; ++TOS; }
+    *(in++) = 0;
+}
 
 #define NEXT goto next
-#define IRB(x) ir->b[x]
 
-val_t *pc, *ir;
-
-void Run(cell_t x) {
-    sp = lsp = 0;
-    pc = &pgm[x];
-    cell_t t1;
+void Run(char *y) {
+    // cell_t t1;
+    pc = y;
 
 next:
-    ir = (pc++);
     // printf("-pc:%ld,ir:%d-",pc-1,(int)ir.b[0]);
-    switch (IRB(0)) {
+    switch (*(pc++)) {
     case 0: return;
-    case LIT1: st[++s] = ir->c >> 8; NEXT;
-    case LIT2: st[++s] = (pc++)->c; NEXT;
-    case RLIT1: regs[IRB(1)] = ir->c >> 16; NEXT;
-    case RLIT2: regs[IRB(1)] = (pc++)->c; NEXT;
-    case FOR: lsp+=3; L0=regs[RA('I')]; regs[RA('I')]=st[s--]; L1=st[s--]; L2=(cell_t)pc; NEXT;
-    case NDX: st[++s] = regs[RA('I')]; NEXT;
-    case NXT: if (++regs[RA('I')]<L1) { pc=(val_t*)L2; } else { regs[RA('I')]=L0; lsp-=3; } NEXT;
-    case DOT: t1 = IRB(1); if (t1 == '.') { printf("%ld", st[s--]); }
-            else if (t1 == 'b') { printf(" "); }
-            else if (t1 == 'n') { printf("\n"); }
-            else if (BTW(t1, 'A', 'Z')) { printf("%ld", regs[RA(IRB(1))]); }
-            NEXT;
-    case EMIT: t1 = IRB(1); if (t1 == '.') { printf("%c", (char)st[s--]); }
-            else if (BTW(t1, 'A', 'Z')) { printf("%c", (char)regs[RA(IRB(1))]); }
-            NEXT;
-    case MOV: regs[IRB(1)] = regs[IRB(2)]; NEXT;
-    case ADD: regs[IRB(1)] = IRB(2) + IRB(3); NEXT;
-    // case ADD_SS: s--; st[s] += st[s+1]; NEXT;
-    // case ADD_RS: regs[IRB(1)] = getArg(IRB(2)) + getArg(IRB(3)); NEXT;
-    // case ADD_SR: regs[IRB(1)] = getArg(IRB(2)) + getArg(IRB(3)); NEXT;
-    case SUB: regs[IRB(1)] = getArg(IRB(2)) - getArg(IRB(3)); NEXT;
-    case MUL: regs[IRB(1)] = getArg(IRB(2)) * getArg(IRB(3)); NEXT;
-    case DIV: regs[IRB(1)] = getArg(IRB(2)) / getArg(IRB(3)); NEXT;
-    case MOD: --s; st[s] = st[s] % st[s+1]; NEXT;
-    case SMOD: --s; regs['Q'] = st[s] % st[s+1];
-        regs['R'] = st[s] % st[s+1]; --s; NEXT;
-    case LT:  st[s-1] = (st[s-1] <  st[s]) ? -1 : 0; --s; NEXT;
-    case LTE: st[s-1] = (st[s-1] <= st[s]) ? -1 : 0; --s; NEXT;
-    case EQ:  st[s-1] = (st[s-1] == st[s]) ? -1 : 0; --s; NEXT;
-    case GTE: st[s-1] = (st[s-1] >= st[s]) ? -1 : 0; --s; NEXT;
-    case GT:  st[s-1] = (st[s-1] >  st[s]) ? -1 : 0; --s; NEXT;
-    case IF: if (st[s--] == 0) { pc = (val_t*)(&pgm[(ir->c) >> 8]); } NEXT;
-    case JMP: pc = (val_t*)((ir->c) >> 8); NEXT;
-    case PUSH: st[++s] = (pc++)->c; NEXT;
-    case PREG: st[++s]= regs[IRB(1)]; NEXT;
-    case SREG: regs[IRB(1)]=st[s--]; NEXT;
-    case LNOT: st[s] = st[s] ? 0 : -1; NEXT;
-    case EXT: t1 = IRB(1); if (t1 == 'T') { st[++s] = clock(); }
-            else if (t1 == 'Q') { isBye = 1; }
-            NEXT;
-    default: printf("-[%d]?-",(int)IRB(0));
+    case 4: PUSH(*(cell_t*)pc);
+        pc += sizeof(char*);
+        NEXT;
+    case 10: if (*pc!=';') { rstk[++rsp]=(pc+sizeof(char*)); }
+    case 11: pc = *(char**)pc;
+        NEXT;
+    case ';': if (rsp < 1) { rsp = 0; return; }
+            pc = rstk[rsp--];
+        NEXT;
+    case '#': PUSH(0); TOS=NOS; NEXT;
+    case '+': NOS += TOS; DROP1; NEXT;
+    case '-': NOS -= TOS; DROP1; NEXT;
+    case '*': NOS *= TOS; DROP1; NEXT;
+    case '/': NOS /= TOS; DROP1; NEXT;
+    case '.': printf("%d", POP); NEXT;
+    case 'i': ++TOS; NEXT;
+    case 'X': isBye=1; return;
+    case '{': lsp+=3; L0=(cell_t)pc; NEXT;
+    case '}': if (POP) { pc=(char*)L0; } else { lsp-=3; }; NEXT;
+    case 127: isBye = 1; return;
+    default: printf("-[%d]?-",(int)*(pc-1));
+        NEXT;
     }
+}
+
+void doInline(char *x) {
+    PUSH(*(x++)); CComma();
+    while ((*x) && (*x != ';')) { PUSH(*(x++)); CComma(); }
+}
+
+void ParseWord() {
+    char *w = (char*)TOS;
+    find();
+    if (POP) {
+        cell_t f = POP;
+        char *xt = (char*)POP;
+        if (state == 0) { Run(xt); }
+        else if (f & 0x01) { Run(xt); }
+        else if (f & 0x02) { doInline(xt); }
+        else { PUSH(xt); PUSH(10); CComma(); Comma(); }
+        RET(1);
+    }
+    PUSH(w);
+    isNum();
+    if (POP) {
+        if (state) { PUSH(4); CComma(); Comma(); }
+        RET(1);
+    }
+    printf("[%s]??", w);
+    if (state) {
+        ++last;
+        state = 0;
+    }
+    RET(0);
+}
+
+void ParseLine(char *x) {
+    in = x;
+    while (isBye == 0) {
+        getword();
+        if (POP == 0) return;
+        ParseWord();
+        if (POP == 0) return;
+    }
+}
+
+void loadLine(const char *x) {
+    in = tib;
+    while (*x) { *(in++) = *(x++); }
+    *in = 0;
+    ParseLine(tib);
+}
+
+void loadPrim(const char *name, int flags, const char *code) {
+    PUSH(name); Create();
+    last->f = flags;
+    while (*code) { *(here++) = *(code++); }
+    *(here++) = ';';
+}
+
+void init() {
+    here = &BYTES(0);
+    last = (dict_t*)&BYTES(MEM_SZ);
+    sp = stk;
+    in = tib;
+    loadPrim("dup", 2, "#");
+    loadPrim("over", 2, "%");
+    loadPrim("swap", 2, "$");
+    loadPrim("+", 2, "+");
+    loadPrim(".", 2, ".");
+    loadPrim("begin", 2, "{");
+    loadPrim("while", 2, "}");
+    loadPrim("exit", 2, ";");
+    loadPrim("bye", 0, "X");
+    loadLine("1 dup + .");
+    // loadLine(": cell 4 ;");
 }
 
 #ifdef isPC
-void Loop() {
-    char y[256];
-    y[0] = 0;
-    int sz = sizeof(y);
-    chere = here;
-    if (input_fp) {
-        if (fgets(y, sz, input_fp) != y) {
-            fclose(input_fp);
-            input_fp = NULL;
-        }
-    }
-    if (!input_fp) {
-        // putchar('\n'); putchar('q'); putchar('4'); putchar('>');
-        printf("\nq5:(%ld)> ", s);
-        if (fgets(y, sz, stdin) != y) { isBye=1; return; }
-    }
-    if (y[0]) {
-        parse(y);
-        Run(chere);
-        here = chere;
-    }
-}
-
 int main(int argc, char *argv[]) {
     // int r='A';
     // for (i=1; i<argc; ++i) { y=argv[i]; RG(r++) = atoi(y); }
     init();
-    input_fp = fopen("src.q5", "rb");
-    while (isBye == 0) { Loop(); }
+    while (isBye == 0) {
+        getInput();
+        ParseLine(tib);
+    }
     return 0;
 }
 #endif
