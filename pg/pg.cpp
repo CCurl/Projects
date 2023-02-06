@@ -93,6 +93,7 @@ void strCmpI() {
     char *d = (char*)TOS;
     while (*s && *d) {
         if (lower(*s) != lower(*d)) { break; }
+        s++; d++;
     }
     TOS = (*s==*d) ? -1 : 0;
 }
@@ -118,9 +119,10 @@ void Create() {
 // ( nm--xt flags 1 )
 // ( nm--0 )
 void find() {
-    cell_t nm = POP;
+    char *nm = (char*)POP;
     dict_t *x = last;
-    while (x < (dict_t*)&BYTES(MEM_SZ)) {
+    dict_t *end = (dict_t*)&BYTES(MEM_SZ);
+    while (x < end) {
         PUSH(nm); PUSH(&x->name[0]);
         strCmpI();
         if (POP) {
@@ -168,35 +170,34 @@ void getword() {
 #define NEXT goto next
 
 void Run(char *y) {
-    // cell_t t1;
+    cell_t t1;
     pc = y;
 
 next:
     // printf("-pc:%ld,ir:%d-",pc-1,(int)ir.b[0]);
     switch (*(pc++)) {
     case 0: return;
-    case 4: PUSH(*(cell_t*)pc);
-        pc += sizeof(char*);
-        NEXT;
+    case 4: PUSH(*(cell_t*)pc); pc += sizeof(cell_t); NEXT;
     case 10: if (*pc!=';') { rstk[++rsp]=(pc+sizeof(char*)); }
-    case 11: pc = *(char**)pc;
-        NEXT;
+    case 11: pc = *(char**)pc;         NEXT;
     case ';': if (rsp < 1) { rsp = 0; return; }
-            pc = rstk[rsp--];
-        NEXT;
-    case '#': PUSH(0); TOS=NOS; NEXT;
-    case '+': NOS += TOS; DROP1; NEXT;
-    case '-': NOS -= TOS; DROP1; NEXT;
-    case '*': NOS *= TOS; DROP1; NEXT;
-    case '/': NOS /= TOS; DROP1; NEXT;
-    case '.': printf("%d", POP); NEXT;
-    case 'i': ++TOS; NEXT;
-    case 'X': isBye=1; return;
-    case '{': lsp+=3; L0=(cell_t)pc; NEXT;
+            pc = rstk[rsp--];          NEXT;
+    case '#': PUSH(0); TOS=NOS;        NEXT;
+    case '$': t1=TOS; TOS=NOS; NOS=t1; NEXT;
+    case '+': NOS += TOS; DROP1;       NEXT;
+    case '-': NOS -= TOS; DROP1;       NEXT;
+    case '*': NOS *= TOS; DROP1;       NEXT;
+    case '/': NOS /= TOS; DROP1;       NEXT;
+    case '\\': DROP1;                  NEXT;
+    case '.': printf("%d", POP);       NEXT;
+    case 'T': PUSH(clock());           NEXT;
+    case 'X': isBye=1;                 return;
+    case 'd': --TOS;                   NEXT;
+    case 'i': ++TOS;                   NEXT;
+    case '{': lsp+=3; L0=(cell_t)pc;   NEXT;
     case '}': if (POP) { pc=(char*)L0; } else { lsp-=3; }; NEXT;
-    case 127: isBye = 1; return;
-    default: printf("-[%d]?-",(int)*(pc-1));
-        NEXT;
+    case 127: isBye = 1;               return;
+    default: printf("-[%d]?-",(int)*(pc-1));  NEXT;
     }
 }
 
@@ -207,20 +208,22 @@ void doInline(char *x) {
 
 void ParseWord() {
     char *w = (char*)TOS;
+    isNum();
+    if (POP) {
+        // if (state) { PUSH(4); CComma(); Comma(); }
+        PUSH(4); CComma(); Comma();
+        RET(1);
+    }
+    PUSH(w);
     find();
     if (POP) {
         cell_t f = POP;
         char *xt = (char*)POP;
-        if (state == 0) { Run(xt); }
-        else if (f & 0x01) { Run(xt); }
-        else if (f & 0x02) { doInline(xt); }
+        //if (state == 0) { Run(xt); }
+        //else if (f & 0x01) { Run(xt); }
+        //else
+        if (f & 0x02) { doInline(xt); }
         else { PUSH(xt); PUSH(10); CComma(); Comma(); }
-        RET(1);
-    }
-    PUSH(w);
-    isNum();
-    if (POP) {
-        if (state) { PUSH(4); CComma(); Comma(); }
         RET(1);
     }
     printf("[%s]??", w);
@@ -233,12 +236,15 @@ void ParseWord() {
 
 void ParseLine(char *x) {
     in = x;
+    char *chere = here;
     while (isBye == 0) {
         getword();
-        if (POP == 0) return;
+        if (POP == 0) break;
         ParseWord();
         if (POP == 0) return;
     }
+    Run(chere);
+    here = chere;
 }
 
 void loadLine(const char *x) {
@@ -260,16 +266,23 @@ void init() {
     last = (dict_t*)&BYTES(MEM_SZ);
     sp = stk;
     in = tib;
+    loadPrim("bye", 0, "X");
+    loadPrim("exit", 2, ";");
+    loadPrim("timer", 2, "T");
     loadPrim("dup", 2, "#");
+    loadPrim("drop", 2, "\\");
     loadPrim("over", 2, "%");
     loadPrim("swap", 2, "$");
+    loadPrim("/", 2, "/");
+    loadPrim("*", 2, "*");
+    loadPrim("-", 2, "-");
     loadPrim("+", 2, "+");
     loadPrim(".", 2, ".");
+    loadPrim("1-", 2, "d");
+    loadPrim("1+", 2, "i");
     loadPrim("begin", 2, "{");
     loadPrim("while", 2, "}");
-    loadPrim("exit", 2, ";");
-    loadPrim("bye", 0, "X");
-    loadLine("1 dup + .");
+    loadLine("234 dup + .");
     // loadLine(": cell 4 ;");
 }
 
