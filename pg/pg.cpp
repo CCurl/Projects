@@ -20,6 +20,8 @@
 #define REGS_SZ           128 // 'z'-'A'+1
 #define FUNCS_SZ         1023
 
+#define LIT1   1
+#define LIT4   4
 #define IF     5
 #define ELSE   6
 #define THEN   7
@@ -29,11 +31,9 @@
 
 #define TOS (*sp)
 #define NOS (*(sp-1))
-#define PUSH(x) *(++sp)=(cell_t)(x)
-#define POP *(sp--)
 #define DROP1 sp--
 #define DROP2 sp-=2
-#define RET(x) PUSH(x); return;
+#define RET(x) push(x); return;
 
 #define BTW(a,b,c) ((b<=a) && (a<=c))
 
@@ -72,14 +72,16 @@ FILE *input_fp;
 int isBye;
 #endif
 
-void CCOMMA(cell_t x) { *(here++) = (char)x; }
-void COMMA(cell_t x) { *(cell_t*)here = x; here += sizeof(cell_t); }
-void CComma() { CCOMMA(POP); }
-void Comma() { COMMA(POP); }
+inline void push(cell_t x) { *(++sp) = (cell_t)(x); }
+inline cell_t pop() { return *(sp--); }
+void CComma(cell_t x) { *(here++) = (char)x; }
+void Comma(cell_t x) { *(cell_t*)here = x; here += sizeof(cell_t); }
+void Store(char *loc, cell_t x) { *(cell_t*)loc = x; }
+cell_t Fetch(char *loc) { return *(cell_t*)loc; }
 
 // ( d s--d )
 void strCat() {
-    char *s = (char*)POP;
+    char *s = (char*)pop();
     char *d = (char*)TOS;
     while (*d) ++d;
     while (*s) { *(d++)=*(s++); }
@@ -98,7 +100,7 @@ int lower(int x) { return BTW(x,'A','Z') ? x+32: x; }
 
 // ( d s--n )
 void strCmpI() {
-    char *s = (char*)POP;
+    char *s = (char*)pop();
     char *d = (char*)TOS;
     while (*s && *d) {
         if (lower(*s) != lower(*d)) { break; }
@@ -109,7 +111,7 @@ void strCmpI() {
 
 // ( d s--n )
 void strCmp() {
-    char *s = (char*)POP;
+    char *s = (char*)pop();
     char *d = (char*)TOS;
     while (*s && *d) { if (*s != *d) { break; } }
     TOS = (*s==*d) ? -1 : 0;
@@ -118,7 +120,7 @@ void strCmp() {
 // ( nm-- )
 void Create() {
     --last;
-    PUSH(0); TOS=NOS;
+    push(0); TOS=NOS;
     NOS = (cell_t)&last->name[0];
     strCpy();
     last->xt = here;
@@ -128,20 +130,20 @@ void Create() {
 // ( nm--xt flags 1 )
 // ( nm--0 )
 void find() {
-    char *nm = (char*)POP;
+    char *nm = (char*)pop();
     dict_t *x = last;
     dict_t *end = (dict_t*)&BYTES(MEM_SZ);
     while (x < end) {
-        PUSH(nm); PUSH(&x->name[0]);
+        push((cell_t)nm); push((cell_t)&x->name[0]);
         strCmpI();
-        if (POP) {
-            PUSH(x->xt);
-            PUSH(x->f);
+        if (pop()) {
+            push((cell_t)x->xt);
+            push(x->f);
             RET(1);
         }
         ++x;
     }
-    PUSH(0);
+    push(0);
 }
 
 // ( --n 1 )
@@ -151,17 +153,17 @@ void isDecimal(const char *wd) {
     if (isNeg && (*(++wd) == 0)) { RET(0); }
     while (BTW(*wd, '0', '9')) { x = (x * 10) + (*(wd++) - '0'); }
     if (*wd) { RET(0); }
-    PUSH(isNeg ? -x : x);
+    push(isNeg ? -x : x);
     RET(1);
     /*
     if (*wd && (*wd != '.')) { RET(0); }
-    if (*wd == 0) { PUSH(isNeg ? -x : x); RET(1); }
+    if (*wd == 0) { push(isNeg ? -x : x); RET(1); }
     // Must be a '.', make it a float
     ++wd;
     float fx = (float)x, d = 10;
     while (BTW(*wd, '0', '9')) { fx += (*(wd++) - '0') / d; d *= 10; }
     if (*wd) { RET(0); }
-    PUSH(0);
+    push(0);
     // FTOS = isNeg ? -fx : fx;
     RET(1);
     */
@@ -171,8 +173,8 @@ void isDecimal(const char *wd) {
 // ( nm--n 1 )
 // ( nm--0 )
 void isNum() {
-    char *wd = (char*)POP;
-    if ((wd[0] == '\'') && (wd[2] == '\'') && (wd[3] == 0)) { PUSH(wd[1]); RET(1); }
+    char *wd = (char*)pop();
+    if ((wd[0] == '\'') && (wd[2] == '\'') && (wd[3] == 0)) { push(wd[1]); RET(1); }
     int b = base, lastCh = '9';
     if (*wd == '#') { b = 10;  ++wd; }
     if (*wd == '$') { b = 16;  ++wd; }
@@ -190,7 +192,7 @@ void isNum() {
         if (t < 0) { RET(0); }
         x = (x * b) + t;
     }
-    PUSH(x);
+    push(x);
     RET(1);
 }
 
@@ -205,8 +207,8 @@ void getInput() {
 void getword() {
     while (*in && (*in < 32)) { ++in; }
     if (*in == 0) { RET(0); }
-    PUSH(in);
-    PUSH(0);
+    push((cell_t)in);
+    push(0);
     while (32 < *in) { ++in; ++TOS; }
     *(in++) = 0;
 }
@@ -221,60 +223,61 @@ next:
     // printf("-pc:%ld,ir:%d-",pc-1,(int)ir.b[0]);
     switch (*(pc++)) {
     case 0: return;
-    case 1: PUSH(*(pc++));                                      NEXT;
-    case 4: PUSH(*(cell_t*)pc); pc += sizeof(cell_t);           NEXT;
-    case IF: CCOMMA(JMPZ); PUSH(here); COMMA(0);                NEXT;
+    case LIT1: push(*(pc++));                                   NEXT;
+    case LIT4: push(*(cell_t*)pc); pc += sizeof(cell_t);        NEXT;
+    case IF: CComma(JMPZ); push((cell_t)here); Comma(0);        NEXT;
     case ELSE: printf("-else-");                                NEXT;
-    case THEN: t1=POP; *(cell_t*)(t1) = (cell_t)here;           NEXT;
+    case THEN: t1=pop(); Store((char *)t1, (cell_t)here);       NEXT;
     case CALL: if (*pc != ';') { rstk[++rsp] = (pc+sizeof(cell_t)); }
-    case JMP: pc = *(char**)pc;         NEXT;
-    case JMPZ: if (POP==0) { pc = *(char**)pc; }
-             else { pc += sizeof(cell_t); }
-        NEXT;
-    case '#': PUSH(0); TOS=NOS;        NEXT;
-    case '$': t1=TOS; TOS=NOS; NOS=t1; NEXT;
-    case '*': NOS *= TOS; DROP1;       NEXT;
-    case '+': NOS += TOS; DROP1;       NEXT;
-    case ',': printf("%c", (char)POP); NEXT;
-    case '-': NOS -= TOS; DROP1;       NEXT;
-    //case '/': NOS /= TOS; DROP1;       NEXT;
-    case '.': printf("%d", POP);       NEXT;
-    case ';': if (rsp<1) { rsp=0; return; } pc=rstk[rsp--]; NEXT;
-    case 'T': PUSH(clock());           NEXT;
-    case 'X': isBye=1;                 NEXT;
-    case '\\': DROP1;                  NEXT;
-    case 'd': --TOS;                   NEXT;
-    case 'i': ++TOS;                   NEXT;
-    case '[': lsp+=3; L2=(cell_t)pc; L0=POP; L1=POP;   NEXT;
-    case ']': if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; }; NEXT;
-    case '{': lsp+=3; L0=(cell_t)pc;   NEXT;
-    case '}': if (POP) { pc=(char*)L0; } else { lsp-=3; }; NEXT;
+    case JMP: pc = *(char**)pc;                                 NEXT;
+    case JMPZ: if (pop()==0) { pc = *(char**)pc; }
+             else { pc += sizeof(cell_t); }                     NEXT;
+    case '!': Store((char*)TOS, NOS); DROP2;                    NEXT;
+    case '#': push(TOS);                                        NEXT;
+    case '$': t1=TOS; TOS=NOS; NOS=t1;                          NEXT;
+    case '*': NOS *= TOS; DROP1;                                NEXT;
+    case '+': NOS += TOS; DROP1;                                NEXT;
+    case ',': printf("%c", (char)pop());                        NEXT;
+    case '-': NOS -= TOS; DROP1;                                NEXT;
+    case '/': NOS /= TOS; DROP1;                                NEXT;
+    case '.': printf("%d", pop());                              NEXT;
+    case ';': if (rsp<1) { rsp=0; return; } pc=rstk[rsp--];     NEXT;
+    case 'T': push(clock());                                    NEXT;
+    case 'X': isBye=1;                                          NEXT;
+    case '\\': DROP1;                                           NEXT;
+    case 'd': --TOS;                                            NEXT;
+    case 'i': ++TOS;                                            NEXT;
+    case '[': lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();        NEXT;
+    case ']': if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; };  NEXT;
+    case '{': lsp+=3; L0=(cell_t)pc;                            NEXT;
+    case '}': if (pop()) { pc=(char*)L0; } else { lsp-=3; };    NEXT;
     default: printf("-[%d]?-",(int)*(pc-1));  break;
     }
 }
 
 void doInline(char *x) {
-    CCOMMA(*(x++));
-    while ((*x) && (*x != ';')) { CCOMMA(*(x++)); }
+    CComma(*(x++));
+    while ((*x) && (*x != ';')) { CComma(*(x++)); }
 }
 
 void ParseWord() {
     char *w = (char*)TOS;
     isNum();
-    if (POP) {
-        // if (state) { PUSH(4); CComma(); Comma(); }
-        CCOMMA(4); Comma();
+    if (pop()) {
+        // if (state) { push(4); CComma(); Comma(); }
+        if (BTW(TOS,0,255)) { CComma(LIT1); CComma(pop()); }
+        else { CComma(LIT4); Comma(pop()); }
         RET(1);
     }
-    PUSH(w);
+    push((cell_t)w);
     find();
-    if (POP) {
-        cell_t f = POP;
-        char *xt = (char*)POP;
+    if (pop()) {
+        cell_t f = pop();
+        char *xt = (char*)pop();
         //if (state == 0) { Run(xt); }
         if (f & 0x01) { Run(xt); }
         else if (f & 0x02) { doInline(xt); }
-        else { CCOMMA(CALL); COMMA((cell_t)xt); }
+        else { CComma(CALL); Comma((cell_t)xt); }
         RET(1);
     }
     printf("[%s]??", w);
@@ -291,11 +294,11 @@ void ParseLine(char *x) {
     char *chere = here;
     while (isBye == 0) {
         getword();
-        if (POP == 0) break;
+        if (pop() == 0) break;
         ParseWord();
-        if (POP == 0) return;
+        if (pop() == 0) return;
     }
-    PUSH(';'); CComma();
+    CComma(';');
     Run(chere);
     here = chere;
 }
@@ -308,17 +311,10 @@ void loadLine(const char *x) {
 }
 
 void loadPrim(const char *nm, int f, int n, char c1, char c2) {
-    PUSH(nm); Create();
+    push((cell_t)nm); Create();
     last->f = f;
     *(here++) = c1;
     if (1 < n) { *(here++) = c2; }
-    *(here++) = ';';
-}
-
-void loadPrimXX(const char *name, int flags, const char *code) {
-    PUSH(name); Create();
-    last->f = flags;
-    while (*code) { *(here++) = *(code++); }
     *(here++) = ';';
 }
 
@@ -328,29 +324,30 @@ void init() {
     sp = stk;
     in = tib;
     base = 10;
-    loadPrim("bye", 0, 1, 'X', 0);
-    loadPrim("cell", 2, 2, 1, sizeof(cell_t));
-    loadPrim("exit",  0, 1, ';', 0);
-    loadPrim("timer", 2, 1, 'T', 0);
-    loadPrim("if",    1, 1, IF, 0);
+    rsp = 0;
+    loadPrim("bye",   0, 1, 'X',  0);
+    loadPrim("cell",  2, 2,   1, sizeof(cell_t));
+    loadPrim("exit",  0, 1, ';',  0);
+    loadPrim("timer", 2, 1, 'T',  0);
+    loadPrim("if",    1, 1, IF,   0);
     loadPrim("else",  1, 1, ELSE, 0);
     loadPrim("then",  1, 1, THEN, 0);
-    loadPrim("dup",   2, 1, '#', 0);
-    loadPrimXX("drop", 2, "\\");
-    loadPrimXX("over", 2, "%");
-    loadPrimXX("swap", 2, "$");
-    loadPrimXX("/", 2, "/");
-    loadPrimXX("*", 2, "*");
-    loadPrimXX("-", 2, "-");
-    loadPrimXX("+", 2, "+");
-    loadPrimXX(".", 2, ".");
-    loadPrimXX("emit", 2, ",");
-    loadPrimXX("1-", 2, "d");
-    loadPrimXX("1+", 2, "i");
-    loadPrimXX("begin", 2, "{");
-    loadPrimXX("while", 2, "}");
-    loadPrimXX("do", 2, "[");
-    loadPrimXX("loop", 2, "]");
+    loadPrim("dup",   2, 1, '#',  0);
+    loadPrim("drop",  2, 1, '\\', 0);
+    loadPrim("over",  2, 1, '%',  0);
+    loadPrim("swap",  2, 1, '$',  0);
+    loadPrim("/",     2, 1, '/',  0);
+    loadPrim("*",     2, 1, '*',  0);
+    loadPrim("-",     2, 1, '-',  0);
+    loadPrim("+",     2, 1, '+',  0);
+    loadPrim(".",     2, 1, '.',  0);
+    loadPrim("emit",  2, 1, ',',  0);
+    loadPrim("1-",    2, 1, 'd',  0);
+    loadPrim("1+",    2, 1, 'i',  0);
+    loadPrim("begin", 2, 1, '{',  0);
+    loadPrim("while", 2, 1, '}',  0);
+    loadPrim("do",    2, 1, '[',  0);
+    loadPrim("loop",  2, 1, ']',  0);
     // loadLine("timer 500000000 begin 1- dup while drop timer swap - .");
 }
 
