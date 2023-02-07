@@ -17,17 +17,19 @@
 #define LSTK_SZ            11
 #define MEM_SZ          10000
 #define CODE_SZ         20480
-#define REGS_SZ           128 // 'z'-'A'+1
-#define FUNCS_SZ         1023
+#define REGS_SZ           128   // 'z'-'A'+1
 
-#define LIT1   1
-#define LIT4   4
-#define IF     5
-#define ELSE   6
-#define THEN   7
-#define CALL  15
-#define JMP   16
-#define JMPZ  17
+enum { 
+    STOP = 0, NOOP, 
+    LIT1, LIT4, IF, ELSE, THEN, 
+    CALL, EXIT, JMP, JMPZ,
+    DUP, SWAP, OVER, DROP,
+    ADD, SUB, MULT, DIV, INC, DEC,
+    DO, LOOP, BEGIN, WHILE,
+    EMIT, DOT, TIMER,
+    STORE, FETCH,
+    EXT, BYE
+};
 
 #define TOS (*sp)
 #define NOS (*(sp-1))
@@ -72,8 +74,8 @@ FILE *input_fp;
 int isBye;
 #endif
 
-inline void push(cell_t x) { *(++sp) = (cell_t)(x); }
-inline cell_t pop() { return *(sp--); }
+void push(cell_t x) { *(++sp) = (cell_t)(x); }
+cell_t pop() { return *(sp--); }
 void CComma(cell_t x) { *(here++) = (char)x; }
 void Comma(cell_t x) { *(cell_t*)here = x; here += sizeof(cell_t); }
 void Store(char *loc, cell_t x) { *(cell_t*)loc = x; }
@@ -213,51 +215,64 @@ void getword() {
     *(in++) = 0;
 }
 
+
+char *doExt(char *pc) {
+    cell_t t = *(pc++);
+    if (t=='C') { getword(); if (pop()) { Create(); } }
+    return pc;
+}
+
 #define NEXT goto next
 
 void Run(char *y) {
     cell_t t1;
     pc = y;
+    if (sp < stk) { sp = stk; printf("-su-"); }
+    if (&stk[STK_SZ] < sp) { sp = stk; printf("-so-"); }
 
 next:
-    // printf("-pc:%ld,ir:%d-",pc-1,(int)ir.b[0]);
+    // printf("-pc:%p,ir:%d-",pc,(int)*pc);
     switch (*(pc++)) {
-    case 0: return;
+    case STOP:                                                 return;
     case LIT1: push(*(pc++));                                   NEXT;
     case LIT4: push(*(cell_t*)pc); pc += sizeof(cell_t);        NEXT;
     case IF: CComma(JMPZ); push((cell_t)here); Comma(0);        NEXT;
     case ELSE: printf("-else-");                                NEXT;
     case THEN: t1=pop(); Store((char *)t1, (cell_t)here);       NEXT;
-    case CALL: if (*pc != ';') { rstk[++rsp] = (pc+sizeof(cell_t)); }
+    case CALL: if (*pc != EXIT) { rstk[++rsp] = (pc+sizeof(cell_t)); }
+            pc = *(char**)pc;                                   NEXT;
+    case EXIT: if (rsp<1) { rsp=0; return; } pc=rstk[rsp--];    NEXT;
     case JMP: pc = *(char**)pc;                                 NEXT;
     case JMPZ: if (pop()==0) { pc = *(char**)pc; }
-             else { pc += sizeof(cell_t); }                     NEXT;
-    case '!': Store((char*)TOS, NOS); DROP2;                    NEXT;
-    case '#': push(TOS);                                        NEXT;
-    case '$': t1=TOS; TOS=NOS; NOS=t1;                          NEXT;
-    case '*': NOS *= TOS; DROP1;                                NEXT;
-    case '+': NOS += TOS; DROP1;                                NEXT;
-    case ',': printf("%c", (char)pop());                        NEXT;
-    case '-': NOS -= TOS; DROP1;                                NEXT;
-    case '/': NOS /= TOS; DROP1;                                NEXT;
-    case '.': printf("%d", pop());                              NEXT;
-    case ';': if (rsp<1) { rsp=0; return; } pc=rstk[rsp--];     NEXT;
-    case 'T': push(clock());                                    NEXT;
-    case 'X': isBye=1;                                          NEXT;
-    case '\\': DROP1;                                           NEXT;
-    case 'd': --TOS;                                            NEXT;
-    case 'i': ++TOS;                                            NEXT;
-    case '[': lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();        NEXT;
-    case ']': if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; };  NEXT;
-    case '{': lsp+=3; L0=(cell_t)pc;                            NEXT;
-    case '}': if (pop()) { pc=(char*)L0; } else { lsp-=3; };    NEXT;
+            else { pc += sizeof(cell_t); }                      NEXT;
+    case STORE: Store((char*)TOS, NOS); DROP2;                  NEXT;
+    case DUP: push(TOS);                                        NEXT;
+    case SWAP: t1=TOS; TOS=NOS; NOS=t1;                         NEXT;
+    case OVER: push(NOS);                                       NEXT;
+    case DROP: DROP1;                                           NEXT;
+    case ADD: NOS += TOS; DROP1;                                NEXT;
+    case SUB: NOS -= TOS; DROP1;                                NEXT;
+    case MULT: NOS *= TOS; DROP1;                               NEXT;
+    case DIV: NOS /= TOS; DROP1;                                NEXT;
+    // case 'B': printf(" ");                                      NEXT;
+    case EMIT: printf("%c", (char)pop());                       NEXT;
+    case DOT: printf("%d ", pop());                             NEXT;
+    case TIMER: push(clock());                                  NEXT;
+    case DEC: --TOS;                                            NEXT;
+    case INC: ++TOS;                                            NEXT;
+    case EXT: pc = doExt(pc);                                   NEXT;
+    case DO: lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();         NEXT;
+    case LOOP: if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; }; NEXT;
+    case BEGIN: lsp+=3; L0=(cell_t)pc;                          NEXT;
+    case WHILE: if (pop()) { pc=(char*)L0; } else { lsp-=3; };  NEXT;
+    case BYE: isBye=1;                                         return;
     default: printf("-[%d]?-",(int)*(pc-1));  break;
     }
 }
 
 void doInline(char *x) {
     CComma(*(x++));
-    while ((*x) && (*x != ';')) { CComma(*(x++)); }
+    while ((*x) && (*x != EXIT)) { CComma(*(x++)); }
 }
 
 void ParseWord() {
@@ -298,7 +313,7 @@ void ParseLine(char *x) {
         ParseWord();
         if (pop() == 0) return;
     }
-    CComma(';');
+    CComma(EXIT);
     Run(chere);
     here = chere;
 }
@@ -315,7 +330,7 @@ void loadPrim(const char *nm, int f, int n, char c1, char c2) {
     last->f = f;
     *(here++) = c1;
     if (1 < n) { *(here++) = c2; }
-    *(here++) = ';';
+    *(here++) = EXIT;
 }
 
 void init() {
@@ -325,29 +340,30 @@ void init() {
     in = tib;
     base = 10;
     rsp = 0;
-    loadPrim("bye",   0, 1, 'X',  0);
-    loadPrim("cell",  2, 2,   1, sizeof(cell_t));
-    loadPrim("exit",  0, 1, ';',  0);
-    loadPrim("timer", 2, 1, 'T',  0);
-    loadPrim("if",    1, 1, IF,   0);
-    loadPrim("else",  1, 1, ELSE, 0);
-    loadPrim("then",  1, 1, THEN, 0);
-    loadPrim("dup",   2, 1, '#',  0);
-    loadPrim("drop",  2, 1, '\\', 0);
-    loadPrim("over",  2, 1, '%',  0);
-    loadPrim("swap",  2, 1, '$',  0);
-    loadPrim("/",     2, 1, '/',  0);
-    loadPrim("*",     2, 1, '*',  0);
-    loadPrim("-",     2, 1, '-',  0);
-    loadPrim("+",     2, 1, '+',  0);
-    loadPrim(".",     2, 1, '.',  0);
-    loadPrim("emit",  2, 1, ',',  0);
-    loadPrim("1-",    2, 1, 'd',  0);
-    loadPrim("1+",    2, 1, 'i',  0);
-    loadPrim("begin", 2, 1, '{',  0);
-    loadPrim("while", 2, 1, '}',  0);
-    loadPrim("do",    2, 1, '[',  0);
-    loadPrim("loop",  2, 1, ']',  0);
+    loadPrim("bye",    0, 1, BYE,      0);
+    loadPrim("cell",   2, 2, LIT1, sizeof(cell_t));
+    loadPrim("exit",   0, 1, EXIT,     0);
+    loadPrim("timer",  2, 1, TIMER,    0);
+    loadPrim("if",     1, 1, IF,       0);
+    loadPrim("else",   1, 1, ELSE,     0);
+    loadPrim("then",   1, 1, THEN,     0);
+    loadPrim("dup",    2, 1, DUP,      0);
+    loadPrim("drop",   2, 1, DROP,     0);
+    loadPrim("over",   2, 1, OVER,     0);
+    loadPrim("swap",   2, 1, SWAP,     0);
+    loadPrim("+",      2, 1, ADD,      0);
+    loadPrim("-",      2, 1, SUB,      0);
+    loadPrim("*",      2, 1, MULT,     0);
+    loadPrim("/",      2, 1, DIV,      0);
+    loadPrim(".",      2, 1, DOT,      0);
+    loadPrim("emit",   2, 1, EMIT,     0);
+    loadPrim("1-",     2, 1, DEC,      0);
+    loadPrim("1+",     2, 1, INC,      0);
+    loadPrim("begin",  2, 1, BEGIN,    0);
+    loadPrim("while",  2, 1, WHILE,    0);
+    loadPrim("do",     2, 1, DO,       0);
+    loadPrim("loop",   2, 1, LOOP,     0);
+    loadPrim("create", 0, 2, EXT,    'C');
     // loadLine("timer 500000000 begin 1- dup while drop timer swap - .");
 }
 
