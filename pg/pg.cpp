@@ -1,4 +1,4 @@
-// q4.cpp - a register-based interpreter
+// pg.cpp - a stack-based interpreter
 
 // Windows PC (Visual Studio)
 #ifdef _MSC_VER
@@ -7,11 +7,7 @@
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
 #include <time.h>
-//#include <math.h>
 
 #define MEM_SZ         256000
 #define STK_SZ             32
@@ -71,13 +67,6 @@ opcode_t opcodes[] = {
 #define BTW(a,b,c) ((b<=a) && (a<=c))
 #define clearTib fill(tib, 0, sizeof(tib))
 
-// #define RG(x)        regs[(x)]
-// #define RGA(x)        regs[(x)-'A']
-
-#define PC           *(pc)
-#define IR           *(pc-1)
-#define NR           *(pc++)
-
 #define L0           lstk[lsp]
 #define L1           lstk[lsp-1]
 #define L2           lstk[lsp-2]
@@ -86,7 +75,7 @@ opcode_t opcodes[] = {
 #define CELLS(x)      mem.c[x]
 
 typedef long cell_t;
-typedef uint8_t byte;
+typedef unsigned char byte;
 union { cell_t c[MEM_SZ/sizeof(cell_t)]; char b[MEM_SZ]; } mem;
 typedef struct { char f; char len; char name[NAME_LEN+1]; char *xt; } dict_t;
 
@@ -94,8 +83,6 @@ cell_t stk[STK_SZ], *sp, rsp;
 char *rstk[STK_SZ];
 cell_t state, base;
 cell_t lstk[LSTK_SZ+1], lsp;
-dict_t dict[1024];
-byte bytes[2048];
 char *here, *pc, tib[128], *in;
 dict_t *last;
 
@@ -377,6 +364,7 @@ void init() {
     loadSrc(": here (here) @ ;");
     loadSrc(": count dup 1+ swap c@ ;");
     loadSrc(": type 0 do dup c@ emit 1+ loop drop ;");
+    // Temp for testing
     loadSrc(": mil 1000 dup * * ;");
     loadSrc(": elapsed timer swap - . ;");
     loadSrc(": bm begin 1- dup while drop ;");
