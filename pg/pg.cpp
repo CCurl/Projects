@@ -13,13 +13,10 @@
 #include <time.h>
 //#include <math.h>
 
+#define MEM_SZ         256000
 #define STK_SZ             32
-#define LSTK_SZ            10
-#define MEM_SZ          10000
-#define CODE_SZ         20480
-#define REGS_SZ           128   // 'z'-'A'+1
+#define LSTK_SZ            30
 #define NAME_LEN            9
-#define clearTib fill(tib, 0, sizeof(tib))
 
 enum { 
     STOP = 0,
@@ -43,41 +40,24 @@ enum {
 typedef struct { int op; int flg; const char *name; } opcode_t;
 opcode_t opcodes[] = { 
     { BYE,       IS_INLINE,    "bye" }
-    , { IF,      IS_IMMEDIATE, "if" }
-    , { ELSE,    IS_IMMEDIATE, "else" }
-    , { THEN,    IS_IMMEDIATE, "then" }
+    , { IF,      IS_IMMEDIATE, "if" } ,     { ELSE,    IS_IMMEDIATE, "else" } , { THEN,    IS_IMMEDIATE, "then" }
     , { EXIT,    IS_IMMEDIATE, "exit" }
-    , { DEFINE,  IS_INLINE,    ":" }
-    , { ENDWORD, IS_IMMEDIATE, ";" }
-    , { STATE0,  IS_IMMEDIATE, "[" }
-    , { STATE1,  IS_INLINE,    "]" }
+    , { DEFINE,  IS_INLINE,    ":" },       { ENDWORD, IS_IMMEDIATE, ";" }
+    , { STATE0,  IS_IMMEDIATE, "[" } ,      { STATE1,  IS_INLINE,    "]" }
     , { CREATE,  IS_INLINE,    "create" }
-    , { ISNUM,   IS_INLINE,    "number?" }
-    , { GETWORD, IS_INLINE,    "getword" }
+    , { GETWORD, IS_INLINE,    "getword" }, { ISNUM,   IS_INLINE,    "number?" }
     , { TIMER,   IS_INLINE,    "timer" }
-    , { DUP,     IS_INLINE,    "dup" }
-    , { SWAP,    IS_INLINE,    "swap" }
-    , { OVER,    IS_INLINE,    "over" }
-    , { DROP,    IS_INLINE,    "drop" }
-    , { EMIT,    IS_INLINE,    "emit" }
-    , { DOT,     IS_INLINE,    "." }
-    , { ADD,     IS_INLINE,    "+" }
-    , { SUB,     IS_INLINE,    "-" }
-    , { MULT,    IS_INLINE,    "*" }
-    , { DIV,     IS_INLINE,    "/" }
-    , { INC,     IS_INLINE,    "1+" }
-    , { DEC,     IS_INLINE,    "1-" }
-    , { DO,      IS_INLINE,    "do" }
-    , { INDEX,   IS_INLINE,    "i" }
-    , { LOOP,    IS_INLINE,    "loop" }
-    , { BEGIN,   IS_INLINE,    "begin" }
-    , { WHILE,   IS_INLINE,    "while" }
-    , { FETCH,   IS_INLINE,    "@" }
-    , { CFETCH,  IS_INLINE,    "c@" }
-    , { COMMA,   IS_INLINE,    "," }
-    , { CCOMMA,  IS_INLINE,    "c," }
-    // , { XXXXX, IS_INLINE,    "XXXXX" }
-    // , { XXXXX, IS_INLINE,    "XXXXX" }
+    , { DUP,     IS_INLINE,    "dup" },     { SWAP,    IS_INLINE,    "swap" }
+    , { OVER,    IS_INLINE,    "over" },    { DROP,    IS_INLINE,    "drop" }
+    , { EMIT,    IS_INLINE,    "emit" },    { DOT,     IS_INLINE,    "." }
+    , { ADD,     IS_INLINE,    "+" },       { SUB,     IS_INLINE,    "-" }
+    , { MULT,    IS_INLINE,    "*" },       { DIV,     IS_INLINE,    "/" }
+    , { INC,     IS_INLINE,    "1+" },      { DEC,     IS_INLINE,    "1-" }
+    , { DO,      IS_INLINE,    "do" },      { INDEX,   IS_INLINE,    "i" },     { LOOP,    IS_INLINE,    "loop" }
+    , { BEGIN,   IS_INLINE,    "begin" },   { WHILE,   IS_INLINE,    "while" }
+    , { STORE,   IS_INLINE,    "!" } ,      { CSTORE,  IS_INLINE,    "c!" }
+    , { FETCH,   IS_INLINE,    "@" } ,      { CFETCH,  IS_INLINE,    "c@" }
+    , { COMMA,   IS_INLINE,    "," } ,      { CCOMMA,  IS_INLINE,    "c," }
     , { 0, 0, 0 }
 };
 
@@ -89,10 +69,10 @@ opcode_t opcodes[] = {
 #define NEXT goto next
 
 #define BTW(a,b,c) ((b<=a) && (a<=c))
+#define clearTib fill(tib, 0, sizeof(tib))
 
-// #define ACC          regs[dstReg]
-#define RG(x)        regs[(x)]
-#define RGA(x)        regs[(x)-'A']
+// #define RG(x)        regs[(x)]
+// #define RGA(x)        regs[(x)-'A']
 
 #define PC           *(pc)
 #define IR           *(pc-1)
@@ -114,7 +94,6 @@ cell_t stk[STK_SZ], *sp, rsp;
 char *rstk[STK_SZ];
 cell_t state, base;
 cell_t lstk[LSTK_SZ+1], lsp;
-cell_t regs[REGS_SZ];
 dict_t dict[1024];
 byte bytes[2048];
 char *here, *pc, tib[128], *in;
@@ -384,12 +363,16 @@ void init() {
     base = 10;
     rsp = 0;
     loadPrims();
+    loadNum("mem-sz", MEM_SZ);
+    loadNum("(mem)", (cell_t)&mem.b[0]);
     loadNum("word-sz", sizeof(dict_t));
     loadNum("cell", sizeof(cell_t));
     loadNum("(last)", (cell_t)&last);
     loadNum("(last)", (cell_t)&last);
     loadNum("(here)", (cell_t)&here);
     loadNum(">in", (cell_t)&in);
+    loadNum("state", (cell_t)&state);
+    loadNum("base", (cell_t)&base);
     loadSrc(": last (last) @ ;");
     loadSrc(": here (here) @ ;");
     loadSrc(": count dup 1+ swap c@ ;");
