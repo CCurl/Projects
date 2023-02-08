@@ -20,15 +20,17 @@
 #define REGS_SZ           128   // 'z'-'A'+1
 
 enum { 
-    STOP = 0, NOOP, 
+    STOP = 0,
     LIT1, LIT4, IF, ELSE, THEN, 
     CALL, EXIT, JMP, JMPZ,
     DUP, SWAP, OVER, DROP,
     ADD, SUB, MULT, DIV, INC, DEC,
-    DO, LOOP, BEGIN, WHILE,
+    DO, INDEX, LOOP, BEGIN, WHILE,
     EMIT, DOT, TIMER,
-    STORE, FETCH,
-    EXT, BYE
+    STORE, FETCH, 
+    CREATE, GETWORD, ISNUM, 
+    DEFINE, ENDWORD, IMMED, INLINE,
+    NOOP, BYE
 };
 
 #define TOS (*sp)
@@ -36,6 +38,7 @@ enum {
 #define DROP1 sp--
 #define DROP2 sp-=2
 #define RET(x) push(x); return;
+#define NEXT goto next
 
 #define BTW(a,b,c) ((b<=a) && (a<=c))
 
@@ -171,7 +174,6 @@ void isDecimal(const char *wd) {
     */
 }
 
-
 // ( nm--n 1 )
 // ( nm--0 )
 void isNum() {
@@ -207,7 +209,7 @@ void getInput() {
 // ( --addr len )
 // ( --0 )
 void getword() {
-    while (*in && (*in < 32)) { ++in; }
+    while (*in && (*in < 33)) { ++in; }
     if (*in == 0) { RET(0); }
     push((cell_t)in);
     push(0);
@@ -215,14 +217,11 @@ void getword() {
     *(in++) = 0;
 }
 
-
 char *doExt(char *pc) {
     cell_t t = *(pc++);
-    if (t=='C') { getword(); if (pop()) { Create(); } }
+    if (t=='C') {  }
     return pc;
 }
-
-#define NEXT goto next
 
 void Run(char *y) {
     cell_t t1;
@@ -254,17 +253,22 @@ next:
     case SUB: NOS -= TOS; DROP1;                                NEXT;
     case MULT: NOS *= TOS; DROP1;                               NEXT;
     case DIV: NOS /= TOS; DROP1;                                NEXT;
-    // case 'B': printf(" ");                                      NEXT;
     case EMIT: printf("%c", (char)pop());                       NEXT;
     case DOT: printf("%d ", pop());                             NEXT;
     case TIMER: push(clock());                                  NEXT;
     case DEC: --TOS;                                            NEXT;
     case INC: ++TOS;                                            NEXT;
-    case EXT: pc = doExt(pc);                                   NEXT;
+    case CREATE: getword(); if (pop()) { Create(); }            NEXT;
     case DO: lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();         NEXT;
     case LOOP: if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; }; NEXT;
     case BEGIN: lsp+=3; L0=(cell_t)pc;                          NEXT;
     case WHILE: if (pop()) { pc=(char*)L0; } else { lsp-=3; };  NEXT;
+    case GETWORD: getword();                                    NEXT;
+    case DEFINE: getword(); if (pop()) { Create(); state=1; }   NEXT;
+    case ENDWORD: state=0; CComma(EXIT);                        NEXT;
+    case ISNUM: isNum();                                        NEXT;
+    case IMMED: last->f |= 1;                                   NEXT;
+    case INLINE: last->f |= 2;                                  NEXT;
     case BYE: isBye=1;                                         return;
     default: printf("-[%d]?-",(int)*(pc-1));  break;
     }
@@ -279,9 +283,10 @@ void ParseWord() {
     char *w = (char*)TOS;
     isNum();
     if (pop()) {
-        // if (state) { push(4); CComma(); Comma(); }
-        if (BTW(TOS,0,255)) { CComma(LIT1); CComma(pop()); }
-        else { CComma(LIT4); Comma(pop()); }
+        if (state) {
+            if (BTW(TOS,0,255)) { CComma(LIT1); CComma(pop()); }
+            else { CComma(LIT4); Comma(pop()); }
+        }
         RET(1);
     }
     push((cell_t)w);
@@ -289,9 +294,8 @@ void ParseWord() {
     if (pop()) {
         cell_t f = pop();
         char *xt = (char*)pop();
-        //if (state == 0) { Run(xt); }
-        if (f & 0x01) { Run(xt); }
-        else if (f & 0x02) { doInline(xt); }
+        if ((state == 0) || (f & 0x01)) { Run(xt); RET(1); }
+        if (f & 0x02) { doInline(xt); }
         else { CComma(CALL); Comma((cell_t)xt); }
         RET(1);
     }
@@ -306,16 +310,16 @@ void ParseWord() {
 
 void ParseLine(char *x) {
     in = x;
-    char *chere = here;
+    //char *chere = here;
     while (isBye == 0) {
         getword();
         if (pop() == 0) break;
         ParseWord();
         if (pop() == 0) return;
     }
-    CComma(EXIT);
-    Run(chere);
-    here = chere;
+    //CComma(EXIT);
+    //Run(chere);
+    //here = chere;
 }
 
 void loadLine(const char *x) {
@@ -340,30 +344,37 @@ void init() {
     in = tib;
     base = 10;
     rsp = 0;
-    loadPrim("bye",    0, 1, BYE,      0);
-    loadPrim("cell",   2, 2, LIT1, sizeof(cell_t));
-    loadPrim("exit",   0, 1, EXIT,     0);
-    loadPrim("timer",  2, 1, TIMER,    0);
-    loadPrim("if",     1, 1, IF,       0);
-    loadPrim("else",   1, 1, ELSE,     0);
-    loadPrim("then",   1, 1, THEN,     0);
-    loadPrim("dup",    2, 1, DUP,      0);
-    loadPrim("drop",   2, 1, DROP,     0);
-    loadPrim("over",   2, 1, OVER,     0);
-    loadPrim("swap",   2, 1, SWAP,     0);
-    loadPrim("+",      2, 1, ADD,      0);
-    loadPrim("-",      2, 1, SUB,      0);
-    loadPrim("*",      2, 1, MULT,     0);
-    loadPrim("/",      2, 1, DIV,      0);
-    loadPrim(".",      2, 1, DOT,      0);
-    loadPrim("emit",   2, 1, EMIT,     0);
-    loadPrim("1-",     2, 1, DEC,      0);
-    loadPrim("1+",     2, 1, INC,      0);
-    loadPrim("begin",  2, 1, BEGIN,    0);
-    loadPrim("while",  2, 1, WHILE,    0);
-    loadPrim("do",     2, 1, DO,       0);
-    loadPrim("loop",   2, 1, LOOP,     0);
-    loadPrim("create", 0, 2, EXT,    'C');
+    loadPrim("bye",       0, 1, BYE,      0);
+    loadPrim("cell",      2, 2, LIT1, sizeof(cell_t));
+    loadPrim("exit",      2, 1, EXIT,     0);
+    loadPrim("create",    2, 1, CREATE,   0);
+    loadPrim(":",         0, 1, DEFINE,   0);
+    loadPrim(";",         1, 1, ENDWORD,  0);
+    loadPrim("getword",   2, 2, GETWORD,  0);
+    loadPrim("immediate", 2, 1, IMMED,    0);
+    loadPrim("inline",    2, 1, INLINE,   0);
+    loadPrim("isnum" ,    2, 1, ISNUM,    0);
+    loadPrim("timer",     2, 1, TIMER,    0);
+    loadPrim("if",        1, 1, IF,       0);
+    loadPrim("else",      1, 1, ELSE,     0);
+    loadPrim("then",      1, 1, THEN,     0);
+    loadPrim("dup",       2, 1, DUP,      0);
+    loadPrim("drop",      2, 1, DROP,     0);
+    loadPrim("over",      2, 1, OVER,     0);
+    loadPrim("swap",      2, 1, SWAP,     0);
+    loadPrim("+",         2, 1, ADD,      0);
+    loadPrim("-",         2, 1, SUB,      0);
+    loadPrim("*",         2, 1, MULT,     0);
+    loadPrim("/",         2, 1, DIV,      0);
+    loadPrim(".",         2, 1, DOT,      0);
+    loadPrim("emit",      2, 1, EMIT,     0);
+    loadPrim("1-",        2, 1, DEC,      0);
+    loadPrim("1+",        2, 1, INC,      0);
+    loadPrim("begin",     2, 1, BEGIN,    0);
+    loadPrim("while",     2, 1, WHILE,    0);
+    loadPrim("do",        2, 1, DO,       0);
+    loadPrim("I",         2, 1, INDEX,    0);
+    loadPrim("loop",      2, 1, LOOP,     0);
     // loadLine("timer 500000000 begin 1- dup while drop timer swap - .");
 }
 
