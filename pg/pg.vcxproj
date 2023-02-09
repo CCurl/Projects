@@ -144,7 +144,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="blk-000.4th" />
+    <None Include="init.f" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
