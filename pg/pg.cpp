@@ -216,7 +216,7 @@ void dotS(const char *pre, const char *post) {
     putchar('(');
     for (cell_t x=0, *p=&stk[1];p<=sp;++p) {
         if (x)  printChar(' ');
-        printf("%d", *p);
+        printf("%ld", *p);
         x = 1;
     }
     putchar(')');
@@ -246,7 +246,7 @@ void getword() {
     *(in++) = 0;
 }
 
-void resolve() {cell_t t=pop(); Store((char *)t, (cell_t)here); }
+void resolve(cell_t t) {  Store((char *)t, (cell_t)here); }
 
 void Run(char *y) {
     cell_t t1;
@@ -259,8 +259,8 @@ next:
     case LIT4: push(*(cell_t*)pc); pc += sizeof(cell_t);        NEXT;
     case DOTS: dotS(0, 0);                                      NEXT;
     case IF: CComma(JMPZ); PUSH(here); Comma(0);                NEXT;
-    case ELSE: resolve(); CComma(JMP); PUSH(here); Comma(0);    NEXT;
-    case THEN: resolve();                                       NEXT;
+    case ELSE: t1=pop(); CComma(JMP); PUSH(here); Comma(0); resolve(t1);    NEXT;
+    case THEN: resolve(pop());                                  NEXT;
     case CALL: if (*pc != EXIT) { rstk[++rsp] = (pc+sizeof(cell_t)); }
             pc = *(char**)pc;                                   NEXT;
     case EXIT: if (rsp<1) { rsp=0; return; } pc=rstk[rsp--];    NEXT;
@@ -286,7 +286,7 @@ next:
     case GT: NOS = (NOS >  TOS) ? -1 : 0; DROP1;                NEXT;
     case NOT: TOS = (TOS) ? 0: -1;                              NEXT;
     case EMIT: printChar((char)pop());                          NEXT;
-    case DOT: printf("%d ", pop());                             NEXT;
+    case DOT: printf("%ld ", pop());                            NEXT;
     case TIMER: push(clock());                                  NEXT;
     case DEC: --TOS;                                            NEXT;
     case INC: ++TOS;                                            NEXT;
