@@ -25,11 +25,11 @@ enum {
     DUP, SWAP, OVER, DROP,
     ADD, MULT, DIV, INC, DEC, SUB, 
     LT, EQ, GT, NOT,
-    DO, INDEX, LOOP, UNLOOP,
+    DO, LOOP, // I, UNLOOP,
     EMIT, DOT, TIMER,
-    DEFINE, ENDWORD,
+    DEFINE, ENDWORD, VAR,
     STORE, CSTORE, FETCH, CFETCH, 
-    FILEOPS, BITOPS, RETOPS
+    BITOPS, RETOPS, FILEOPS
 };
 
 #define IS_IMMEDIATE  1
@@ -37,8 +37,8 @@ enum {
 
 typedef struct { int op; int flg; const char *name; } opcode_t;
 opcode_t opcodes[] = { 
-    { DEFINE,  IS_INLINE,    ":" },       { ENDWORD, IS_IMMEDIATE, ";" }
-    , { TIMER,   IS_INLINE,    "timer" }
+    { DEFINE,    IS_INLINE,    ":" },       { ENDWORD, IS_IMMEDIATE, ";" }
+    , { VAR,     IS_INLINE,    "var" },     { TIMER,   IS_INLINE,    "timer" }
     , { DUP,     IS_INLINE,    "dup" },     { SWAP,    IS_INLINE,    "swap" }
     , { OVER,    IS_INLINE,    "over" },    { DROP,    IS_INLINE,    "drop" }
     , { EMIT,    IS_INLINE,    "emit" },    { DOT,     IS_INLINE,    "." }
@@ -47,8 +47,8 @@ opcode_t opcodes[] = {
     , { LT,      IS_INLINE,    "<" },       { EQ,      IS_INLINE,    "=" }
     , { GT,      IS_INLINE,    ">" },       { NOT,     IS_INLINE,    "0=" }
     , { INC,     IS_INLINE,    "1+" },      { DEC,     IS_INLINE,    "1-" }
-    , { DO,      IS_INLINE,    "do" },      { INDEX,   IS_INLINE,    "i" }
-    , { LOOP,    IS_INLINE,    "loop" },    { UNLOOP,  IS_INLINE,    "unloop" }
+    , { DO,      IS_INLINE,    "do" },      { LOOP,    IS_INLINE,    "loop" }
+    // , { INDEX,   IS_INLINE,    "i" },       { UNLOOP,  IS_INLINE,    "unloop" }
     , { STORE,   IS_INLINE,    "!" },       { CSTORE,  IS_INLINE,    "c!" }
     , { FETCH,   IS_INLINE,    "@" },       { CFETCH,  IS_INLINE,    "c@" }
     , { 0, 0, 0 }
@@ -234,14 +234,6 @@ void getword() {
 
 void resolve(cell_t t) {  Store((char *)t, (cell_t)here); }
 
-char *doFile(char *x) {
-    cell_t ir = *(x++);
-    //if (ir==1) { NOS=(cell_t)fopen((char*)TOS, (char*)NOS); }
-    if (ir==1) { PUSH(fopen("file.c", "rt")); }
-    else if (ir==2) { fclose((FILE*)pop()); }
-    return x;
-}
-
 void Run(char *y) {
     cell_t t1;
     pc = y;
@@ -282,11 +274,12 @@ next:
     case INC: ++TOS;                                            NEXT;
     case DO: lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();         NEXT;
     case LOOP: if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; }; NEXT;
-    case UNLOOP: if (0<lsp) { lsp-=3; };                        NEXT;
-    case INDEX: push(L0);                                       NEXT;
     case DEFINE: getword(); if (pop()) { Create((char*)pop()); state=1; }   NEXT;
+    case VAR: getword(); if (pop()==0) { NEXT; }
+        Create((char*)pop());
+        CComma(LIT4); Comma((cell_t)vhere); Comma(EXIT);
+        NEXT;
     case ENDWORD: state=0; CComma(EXIT);                        NEXT;
-    case FILEOPS: pc = doFile(pc);                              NEXT;
     case BITOPS: t1 = *(pc++);
         if (t1==11) { NOS &= TOS; DROP1; }
         else if (t1==12) { NOS |= TOS; DROP1; }
@@ -297,6 +290,11 @@ next:
         if (t1==11) { rstk[++rsp] = (char*)pop(); }
         else if (t1==12) { PUSH(rstk[rsp]); }
         else if (t1==13) { PUSH(rstk[rsp--]); }
+        NEXT;
+    case FILEOPS: t1 = *(pc++);
+        if (t1==11) { NOS=(cell_t)fopen((char*)TOS, (char*)NOS); DROP1; }
+        else if (t1==12) { fclose((FILE*)pop()); }
+        else if (t1==13) { PUSH(65); PUSH(1); }
         NEXT;
     default: printf("-[%d]?-",(int)*(pc-1));  break;
     }
@@ -351,10 +349,11 @@ void loadLine(const char *x) {
     ParseLine(tib);
 }
 
-void loadNum(const char *name, cell_t addr) {
+void loadNum(const char *name, cell_t addr, int makeInline=0) {
     clearTib;
     sprintf(tib, ": %s %ld ;", name, addr);
     ParseLine(tib);
+    if (makeInline) { last->f = IS_INLINE; }
 }
 
 void init() {
@@ -376,9 +375,12 @@ void init() {
     loadNum("vars-sz", VARS_SZ);
     loadNum("(sp)", (cell_t)&sp);
     loadNum("(rsp)", (cell_t)&rsp);
+    loadNum("(rsp)", (cell_t)&rsp);
+    loadNum("(lsp)", (cell_t)&lsp);
+    loadNum("(lstk)", (cell_t)&lstk[0]);
     loadNum("(mem)", (cell_t)&mem.b[0]);
-    loadNum("word-sz", sizeof(dict_t));
-    loadNum("cell", sizeof(cell_t));
+    loadNum("word-sz", sizeof(dict_t), 1);
+    loadNum("cell", sizeof(cell_t), 1);
     loadNum("(last)", (cell_t)&last);
     loadNum("(last)", (cell_t)&last);
     loadNum("(here)", (cell_t)&here);
