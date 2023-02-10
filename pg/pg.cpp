@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) {
     // int r='A';
     // for (i=1; i<argc; ++i) { y=argv[i]; RG(r++) = atoi(y); }
     init();
-    input_fp = fopen("init.f", "rt");
+    input_fp = fopen("core.f", "rt");
     while (state != 999) {
         getInput();
         ParseLine(tib);
