@@ -29,7 +29,7 @@ enum {
     EMIT, DOT, TIMER,
     DEFINE, ENDWORD,
     STORE, CSTORE, FETCH, CFETCH, 
-    FILEOPS, BITOPS
+    FILEOPS, BITOPS, RETOPS
 };
 
 #define IS_IMMEDIATE  1
@@ -234,19 +234,11 @@ void getword() {
 
 void resolve(cell_t t) {  Store((char *)t, (cell_t)here); }
 
-char *doBit(char *x) {
-    cell_t ir = *(x++);
-    if (ir==11) { NOS &= TOS; DROP1; }
-    else if (ir==12) { NOS |= TOS; DROP1; }
-    else if (ir==13) { NOS ^= TOS; DROP1; }
-    else if (ir==14) { TOS = ~TOS; }
-    return x;
-}
-
 char *doFile(char *x) {
     cell_t ir = *(x++);
-    if (ir==1) { NOS &= TOS; DROP1; }
-    else if (ir==2) { NOS |= TOS; DROP1; }
+    //if (ir==1) { NOS=(cell_t)fopen((char*)TOS, (char*)NOS); }
+    if (ir==1) { PUSH(fopen("file.c", "rt")); }
+    else if (ir==2) { fclose((FILE*)pop()); }
     return x;
 }
 
@@ -294,8 +286,18 @@ next:
     case INDEX: push(L0);                                       NEXT;
     case DEFINE: getword(); if (pop()) { Create((char*)pop()); state=1; }   NEXT;
     case ENDWORD: state=0; CComma(EXIT);                        NEXT;
-    case FILEOPS: pc = doFile(pc);                        NEXT;
-    case BITOPS: pc = doBit(pc);                        NEXT;
+    case FILEOPS: pc = doFile(pc);                              NEXT;
+    case BITOPS: t1 = *(pc++);
+        if (t1==11) { NOS &= TOS; DROP1; }
+        else if (t1==12) { NOS |= TOS; DROP1; }
+        else if (t1==13) { NOS ^= TOS; DROP1; }
+        else if (t1==14) { TOS = ~TOS; }
+        NEXT;
+    case RETOPS: t1 = *(pc++);
+        if (t1==11) { rstk[++rsp] = (char*)pop(); }
+        else if (t1==12) { PUSH(rstk[rsp]); }
+        else if (t1==13) { PUSH(rstk[rsp--]); }
+        NEXT;
     default: printf("-[%d]?-",(int)*(pc-1));  break;
     }
 }
