@@ -20,8 +20,12 @@
 : bye 999 state ! ;
 : cells cell * ; inline
 
-: c, here c! here 1+ (here) ! ;
-: , here ! here cell + (here) ! ;
+: c, here c! here 1+     (here) ! ;
+: ,  here !  here cell + (here) ! ;
+
+: allot vhere + (vhere) ! ;
+: vc, vhere c! 1 allot ;
+: v,  vhere ! cell allot ;
 
 : count dup 1+ swap c@ ; inline
 : type 0 do dup c@ emit 1+ loop drop ;
