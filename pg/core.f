@@ -4,9 +4,9 @@
 : (jmp)     2 ;
 : (jmpz)    3 ;
 : (jmpnz)   4 ;
-: (bitop)  34 ;
-: (retop)  35 ;
-: (fileop) 36 ;
+: (bitop)  33 ;
+: (retop)  34 ;
+: (fileop) 35 ;
 
 : last (last) @ ;
 : here (here) @ ;
@@ -35,7 +35,7 @@
 : exit (exit) c,        ; immediate
 
 : tuck swap over ; inline
-: nip swap drop ; inline
+: nip  swap drop ; inline
 
 : begin here         ; immediate
 : while (jmpnz) c, , ; immediate
@@ -46,6 +46,10 @@
 : or  [ (bitop) c, 12 c, ] ; inline
 : xor [ (bitop) c, 13 c, ] ; inline
 : com [ (bitop) c, 14 c, ] ; inline
+
+: >r  [ (retop) c, 11 c, ] ; inline
+: r@  [ (bitop) c, 12 c, ] ; inline
+: r>  [ (bitop) c, 13 c, ] ; inline
 
 : (i) (lsp) @ cells (lstk) + ;
 : i (i) @ ;
@@ -59,6 +63,26 @@
 
 : negate com 1+ ; inline
 : abs dup 0 < if negate then ;
+: +! dup @ +  swap ! ; inline
+: ++ dup @ 1+ swap ! ; inline
+
+: /   /mod drop ; inline
+: mod /mod nip  ; inline
+
+var (neg) cell allot
+var (len) cell allot
+: #digit '0' + dup '9' > if 7 + then ;
+: <# 0 (neg) ! 0 (len) ! dup 0 < if negate 1 (neg) c! then 0 swap ;  \ ( u1 -- 0 u2 )
+: # base @ /mod #digit swap (len) ++ ;   \  ( u1 -- c u2 )
+: #S begin # dup while ;                 \  ( u1 -- u2 )
+: #> ;
+: #- drop (neg) @ if '-' emit then ;
+: #P #- begin emit dup while drop ;     \ ( 0 ... n 0 -- )
+: (.) <# #S #> #P ;
+: . (.) space ;
+
+: hex     #16 base ! ;
+: decimal #10 base ! ;
 
 : words last begin
         dup mem-end < 0=  if drop exit then

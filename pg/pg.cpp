@@ -23,10 +23,10 @@ enum {
     EXIT, JMP, JMPZ, JMPNZ,
     CALL, LIT1, LIT4, 
     DUP, SWAP, OVER, DROP,
-    ADD, MULT, DIV, INC, DEC, SUB, 
+    ADD, MULT, SLMOD, INC, DEC, SUB, 
     LT, EQ, GT, NOT,
-    DO, LOOP, // I, UNLOOP,
-    EMIT, DOT, TIMER,
+    DO, LOOP,
+    EMIT, TIMER,
     DEFINE, ENDWORD, VAR,
     STORE, CSTORE, FETCH, CFETCH, 
     BITOPS, RETOPS, FILEOPS
@@ -41,14 +41,13 @@ opcode_t opcodes[] = {
     , { VAR,     IS_INLINE,    "var" },     { TIMER,   IS_INLINE,    "timer" }
     , { DUP,     IS_INLINE,    "dup" },     { SWAP,    IS_INLINE,    "swap" }
     , { OVER,    IS_INLINE,    "over" },    { DROP,    IS_INLINE,    "drop" }
-    , { EMIT,    IS_INLINE,    "emit" },    { DOT,     IS_INLINE,    "." }
+    , { EMIT,    IS_INLINE,    "emit" }
     , { ADD,     IS_INLINE,    "+" },       { SUB,     IS_INLINE,    "-" }
-    , { MULT,    IS_INLINE,    "*" },       { DIV,     IS_INLINE,    "/" }
+    , { MULT,    IS_INLINE,    "*" },       { SLMOD,   IS_INLINE,    "/mod" }
     , { LT,      IS_INLINE,    "<" },       { EQ,      IS_INLINE,    "=" }
     , { GT,      IS_INLINE,    ">" },       { NOT,     IS_INLINE,    "0=" }
     , { INC,     IS_INLINE,    "1+" },      { DEC,     IS_INLINE,    "1-" }
     , { DO,      IS_INLINE,    "do" },      { LOOP,    IS_INLINE,    "loop" }
-    // , { INDEX,   IS_INLINE,    "i" },       { UNLOOP,  IS_INLINE,    "unloop" }
     , { STORE,   IS_INLINE,    "!" },       { CSTORE,  IS_INLINE,    "c!" }
     , { FETCH,   IS_INLINE,    "@" },       { CFETCH,  IS_INLINE,    "c@" }
     , { 0, 0, 0 }
@@ -180,9 +179,9 @@ void isNum() {
     if (*wd == '#') { b = 10;  ++wd; }
     if (*wd == '$') { b = 16;  ++wd; }
     if (*wd == '%') { b = 2;  ++wd; lastCh = '1'; }
+    if (*wd == 0) { RET(0); }
     if (b == 10) { isDecimal(wd); return; }
     if (b < 10) { lastCh = '0' + b - 1; }
-    if (*wd == 0) { RET(0); }
     cell_t x = 0;
     while (*wd) {
         cell_t t = -1, c = *(wd++);
@@ -196,19 +195,6 @@ void isNum() {
     RET(1);
 }
 
-void dotS(const char *pre, const char *post) {
-    if (sp < 0) { sp = 0; PRINT1("-under-"); }
-    if (STK_SZ < sp) { sp = STK_SZ; PRINT1("-over-"); }
-    if (pre) fputs(pre, stdout);
-    putchar('(');
-    for (cell_t i=1; i<=sp; ++i) {
-        if (1<i)  printChar(' ');
-        printf("%ld", stk[i]);
-    }
-    putchar(')');
-    if (post) fputs(post, stdout);
-}
-
 void getInput() {
     clearTib;
     if (input_fp) {
@@ -216,7 +202,7 @@ void getInput() {
         if (in != tib) { fclose(input_fp); input_fp = NULL; }
     }
     if (! input_fp) {
-        dotS("\nok:", "> ");
+        printString(" ok\n");
         in = fgets(tib, sizeof(tib), stdin);
     }
 }
@@ -235,7 +221,7 @@ void getword() {
 void resolve(cell_t t) {  Store((char *)t, (cell_t)here); }
 
 void Run(char *y) {
-    cell_t t1;
+    cell_t t1, t2;
     pc = y;
 
 next:
@@ -262,13 +248,12 @@ next:
     case ADD: NOS += TOS; DROP1;                                NEXT;
     case SUB: NOS -= TOS; DROP1;                                NEXT;
     case MULT: NOS *= TOS; DROP1;                               NEXT;
-    case DIV: NOS /= TOS; DROP1;                                NEXT;
+    case SLMOD: t1=NOS; t2=TOS; NOS=t1/t2; TOS=t1%t2;           NEXT;
     case LT: NOS = (NOS <  TOS) ? -1 : 0; DROP1;                NEXT;
     case EQ: NOS = (NOS == TOS) ? -1 : 0; DROP1;                NEXT;
     case GT: NOS = (NOS >  TOS) ? -1 : 0; DROP1;                NEXT;
     case NOT: TOS = (TOS) ? 0: -1;                              NEXT;
     case EMIT: printChar((char)pop());                          NEXT;
-    case DOT: printf("%ld ", pop());                            NEXT;
     case TIMER: push(clock());                                  NEXT;
     case DEC: --TOS;                                            NEXT;
     case INC: ++TOS;                                            NEXT;
@@ -281,15 +266,15 @@ next:
         NEXT;
     case ENDWORD: state=0; CComma(EXIT);                        NEXT;
     case BITOPS: t1 = *(pc++);
-        if (t1==11) { NOS &= TOS; DROP1; }
-        else if (t1==12) { NOS |= TOS; DROP1; }
-        else if (t1==13) { NOS ^= TOS; DROP1; }
-        else if (t1==14) { TOS = ~TOS; }
+        if (t1==11) { NOS &= TOS; DROP1; }               // and
+        else if (t1==12) { NOS |= TOS; DROP1; }          // or
+        else if (t1==13) { NOS ^= TOS; DROP1; }          // xor
+        else if (t1==14) { TOS = ~TOS; }                 // com
         NEXT;
     case RETOPS: t1 = *(pc++);
-        if (t1==11) { rstk[++rsp] = (char*)pop(); }
-        else if (t1==12) { PUSH(rstk[rsp]); }
-        else if (t1==13) { PUSH(rstk[rsp--]); }
+        if (t1==11) { rstk[++rsp] = (char*)pop(); }      // >r
+        else if (t1==12) { PUSH(rstk[rsp]); }            // r@
+        else if (t1==13) { PUSH(rstk[rsp--]); }          // r>
         NEXT;
     case FILEOPS: t1 = *(pc++);
         if (t1==11) { NOS=(cell_t)fopen((char*)TOS, (char*)NOS); DROP1; }
