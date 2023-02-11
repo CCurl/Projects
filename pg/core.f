@@ -103,14 +103,13 @@ var (len) cell allot
     vhere >r 0 vc,
     begin >in @ c@ >in ++
         dup 0= over '"' = or
-        if drop rdrop exit then
+        if drop 0 vc, rdrop exit then
         vc, r@ c++
     again ; immediate
 
 : ." [ (call) c, ' S" drop drop , ]
     (call) c, [ (lit4) c, ' count drop drop , ] ,
-    (call) c, [ (lit4) c, ' type  drop drop , ] , ; 
-    immediate
+    (call) c, [ (lit4) c, ' type  drop drop , ] , ;  immediate
 
 : hex     #16 base ! ;
 : decimal #10 base ! ;
