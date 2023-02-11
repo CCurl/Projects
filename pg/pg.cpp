@@ -209,6 +209,8 @@ void getInput() {
 // ( --addr len )
 // ( --0 )
 void getword() {
+    if (sp < 0) { PRINT1("-under-"); sp=0;}
+    if (STK_SZ < sp) { PRINT1("over"); sp=0; }
     while (*in && (*in < 33)) { ++in; }
     if (*in == 0) { RET(0); }
     PUSH(in);
