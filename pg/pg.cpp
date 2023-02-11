@@ -235,7 +235,7 @@ next:
     case JMPZ: if (pop()==0) { pc = *(char**)pc; }
              else { pc += sizeof(cell_t); }                                 NEXT;
     case JMPNZ: if (pop()) { pc=*(char**)pc; } else { pc+=sizeof(cell_t); } NEXT;
-    case STORE: Store((char*)TOS, NOS); DROP2;                              NEXT;
+    case STORE: t1=pop(); t2=pop(); Store((char*)t1, t2);                   NEXT;
     case CSTORE: *(char*)TOS = (char)NOS; DROP2;                            NEXT;
     case FETCH: TOS = Fetch((char*)TOS);                                    NEXT;
     case CFETCH: TOS = *(char*)TOS;                                         NEXT;
@@ -246,7 +246,7 @@ next:
     case ADD: NOS += TOS; DROP1;                                            NEXT;
     case SUB: NOS -= TOS; DROP1;                                            NEXT;
     case MULT: NOS *= TOS; DROP1;                                           NEXT;
-    case SLMOD: t1=NOS; t2=TOS; NOS=t1/t2; TOS=t1%t2;                       NEXT;
+    case SLMOD: t1=NOS; t2=TOS; TOS=t1/t2; NOS=t1%t2;                       NEXT;
     case LT: NOS = (NOS <  TOS) ? -1 : 0; DROP1;                            NEXT;
     case EQ: NOS = (NOS == TOS) ? -1 : 0; DROP1;                            NEXT;
     case GT: NOS = (NOS >  TOS) ? -1 : 0; DROP1;                            NEXT;

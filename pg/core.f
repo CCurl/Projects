@@ -79,19 +79,20 @@
 : ++  dup @  1+ swap !  ; inline
 : c++ dup c@ 1+ swap c! ; inline
 
-: /   /mod drop ; inline
-: mod /mod nip  ; inline
+: /   /mod nip  ; inline
+: mod /mod swap ; inline
 
 var (neg) cell allot
 var (len) cell allot
 : len (len) @ ;
 : #digit '0' + dup '9' > if 7 + then ;
-: <# 0 (neg) c! 0 (len) ! dup 0 < if negate 1 (neg) ! then 0 swap ;  \ ( n1 -- 0 n2 )
-: # base @ /mod #digit swap (len) ++ ;   \  ( u1 -- c u2 )
-: #S begin # dup while ;                 \  ( u1 -- u2 )
+: <# 0 (neg) c! 0 (len) ! dup 0 < 
+    if negate 1 (neg) ! then 0 swap ;         \ ( n1 -- 0 n2 )
+: # base @ /mod swap #digit swap (len) ++ ;   \ ( u1 -- c u2 )
+: #S begin # dup while ;                      \ ( u1 -- u2 )
 : #> ;
 : #- drop (neg) @ if '-' emit then ;
-: #P #- begin emit dup while drop ;     \ ( 0 ... n 0 -- )
+: #P #- begin emit dup while drop ;           \ ( 0 ... n 0 -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
 
