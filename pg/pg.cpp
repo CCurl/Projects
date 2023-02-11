@@ -89,7 +89,6 @@ dict_t *last;
 
 #ifdef isPC
 FILE *input_fp;
-int isBye;
 #endif
 
 void push(cell_t x) { stk[++sp] = (cell_t)(x); }
@@ -218,8 +217,6 @@ void getword() {
     *(in++) = 0;
 }
 
-void resolve(cell_t t) {  Store((char *)t, (cell_t)here); }
-
 void Run(char *y) {
     cell_t t1, t2;
     pc = y;
@@ -316,7 +313,7 @@ void ParseWord() {
 
 void ParseLine(char *x) {
     in = x;
-    while (isBye == 0) {
+    while (state != 999) {
         getword();
         if (pop() == 0) break;
         ParseWord();

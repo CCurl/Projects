@@ -45,14 +45,21 @@
 : until (jmpz)  c, , ; immediate
 : again (jmp)   c, , ; immediate
 
+: ( begin 
+        >in @ c@ >in @ 1+ >in !
+        dup  0= if drop exit then
+        ')' = if drop exit then
+    again ; immediate
+
 : and [ (bitop) c, 11 c, ] ; inline
 : or  [ (bitop) c, 12 c, ] ; inline
 : xor [ (bitop) c, 13 c, ] ; inline
 : com [ (bitop) c, 14 c, ] ; inline
 
-: >r  [ (retop) c, 11 c, ] ; inline
-: r@  [ (retop) c, 12 c, ] ; inline
-: r>  [ (retop) c, 13 c, ] ; inline
+: >r [ (retop) c, 11 c, ] ; inline
+: r@ [ (retop) c, 12 c, ] ; inline
+: r> [ (retop) c, 13 c, ] ; inline
+: rdrop r> drop ; inline
 : rot >r swap r> swap ;
 : -rot rot rot ;
 
@@ -68,17 +75,18 @@
 
 : negate com 1+ ; inline
 : abs dup 0 < if negate then ;
-: +! dup @ +  swap ! ; inline
-: ++ dup @ 1+ swap ! ; inline
+: +!  dup @   + swap !  ; inline
+: ++  dup @  1+ swap !  ; inline
+: c++ dup c@ 1+ swap c! ; inline
 
 : /   /mod drop ; inline
 : mod /mod nip  ; inline
 
 var (neg) cell allot
 var (len) cell allot
-: len (len) @ ; : len! (len) ! ;
+: len (len) @ ;
 : #digit '0' + dup '9' > if 7 + then ;
-: <# 0 (neg) ! 0 len! dup 0 < if negate 1 (neg) c! then 0 swap ;  \ ( n1 -- 0 n2 )
+: <# 0 (neg) c! 0 (len) ! dup 0 < if negate 1 (neg) ! then 0 swap ;  \ ( n1 -- 0 n2 )
 : # base @ /mod #digit swap (len) ++ ;   \  ( u1 -- c u2 )
 : #S begin # dup while ;                 \  ( u1 -- u2 )
 : #> ;
@@ -89,19 +97,19 @@ var (len) cell allot
 
 : count dup 1+ swap c@ ; inline
 : type 0 do dup c@ emit 1+ loop drop ;
-: ct count type ;
 
-var (sl) cell allot
-: S" (lit4) c, vhere dup , >r
-    0 vc, 0 (sl) !
+: S" (lit4) c, vhere ,
+    vhere >r 0 vc,
     begin >in @ c@ >in ++
-    dup  0 = if drop (sl) @ r> c! exit then
-    dup 34 = if drop (sl) @ r> c! exit then
-    vc, (sl) ++
+        dup  0=  if drop rdrop exit then
+        dup 34 = if drop rdrop exit then
+        vc, r@ c++
     again ; immediate
 
 : ." [ (call) c, ' S" drop drop , ]
-    (call) c, [ ' ct drop drop ] , ; immediate
+    (call) c, [ (lit4) c, ' count drop drop , ] ,
+    (call) c, [ (lit4) c, ' type  drop drop , ] , ; 
+    immediate
 
 : hex     #16 base ! ;
 : decimal #10 base ! ;
@@ -119,7 +127,8 @@ var (sl) cell allot
     again ;
 
 \ temp for testing
-: elapsed timer swap - (.) ." ms " ;
+: elapsed timer swap - 1000 / (.) ." ms " ;
+: gg ." hi there: " 123 . ;
 : bm1 timer swap begin 1- dup while drop elapsed ;
 : bm2 timer swap 0 do loop elapsed ;
 : mil #1000 dup * * ;
