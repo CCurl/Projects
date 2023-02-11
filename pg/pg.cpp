@@ -14,7 +14,7 @@ extern void printChar(const char c);
 
 #define MEM_SZ          64000
 #define VARS_SZ        256000
-#define STK_SZ             32
+#define STK_SZ             64
 #define LSTK_SZ            30
 #define NAME_LEN            9
 
@@ -22,14 +22,14 @@ enum {
     STOP = 0,
     EXIT, JMP, JMPZ, JMPNZ,
     CALL, LIT1, LIT4, 
+    BITOPS, RETOPS, FILEOPS,
     DUP, SWAP, OVER, DROP,
     ADD, MULT, SLMOD, INC, DEC, SUB, 
     LT, EQ, GT, NOT,
     DO, LOOP,
     EMIT, TIMER,
-    DEFINE, ENDWORD, VAR,
-    STORE, CSTORE, FETCH, CFETCH, 
-    BITOPS, RETOPS, FILEOPS
+    DEFINE, ENDWORD, CREATE, FIND,
+    STORE, CSTORE, FETCH, CFETCH
 };
 
 #define IS_IMMEDIATE  1
@@ -38,10 +38,10 @@ enum {
 typedef struct { int op; int flg; const char *name; } opcode_t;
 opcode_t opcodes[] = { 
     { DEFINE,    IS_INLINE,    ":" },       { ENDWORD, IS_IMMEDIATE, ";" }
-    , { VAR,     IS_INLINE,    "var" },     { TIMER,   IS_INLINE,    "timer" }
+    , { CREATE,  IS_INLINE,    "create" },  { FIND,    IS_INLINE,    "'" }
     , { DUP,     IS_INLINE,    "dup" },     { SWAP,    IS_INLINE,    "swap" }
     , { OVER,    IS_INLINE,    "over" },    { DROP,    IS_INLINE,    "drop" }
-    , { EMIT,    IS_INLINE,    "emit" }
+    , { EMIT,    IS_INLINE,    "emit" },    { TIMER,   IS_INLINE,    "timer" }
     , { ADD,     IS_INLINE,    "+" },       { SUB,     IS_INLINE,    "-" }
     , { MULT,    IS_INLINE,    "*" },       { SLMOD,   IS_INLINE,    "/mod" }
     , { LT,      IS_INLINE,    "<" },       { EQ,      IS_INLINE,    "=" }
@@ -227,44 +227,41 @@ void Run(char *y) {
 next:
     switch (*(pc++)) {
     case STOP:                                                 return;
-    case LIT1: push(*(pc++));                                   NEXT;
-    case LIT4: push(*(cell_t*)pc); pc += sizeof(cell_t);        NEXT;
+    case LIT1: push(*(pc++));                                               NEXT;
+    case LIT4: push(*(cell_t*)pc); pc += sizeof(cell_t);                    NEXT;
     case CALL: if (*pc != EXIT) { rstk[++rsp] = (pc+sizeof(cell_t)); }
-            pc = *(char**)pc;                                   NEXT;
-    case EXIT: if (rsp<1) { rsp=0; return; } pc=rstk[rsp--];    NEXT;
-    case JMP: pc = *(char**)pc;                                 NEXT;
+            pc = *(char**)pc;                                               NEXT;
+    case EXIT: if (rsp<1) { rsp=0; return; } pc=rstk[rsp--];                NEXT;
+    case JMP: pc = *(char**)pc;                                             NEXT;
     case JMPZ: if (pop()==0) { pc = *(char**)pc; }
-             else { pc += sizeof(cell_t); }                     NEXT;
-    case JMPNZ: if (pop()) { pc = *(char**)pc; }
-             else { pc += sizeof(cell_t); }                     NEXT;
-    case STORE: Store((char*)TOS, NOS); DROP2;                  NEXT;
-    case CSTORE: *(char*)TOS = (char)NOS; DROP2;                NEXT;
-    case FETCH: TOS = Fetch((char*)TOS);                        NEXT;
-    case CFETCH: TOS = *(char*)TOS;                             NEXT;
-    case DUP: push(TOS);                                        NEXT;
-    case SWAP: t1=TOS; TOS=NOS; NOS=t1;                         NEXT;
-    case OVER: push(NOS);                                       NEXT;
-    case DROP: DROP1;                                           NEXT;
-    case ADD: NOS += TOS; DROP1;                                NEXT;
-    case SUB: NOS -= TOS; DROP1;                                NEXT;
-    case MULT: NOS *= TOS; DROP1;                               NEXT;
-    case SLMOD: t1=NOS; t2=TOS; NOS=t1/t2; TOS=t1%t2;           NEXT;
-    case LT: NOS = (NOS <  TOS) ? -1 : 0; DROP1;                NEXT;
-    case EQ: NOS = (NOS == TOS) ? -1 : 0; DROP1;                NEXT;
-    case GT: NOS = (NOS >  TOS) ? -1 : 0; DROP1;                NEXT;
-    case NOT: TOS = (TOS) ? 0: -1;                              NEXT;
-    case EMIT: printChar((char)pop());                          NEXT;
-    case TIMER: push(clock());                                  NEXT;
-    case DEC: --TOS;                                            NEXT;
-    case INC: ++TOS;                                            NEXT;
-    case DO: lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();         NEXT;
-    case LOOP: if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; }; NEXT;
+             else { pc += sizeof(cell_t); }                                 NEXT;
+    case JMPNZ: if (pop()) { pc=*(char**)pc; } else { pc+=sizeof(cell_t); } NEXT;
+    case STORE: Store((char*)TOS, NOS); DROP2;                              NEXT;
+    case CSTORE: *(char*)TOS = (char)NOS; DROP2;                            NEXT;
+    case FETCH: TOS = Fetch((char*)TOS);                                    NEXT;
+    case CFETCH: TOS = *(char*)TOS;                                         NEXT;
+    case DUP: push(TOS);                                                    NEXT;
+    case SWAP: t1=TOS; TOS=NOS; NOS=t1;                                     NEXT;
+    case OVER: push(NOS);                                                   NEXT;
+    case DROP: DROP1;                                                       NEXT;
+    case ADD: NOS += TOS; DROP1;                                            NEXT;
+    case SUB: NOS -= TOS; DROP1;                                            NEXT;
+    case MULT: NOS *= TOS; DROP1;                                           NEXT;
+    case SLMOD: t1=NOS; t2=TOS; NOS=t1/t2; TOS=t1%t2;                       NEXT;
+    case LT: NOS = (NOS <  TOS) ? -1 : 0; DROP1;                            NEXT;
+    case EQ: NOS = (NOS == TOS) ? -1 : 0; DROP1;                            NEXT;
+    case GT: NOS = (NOS >  TOS) ? -1 : 0; DROP1;                            NEXT;
+    case NOT: TOS = (TOS) ? 0: -1;                                          NEXT;
+    case EMIT: printChar((char)pop());                                      NEXT;
+    case TIMER: push(clock());                                              NEXT;
+    case DEC: --TOS;                                                        NEXT;
+    case INC: ++TOS;                                                        NEXT;
+    case DO: lsp+=3; L2=(cell_t)pc; L0=pop(); L1=pop();                     NEXT;
+    case LOOP: if (++L0<L1) { pc=(char*)L2; } else { lsp-=3; };             NEXT;
     case DEFINE: getword(); if (pop()) { Create((char*)pop()); state=1; }   NEXT;
-    case VAR: getword(); if (pop()==0) { NEXT; }
-        Create((char*)pop());
-        CComma(LIT4); Comma((cell_t)vhere); Comma(EXIT);
-        NEXT;
-    case ENDWORD: state=0; CComma(EXIT);                        NEXT;
+    case CREATE: getword(); if (pop()) { Create((char*)pop()); }            NEXT;
+    case FIND: getword(); if (pop()) { find(); } else { push(0); }          NEXT;
+    case ENDWORD: state=0; CComma(EXIT);                                    NEXT;
     case BITOPS: t1 = *(pc++);
         if (t1==11) { NOS &= TOS; DROP1; }               // and
         else if (t1==12) { NOS |= TOS; DROP1; }          // or
@@ -290,7 +287,7 @@ void ParseWord() {
     isNum();
     if (pop()) {
         if (state) {
-            if (BTW(TOS,0,255)) { CComma(LIT1); CComma(pop()); }
+            if (BTW(TOS,0,127)) { CComma(LIT1); CComma(pop()); }
             else { CComma(LIT4); Comma(pop()); }
         }
         RET(1);
@@ -359,11 +356,12 @@ void init() {
     loadNum("mem-sz", MEM_SZ);
     loadNum("vars-sz", VARS_SZ);
     loadNum("(sp)", (cell_t)&sp);
-    loadNum("(rsp)", (cell_t)&rsp);
+    loadNum("(stk)", (cell_t)&stk[0]);
     loadNum("(rsp)", (cell_t)&rsp);
     loadNum("(lsp)", (cell_t)&lsp);
     loadNum("(lstk)", (cell_t)&lstk[0]);
     loadNum("(mem)", (cell_t)&mem.b[0]);
+    loadNum("(vars)", (cell_t)&vars[0]);
     loadNum("word-sz", sizeof(dict_t), 1);
     loadNum("cell", sizeof(cell_t), 1);
     loadNum("(last)", (cell_t)&last);
