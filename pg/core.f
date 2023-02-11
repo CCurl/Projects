@@ -101,8 +101,8 @@ var (len) cell allot
 : S" (lit4) c, vhere ,
     vhere >r 0 vc,
     begin >in @ c@ >in ++
-        dup  0=  if drop rdrop exit then
-        dup 34 = if drop rdrop exit then
+        dup 0= over '"' = or
+        if drop rdrop exit then
         vc, r@ c++
     again ; immediate
 
@@ -127,8 +127,8 @@ var (len) cell allot
     again ;
 
 \ temp for testing
-: elapsed timer swap - 1000 / (.) ." ms " ;
-: gg ." hi there: " 123 . ;
+: ms (.) ."  usec " ;
+: elapsed timer swap - ms ;
 : bm1 timer swap begin 1- dup while drop elapsed ;
 : bm2 timer swap 0 do loop elapsed ;
 : mil #1000 dup * * ;
