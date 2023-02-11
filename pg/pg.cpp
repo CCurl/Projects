@@ -71,19 +71,18 @@ opcode_t opcodes[] = {
 #define L1           lstk[lsp-1]
 #define L2           lstk[lsp-2]
 
-#define BYTES(x)      mem.b[x]
-#define CELLS(x)      mem.c[x]
+#define BYTES(x)      mem[x]
 
 typedef long cell_t;
 typedef unsigned char byte;
-union { cell_t c[MEM_SZ/sizeof(cell_t)]; char b[MEM_SZ]; } mem;
-char vars[VARS_SZ], *vhere;
 typedef struct { char f; char len; char name[NAME_LEN+1]; char *xt; } dict_t;
 
 cell_t stk[STK_SZ+1], sp, rsp;
 char *rstk[STK_SZ+1];
-cell_t state, base;
 cell_t lstk[LSTK_SZ+1], lsp;
+char mem[MEM_SZ];
+char vars[VARS_SZ], *vhere;
+cell_t state, base;
 char *here, *pc, tib[128], *in;
 dict_t *last;
 
@@ -354,20 +353,20 @@ void init() {
         ++op;
     }
     loadNum("mem-sz", MEM_SZ);
-    loadNum("vars-sz", VARS_SZ);
-    loadNum("(sp)", (cell_t)&sp);
-    loadNum("(stk)", (cell_t)&stk[0]);
-    loadNum("(rsp)", (cell_t)&rsp);
-    loadNum("(lsp)", (cell_t)&lsp);
-    loadNum("(lstk)", (cell_t)&lstk[0]);
-    loadNum("(mem)", (cell_t)&mem.b[0]);
-    loadNum("(vars)", (cell_t)&vars[0]);
     loadNum("word-sz", sizeof(dict_t), 1);
     loadNum("cell", sizeof(cell_t), 1);
+    loadNum("(mem)", (cell_t)&BYTES(0));
+    loadNum("vars-sz", VARS_SZ);
+    loadNum("(vars)", (cell_t)&vars[0]);
+    loadNum("(vhere)", (cell_t)&vhere);
+    loadNum("(rsp)", (cell_t)&rsp);
+    loadNum("(lstk)", (cell_t)&lstk[0]);
+    loadNum("(lsp)", (cell_t)&lsp);
+    loadNum("(stk)", (cell_t)&stk[0]);
+    loadNum("(sp)", (cell_t)&sp);
     loadNum("(last)", (cell_t)&last);
     loadNum("(last)", (cell_t)&last);
     loadNum("(here)", (cell_t)&here);
-    loadNum("(vhere)", (cell_t)&vhere);
     loadNum(">in", (cell_t)&in);
     loadNum("state", (cell_t)&state);
     loadNum("base", (cell_t)&base);
