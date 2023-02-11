@@ -134,10 +134,11 @@ void Create(char *w) {
 // ( nm--0 )
 void find() {
     char *nm = (char*)pop();
+    int len = strLen(nm);
     dict_t *x = last;
     dict_t *end = (dict_t*)&BYTES(MEM_SZ);
     while (x < end) {
-        if (strEq(nm, x->name, 0)) {
+        if ((len==x->len) && strEq(nm, x->name, 0)) {
             PUSH(x->xt);
             push(x->f);
             RET(1);
