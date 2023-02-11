@@ -26,7 +26,8 @@
 : c, here c! here 1+     (here) ! ;
 : ,  here !  here cell + (here) ! ;
 
-: var create (lit4) c, vhere , (exit) c, ;
+: const create (lit4) c, , (exit) c, ;
+: var vhere const  ;
 : allot vhere + (vhere) ! ;
 : vc, vhere c! 1 allot ;
 : v,  vhere ! cell allot ;
