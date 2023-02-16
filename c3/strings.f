@@ -8,7 +8,7 @@
     dup >r str-end >d >s s++ c@
     begin
         dup if   s++ c@ d++ c! r@ c++ 1-
-        else     c! r> exit
+        else   d c! r> exit
         then
     again ;
 : str-trunc ( s--s ) 0 2dup over c! 1+ c! ;
