@@ -12,7 +12,7 @@
 : bye 999 state ! ;
 : cells cell * ; inline
 
-: c, here c! here 1+     (here) ! ;
+: c, here c! (here) ++ ;
 : ,  here !  here cell + (here) ! ;
 
 : allot vhere + (vhere) ! ;
@@ -29,8 +29,8 @@
 
 : tuck swap over ; inline
 : nip  swap drop ; inline
+: 2dup over over ; inline
 : ?dup dup if dup then ;
-: 2dup over over ;
 
 : begin here         ; immediate
 : while (jmpnz) c, , ; immediate
@@ -38,14 +38,10 @@
 : again (jmp)   c, , ; immediate
 
 : +!  tuck @  + swap !  ; inline
-: ++  dup @  1+ swap !  ; inline
-: c++ dup c@ 1+ swap c! ; inline
 
-: ( begin 
-        >in @ c@ >in ++
-        dup 0= if drop exit then
-        ')' = if exit then
-    again ; immediate
+: 1-  [ (decop) c, 11 c, ] ; inline
+: --  [ (decop) c, 12 c, ] ; inline
+: c-- [ (decop) c, 13 c, ] ; inline
 
 : and [ (bitop) c, 11 c, ] ; inline
 : or  [ (bitop) c, 12 c, ] ; inline
@@ -58,6 +54,12 @@
 : rdrop r> drop ; inline
 : rot  >r swap r> swap ;
 : -rot swap >r swap r> ;
+
+: ( begin 
+        >in @ c@ >in ++
+        dup 0= if drop exit then
+        ')' = if exit then
+    again ; immediate
 
 : bl 32 ; inline
 : space bl emit ; inline
@@ -101,24 +103,23 @@ var (d) cell allot
 : s (s) @ ; : >s (s) ! ; : s++ s (s) ++ ;
 : d (d) @ ; : >d (d) ! ; : d++ d (d) ++ ;
 
-: (") vhere dup >d 0 d++ c!
+: i" vhere dup >d 0 d++ c!
     begin >in @ c@ >s >in ++
         s 0= s '"' = or
         if 0 d++ c! exit then
         s d++ c! vhere c++
     again ;
 
-: s" (") state @ if (lit4) c, , d (vhere) ! then ; immediate
+: s" i" state @ if (lit4) c, , d (vhere) ! then ; immediate
 
-: ." (") state @ 0= if count type exit then
+: ." i" state @ 0= if count type exit then
     (lit4) c, , d (vhere) !
     (call) c, [ (lit4) c, ' count drop drop , ] ,
     (call) c, [ (lit4) c, ' type  drop drop , ] , ;  immediate
 
 : words last begin
-        ?dup if dup cell + 1+ count type tab @
-        else exit
-        then
+        dup 0= if drop exit then
+        dup cell + 1+ count type tab @
     again ;
 
 : binary  %10 base ! ;
