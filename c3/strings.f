@@ -17,3 +17,5 @@
     >r <# #s drop
     begin r@ str-catc drop ?dup while
      r> ;
+: str-scat ( dst src--dst ) swap str-cat ;
+: str-scatn ( dst src--dst ) swap str-catn ;
