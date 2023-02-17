@@ -16,11 +16,12 @@
 : ,  here !  here cell + (here) ! ;
 
 : allot vhere + (vhere) ! ;
-: vc, vhere c! 1 allot ;
+: vc, vhere c! (vhere) ++ ;
 : v,  vhere ! cell allot ;
 
 : const create (lit4) c, , (exit) c, ;
 : var vhere const ;
+: (var) here 1- cell - const ;
 
 : if  (jmpz) c, here 0 , ; immediate
 : else (jmp) c, here swap 0 , here swap ! ; immediate
@@ -37,20 +38,15 @@
 : until (jmpz)  c, , ; immediate
 : again (jmp)   c, , ; immediate
 
-: +!  tuck @  + swap !  ; inline
+: +! tuck @ + swap ! ; inline
+: c++ dup @ 1+ swap ! ;
+: c-- dup @ 1- swap ! ;
+: 2* dup + ; inline
 
-: 1-  [ (decop) c, 11 c, ] ; inline
-: --  [ (decop) c, 12 c, ] ; inline
-: c-- [ (decop) c, 13 c, ] ; inline
+: fopen  [ (fileop) c, 11 c, ] ; inline
+: fclose [ (fileop) c, 12 c, ] ; inline
+: load   [ (fileop) c, 13 c, ] ; inline
 
-: and [ (bitop) c, 11 c, ] ; inline
-: or  [ (bitop) c, 12 c, ] ; inline
-: xor [ (bitop) c, 13 c, ] ; inline
-: com [ (bitop) c, 14 c, ] ; inline
-
-: >r [ (retop) c, 11 c, ] ; inline
-: r@ [ (retop) c, 12 c, ] ; inline
-: r> [ (retop) c, 13 c, ] ; inline
 : rdrop r> drop ; inline
 : rot  >r swap r> swap ;
 : -rot swap >r swap r> ;
@@ -61,10 +57,10 @@
         ')' = if exit then
     again ; immediate
 
-: bl 32 ; inline
+: bl #32 ; inline
 : space bl emit ; inline
-: tab 9 emit ; inline
-: cr 13 emit 10 emit ; inline
+: tab #9 emit ; inline
+: cr #13 emit #10 emit ; inline
 
 : negate com 1+ ; inline
 : abs dup 0 < if negate then ;
@@ -77,15 +73,12 @@
 : mod /mod drop ; inline
 
 var (neg) cell allot
-var (len) cell allot
 : #digit '0' + dup '9' > if 7 + then ;
-: <# 0 (neg) c! 0 (len) ! dup 0 < 
-    if negate 1 (neg) ! then 0 swap ;         \ ( n1 -- 0 n2 )
-: # base @ /mod swap #digit swap (len) ++ ;   \ ( u1 -- c u2 )
-: #S begin # dup while ;                      \ ( u1 -- u2 )
-: #> ;
-: #- drop (neg) @ if '-' emit then ;
-: #P #- begin emit dup while drop ;           \ ( 0 ... n 0 -- )
+: <# 0 swap dup 0 < (neg) ! abs ;       \ ( n1 -- 0 n2 )
+: # base @ /mod swap #digit swap ;      \ ( u1 -- c u2 )
+: #S begin # dup while ;                \ ( u1 -- u2 )
+: #> drop (neg) @ if '-' then ;
+: #P begin emit dup while drop ;        \ ( 0 ... n 0 -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
 
@@ -98,10 +91,10 @@ var (len) cell allot
 : count dup 1+ swap c@ ; inline
 : type 0 do dup c@ emit 1+ loop drop ;
 
-var (s) cell allot
-var (d) cell allot
-: s (s) @ ; : >s (s) ! ; : s++ s (s) ++ ;
-: d (d) @ ; : >d (d) ! ; : d++ d (d) ++ ;
+var s (var) (s)
+var d (var) (d)
+: >s (s) ! ; : s++ s (s) ++ ;
+: >d (d) ! ; : d++ d (d) ++ ;
 
 : i" vhere dup >d 0 d++ c!
     begin >in @ c@ >s >in ++
@@ -117,9 +110,10 @@ var (d) cell allot
     (call) c, [ (lit4) c, ' count drop drop , ] ,
     (call) c, [ (lit4) c, ' type  drop drop , ] , ;  immediate
 
+: .word dup cell + 1+ count type ;
 : words last begin
         dup 0= if drop exit then
-        dup cell + 1+ count type tab @
+        .word tab @
     again ;
 
 : binary  %10 base ! ;
@@ -128,7 +122,7 @@ var (d) cell allot
 : ? @ . ;
 
 : rshift 0 do 2 / loop ;
-: lshift 0 do 2 * loop ;
+: lshift 0 do 2* loop ;
 
 var (fg) 3 cells allot
 : fg cells (fg) + ;
@@ -140,3 +134,6 @@ marker
 ." c3 - v0.0.1 - Chris Curl" cr
 here mem -   . ." bytes used, "            mem-end here - . ." bytes free." cr
 vhere vars - . ." variable bytes used, " vars-end vhere - . ." bytes free."
+
+: work forget s" work.f" load ;
+: benches forget s" benches.f" load ;
