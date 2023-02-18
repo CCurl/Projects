@@ -7,15 +7,15 @@
 : str-cat ( src dst--dst )
     dup >r str-end >d >s s++ c@
     begin
-        dup if   s++ c@ d++ c! r@ c++ 1-
-        else   d c! r> exit
+        dup if  s++ c@ d++ c! r@ c++ 1-
+        else    d c! r> exit
         then
     again ;
 : str-trunc ( s--s ) 0 2dup over c! 1+ c! ;
 : str-cpy ( src dst--dst ) str-trunc str-cat ;
-: str-catn ( n dst-- ) 
-    >r <# #s drop
+: str-catn ( n dst--dst ) 
+    >r <# #s #>
     begin r@ str-catc drop ?dup while
-     r> ;
+    r> ;
 : str-scat ( dst src--dst ) swap str-cat ;
 : str-scatn ( dst src--dst ) swap str-catn ;
