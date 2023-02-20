@@ -1,42 +1,39 @@
-: last (last) @ ;
 : here (here) @ ;
-: vhere (vhere) @ ;
+: c, here c! (here) ++ ;
+: , here ! here cell + (here) ! ;
 
+: last (last) @ ;
 : immediate 1 last cell + c! ;
 : inline 2 last cell + c! ;
 
 : \ 0 >in @ ! ; immediate
-
 : [ 0 state ! ; immediate
 : ] 1 state ! ;
 : bye 999 state ! ;
-: cells cell * ; inline
 
-: c, here c! (here) ++ ;
-: ,  here !  here cell + (here) ! ;
-
-: allot vhere + (vhere) ! ;
-: vc, vhere c! (vhere) ++ ;
-: v,  vhere ! cell allot ;
-
+: vhere (vhere) @ ;
 : const create (lit4) c, , (exit) c, ;
 : var vhere const ;
 : (var) here 1- cell - const ;
+: cells cell * ; inline
+: allot vhere + (vhere) ! ;
+: vc, vhere c! (vhere) ++ ;
+: v,  vhere ! cell allot ;
 
 : if  (jmpz) c, here 0 , ; immediate
 : else (jmp) c, here swap 0 , here swap ! ; immediate
 : then here swap ! ; immediate
 : exit (exit) c,   ; immediate
 
-: tuck swap over ; inline
-: nip  swap drop ; inline
-: 2dup over over ; inline
-: ?dup dup if dup then ;
-
 : begin here         ; immediate
 : while (jmpnz) c, , ; immediate
 : until (jmpz)  c, , ; immediate
 : again (jmp)   c, , ; immediate
+
+: tuck swap over ; inline
+: nip  swap drop ; inline
+: 2dup over over ; inline
+: ?dup dup if dup then ;
 
 : +! tuck @ + swap ! ; inline
 : c++ dup @ 1+ swap ! ;
@@ -48,9 +45,8 @@
 : -rot swap >r swap r> ;
 
 : ( begin 
-        >in @ c@ >in ++
-        dup 0= if drop exit then
-        ')' = if exit then
+        >in @ c@ dup 0= if drop exit then
+        >in ++ ')' = if exit then
     again ; immediate
 
 : bl #32 ; inline
@@ -85,15 +81,13 @@ var (neg) cell allot
     then ')' emit ;
 
 : count dup 1+ swap c@ ; inline
-: type 0 do dup c@ emit 1+ loop drop ;
+: type ?dup if 0 do dup c@ emit 1+ loop then drop ;
 
-var s (var) (s)
-var d (var) (d)
-: >s (s) ! ; : s++ s (s) ++ ;
-: >d (d) ! ; : d++ d (d) ++ ;
+var s (var) (s) : >s (s) ! ; : s++ s (s) ++ ;
+var d (var) (d) : >d (d) ! ; : d++ d (d) ++ ;
 
 : i" vhere dup >d 0 d++ c!
-    begin >in @ c@ >s >in ++
+    begin >in @ c@ dup >s if >in ++ then
         s 0= s '"' = or
         if 0 d++ c! exit then
         s d++ c! vhere c++
@@ -119,6 +113,9 @@ var d (var) (d)
 
 : rshift 0 do 2 / loop ;
 : lshift 0 do 2* loop ;
+
+: fopen-rt s" rt" fopen ;
+: fopen-wt s" wt" fopen ;
 
 var (fg) 3 cells allot
 : fg cells (fg) + ;
