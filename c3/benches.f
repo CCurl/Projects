@@ -27,4 +27,24 @@ var num cell allot
 
 250 mil bm1
 250 mil bm2
-2 mil bm3
+  2 mil bm3
+
+\ Mandelbrot
+s" regs.f" load
+
+: m-hdr ." The Mandelbrot Set" cr ;
+: sqr dup * ; inline
+
+: doQ rA sqr rS / sC 
+      rB sqr rS / sD
+      rC rD + rK > if rJ sM exit then 
+      rA rB * 100 / rY + sB
+      rC rD - rX + sA
+      iJ ;
+: doL 0 sA 0 sB 0 sJ rS sM begin iT doQ rJ rM < while ;
+: doO doL rJ 40 + dup 126 > if drop 32 then emit ;
+: doX -490 sX 95 0 do doO rX  8 + sX loop cr  ;
+: doY -340 sY 35 0 do doX rY 20 + sY loop ;
+200 sS 1000000 sK
+: mbrot m-hdr 0 sT timer doY timer swap -
+    cr rT . ."  iterations, time=" ms ;

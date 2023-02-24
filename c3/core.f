@@ -15,6 +15,8 @@
 : const create (lit4) c, , (exit) c, ;
 : var vhere const ;
 : (var) here 1- cell - const ;
+: does> r> (jmp) c, , ;
+
 : cells cell * ; inline
 : allot vhere + (vhere) ! ;
 : vc, vhere c! (vhere) ++ ;
@@ -122,11 +124,12 @@ var (fg) 3 cells allot
 : marker here 0 fg ! vhere 1 fg ! last 2 fg ! ;
 : forget 0 fg @ (here) ! 1 fg @ (vhere) ! 2 fg @ (last) ! ;
 : forget-1 last (here) ! last @ (last) ! ;
+
+: work forget s" work.f" load ;
+: benches forget s" benches.f" load ;
+: sb forget s" sandbox.f" load ;
 marker
 
 ." c3 - v0.0.1 - Chris Curl" cr
 here mem -   . ." bytes used, "            mem-end here - . ." bytes free." cr
 vhere vars - . ." variable bytes used, " vars-end vhere - . ." bytes free."
-
-: work forget s" work.f" load ;
-: benches forget s" benches.f" load ;
