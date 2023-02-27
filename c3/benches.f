@@ -43,7 +43,7 @@ s" regs.f" load
       iJ ;
 : doL 0 sA 0 sB 0 sJ rS sM begin iT doQ rJ rM < while ;
 : doO doL rJ 40 + dup 126 > if drop 32 then emit ;
-: doX -490 sX 95 0 do doO rX  8 + sX loop cr  ;
+: doX -490 sX 95 0 do doO rX  8 + sX loop cr ;
 : doY -340 sY 35 0 do doX rY 20 + sY loop ;
 200 sS 1000000 sK
 : mbrot m-hdr 0 sT timer doY timer swap -
