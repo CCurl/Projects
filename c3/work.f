@@ -3,7 +3,7 @@ marker
 s" strings.f" load
 var pad 64 allot
 : reload forget s" work.f" load ;
-: words-n last swap 1+ 1 do .word tab i 10 mod 0= if cr then @ loop drop ;
+: words-n last swap 1+ 1 do .word tab i 10 mod 0= if cr then word-sz + loop drop ;
 : edit s" nvim work.f" system ;
 : pw s" pw" system ;
 : li s" chrome https://fwut-proc-a.mmm.com:1443/netaccess/loginuser.html" system ;

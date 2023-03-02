@@ -1,5 +1,4 @@
-\ The Babylon square root algorithm
-\ 
+\ A bandbox for messing around
 forget
 
 \ Some trigonometry stuff ...
@@ -12,8 +11,11 @@ var opp (var) (opp) : >opp (opp) ! ;
 var hyp (var) (hyp) : >hyp (hyp) ! ;
 
 : sqr dup * ; inline
+
+\ The Babylon square root algorithm
 : (sqrt) ( n--sqrt*100 ) 10000 * dup 4 / begin >r dup r@ / r@ + 2 / dup r> - while nip ;
 : sqrt ( n--0|sqrt*100 ) dup 0 > if (sqrt) else drop 0 then ;
+
 : .00 ( n-- ) 100 /mod (.) '.' emit abs <# # # #> #P ;
 : .adj adj .00 ; : .opp opp .00 ; : .hyp hyp .00 ;
 : .point '(' emit swap (.) ',' emit (.) ')' emit ;
@@ -25,14 +27,3 @@ var hyp (var) (hyp) : >hyp (hyp) ! ;
     xt xf - 100 * >adj
     yt yf - 100 * >opp 
     adj 100 / sqr opp 100 / sqr + sqrt >hyp ;
-
-forget
-
-\ try to implement DOES>
-
-: does> r> (jmp) c, , ;
-: lit, (lit4) c, , ;
-: next-3 create dup lit, 1+ dup lit, 1+ lit, does> . . . ;
-
-22 next-3 ggg
-ggg
