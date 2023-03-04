@@ -1,4 +1,8 @@
 \ Support for temporary variables
+\
+\ Examples:
+\ : btw  ( n h l--f ) +tmps  s3 s2 s1  r2 r1 <   r1 r3 <   and  -tmps ;
+\ : btwi ( n h l--f ) +tmps  s3 s2 s1  r2 r1 <=  r1 r3 <=  and  -tmps ;
 
 var tmps 100 cells allot
 var tb (var) (tb)

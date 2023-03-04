@@ -16,6 +16,8 @@
 : var vhere const ;
 : (var) here 1- cell - const ;
 : does> r> last ! ;
+: :noname here 1 state ! ;
+: exec >r ;
 
 : cells cell * ; inline
 : allot vhere + (vhere) ! ;
@@ -41,6 +43,8 @@
 : c++ dup @ 1+ swap ! ;
 : c-- dup @ 1- swap ! ;
 : 2* dup + ; inline
+: <= > 0= ; inline
+: >= < 0= ; inline
 
 : rdrop r> drop ; inline
 : rot  >r swap r> swap ;
@@ -56,10 +60,10 @@
 : tab #9 emit ; inline
 : cr #13 emit #10 emit ; inline
 
-: negate com 1+ ; inline
-: abs dup 0 < if negate then ;
-: min over over > if swap then drop ;
-: max over over < if swap then drop ;
+: negate  com 1+ ; inline
+: abs  dup 0 < if negate then ;
+: min  over over > if swap then drop ;
+: max  over over < if swap then drop ;
 
 : i (i) @ ;
 : +i (i) +! ;
@@ -87,8 +91,8 @@ var (neg) cell allot
 : count ( str--a n ) dup 1+ swap c@ ; inline
 : type  ( a n-- ) ?dup if 0 do dup c@ emit 1+ loop then drop ;
 
-var s (var) (s) : >s (s) ! ; : s++ s (s) ++ ;
-var d (var) (d) : >d (d) ! ; : d++ d (d) ++ ;
+var s  (var) (s)  : >s (s) ! ;  : s++ s (s) ++ ;
+var d  (var) (d)  : >d (d) ! ;  : d++ d (d) ++ ;
 
 : i" ( --str ) vhere dup >d 0 d++ c!
     begin >in @ c@ dup >s if >in ++ then
@@ -120,8 +124,11 @@ var d (var) (d) : >d (d) ! ; : d++ d (d) ++ ;
 : rshift ( n1 s--n2 ) 0 do 2 / loop ;
 : lshift ( n1 s--n2 ) 0 do 2* loop ;
 
-: fopen-rt s" rt" fopen ;
-: fopen-wt s" wt" fopen ;
+: load next-word drop 1- (load) ;
+: fopen-r s" rb" fopen ;
+: fopen-w s" wb" fopen ;
+: fopen-a s" ab" fopen ;
+: fopen-rw s" r+b" fopen ;
 : ->stdout 0 (output_fp) ! ;
 
 var (fg) 3 cells allot
@@ -129,12 +136,13 @@ var (fg) 3 cells allot
 : marker here 0 fg ! vhere 1 fg ! last 2 fg ! ;
 : forget 0 fg @ (here) ! 1 fg @ (vhere) ! 2 fg @ (last) ! ;
 : forget-1 last @ (here) ! last word-sz + (last) ! ;
-
-: work forget s" work.f" load ;
-: benches forget s" benches.f" load ;
-: sb forget s" sandbox.f" load ;
 marker
 
-." c3 - v0.0.1 - Chris Curl" cr
+." c3 - v0.0.2 - Chris Curl" cr
 here mem -   . ." code bytes used, " last here - . ." bytes free." cr
 vhere vars - . ." variable bytes used, " vars-end vhere - . ." bytes free."
+
+: work forget s" work.f" (load) ;
+: benches forget s" benches.f" (load) ;
+: sb forget s" sandbox.f" (load) ;
+marker

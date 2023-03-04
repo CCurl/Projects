@@ -30,7 +30,7 @@ var num cell allot
   2 mil bm3
 
 \ Mandelbrot
-s" regs.f" load
+load regs.f
 
 : m-hdr ." The Mandelbrot Set" cr ;
 : sqr dup * ; inline
