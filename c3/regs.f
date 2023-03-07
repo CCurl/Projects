@@ -1,31 +1,19 @@
-var regs 26 cells allot
-: >reg  ( n r-- ) cells regs + ! ;
-: reg>  ( r--n )  cells regs + @ ;
-: reg++ ( r-- )   cells regs + ++ ;
+\ Words for saving / restoring registers
 
-: rA  0 reg> ; : sA  0 >reg ;
-: rB  1 reg> ; : sB  1 >reg ;
-: rC  2 reg> ; : sC  2 >reg ;
-: rD  3 reg> ; : sD  3 >reg ;
-: rE  4 reg> ; : sE  4 >reg ;
-: rF  5 reg> ; : sF  5 >reg ;
-: rG  6 reg> ; : sG  6 >reg ;
-: rH  7 reg> ; : sH  7 >reg ;
-: rI  8 reg> ; : sI  8 >reg ;
-: rJ  9 reg> ; : sJ  9 >reg ; : iJ 9 reg++ ;
-: rK 10 reg> ; : sK 10 >reg ;
-: rL 11 reg> ; : sL 11 >reg ;
-: rM 12 reg> ; : sM 12 >reg ;
-: rN 13 reg> ; : sN 13 >reg ;
-: rO 14 reg> ; : sO 14 >reg ;
-: rP 15 reg> ; : sP 15 >reg ;
-: rQ 16 reg> ; : sQ 16 >reg ;
-: rR 17 reg> ; : sR 17 >reg ;
-: rS 18 reg> ; : sS 18 >reg ;
-: rT 19 reg> ; : sT 19 >reg ; : iT 19 reg++ ;
-: rU 20 reg> ; : sU 20 >reg ;
-: rV 21 reg> ; : sV 21 >reg ;
-: rW 22 reg> ; : sW 22 >reg ;
-: rX 23 reg> ; : sX 23 >reg ;
-: rY 24 reg> ; : sY 24 >reg ;
-: rZ 25 reg> ; : sZ 25 >reg ;
+var T0 100 cells allot
+var T1   1 cells allot
+0 T1 !
+
+: T2 ( -- )   T1 @ 1+  0 max T1 ! ;
+: T3 ( n-- )  T2 T1 @ cells T0 + ! ;
+
+: T4 ( -- )   T1 @ 1- 99 min T1 ! ;
+: T5 ( --n )  T1 @ cells T0 + @ T4 ;
+
+: +regs ( n-- )  dup 
+    0 do i cells regs + @ T3 loop ;
+
+: -regs ( n-- )  dup 
+    begin 1- T5 over cells regs + ! dup while drop ;
+
+: .regs 10 0 do i cells regs + @ . loop ;

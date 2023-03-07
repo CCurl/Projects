@@ -1,6 +1,8 @@
 \ A bandbox for messing around
 forget
 
+\ (input_fp) fclose
+
 \ Some trigonometry stuff ...
 var xf  (var) (xf)  : >xf  (xf)  ! ;
 var xt  (var) (xt)  : >xt  (xt)  ! ;
