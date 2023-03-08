@@ -8,19 +8,17 @@
 ' locs loaded?
 
 var locs 50 cells allot
-var lb
-(var) (lb)
+var T8
+(var) T9
+0 T9 !
 
-: >lb (lb) ! ;
-0 >lb
+: +locs T8 5 + 45 min T9 ! ;
+: -locs T8 5 -  0 max T9 ! ;
+: T0 T8 + cells locs + @ ;
+: T1 T8 + cells locs + ! ;
 
-: +locs lb 5 + 45 min >lb ;
-: -locs lb 5 -  0 max >lb ;
-: loc> lb + cells locs + @ ;
-: >loc lb + cells locs + ! ;
-
-: l1  0 loc> ;   : >l1  0 >loc ;
-: l2  1 loc> ;   : >l2  1 >loc ;
-: l3  2 loc> ;   : >l3  2 >loc ;
-: l4  3 loc> ;   : >l4  3 >loc ;
-: l5  4 loc> ;   : >l5  4 >loc ;
+: l1  0 T0 ;   : >l1  0 T1 ;
+: l2  1 T0 ;   : >l2  1 T1 ;
+: l3  2 T0 ;   : >l3  2 T1 ;
+: l4  3 T0 ;   : >l4  3 T1 ;
+: l5  4 T0 ;   : >l5  4 T1 ;
