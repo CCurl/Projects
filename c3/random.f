@@ -1,5 +1,8 @@
 \ Random words
 
+: loaded? if drop drop forget-1 99 state ! then ;
+' seed loaded?
+
 var seed cell allot
 
 : random ( --n )

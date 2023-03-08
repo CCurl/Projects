@@ -1,5 +1,8 @@
 \ String words
 
+: loaded? if drop drop forget-1 99 state ! then ;
+' str-end loaded?
+
 : str-end ( s--e ) dup c@ + 1+ ;
 : str-nullterm ( s--s ) 0 over str-end c! ;
 : str-catc ( c dst--dst ) tuck str-end c! dup c++ str-nullterm ;
