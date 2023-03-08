@@ -22,29 +22,32 @@ var num cell allot
     timer swap begin 1- dup while drop elapsed ;
 : bm2 cr ." Bench: empty do loop, " dup . ." iterations ... "
     timer swap 0 do loop elapsed ;
-: bm3 cr ." Bench: number of primes in " dup . ." ... "
+: bm3 cr ." Bench: register decrement loop, " dup . ." iterations ... "
+    s9 timer begin d9 r9 while elapsed ;
+: bm4 cr ." Bench: number of primes in " dup . ." ... "
     timer swap num-primes elapsed ;
 
 250 mil bm1
 250 mil bm2
-  2 mil bm3
+250 mil bm3
+  2 mil bm4
 
 \ Mandelbrot
-load regs.f
-
 : m-hdr ." The Mandelbrot Set" cr ;
 : sqr dup * ; inline
 
-: doQ rA sqr rS / sC 
-      rB sqr rS / sD
-      rC rD + rK > if rJ sM exit then 
-      rA rB * 100 / rY + sB
-      rC rD - rX + sA
-      iJ ;
-: doL 0 sA 0 sB 0 sJ rS sM begin iT doQ rJ rM < while ;
-: doO doL rJ 40 + dup 126 > if drop 32 then emit ;
-: doX -490 sX 95 0 do doO rX  8 + sX loop cr ;
-: doY -340 sY 35 0 do doX rY 20 + sY loop ;
-200 sS 1000000 sK
-: mbrot m-hdr 0 sT timer doY timer swap -
-    cr rT . ."  iterations, time=" ms ;
+1000000 const TGT
+
+: doQ r1 sqr r6 / s3
+      r2 sqr r6 / s4
+      r3 r4 + TGT > if r5 s7 exit then 
+      r1 r2 * 100 / r9 + s2
+      r3 r4 - r8 + s1
+      i5 ;
+: doL 0 s1 0 s2 0 s5 r6 s7 begin i0 doQ r5 r7 < while ;
+: doO doL r5 40 + dup 126 > if drop 32 then emit ;
+: doX -490 s8 95 0 do doO r8  8 + s8 loop cr ;
+: doY -340 s9 35 0 do doX r9 20 + s9 loop ;
+200 s6
+: mbrot m-hdr 0 s0 timer doY timer swap -
+    cr r0 . ."  iterations, time=" ms ;

@@ -1,7 +1,9 @@
 \ A bandbox for messing around
 forget
 
-\ (input_fp) fclose
+\ Test stop-load
+99 state !
+." this should not appear!"
 
 \ Some trigonometry stuff ...
 var xf  (var) (xf)  : >xf  (xf)  ! ;
