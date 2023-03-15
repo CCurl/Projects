@@ -13,7 +13,7 @@
         1+ 1+
     again ;
 
-var num cell allot
+variable num cell
 : num-primes 4 num ! 11 do
         i 3 prime? if num ++ then 1 +i
     loop num ? ;
