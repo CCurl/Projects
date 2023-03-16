@@ -11,17 +11,17 @@ load strings.f
         loop
     then
     r2 str-trunc drop
-    r1 0= if exit then
+    r1 0= if -regs exit then
     0 s8 begin 
         r1 c@ s5 r5 0= r5 r4 = or s8
         r8 0= if r5 r2 str-catc drop i1 then
     r8 until -regs ;
 
 vhere 100 + s1 s" 111,222,333,444" r1 1 ',' extract-field r1 count type
-vhere 100 + s1 s" 111,222,333,444" r1 2 ',' extract-field r1 count type
-vhere 100 + s1 s" 111,222,333,444" r1 3 ',' extract-field r1 count type
-vhere 100 + s1 s" 111,222,333,444" r1 4 ',' extract-field r1 count type
-vhere 100 + s1 s" 111,222,333,444" r1 5 ',' extract-field r1 count type
+vhere 100 + s1 s" 111,222,333,444" r1 2 ',' extract-field ." ," r1 count type
+vhere 100 + s1 s" 111,222,333,444" r1 3 ',' extract-field ." ," r1 count type
+vhere 100 + s1 s" 111,222,333,444" r1 4 ',' extract-field ." ," r1 count type
+vhere 100 + s1 s" 111,222,333,444" r1 5 ',' extract-field ." ," r1 count type
 
 load-abort
 
