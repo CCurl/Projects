@@ -22,3 +22,8 @@
     r> ;
 : str-scat ( dst src--dst ) swap str-cat ;
 : str-scatn ( dst src--dst ) swap str-catn ;
+: str-findc ( s c--a|0 ) +regs 0 s8 s2 count swap s1 
+    0 do r1 i + s3 r3 c@ s4 
+        r4 r2 = if r3 s8 999 +i then
+        r4  0=  if 999 +i then
+    loop r8 -regs ;

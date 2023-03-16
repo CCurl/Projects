@@ -1,0 +1,20 @@
+xX
+:CODE 0@1[nc@#58=(ndc@59=("%n"),];
+:RELOAD 1000#|EXTRACT|\xL;
+
+0(EXTRACT: from-str to-str fld-num delim -- rC:num )
+:EXTRACT l+ s4 s3 s2 s1
+    0 r2 c! 0( empty to-str )
+    0( skip to nth fld ... ) 
+    r3 1 [r1 r4 sf 1+ s1]
+    0( collect num into r2/to-str .. )
+    r2 s5 0( r5: temp char ptr )
+    {r1 c@ r5 c! i1 i5 r1 c@ r4 = ~} 0 r5 c! 
+    r2 xE sC rC " -extracted integer %d- " 
+    rC rM >( " new peak " rC sM )
+    l-;
+
+1000# |abc, 234, ueu, 456,,| \ sF
+2000 sT
+rF rT 2 ', EXTRACT
+rF rT 4 ', EXTRACT
