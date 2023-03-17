@@ -12,8 +12,8 @@ xX
     r2 s5 0( r5: temp char ptr )
     {r1 c@ r5 c! i1 i5 r1 c@ r4 = ~} 0 r5 c! 
     xS r2 "[%s]"
-    r2 xE sC rC " -extracted integer %d- "
-    rC rM >(rc sM 0(" new peak "))
+    r2 xE sC rC "-extracted integer:%d-"
+    rC rM >(rC sM "-new peak-")
     l-;
 
 :GBIN rV+ @; 0( n--c )
