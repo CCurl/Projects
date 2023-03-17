@@ -1,28 +1,46 @@
 xX
 :CODE 0@1[nc@#58=(ndc@59=("%n"),];
-:RELOAD 1000#|EXTRACT|\xL;
+:RL 1000#|EXTRACT|\xL;
 
 0(EXTRACT: from-str to-str fld-num delim -- rC:num )
 :EXTRACT l+ s4 s3 s2 s1
     0 r2 c! 0( empty to-str )
+    r3 1 < (l- ^)
     0( skip to nth fld ... ) 
     r3 1 [r1 r4 sf 1+ s1]
     0( collect num into r2/to-str .. )
     r2 s5 0( r5: temp char ptr )
     {r1 c@ r5 c! i1 i5 r1 c@ r4 = ~} 0 r5 c! 
-    r2 "[%s]"
-    r2 xE sN rN " -extracted integer %d- " 
-    rN rM >( " new peak " rC sM )
+    xS r2 "[%s]"
+    r2 xE sC rC " -extracted integer %d- "
+    rC rM >(rc sM 0(" new peak "))
     l-;
 
+:GBIN rV+ @; 0( n--c )
+:SBIN rV+ !; 0( c n-- )
+:IBIN rC GBIN 1+ rC SBIN; 0( n-- )
+:STARS #(#0["*"])\;
+:DUMPBIN 50 0[n GBIN(n "%n%d:" 9, n GBIN STARS)];
 :COLL r1 10=~(rB r1 sc \);
-:GO rB "%n%s" rB rF 2 ', EXTRACT rB st \;
+:GO rB "%n%s" rB rF 2 ', EXTRACT IBIN rB st \;
 :CH COLL r1 10=(rA 10+ sA) rA 20=(0 sA GO);
 
-0 sA 0 sM
-1000 sB rB st \
-2000 rF
+0( rA: line count )
+0( rB: line buffer )
+0( rC: current number )
+0( rF: field buffer )
+0( rM: current max )
+0( rP: port handle )
+0( rV: bin storage start )
 
-900#|data|\ 0fO sP
-{rP fR s0 s1 r0 (CH) r0}\
+0( Initialize )
+0 sA 0 sM
+0@ 1000+ sB rB st \
+0@  900+ sF
+100 sV
+
+0( do the work )
+rF|data|\ rF 0fO sP
+{rP fR s2 s1 r2 (CH) r2}\
 rP fC
+DUMPBIN
