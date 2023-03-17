@@ -10,11 +10,19 @@ xX
     0( collect num into r2/to-str .. )
     r2 s5 0( r5: temp char ptr )
     {r1 c@ r5 c! i1 i5 r1 c@ r4 = ~} 0 r5 c! 
-    r2 xE sC rC " -extracted integer %d- " 
-    rC rM >( " new peak " rC sM )
+    r2 "[%s]"
+    r2 xE sN rN " -extracted integer %d- " 
+    rN rM >( " new peak " rC sM )
     l-;
 
-1000# |abc, 234, ueu, 456,,| \ sF
-2000 sT
-rF rT 2 ', EXTRACT
-rF rT 4 ', EXTRACT
+:COLL r1 10=~(rB r1 sc \);
+:GO rB "%n%s" rB rF 2 ', EXTRACT rB st \;
+:CH COLL r1 10=(rA 10+ sA) rA 20=(0 sA GO);
+
+0 sA 0 sM
+1000 sB rB st \
+2000 rF
+
+900#|data|\ 0fO sP
+{rP fR s0 s1 r0 (CH) r0}\
+rP fC
