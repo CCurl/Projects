@@ -11,19 +11,21 @@ xX
     0( collect num into r2/to-str .. )
     r2 s5 0( r5: temp char ptr )
     {r1 c@ r5 c! i1 i5 r1 c@ r4 = ~} 0 r5 c! 
-    xS r2 "[%s]"
-    r2 xE sC rC "-extracted integer:%d-"
-    rC rM >(rC sM "-new peak-")
+    DEBUG (xS r2 "[%s]")
+    r2 xE sC DEBUG (rC "-extracted integer:%d-")
+    rC rM >(rC sM DEBUG ("-new peak-"))
     l-;
 
-:GBIN rV+ @; 0( n--c )
-:SBIN rV+ !; 0( c n-- )
-:IBIN rC GBIN 1+ rC SBIN; 0( n-- )
-:STARS #(#0["*"])\;
-:DUMPBIN 50 0[n GBIN(n "%n%d:" 9, n GBIN STARS)];
-:COLL r1 10=~(rB r1 sc \);
-:GO rB "%n%s" rB rF 2 ', EXTRACT IBIN rB st \;
-:CH COLL r1 10=(rA 10+ sA) rA 20=(0 sA GO);
+:DEBUG 0;    0( --f ... 1 => debug, 0 => no-debug )
+:GBIN rV+ @;    0( n--c )
+:SBIN rV+ !;    0( c n-- )
+:IBIN rC GBIN 1+ rC SBIN;    0( -- )
+:STARS #(#0["*"])\;    0( n-- )
+:DUMPBIN "%n%nSTATS%n" 9 STARS 50 0[n GBIN(n GBIN n "%n%d: %d")];
+:SHOW "%n" rC STARS rC " (%d)";    0( -- )
+:COLL r1 10=~(rB r1 sc \);    0( -- )
+:GO DEBUG (rB "%n%s") rB rF 2 ', EXTRACT IBIN SHOW rB st \;
+:CHAR COLL r1 10=(rA 10+ sA) rA 20=(0 sA GO);
 
 0( rA: line count )
 0( rB: line buffer )
@@ -34,13 +36,14 @@ xX
 0( rV: bin storage start )
 
 0( Initialize )
-0 sA 0 sM
-0@ 1000+ sB rB st \
-0@  900+ sF
-100 sV
+:INIT
+   0 sA 0 sM
+   0@ 1000+ sB rB st \
+   0@  900+ sF
+   100 sV;
 
 0( do the work )
-rF|data|\ rF 0fO sP
-{rP fR s2 s1 r2 (CH) r2}\
-rP fC
-DUMPBIN
+:RUN INIT rF|data|\ rF 0fO sP
+   {rP fR s2 s1 r2 (CHAR) r2}\
+   rP fC;
+RUN DUMPBIN
