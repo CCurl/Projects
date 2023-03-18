@@ -39,6 +39,7 @@
 : tuck  swap over ; inline
 : nip   swap drop ; inline
 : 2dup  over over ; inline
+: 2drop drop drop ; inline
 : ?dup  dup if dup then ;
 
 : +!  tuck @ + swap ! ; inline
@@ -94,20 +95,19 @@ variable (neg)
 : count ( str--a n ) dup 1+ swap c@ ; inline
 : type  ( a n-- ) ?dup if 0 do dup c@ emit 1+ loop then drop ;
 
-val s  (val) (s)  : >s (s) ! ;  : s++ s (s) ++ ;
-val d  (val) (d)  : >d (d) ! ;  : d++ d (d) ++ ;
-
-: i" ( --str ) vhere dup >d 0 d++ c!
-    begin >in @ c@ dup >s if >in ++ then
-        s 0= s '"' = or
-        if 0 d++ c! exit then
-        s d++ c! vhere c++
+: T0 r8 c! i8 ;
+: T1 r9 c@ 1+ r9 c! ;
+: T2 ( --str end ) +regs vhere dup s8 s9 0 T0
+    begin >in @ c@ s1 r1 if >in ++ then
+        r1 0= r1 '"' = or
+        if 0 T0 r9 r8 -regs exit then
+        r1 T0 T1
     again ;
 
-: s" ( --str ) i" state @ if (lit4) c, , d (vhere) ! then ; immediate
+: s" ( --str ) T2 state @ 0= if drop exit then (vhere) ! (lit4) c, , ; immediate
 
-: ." ( -- ) i" state @ 0= if count type exit then
-    (lit4) c, , d (vhere) !
+: ." ( -- ) T2 state @ 0= if drop count type exit then
+    (vhere) ! (lit4) c, ,
     (call) c, [ (lit4) c, ' count drop drop , ] ,
     (call) c, [ (lit4) c, ' type  drop drop , ] , ;  immediate
 

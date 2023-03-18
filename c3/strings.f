@@ -1,9 +1,12 @@
 \ String words
 
-: loaded? if drop drop forget-1 99 state ! then ;
+: loaded? forget-1 if 2drop load-abort then ;
 ' str-end loaded?
 
-: str-end ( s--e ) dup c@ + 1+ ;
+val s  (val) (s)  : >s (s) ! ;  : s++ s (s) ++ ;
+val d  (val) (d)  : >d (d) ! ;  : d++ d (d) ++ ;
+
+: str-end ( s--e ) dup c@ + 1+ ; inline
 : str-nullterm ( s--s ) 0 over str-end c! ;
 : str-catc ( c dst--dst ) tuck str-end c! dup c++ str-nullterm ;
 : str-catd ( d dst--dst ) swap dup 9 > if 7 + then '0' + swap str-catc ;

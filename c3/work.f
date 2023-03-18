@@ -2,7 +2,7 @@ marker
 
 load strings.f
 
-var pad 64 allot
+variable pad 100 allot
 : reload forget s" work.f" (load) ;
 : words-n last swap 1+ 1 do .word tab i 10 mod 0= if cr then word-sz + loop drop ;
 : edit s" nvim work.f" system ;
