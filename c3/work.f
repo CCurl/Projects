@@ -1,4 +1,6 @@
-marker
+\ Words for work
+
+' gz-web loaded?
 
 load strings.f
 

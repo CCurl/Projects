@@ -1,6 +1,5 @@
 \ String words
 
-: loaded? forget-1 if 2drop load-abort then ;
 ' str-end loaded?
 
 val s  (val) (s)  : >s (s) ! ;  : s++ s (s) ++ ;
@@ -11,6 +10,7 @@ val d  (val) (d)  : >d (d) ! ;  : d++ d (d) ++ ;
 : str-catc ( c dst--dst ) tuck str-end c! dup c++ str-nullterm ;
 : str-catd ( d dst--dst ) swap dup 9 > if 7 + then '0' + swap str-catc ;
 : str-cat ( src dst--dst )
+    over c@ 0= if nip exit then
     dup >r str-end >d >s s++ c@
     begin
         dup if  s++ c@ d++ c! r@ c++ 1-
