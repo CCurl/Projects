@@ -1,24 +1,31 @@
 \ A sandbox for messing around
-forget
 
-load strings.f
+load string.f
+
+variable p 100 allot
+: ct cr count type ;
+p s-trunc
+p '-' s-catc p ct
+p s" hi-" s-cpy p ct
+p s" there-" s-cat p ct
+p 'a' s-catc p ct
 
 : extract-field ( from to fld delim-- )
-    +regs s4 s3 s2 count drop s1
-    r2 str-trunc drop
+    +regs s4 s3 s2 1+ s1
+    r2 s-trunc
     r3 1 < if -regs exit then
     r3 1 > if 
-        r3 1 do r1 r4 str-findc s1 
+        r3 1 do r1 r4 s-findc s1 
             r1 if i1 else r3 +i then
         loop
     then
     r1 0= if -regs exit then
     0 s8 begin 
         r1 c@ s5 r5 0= r5 r4 = or
-        if 1 s8 else r5 r2 str-catc drop i1 then
+        if 1 s8 else r2 r5 s-catc i1 then
     r8 until -regs ;
 
-vhere 100 + s1
+vhere 100 + s1 cr
 s" aaa" r1 1 ',' extract-field r1 count type ." ,"
 s" 111,222,333,444" r1 1 ',' extract-field r1 count type ." ,"
 s" 111,222,333,444" r1 2 ',' extract-field r1 count type ." ,"

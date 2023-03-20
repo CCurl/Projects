@@ -46,6 +46,7 @@
 : c++ dup @ 1+ swap ! ;
 : c-- dup @ 1- swap ! ;
 : 2*  dup + ; inline
+: 2+  1+ 1+ ; inline
 : <=  > 0= ; inline
 : >=  < 0= ; inline
 : <>  = 0= ; inline
