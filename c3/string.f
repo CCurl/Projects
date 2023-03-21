@@ -2,7 +2,7 @@
 
 ' s-len loaded?
 
-load cmove.f
+load memory.f
 
 : s-len ( str--len ) c@ ; inline
 : s-end ( str--end ) dup s-len + 1+ ; inline

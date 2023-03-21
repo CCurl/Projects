@@ -114,10 +114,11 @@ variable (neg)
     (call) c, [ (lit4) c, ' type  drop drop , ] , ;  immediate
 
 : .word dup cell + 1+ count type ;
-: words last begin
+: words r1 0 s1 last begin
         dup mem-end < if 
+            i1 r1 #11 mod 0= if cr then
             .word tab word-sz +
-        else drop exit
+        else ." (" r1 . ." words)" s1 exit
         then
     again ;
 

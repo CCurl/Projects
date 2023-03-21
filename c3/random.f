@@ -1,9 +1,8 @@
 \ Random words
 
-: loaded? if drop drop forget-1 99 state ! then ;
 ' seed loaded?
 
-var seed cell allot
+variable seed
 
 : random ( --n )
     seed @ dup 0= if drop timer then
