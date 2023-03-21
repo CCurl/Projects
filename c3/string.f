@@ -24,6 +24,7 @@ load cmove.f
     swap >r <# #s #>
     begin r@ swap s-catc ?dup while
     rdrop ;
+: s-scatn ( n dst-- )   swap s-catn ;
 : s-findc ( str ch--a|0 ) \ NB: str is not counted
     +regs s2 s1 0 s8
     r1 s-len 0 do

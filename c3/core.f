@@ -95,6 +95,7 @@ variable (neg)
 
 : count ( str--a n ) dup 1+ swap c@ ; inline
 : type  ( a n-- ) ?dup if 0 do dup c@ emit 1+ loop then drop ;
+: typez ( a-- ) dup c@ dup 0= if 2drop exit then emit 1+ typez ;
 
 : T0 r8 c! i8 ;
 : T1 r9 c@ 1+ r9 c! ;

@@ -2,20 +2,19 @@
 
 ' gz-web loaded?
 
-load strings.f
+load screen.f
+load string.f
 
-: dct cr dup count type ;
+variable p 100 allot
 
-variable pad 100 allot
-: reload forget s" work.f" (load) ;
 : words-n last swap 1+ 1 do .word tab i 10 mod 0= if cr then word-sz + loop drop ;
 : edit s" nvim work.f" system ;
 : pw s" pw" system ;
 : li s" chrome https://fwut-proc-a.mmm.com:1443/netaccess/loginuser.html" system ;
 : yahoo s" chrome http://mail.yahoo.com" system ;
-: dev s" gz-server ccc" dct system ;
-: gz-360 ( n-- ) s" gz-sys "    pad str-cpy str-catn dct system ;
-: gz-bw  ( n-- ) s" gz-bw "     pad str-cpy str-catn dct system ;
-: gz-app ( n-- ) s" gz-server " pad str-cpy str-catn s"  a" str-scat dct system ;
-: gz-web ( n-- ) s" gz-server " pad str-cpy str-catn s"  w" str-scat system ;
+: dev s" gz-server ccc" system ;
+: gz-360 ( n-- ) p s" gz-sys "    s-cpy p s-scatn p system ;
+: gz-bw  ( n-- ) p s" gz-bw "     s-cpy p s-scatn p system ;
+: gz-app ( n-- ) p s" gz-server " s-cpy p s-scatn p s"  a" p s-cat p system ;
+: gz-web ( n-- ) p s" gz-server " s-cpy p s-scatn p s"  w" p s-cat p system ;
 ." words added: " 10 words-n

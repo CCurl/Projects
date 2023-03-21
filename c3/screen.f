@@ -1,8 +1,12 @@
-: t 27 emit '[' emit ; inline
-: t2 t (.) ';' emit (.) ;
-: ->yx ( y x-- ) t2 'H' emit ;
-: cls t ." 2J" 1 dup ->yx ;
-: cur-on  t ." ?25h" ;
-: cur-off t ." ?25l" ;
-: color ( bg fg-- ) t2 'm' emit ;
-: fg 40 swap color ;
+\ Words for screen handling
+
+' cls loaded?
+
+: t       ( -- )       27 emit '[' emit ; inline
+: T0      ( n1 n2-- )  t (.) ';' emit (.) ;
+: cur-on  ( -- )       t ." ?25h" ;
+: cur-off ( -- )       t ." ?25l" ;
+: ->yx    ( y x-- )    T0 'H' emit ;
+: cls     ( -- )       t ." 2J" 1 dup ->yx ;
+: color   ( bg fg-- )  T0 'm' emit ;
+: fg      ( -- )       40 swap color ;
