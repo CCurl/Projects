@@ -6,11 +6,11 @@ load memory.f
 
 : s-len ( str--len ) c@ ; inline
 : s-end ( str--end ) dup s-len + 1+ ; inline
-: s-cpy ( dst src-- ) dup s-len 2+ cmove ;
+: s-cpy ( dst src-- ) tuck s-len 2+ cmove ;
 : s-trunc ( str-- ) 0 swap 2dup 1+ c! c! ;
 : s-cat ( dst src-- )
     +regs s2 s1
-    r1 s-end r2 count 1+ cmove
+    r2 1+ r1 s-end r2 s-len 1+ cmove
     r1 s-len r2 s-len + r1 c!
     -regs ;
 : s-catc ( str ch-- )

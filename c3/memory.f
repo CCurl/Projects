@@ -1,8 +1,17 @@
 ' cmove loaded?
 
-: cmove ( dst src num-- )
+: cmove ( src dst num-- )
     +regs s3 s2 s1
-    r3 0 do r2 c@ r1 c! i2 i1 loop
+    r3 if 
+        r3 0 do r1 c@ r2 c! i2 i1 loop
+    then
+    -regs ;
+
+: cmove> ( src dst num-- )
+    +regs s3 r3 + s2  r3 + s1
+    r3 if
+        r3 0 do r1 c@ r2 c! d2 d1 loop
+    then
     -regs ;
 
 : fill ( dst num ch-- )
