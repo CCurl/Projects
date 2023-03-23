@@ -97,13 +97,13 @@ variable (neg)
 : type  ( a n-- ) ?dup if 0 do dup c@ emit 1+ loop then drop ;
 : typez ( a-- ) dup c@ dup 0= if 2drop exit then emit 1+ typez ;
 
-: T0 r8 c! i8 ;
-: T1 r9 c@ 1+ r9 c! ;
-: T2 ( --str end ) +regs vhere dup s8 s9 0 T0
-    begin >in @ c@ s1 r1 if >in ++ then
+: T8 ( ch-- )   r8 c! i8 ;
+: T2 ( --str end )   +regs
+    vhere dup s8 s9   0 T8
+    begin >in @ c@ s1   r1 if >in ++ then
         r1 0= r1 '"' = or
-        if 0 T0 r9 r8 -regs exit then
-        r1 T0 T1
+        if 0 T8   r9 r8 -regs   exit then
+        r1 T8   r9 c++
     again ;
 
 : s" ( --str ) T2 state @ 0= if drop exit then (vhere) ! (lit4) c, , ; immediate
