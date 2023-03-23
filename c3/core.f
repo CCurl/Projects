@@ -72,7 +72,7 @@
 
 : i  (i) @ ;
 : +i (i) +! ;
-: unloop (lsp) @ 3 - (lsp) ! ;
+: unloop (lsp) @ 3 - 0 max (lsp) ! ;
 
 : /   /mod nip  ; inline
 : mod /mod drop ; inline
@@ -151,7 +151,8 @@ here mem -   . ." code bytes used, " last here - . ." bytes free." cr
 vhere vars - . ." variable bytes used, " vars-end vhere - . ." bytes free."
 forget
 
-: work forget s" work.f" (load) ;
 : benches forget s" benches.f" (load) ;
 : sb forget s" sandbox.f" (load) ;
+: work forget s" work.f" (load) ;
+: ed forget s" editor.f" (load) ;
 marker

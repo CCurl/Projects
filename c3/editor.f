@@ -16,57 +16,70 @@ variable buf buf-sz allot
 val row   (val) (row)   : >row (row) ! ;
 val col   (val) (col)   : >col (col) ! ;  : col++ (col) ++ ;
 val pos   (val) (pos)   : >pos (pos) ! ;
+val refresh?   (val) (rfr)
+: refresh 1 (rfr) ! ;
+: refreshed 0 (rfr) ! ;
 
-val bottom
-(val) (bottom)
+val top     (val) (top) 
+val bottom  (val) (bottom)
 : >bottom (bottom) ! ;
-
-val top
-(val) (top) 
 : >top (top) ! top scr-rows + >bottom ;
 
-: clear-buf ( -- )  buf buf-sz 0 fill ;
+: clear-buf ( -- )    buf buf-sz 0 fill ;
 : line-addr ( n--a )  max-width * buf + ;
-: rc->pos ( -- )   row top +   line-addr   col +   >pos ;
-: ->cur   ( -- )   col 1+   row 1+   ->yx ;
+: rc->pos   ( -- )    row top +   line-addr   col +   >pos ;
+: ->cur     ( -- )    col 1+   row 1+   ->yx ;
 
-: show-screen ( -- )
-    cur-off 1 1 ->yx
-    bottom top do
-        i line-addr typez clr-eol cr
-    loop
-    cur-on   ->cur ;
+: do-refresh ( -- )
+    refresh? if
+        cur-off 1 1 ->yx
+        bottom top do
+            i line-addr typez clr-eol cr
+        loop
+        cur-on
+        refreshed
+    then ;
 
-: delete-num ( num-- ) drop ;
-: insert-num ( num-- ) drop ;
-: insert-ch  ( ch-- )  1 insert-num  pos c!   col++ ;
-: replace-ch ( ch-- )  pos c!   col++ ;
-: delete-ch  ( -- )    1 delete-num ;
+: delete-num ( num-- )  drop ;
+: insert-num ( num-- )  drop ;
+: insert-ch  ( ch-- )   1 insert-num  pos c!   col++   refresh ;
+: replace-ch ( -- )     key   pos c!   col++   refresh ;
+: delete-ch  ( -- )     1 delete-num   refresh ;
 
-: exit?   ( k--f ) 27 = ;
-: key-up? ( k--f ) 'w' = ;
-: key-dn? ( k--f ) 's' = ;
-: del-ch? ( k--f ) 24 = ;
+: exit?      ( k--f )   27 = ;
+: key-up?    ( k--f )  'w' = ;
+: key-down?  ( k--f )  's' = ;
+: key-left?  ( k--f )  'a' = ;
+: key-right? ( k--f )  'd' = ;
+: del-ch?    ( k--f )   24 = ;
+: rep-ch?    ( k--f )  'r' = ;
 
-: scroll-up top 1- 0 max >top ;
-: scroll-dn top 1+ >top ;
+: left  ( -- )  col 1- 0         max >col ;
+: right ( -- )  col 1+ max-width min >col ;
+: up    ( -- )  row 1- 0         max >row ;
+: down  ( -- )  row 1+ scr-rows  min >row ;
+
+: scroll-up   top 1- 0 max >top   refresh ;
+: scroll-dn   top 1+ >top   refresh ;
 
 : handle-ch ( -- )
-    r1 key-up? if scroll-up exit then
-    r1 key-dn? if scroll-dn exit then
-    r1 del-ch? if delete-ch exit then
+    r1 key-up?    if up    exit then
+    r1 key-down?  if down  exit then
+    r1 key-left?  if left  exit then
+    r1 key-right? if right exit then
+    r1 del-ch? if delete-ch  exit then
+    r1 rep-ch? if replace-ch exit then
     31 r1 < r1 127 < and if r1 insert-ch exit then
     r1 . ;
 
 : edit-loop ( -- )
     begin
-        show-screen
-        rc->pos
-        key s1 r1 exit? if exit then
+        do-refresh   ->cur   rc->pos   key s1
+        r1 exit? if exit then
         handle-ch
     again ;
 
-: init 0 >top   0 dup >row >col ;
+: init   0 >top   0 dup >row >col   refresh ;
 
 : read-line ( a fh--eof )
     +regs s2 s1 0 s4
@@ -81,12 +94,12 @@ val top
 : load-file ( fh-- )
     +regs s1 0 s2
     begin
-        r2 line-addr r1 read-line   i2
+        r2 i2 line-addr r1 read-line
     until
     r1 fclose ;
 
 : read-file ( sz-- )
-    clear-buf fopen-rt ?dup 
+    clear-buf   fopen-rt   ?dup
     if load-file else ." -file not found-" then ;
 
 : edit ( -- )
