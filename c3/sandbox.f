@@ -3,12 +3,20 @@
 load string.f
 
 variable p 100 allot
+variable q 100 allot
 : ct cr count type ;
 p s-trunc
 p '-' s-catc p ct
 p s" hi-" s-cpy p ct
 p s" there-" s-cat p ct
 p 'a' s-catc p ct
+q s" hi-" s-cpy q ct
+p q s-eq cr .
+p s" hi-" s-cpy
+p q s-eq cr .
+p s" HI-" s-cpy
+p q s-eq cr .
+p q s-eq-i cr .
 
 : extract-field ( from to fld delim-- )
     +regs s4 s3 s2 1+ s1

@@ -53,8 +53,6 @@ val top (val) (top)
         i get-line ?dup if type-line then clr-eol cr
     loop ;
 
-: init clear-buf clear-lines 0 >top buf >pos ;
-
 : read-file  ( fn--sz )
     fopen-r s1 
     r1 if 
@@ -96,7 +94,8 @@ val top (val) (top)
     r1 key-up? if scroll-up exit then
     r1 key-dn? if scroll-dn exit then
     r1 del-ch? if delete-ch exit then
-    31 r1 < r1 127 < and if r1 insert-ch then  ;
+    31 r1 < r1 127 < and if r1 insert-ch exit then
+    r1 . ;
 
 : edit-loop ( -- )
     begin
@@ -104,6 +103,8 @@ val top (val) (top)
         key s1 r1 exit? if exit then
         handle-ch
     again ;
+
+: init clear-buf clear-lines 0 >top buf >pos ;
 
 : edit ( -- )
     init next-word drop 1- read-file >file-sz

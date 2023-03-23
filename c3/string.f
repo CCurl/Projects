@@ -31,3 +31,20 @@ load memory.f
         r1 c@ s3 r3 r2 = r3 0= or
         if r1 s8 999 +i then i1
     loop r8 -regs ;
+: lower ( c1--c2 )
+    >r r@ 'A' >= r@ 'Z' <= and if r> 32 + >r then r> ;
+: upper ( c1--c2 )
+    >r r@ 'a' >= r@ 'z' <= and if r> 32 - >r then r> ;
+: s-eq ( s1 s2--f )
+    over c@ over c@ <> if 2drop 0 exit then
+    +regs s2 s1 -1 s8
+    r1 c@ 0 do
+        r1 c@ r2 c@ <> if 0 s8 999 (i) ! then i1 i2
+    loop r8 -regs ;
+: s-eq-i ( s1 s2--f )
+    over c@ over c@ <> if 2drop 0 exit then
+    +regs s2 s1 -1 s8
+    r1 c@ 0 do 
+        r1 c@ lower r2 c@ lower <> 
+        if 0 s8 999 (i) ! then i1 i2 
+    loop r8 -regs ;
