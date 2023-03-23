@@ -133,9 +133,8 @@ variable (neg)
 : load next-word drop 1- (load) ;
 : load-abort 99 state ! ;
 : loaded? if 2drop load-abort then ;
-: fopen-r s" rb" fopen ;
-: fopen-w s" wb" fopen ;
-: fopen-a s" ab" fopen ;
+: fopen-rt s" rt" fopen ;
+: fopen-wt s" wt" fopen ;
 : fopen-rw s" r+b" fopen ;
 : ->stdout 0 (output_fp) ! ;
 

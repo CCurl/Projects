@@ -8,79 +8,40 @@ load screen.f
 load memory.f
 
 500   const max-lines
-100   const max-width
+128   const max-width
  30   const scr-rows
 max-lines max-width * const buf-sz
 
-variable lines 500 cells allot
 variable buf buf-sz allot
+val row   (val) (row)   : >row (row) ! ;
+val col   (val) (col)   : >col (col) ! ;  : col++ (col) ++ ;
+val pos   (val) (pos)   : >pos (pos) ! ;
 
-val buf-end (val) (buf-end)
-: >buf-end (buf-end) ! ;
+val bottom
+(val) (bottom)
+: >bottom (bottom) ! ;
 
-val pos (val) (pos)
-: >pos (pos) ! ;
-
-val file-sz ( --n )   (val) (file-sz)
-: >file-sz ( n-- )    (file-sz) !   buf file-sz + >buf-end ;
-
-val bot (val) (bot)
-: >bot (bot) ! ;
-
-val top (val) (top) 
-: >top (top) ! top scr-rows + >bot ;
+val top
+(val) (top) 
+: >top (top) ! top scr-rows + >bottom ;
 
 : clear-buf ( -- )  buf buf-sz 0 fill ;
-: clear-lines ( -- )  lines max-lines cells 0 fill ;
-
-: get-line ( n--a )  cells lines + @ ;
-: set-line ( a-- )   r2 cells lines + ! i2 ;
-
-: buf->lines ( -- )
-    +regs buf s1
-    clear-lines 0 s2 buf set-line
-    buf-sz 0 do
-        r1 c@ s3 i1
-        r3 0= if i >file-sz buf-sz (i) ! then
-        r3 10 = if r1 set-line then
-    loop -regs ;
-
-: type-line ( a-- ) dup c@ dup 32 < if 2drop exit then emit 1+ type-line ;
+: line-addr ( n--a )  max-width * buf + ;
+: rc->pos ( -- )   row top +   line-addr   col +   >pos ;
+: ->cur   ( -- )   col 1+   row 1+   ->yx ;
 
 : show-screen ( -- )
-    1 1 ->xy
-    bot top do
-        i get-line ?dup if type-line then clr-eol cr
-    loop ;
+    cur-off 1 1 ->yx
+    bottom top do
+        i line-addr typez clr-eol cr
+    loop
+    cur-on   ->cur ;
 
-: read-file  ( fn--sz )
-    fopen-r s1 
-    r1 if 
-        buf buf-sz r1 fread
-        r1 fclose
-    else
-        ." file not found." 0
-    then ;
-
-: delete-num ( num-- )
-    +regs s9 pos s2 r2 r9 + s1
-    begin
-        r1 c@ r2 c! i1 i2 r1 buf-end <
-    while 
-    buf-end r9 0 fill
-    buf-end r9 + >buf-end 
-    -regs ;
-
-: insert-num ( num-- )
-    +regs s9
-    buf-end r9 + >buf-end   buf-end s2   r2 r9 - s1
-    begin
-        r1 c@ r2 c!   d1 d2   r2 pos >=
-    while 
-    -regs ;
-
-: insert-ch ( ch-- )  1 insert-num  pos c!  buf->lines ;
-: delete-ch ( -- )    1 delete-num          buf->lines ;
+: delete-num ( num-- ) drop ;
+: insert-num ( num-- ) drop ;
+: insert-ch  ( ch-- )  1 insert-num  pos c!   col++ ;
+: replace-ch ( ch-- )  pos c!   col++ ;
+: delete-ch  ( -- )    1 delete-num ;
 
 : exit?   ( k--f ) 27 = ;
 : key-up? ( k--f ) 'w' = ;
@@ -100,13 +61,34 @@ val top (val) (top)
 : edit-loop ( -- )
     begin
         show-screen
+        rc->pos
         key s1 r1 exit? if exit then
         handle-ch
     again ;
 
-: init clear-buf clear-lines 0 >top buf >pos ;
+: init 0 >top   0 dup >row >col ;
+
+: read-line ( a fh--eof )
+    +regs s2 s1 0 s4
+    begin 
+        r1 1 r2 fread 0= if 1 -regs exit then
+        r1 c@ s3
+        r3 10 = if  0 r1 c! 0 -regs exit then
+        r3  9 = if 32 r1 c! then
+        r3 13 <> if i1 i4 then
+    again ;
+
+: load-file ( fh-- )
+    +regs s1 0 s2
+    begin
+        r2 line-addr r1 read-line   i2
+    until
+    r1 fclose ;
+
+: read-file ( sz-- )
+    clear-buf fopen-rt ?dup 
+    if load-file else ." -file not found-" then ;
 
 : edit ( -- )
-    init next-word drop 1- read-file >file-sz
-    file-sz 0= if exit then
-    buf->lines cls edit-loop ;
+    init next-word drop 1- read-file 
+    cls edit-loop ;
