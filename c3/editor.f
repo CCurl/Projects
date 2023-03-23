@@ -27,7 +27,8 @@ val bottom  (val) (bottom)
 
 : clear-buf ( -- )    buf buf-sz 0 fill ;
 : line-addr ( n--a )  max-width * buf + ;
-: rc->pos   ( -- )    row top +   line-addr   col +   >pos ;
+: row->addr ( --a )   row top +   line-addr ;
+: rc->pos   ( -- )    row->addr   col +   >pos ;
 : ->cur     ( -- )    col 1+   row 1+   ->yx ;
 
 : do-refresh ( -- )
@@ -40,17 +41,13 @@ val bottom  (val) (bottom)
         refreshed
     then ;
 
-: delete-num ( num-- )  drop ;
-: insert-num ( num-- )  drop ;
-: insert-ch  ( ch-- )   1 insert-num  pos c!   col++   refresh ;
-: replace-ch ( -- )     key   pos c!   col++   refresh ;
-: delete-ch  ( -- )     1 delete-num   refresh ;
-
 : exit?      ( k--f )   27 = ;
-: key-up?    ( k--f )  'w' = ;
-: key-down?  ( k--f )  's' = ;
-: key-left?  ( k--f )  'a' = ;
-: key-right? ( k--f )  'd' = ;
+: scr-up?    ( k--f )  'W' = ;
+: scr-down?  ( k--f )  'S' = ;
+: up?        ( k--f )  'w' = ;
+: down?      ( k--f )  's' = ;
+: left?      ( k--f )  'a' = ;
+: right?     ( k--f )  'd' = ;
 : del-ch?    ( k--f )   24 = ;
 : rep-ch?    ( k--f )  'r' = ;
 
@@ -59,14 +56,22 @@ val bottom  (val) (bottom)
 : up    ( -- )  row 1- 0         max >row ;
 : down  ( -- )  row 1+ scr-rows  min >row ;
 
-: scroll-up   top 1- 0 max >top   refresh ;
-: scroll-dn   top 1+ >top   refresh ;
+: scroll-up    top 1- 0 max >top  down  refresh ;
+: scroll-down  top 1+ >top        up    refresh ;
+
+: delete-num ( num-- )  drop ;
+: insert-num ( num-- )  drop ;
+: insert-ch  ( ch-- )   1 insert-num  pos c!   col++   refresh ;
+: replace-ch ( -- )     key   pos c!   col++   refresh ;
+: delete-ch  ( -- )     1 delete-num   refresh ;
 
 : handle-ch ( -- )
-    r1 key-up?    if up    exit then
-    r1 key-down?  if down  exit then
-    r1 key-left?  if left  exit then
-    r1 key-right? if right exit then
+    r1 up?    if up    exit then
+    r1 down?  if down  exit then
+    r1 scr-up?    if scroll-up    exit then
+    r1 scr-down?  if scroll-down  exit then
+    r1 left?  if left  exit then
+    r1 right? if right exit then
     r1 del-ch? if delete-ch  exit then
     r1 rep-ch? if replace-ch exit then
     31 r1 < r1 127 < and if r1 insert-ch exit then
