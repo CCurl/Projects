@@ -4,6 +4,7 @@
 
 : rl forget s" editor.f" (load) ;
 
+load string.f
 load screen.f
 load memory.f
 
@@ -11,11 +12,14 @@ load memory.f
 128   const max-width
  30   const scr-rows
 
-111 const md-replace
-112 const md-insert
+  0 const md-normal
+111 const md-command
+112 const md-replace
+113 const md-insert
 
 max-lines max-width * const buf-sz
 variable buf buf-sz allot
+variable done
 
 val row      (val) (row)   : >row (row) ! ;
 val col      (val) (col)   : >col (col) ! ;  : col++ (col) ++ ;
@@ -43,12 +47,12 @@ val bottom  (val) (bottom)
         bottom 1+ top do
             i line-addr typez clr-eol cr
         loop
-        cur-on
+        cur-on ->cur
         refreshed
     then ;
 
 : esc?        27 = ;
-: exit?      'Q' = ;
+: exit?      done @ ;
 : up?        'w' = ;
 : down?      's' = ;
 : left?      'a' = ;
@@ -57,7 +61,8 @@ val bottom  (val) (bottom)
 : end?       '$' = ;
 : del-ch?    'x' = ;
 : repl-md?   'R' = ;
-: ins-md?    'I' = ;
+: ins-md?    'i' = ;
+: cmd-md?    ':' = ;
 : scr-up?    'W' = ;
 : scr-down?  'S' = ;
 : pg-up?     'E' = ;
@@ -65,18 +70,16 @@ val bottom  (val) (bottom)
 
 : find-end ( --a )
     +regs pos s1
-    begin r1 c@ if i1 1 else 0 then while
     begin r1 c@ if 0 else d1 1 then while
-    i1 -regs ;
+    begin r1 c@ if i1 1 else 0 then while
+    r1 -regs ;
 
-: left   col 1- 0         max >col ;
-: right  col 1+ max-width min >col ;
-: up     row 1- 0         max >row ;
-: down   row 1+ scr-rows  min >row ;
-: home   0 >col ;
-: end    find-end pos -   col +   >col ;
-: repl-md   md-replace >mode ;
-: ins-md    md-insert  >mode ;
+: left   col 1- 0         max >col   ->cur ;
+: right  col 1+ max-width min >col   ->cur ;
+: up     row 1- 0         max >row   ->cur ;
+: down   row 1+ scr-rows  min >row   ->cur ;
+: home   0 >col                      ->cur ;
+: end    find-end pos -  col +  >col ->cur ;
 
 : scroll-up    top 1- 0 max >top  down  refresh ;
 : scroll-down  top 1+ >top        up    refresh ;
@@ -89,25 +92,38 @@ val bottom  (val) (bottom)
         begin r1 1+ c@   r1 c!   r1 c@   i1 while
     loop r> s1 ;
 : insert-num ( num-- )
-    +regs s1 find-end s2
+    +regs   find-end s2
     0 do 
         r2 s3 begin
             r3 1- c@ r3 c!   d3   r3 pos >
         while i2
     loop -regs ;
-: replace-ch ( ch-- )   pos c!   col++   refresh ;
-: insert-ch  ( ch-- )   1 insert-num   replace-ch ;
-: delete-ch  ( -- )     1 delete-num   refresh ;
+
+: repl-md   md-replace >mode ;
+: ins-md    md-insert  >mode ;
+: cmd-md    md-command >mode  scr-rows 2+ 1 ->xy ':' emit ;
+: cmd-clr   scr-rows 2+ 1 ->xy   clr-eol   ->cur ;
+: norm-md   md-normal >mode   cmd-clr ;
+
+: replace-ch ( ch-- )  pos c!   col++   refresh ;
+: insert-ch  ( ch-- )  1 insert-num   replace-ch ;
+: delete-ch  ( -- )    1 delete-num   refresh ;
+: command-ch ( -- )    r1 emit
+    'W' r1 = if ." -write-" exit then
+    'Q' r1 = if 1 done ! exit then ;
 
 : printable?    ( ch--f )  dup >r 31 > r> 127 < and ;
-: replace-mode? ( --f )    mode md-replace = ;
-: insert-mode? ( --f )     mode md-insert = ;
 
-: handle-ch ( -- )
-    r1 printable? if
-        replace-mode?  if r1 replace-ch exit then
-        insert-mode?   if r1 insert-ch  exit then
-    then
+: replace-mode? ( --f )   mode md-replace = ;
+: insert-mode?  ( --f )   mode md-insert  = ;
+: command-mode? ( --f )   mode md-command = ;
+: normal-mode?  ( --f )   mode md-normal  = ;
+
+: handle-ch ( ch-- )  s1
+    r1 esc?       if norm-md       exit then
+    insert-mode?  if r1 insert-ch  exit then
+    replace-mode? if r1 replace-ch exit then
+    command-mode? if command-ch    exit then
     r1 up?        if up            exit then
     r1 down?      if down          exit then
     r1 left?      if left          exit then
@@ -117,21 +133,26 @@ val bottom  (val) (bottom)
     r1 del-ch?    if delete-ch     exit then
     r1 repl-md?   if repl-md       exit then
     r1 ins-md?    if ins-md        exit then
+    r1 cmd-md?    if cmd-md        exit then
     r1 pg-up?     if pg-up         exit then
     r1 pg-dn?     if pg-dn         exit then
     r1 scr-up?    if scroll-up     exit then
     r1 scr-down?  if scroll-down   exit then
-    r1 esc?       if 0 >mode       exit then
     r1 . ;
 
 : edit-loop ( -- )
     begin
-        do-refresh   ->cur   rc->pos   key s1
-        r1 exit? if exit then
+        exit? if exit then
+        do-refresh   rc->pos   key
         handle-ch
     again ;
 
-: init   0 >top   0 dup >row >col   refresh ;
+: init ( -- )
+    md-normal >mode
+    0 dup done !
+    dup >top
+    dup >row >col
+    refresh ;
 
 : read-line ( a fh--eof )
     +regs s2 s1 0 s4
@@ -157,3 +178,5 @@ val bottom  (val) (bottom)
 : edit ( -- )
     init next-word drop 1- read-file 
     cls edit-loop ;
+
+edit core.f
