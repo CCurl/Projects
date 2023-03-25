@@ -1,3 +1,1 @@
-start
-hi there
-end
+thius is file xxx.f

@@ -21,6 +21,8 @@ load memory.f
 max-lines max-width * const buf-sz
 variable buf buf-sz allot
 variable done
+variable fn 32 allot
+variable cmd 32 allot
 
 val row      (val) (row)   : >row (row) ! ;
 val col      (val) (col)   : >col (col) ! ;  : col++ (col) ++ ;
@@ -128,7 +130,7 @@ val bottom  (val) (bottom)
 : insert-ch  ( ch-- )  1 insert-num   replace-ch ;
 : delete-ch  ( -- )    1 delete-num   refresh ;
 : command-ch ( -- )    r1 emit
-    'W' r1 = if s" xxx.f" write-file exit then
+    'W' r1 = if fn write-file exit then
     'Q' r1 = if 1 done ! exit then ;
 
 : printable?    ( ch--f )  dup >r 31 > r> 127 < and ;
@@ -181,12 +183,14 @@ val bottom  (val) (bottom)
     loop
     r> fclose ;
 
-: read-file ( sz-- )
+: read-file ( fn-- )
     clear-buf   fopen-rt   ?dup
     if load-file else ." -file not found-" then ;
 
 : edit ( -- )
-    init next-word drop 1- read-file 
+    init next-word drop
+    fn swap s-from-sz
+    fn read-file
     cls edit-loop ;
 
 edit xxx.f

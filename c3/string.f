@@ -24,6 +24,7 @@ load memory.f
     swap >r <# #s #>
     begin r@ swap s-catc ?dup while
     rdrop ;
+: s-scatc ( c dst-- )   swap s-catc ;
 : s-scatn ( n dst-- )   swap s-catn ;
 : s-findc ( str ch--a|0 ) \ NB: str is not counted
     +regs s2 s1 0 s8
@@ -48,3 +49,7 @@ load memory.f
         r1 c@ lower r2 c@ lower <> 
         if 0 s8 999 (i) ! then i1 i2 
     loop r8 -regs ;
+: s-from-sz ( s sz-- )
+    +regs s2 s1   r1 s-trunc
+    begin r2 c@ dup if r1 s-scatc i2 1 then while
+    -regs ;
