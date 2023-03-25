@@ -133,10 +133,6 @@ variable (neg)
 : load next-word drop 1- (load) ;
 : load-abort 99 state ! ;
 : loaded? if 2drop load-abort then ;
-: fopen-rt s" rt" fopen ;
-: fopen-wt s" wt" fopen ;
-: fopen-rw s" r+b" fopen ;
-: ->stdout 0 (output_fp) ! ;
 
 variable (fg) 2 cells allot
 : fg cells (fg) + ;

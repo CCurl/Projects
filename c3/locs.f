@@ -4,20 +4,23 @@
 \ : btw  ( n h l--f ) +locs  >3 >2 >1  x2 x1 <   x1 x3 <   and  -locs ;
 \ : btwi ( n h l--f ) +locs  >3 >2 >1  x2 x1 <=  x1 x3 <=  and  -locs ;
 
-' locs loaded?
+' +locs loaded?
 
 variable locs 50 cells allot
-val T8
-(val) T9
-0 T9 !
+val lb   (val) (lb)   : >lb ;
+0 (lb) !
 
-: +locs T8 5 + 45 min T9 ! ;
-: -locs T8 5 -  0 max T9 ! ;
-: T0 T8 + cells locs + @ ;
-: T1 T8 + cells locs + ! ;
+: +locs lb 5 + 45 min (lb) ! ;
+: -locs lb 5 -  0 max (lb) ! ;
 
-: x1  0 T0 ;   : >1  0 T1 ;
-: x2  1 T0 ;   : >2  1 T1 ;
-: x3  2 T0 ;   : >3  2 T1 ;
-: x4  3 T0 ;   : >4  3 T1 ;
-: x5  4 T0 ;   : >5  4 T1 ;
+: T0 ( n--a )  lb + cells locs + ;
+: T1 ( n--x )  T0 @ ;
+: T2 ( x n-- ) T0 ! ;
+: T3 ( n--x )  T0 dup @ swap ++ ;
+: T4 ( n--x )  T0 dup @ swap -- ;
+
+: rA  0 T1 ;   : sA  0 T2 ;   : rA++  0 T3 ;   : rA--  0 T4 ;
+: rB  1 T1 ;   : sB  1 T2 ;   : rB++  1 T3 ;   : rB--  1 T4 ;
+: rC  2 T1 ;   : sC  2 T2 ;   : rC++  2 T3 ;   : rC--  2 T4 ;
+: rD  3 T1 ;   : sD  3 T2 ;   : rD++  3 T3 ;   : rD--  3 T4 ;
+: rE  4 T1 ;   : sE  4 T2 ;   : rE++  4 T3 ;   : rE--  4 T4 ;

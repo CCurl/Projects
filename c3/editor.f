@@ -4,6 +4,7 @@
 
 : rl forget s" editor.f" (load) ;
 
+load file.f
 load string.f
 load screen.f
 load memory.f
@@ -57,8 +58,8 @@ val bottom  (val) (bottom)
 : down?      's' = ;
 : left?      'a' = ;
 : right?     'd' = ;
-: home?      '^' = ;
-: end?       '$' = ;
+: home?      'A' = ;
+: end?       'D' = ;
 : del-ch?    'x' = ;
 : repl-md?   'R' = ;
 : ins-md?    'i' = ;
@@ -68,18 +69,35 @@ val bottom  (val) (bottom)
 : pg-up?     'E' = ;
 : pg-dn?     'C' = ;
 
-: find-end ( --a )
+: find-eof ( --a )
+    buf buf-sz +
+    begin 1- dup c@ until
+    1+ buf max ;
+
+: find-eol ( --a )
     +regs pos s1
     begin r1 c@ if 0 else d1 1 then while
     begin r1 c@ if i1 1 else 0 then while
     r1 -regs ;
+
+: write-file ( fn-- )
+    fopen-wt dup 0= if drop ." -fail-" exit then
+    +regs s1  find-eof s9  r1 (output_fp) !
+    max-lines 0 do
+        i line-addr
+        dup r9 < if typez #10 emit
+        else drop max-lines (i) !
+        then
+    loop
+    r1 fclose   ->stdout
+    -regs ;
 
 : left   col 1- 0         max >col   ->cur ;
 : right  col 1+ max-width min >col   ->cur ;
 : up     row 1- 0         max >row   ->cur ;
 : down   row 1+ scr-rows  min >row   ->cur ;
 : home   0 >col                      ->cur ;
-: end    find-end pos -  col +  >col ->cur ;
+: end    find-eol pos -  col +  >col ->cur ;
 
 : scroll-up    top 1- 0 max >top  down  refresh ;
 : scroll-down  top 1+ >top        up    refresh ;
@@ -91,8 +109,9 @@ val bottom  (val) (bottom)
         pos s1
         begin r1 1+ c@   r1 c!   r1 c@   i1 while
     loop r> s1 ;
+
 : insert-num ( num-- )
-    +regs   find-end s2
+    +regs   find-eol s2
     0 do 
         r2 s3 begin
             r3 1- c@ r3 c!   d3   r3 pos >
@@ -109,7 +128,7 @@ val bottom  (val) (bottom)
 : insert-ch  ( ch-- )  1 insert-num   replace-ch ;
 : delete-ch  ( -- )    1 delete-num   refresh ;
 : command-ch ( -- )    r1 emit
-    'W' r1 = if ." -write-" exit then
+    'W' r1 = if s" xxx.f" write-file exit then
     'Q' r1 = if 1 done ! exit then ;
 
 : printable?    ( ch--f )  dup >r 31 > r> 127 < and ;
@@ -154,22 +173,13 @@ val bottom  (val) (bottom)
     dup >row >col
     refresh ;
 
-: read-line ( a fh--eof )
-    +regs s2 s1 0 s4
-    begin 
-        r1 1 r2 fread 0= if 1 -regs exit then
-        r1 c@ s3
-        r3 10 = if  0 r1 c! 0 -regs exit then
-        r3  9 = if 32 r1 c! then
-        r3 13 <> if i1 i4 then
-    again ;
-
 : load-file ( fh-- )
-    +regs s1 0 s2
-    begin
-        r2 i2 line-addr r1 read-line
-    until
-    r1 fclose ;
+    >r
+    max-lines 0 do
+        i line-addr r@ file-gets
+        nip if max-lines (i) ! then
+    loop
+    r> fclose ;
 
 : read-file ( sz-- )
     clear-buf   fopen-rt   ?dup
@@ -179,4 +189,4 @@ val bottom  (val) (bottom)
     init next-word drop 1- read-file 
     cls edit-loop ;
 
-edit core.f
+edit xxx.f
