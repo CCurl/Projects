@@ -44,6 +44,43 @@ val bottom  (val) (bottom)
 : rc->pos   ( -- )    row->addr   col +   >pos ;
 : ->cur     ( -- )    col 1+   row 1+   ->yx ;
 
+: find-eof ( --a )
+    buf buf-sz +
+    begin 1- dup c@ until
+    1+ buf max ;
+
+: find-eol ( --a )
+    +regs pos s1
+    begin r1 c@ if 0 else d1 1 then while
+    begin r1 c@ if i1 1 else 0 then while
+    r1 -regs ;
+
+: load-file ( fh-- )
+    >r
+    max-lines 0 do
+        i line-addr r@ file-gets
+        nip if max-lines (i) ! then
+    loop
+    r> fclose ;
+
+: read-file ( fn-- )
+    clear-buf   fopen-rt   ?dup
+    if load-file else ." -file not found-" then ;
+
+: write-file ( fn-- )
+    fopen-wt dup 0= if drop ." -fail-" exit then
+    +regs s1  find-eof s9  r1 (output_fp) !
+    max-lines 0 do
+        i line-addr
+        dup r9 < if typez #10 emit
+        else drop max-lines (i) !
+        then
+    loop
+    r1 fclose   ->stdout
+    -regs ;
+
+
+
 : do-refresh ( -- )
     refresh? if
         cur-off 1 1 ->yx
@@ -70,29 +107,6 @@ val bottom  (val) (bottom)
 : scr-down?  'S' = ;
 : pg-up?     'E' = ;
 : pg-dn?     'C' = ;
-
-: find-eof ( --a )
-    buf buf-sz +
-    begin 1- dup c@ until
-    1+ buf max ;
-
-: find-eol ( --a )
-    +regs pos s1
-    begin r1 c@ if 0 else d1 1 then while
-    begin r1 c@ if i1 1 else 0 then while
-    r1 -regs ;
-
-: write-file ( fn-- )
-    fopen-wt dup 0= if drop ." -fail-" exit then
-    +regs s1  find-eof s9  r1 (output_fp) !
-    max-lines 0 do
-        i line-addr
-        dup r9 < if typez #10 emit
-        else drop max-lines (i) !
-        then
-    loop
-    r1 fclose   ->stdout
-    -regs ;
 
 : left   col 1- 0         max >col   ->cur ;
 : right  col 1+ max-width min >col   ->cur ;
@@ -174,18 +188,6 @@ val bottom  (val) (bottom)
     dup >top
     dup >row >col
     refresh ;
-
-: load-file ( fh-- )
-    >r
-    max-lines 0 do
-        i line-addr r@ file-gets
-        nip if max-lines (i) ! then
-    loop
-    r> fclose ;
-
-: read-file ( fn-- )
-    clear-buf   fopen-rt   ?dup
-    if load-file else ." -file not found-" then ;
 
 : edit ( -- )
     init next-word drop
