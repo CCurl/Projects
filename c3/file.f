@@ -2,9 +2,11 @@
 
 ' fopen-rt loaded?
 
-: fopen-rt s" rt" fopen ;
-: fopen-wt s" wt" fopen ;
-: fopen-rw s" r+b" fopen ;
+: fopen-rt ( fn--fh ) s" rt" fopen ;
+: fopen-rb ( fn--fh ) s" rb" fopen ;
+: fopen-wt ( fn--fh ) s" wt" fopen ;
+: fopen-wb ( fn--fh ) s" wb" fopen ;
+: fopen-rw ( fn--fh ) s" r+b" fopen ;
 : ->stdout 0 (output_fp) ! ;
 
 variable T0
@@ -23,7 +25,7 @@ variable T0
     again ;
 
 : fputc ( c fh-- )
-    (output_fp) ! emit ->stdout ;
+    (output_fp) @ >r (output_fp) ! emit r> (output_fp) ! ;
 
 : fputs ( str fh-- )
-    (output_fp) count type ->stdout ;
+    (output_fp) @ >r (output_fp) ! count type r> (output_fp) ! ;

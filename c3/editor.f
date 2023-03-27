@@ -23,6 +23,8 @@ variable buf buf-sz allot
 variable done
 variable fn 32 allot
 variable cmd 32 allot
+variable msg 32 allot
+variable clip-board 128 allot
 
 val row      (val) (row)   : >row (row) ! ;
 val col      (val) (col)   : >col (col) ! ;  : col++ (col) ++ ;
@@ -61,14 +63,14 @@ val bottom  (val) (bottom)
         i line-addr r@ fgets
         nip if max-lines (i) ! then
     loop
-    r> fclose ;
+    r> fclose msg s-trunc ;
 
 : read-file ( fn-- )
-    clear-buf   fopen-rt   ?dup
-    if load-file else ." -file not found-" then ;
+    clear-buf   fopen-rb   ?dup
+    if load-file else msg s" , file not found" s-cpy then ;
 
 : write-file ( fn-- )
-    fopen-wt dup 0= if drop ." -fail-" exit then
+    fopen-wb dup 0= if drop ." -fail-" exit then
     +regs s1  find-eof s9  r1 (output_fp) !
     max-lines 0 do
         i line-addr
@@ -77,9 +79,12 @@ val bottom  (val) (bottom)
         then
     loop
     r1 fclose   ->stdout
+    ." -saved-"
     -regs ;
 
-
+: show-footer ( -- )
+    cr cr ." cb: [" clip-board count type ." ], "
+    fn count type msg count type ;
 
 : do-refresh ( -- )
     refresh? if
@@ -87,6 +92,7 @@ val bottom  (val) (bottom)
         bottom 1+ top do
             i line-addr typez clr-eol cr
         loop
+        show-footer
         cur-on ->cur
         refreshed
     then ;
@@ -184,6 +190,7 @@ val bottom  (val) (bottom)
 
 : init ( -- )
     md-normal >mode
+    clip-board s-trunc
     0 dup done !
     dup >top
     dup >row >col
