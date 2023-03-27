@@ -58,7 +58,7 @@ val bottom  (val) (bottom)
 : load-file ( fh-- )
     >r
     max-lines 0 do
-        i line-addr r@ file-gets
+        i line-addr r@ fgets
         nip if max-lines (i) ! then
     loop
     r> fclose ;
