@@ -9,16 +9,16 @@ load string.f
 load screen.f
 load memory.f
 
-500   const max-lines
-128   const max-width
- 30   const scr-rows
+500 constant max-lines
+128 constant max-width
+ 30 constant scr-rows
 
-  0 const md-normal
-111 const md-command
-112 const md-replace
-113 const md-insert
+  0 constant md-normal
+111 constant md-command
+112 constant md-replace
+113 constant md-insert
 
-max-lines max-width * const buf-sz
+max-lines max-width * constant buf-sz
 variable buf buf-sz allot
 variable done
 variable fn 32 allot

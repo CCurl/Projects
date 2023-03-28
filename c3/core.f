@@ -17,10 +17,10 @@
 : bye 999 state ! ;
 : cells cell * ; inline
 
-: const  create (lit4) c, , (exit) c, ;
-: variable  vhere const cell allot ;
-: val  vhere const ;
-: (val)  here 1- cell - const ;
+: constant  create (lit4) c, , (exit) c, ;
+: variable  vhere constant cell allot ;
+: val  vhere constant ;
+: (val)  here 1- cell - constant ;
 
 : does>  r> last ! ;
 : :noname  here 1 state ! ;
