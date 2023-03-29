@@ -51,6 +51,7 @@ bye db 'Bye.', 13, 10, 0
 ok db ' ok', 13, 10, 0
 openModeRB db 'rb', 0
 openModeRT db 'rt', 0
+xxxyyy db 13,10,'4th>> ', 0
 
 str_001 db 'this is a test', 0
 str_002 db 'line 2', 0
@@ -65,8 +66,10 @@ argv dd ?
 env dd ?
 stup dd ?
 
-STDIN dd ?
-STDOUT dd ?
+STDIN    dd ?
+STDOUT   dd ?
+inputFP  dd 0
+outputFP dd 0
 InitialESP dd 0
 
 fileName  dd 0
@@ -86,9 +89,13 @@ dsOverFlow  db '(Stack overflow!)', 0
 
 blockFile db "block-0000.fs", 0
 
-tib  db 128 dup (0)          ; Text Input buffer
-toIn dd   0                  ; Ptr to current char
-wd   db  64 dup (0)          ; Current word buffer
+buf4  db   4 dup (0)          ; Buffer for tib
+tib   db 128 dup (0)          ; Text Input buffer
+toIn  dd   0                  ; Ptr to current char
+wd    db  64 dup (0)          ; Current word buffer
+
+regs  dd   0 dup (100)        ; 
+rbase dd   0                  ; 
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -371,32 +378,55 @@ f_LOAD: ; TODO!!!
 ; -------------------------------------------------------------------------------------
 ; REG_I
 f_REG_I: ; TODO!!!
-            m_NEXT
+        movzx ecx, BYTE [PCIP]
+        inc PCIP
+        mov ebx, [rbase]
+        inc [regs+ebx+ecx*4]
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; REG_D
-f_REG_D: ; TODO!!!
-            m_NEXT
+f_REG_D:
+        movzx ecx, BYTE [PCIP]
+        inc PCIP
+        mov ebx, [rbase]
+        dec [regs+ebx+ecx*4]
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; REG_R
-f_REG_R: ; TODO!!!
-            m_NEXT
+f_REG_R:
+        movzx ecx, BYTE [PCIP]
+        inc PCIP
+        mov ebx, [rbase]
+        m_push [regs+ebx+ecx*4]
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; REG_S
-f_REG_S: ; TODO!!!
-            m_NEXT
+f_REG_S:
+        m_pop eax
+        movzx ecx, BYTE [PCIP]
+        inc PCIP
+        mov ebx, [rbase]
+        mov [regs+ebx+ecx*4], eax
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; REG_NEW
-f_REG_NEW: ; TODO!!!
-            m_NEXT
+f_REG_NEW:
+        cmp [rbase], 90
+        jge rn99
+        add [rbase], 10
+rn99:   m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; REG_FREE
-f_REG_FREE: ; TODO!!!
-            m_NEXT
+f_REG_FREE:
+        cmp [rbase], 10
+        jl rf99
+        sub [rbase], 10
+rf99:   m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; FREE1
@@ -837,12 +867,33 @@ fopen2:         inc REG4
                 m_NEXT
 
 ; -------------------------------------------------------------------------------------
+; s_FGETC ( fp -- ch num ) - if num==0, EOF
+s_FGETC:
+                ; signature is: EAX (num-read) = fread(addr, size, count, stream);
+                mov BYTE [buf4], 0
+                m_pop eax
+                push eax        ; stream
+                push 1          ; count
+                push 1          ; size
+                push buf4       ; addr
+                call [fread]
+                movzx ebx, BYTE [buf4]
+                m_push ebx
+                m_push eax
+                ; clean up from the call
+                pop eax
+                pop eax
+                pop eax
+                pop eax
+                ret
+
+; -------------------------------------------------------------------------------------
 ; FREAD ( addr count fp -- num-read )
 f_FREAD:
                 ; save these
                 push REG2
 
-                ; signature is: num-read = fread(addr, size, count, fp);
+                ; signature is: EAX (num-read) = fread(addr, size, count, fp);
                 ; args for [fread]
                 m_pop eax       ; Stream
                 push eax
@@ -854,23 +905,22 @@ f_FREAD:
                 push eax
                 call [fread]
                 m_push eax       ; EAX = return val (num-read)
-                ; clean up from call
-                pop eax
-                pop eax
-                pop eax
-                pop eax
+                ; clean up from the call
+                pop eax         ; addr
+                pop eax         ; size
+                pop eax         ; count
+                pop eax         ; stream
 
                 ; get these back
                 pop REG2
                 m_NEXT
 
 ; -------------------------------------------------------------------------------------
-; FREADLINE ( addr max-sz fp -- num-read )
-f_FREADLINE:
+; s_READLINE ( addr max-sz fp -- num-read )
+s_READLINE:
                 ; signature is: buf = fgets(addr, size, fp);
                 ; Returns addr if successful, NULL if EOF or Error
-                ; NB: the string returned at addr should be counted
-                ;     and null-terminated
+                ; NB: the string returned at addr should be null-terminated
 
                 ; Save REG2
                 push REG2
@@ -880,18 +930,15 @@ f_FREADLINE:
                 m_pop eax       ; max
                 push eax
                 m_pop eax       ; addr
-                add eax, THE_MEMORY
-                inc eax
                 push eax
                 call [fgets]    ; returns addr if OK, else NULL
                 m_push eax
-                pop REG3         ; addr (+1)
+                pop REG3        ; addr
                 pop eax         ; max
                 pop eax         ; FP
 
-                m_getTOS eax    ; NULL => done
-                test eax, eax
-                jz rdlEOF
+                cmp TOS, 0
+                je rdlEOF
 
                 push REG3        ; remember the original addr (+1)
                 xor eax, eax
@@ -909,13 +956,27 @@ rdlCX:          pop REG3         ; Make it a counted string
 rdlX:           m_setTOS eax
                 ; Restore REG2
                 pop REG2
-                m_NEXT
+                ret
 
 rdlEOF:         dec REG3
                 mov [REG3], word 0
                 m_setTOS 0
                 pop REG2
-                m_NEXT
+                ret
+
+; -------------------------------------------------------------------------------------
+; FREADLINE ( addr max-sz fp -- num-read )
+f_FREADLINE:
+        m_pop ecx
+        m_pop ebx
+        m_pop eax
+        inc eax
+        dec ebx
+        m_push eax
+        m_push ebx
+        m_push ecx
+        call s_READLINE
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; FWRITE: ( addr count fp -- num-written ) 
@@ -1164,18 +1225,8 @@ f_BREAK:
 
 ; -------------------------------------------------------------------------------------
 f_UnknownOpcode:
-            ; mov eax, PCIP
-            ; sub eax, THE_MEMORY
-            ; dec eax
-            ; push eax
-            ; push REG3
-            ; push unknownOpcode
-            ; call s_TYPEz
-            ; pop eax
-            ; pop eax
-            ; pop eax
-
-            ; jmp f_BYE
+            m_push unknownOpcode
+            call s_TYPEz
             jmp f_RESET
 
 ; -------------------------------------------------------------------------------------
@@ -1217,6 +1268,42 @@ argError:
 fileError:
         ; invoke s_TYPEz, printFileError, [fileName]
         jmp f_BYE
+
+; -------------------------------------------------------------------------------------
+; s_ACCEPT ( -- )
+s_ACCEPT:
+        mov edx, tib
+        mov ebx, [inputFP]
+        cmp ebx, 0
+        jne acc01
+        mov ebx, [STDIN]
+        ; --temp--
+                push ebx
+                push edx
+                m_push xxxyyy
+                call s_TYPEz
+                pop edx
+                pop ebx
+        ; --temp--
+acc01:  push ebx
+        push edx
+        m_push ebx
+        call s_FGETC
+        pop edx
+        pop ebx
+        m_pop ecx               ; 0=EOF
+        m_pop eax               ; char
+        cmp ecx, 0
+        je acc99
+        cmp al, 13
+        je acc99
+        cmp al, 10
+        je acc99
+        mov [edx], al
+        inc edx
+        jmp acc01
+acc99:  mov [edx], BYTE 0
+        ret
 
 ; -------------------------------------------------------------------------------------
 ; s_ParseLine ( [eax]-- )
@@ -1281,6 +1368,7 @@ go:     call s_SYS_INIT
         call s_ParseLine
         m_push ok
         call s_TYPEz
+        call s_ACCEPT
         m_push bye
         call s_TYPEz
         push 0
