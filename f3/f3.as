@@ -39,6 +39,14 @@ import msvcrt, __getmainargs, '__getmainargs' \
     , getch, '_getch', kbhit, 'kbhit'
 
 ; -------------------------------------------------------------------------------------
+include 'opcodes.inc'
+include 'macros.inc'
+
+MEM_SZ    equ 4*1024*1024
+IMMEDIATE equ 1
+INLINE    equ 2
+
+; -------------------------------------------------------------------------------------
 ; section '.bss' data readable writable executable
 section '.bss' data readable writable
 
@@ -46,15 +54,12 @@ printArgError db 'Error: ', 0
 printFileError db 'Error: Cannot open file.', 0
 unknownOpcode db 'unknown opcode!', 0
 divByZero db 'cannot divide by 0.', 0
-hello db 'Hello.', 13, 10, 0
+hello db 'f3 v0.1', 13, 10, 0
 bye db 'Bye.', 13, 10, 0
 ok db ' ok', 13, 10, 0
 openModeRB db 'rb', 0
 openModeRT db 'rt', 0
 xxxyyy db 13,10,'4th>> ', 0
-
-str_001 db 'this is a test', 0
-str_002 db 'line 2', 0
 
 CELL_SIZE = 4
 STD_INPUT_HANDLE = -10
@@ -75,6 +80,9 @@ InitialESP dd 0
 fileName  dd 0
 rDepth    dd 0
 rStackPtr dd 0
+state     dd 0
+here      dd 0
+last      dd 0
 tmpBuf1 db  16 dup (0)          ; Buffer for data stack
 dStack  dd 256 dup (0)
 
@@ -96,6 +104,12 @@ wd    db  64 dup (0)          ; Current word buffer
 
 regs  dd   0 dup (100)        ; 
 rbase dd   0                  ; 
+
+; -------------------------------------------------------------------------------------
+str_001 db ': here ;', 0
+str_002 db ': last ;', 0
+str_003 db ': cells cell NOOOO ;', 0
+str_999 db 'abort', 0
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -169,91 +183,6 @@ dd f_FREE3              ; Hex: 3F (63)
 ; section '.code' code readable writable executable
 section '.code' code readable executable
 
-; ------------------------------------------------------------------------------
-; macros for forth 
-; ------------------------------------------------------------------------------
-
-macro m_setTOS val
-{
-       mov TOS, val
-}
-
-macro m_push val
-{
-       ; inc [dDepth]
-       add STKP, CELL_SIZE
-       mov [STKP], TOS
-       m_setTOS val
-}
-
-; ------------------------------------------------------------------------------
-macro m_get2ND val
-{
-       mov val, [STKP]
-}
-macro m_set2ND val
-{
-       mov [STKP], val
-}
-
-; ------------------------------------------------------------------------------
-macro m_getTOS val
-{
-       mov val, TOS
-}
-
-macro m_drop
-{
-       ; dec [dDepth]
-       mov TOS, [STKP]
-       sub STKP, CELL_SIZE
-}
-
-macro m_pop val
-{
-       m_getTOS val
-       m_drop
-}
-
-; ------------------------------------------------------------------------------
-macro m_toVmAddr reg
-{
-       add reg, edx
-}
-
-macro m_fromVmAddr reg
-{
-       sub reg, edx
-}
-
-; ------------------------------------------------------------------------------
-
-macro m_rpush reg
-{
-       push TOS
-       add [rStackPtr], CELL_SIZE
-       mov TOS, [rStackPtr]
-       mov [TOS], reg
-       pop TOS
-}
- 
-macro m_rpop reg
-{
-       push TOS
-       mov TOS, [rStackPtr]
-       mov reg, [TOS]
-       sub [rStackPtr], CELL_SIZE
-       pop TOS
-}
-
-; -------------------------------------------------------------------------------------
-macro m_NEXT
-{
-        movzx ecx, BYTE [PCIP]
-        mov eax, [jmpTable+ecx*4]
-        inc PCIP
-        jmp eax
-}
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -296,33 +225,75 @@ f_DECADDR: ; TODO!!!
 
 ; -------------------------------------------------------------------------------------
 ; SYSTEM
-f_SYSTEM: ; TODO!!!
+f_SYSTEM:
             m_NEXT
 
 ; -------------------------------------------------------------------------------------
-; ISNUM
-f_ISNUM: ; TODO!!!
-            m_NEXT
+; s_IsNum ( strZ len--(n 1)|(0) )
+s_IsNum:
+        m_Save2 ecx, edx
+        m_pop ecx
+        m_pop eax
+        ; **TODO**
+        m_push 0
+IN99:   m_Restore2 ecx, edx
+        ret
+
+; -------------------------------------------------------------------------------------
+; ISNUM ( strZ len--(n 1)|(0) )
+f_ISNUM:
+        call s_IsNum
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; DEFINE
-f_DEFINE: ; TODO!!!
-            m_NEXT
+f_DEFINE:
+        call s_CREATE
+        mov [state], 1
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; ENDWORD
-f_ENDWORD: ; TODO!!!
-            m_NEXT
+f_ENDWORD:
+        m_push 1                ; EXIT
+        call s_CComma
+        mov [state], 0
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
-; CREATE
-f_CREATE: ; TODO!!!
-            m_NEXT
+; s_CREATE ( -- )
+s_CREATE:
+        call s_WORD
+        m_Save3 ebx, ecx, edx
+        m_pop ecx               ; len
+        m_pop edx               ; addr
+        cmp ecx, 1
+        jl cr99
+        mov ebx,[here]
+        m_Comma [last]          ; link
+        m_CComma 0              ; flags
+        m_CComma ecx            ; len
+cr01:   cmp ecx, 1              ; name
+        jl crNT
+        m_CComma [edx]
+        inc edx
+        dec ecx
+        jmp cr01
+crNT:   m_CComma 0             ; NULL terminator
+        mov [last], ebx
+cr99:   m_Restore3 ebx, ecx, edx
+        ret
 
 ; -------------------------------------------------------------------------------------
-; FIND
-f_FIND: ; TODO!!!
-            m_NEXT
+; CREATE ( -- )
+f_CREATE:
+        call s_CREATE
+        m_NEXT
+
+; -------------------------------------------------------------------------------------
+; FIND  ( strZ len--(xt fl 1)|(0) )
+f_FIND: call s_FindWord
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; s_NextCh ( --[al] )
@@ -349,6 +320,7 @@ sk99:   ret
 ; -------------------------------------------------------------------------------------
 ; s_WORD ( --a n )
 s_WORD:
+        m_Save2 ecx, edx
         mov edx, wd
         m_push edx
         xor ecx, ecx
@@ -362,6 +334,7 @@ wd01:   mov [edx], al
         jmp wd01
 wd99:   mov BYTE [edx], 0
         m_push ecx
+        m_Restore2 ecx, edx
         ret
 
 ; -------------------------------------------------------------------------------------
@@ -678,21 +651,20 @@ f_GT:
             jmp eq_F
 
 ; -------------------------------------------------------------------------------------
-; EMIT
-EMIT:
+; s_EMIT ( ch-- )
+s_EMIT:
+        m_Save3 ebx, ecx, edx
         m_pop eax
         push eax
         call [putchar]
         pop eax
+        m_Restore3 ebx, ecx, edx
         ret
 
 ; -------------------------------------------------------------------------------------
 ; EMIT
 f_EMIT:
-            push TOS
-            call [putchar]
-            pop eax
-            m_drop
+            call s_EMIT
             m_NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -751,36 +723,29 @@ s_STRCPYz:
         jmp s_STRCPYn
 
 ; -------------------------------------------------------------------------------------
-; do_STRCMP
-; Compare strings pointed to by PCIP and REG4
-; case sensitive: REG2 = 0
-; case insensitive: REG2 != 0
-; return in eax: -1 => eax<REG3, 0 => same, 1 eax>REG3
-do_STRCMP:
-                mov al, [PCIP]
-                mov ah, [REG4]
-
-                test REG2, REG2
-                jz cmp2
-                call u_ToLower
-                xchg al, ah
-                call u_ToLower
-                ;xchg al, ah
-cmp2:           cmp ah, al
-                jl cmpLT
-                jg cmpGT
-                test ax, ax
-                jz cmpEQ
-                inc PCIP
-                inc REG4
-                jmp do_STRCMP
-
-cmpLT:          mov eax, -1
-                ret
-cmpGT:          mov eax, 1
-                ret
-cmpEQ:          mov eax, 0
-                ret
+; s_STREQi ( s1 l1 s2 l2--f )
+; Case insensitive comparison of s1 and s2
+s_STREQi:
+        m_Save3 ebx, ecx, edx
+        m_pop eax
+        m_pop ebx
+        m_pop ecx
+        m_pop edx
+        m_push 1                ; Default to TRUE
+        cmp eax, ecx            ; Are the lengths the same?
+        jne sEqNo
+sEq01:  cmp ecx, 0
+        je sEq99
+        mov al, BYTE [ebx]
+        cmp al, BYTE [edx]
+        jne sEqNo
+        inc ebx
+        inc edx
+        dec ecx
+        jmp sEq01
+sEqNo:  m_setTOS 0              ; Make it FALSE
+sEq99:  m_Restore3 ebx, ecx, edx
+        ret
 
 ; -------------------------------------------------------------------------------------
 ; do_COMPARE
@@ -789,7 +754,7 @@ cmpEQ:          mov eax, 0
 ; case insensitive: REG2 != 0
 ; return in eax: -1 => strings are equal, 0 => strings are NOT equal
 do_COMPARE:
-                call do_STRCMP
+                call s_STREQi
                 test eax, eax
                 jz cmpT
                 mov eax, 0
@@ -1071,15 +1036,21 @@ f_PICK:
             m_NEXT
 
 ; -------------------------------------------------------------------------------------
-; KEY
-f_KEY:
+; sKEY ( --n )
+s_KEY:
             push REG2
             call [getch]
             pop REG2
             cmp eax, 3
             je f_BYE
             m_push eax
-            m_NEXT
+            ret
+
+; -------------------------------------------------------------------------------------
+; sKEY ( --n )
+f_KEY:
+        call s_KEY
+        m_NEXT
 
 ; -------------------------------------------------------------------------------------
 ; QKEY
@@ -1191,21 +1162,19 @@ f_NOP:
 ; -------------------------------------------------------------------------------------
 ; s_TYPE ( a n-- )
 s_TYPE:
+        m_Save2 ecx, edx
         m_pop ecx
         m_pop edx
 t01:    cmp ecx, 0
         je t99
         movzx eax, BYTE [edx]
         m_push eax
-        push ecx
-        push edx
-        call EMIT
-        pop edx
-        pop ecx
+        call s_EMIT
         inc edx
         dec ecx
         jmp t01
-t99:    ret
+t99:    m_Restore2 ecx, edx
+        ret
 
 ; -------------------------------------------------------------------------------------
 ; s_TYPEz ( a-- )
@@ -1233,24 +1202,24 @@ f_UnknownOpcode:
 ; -------------------------------------------------------------------------------------
 ; RESET
 f_RESET:
-        call s_SYS_INIT
+        call sys_INIT
         mov esp, [InitialESP]
         jmp cpuLoop
 
 ; -------------------------------------------------------------------------------------
-; s_SYS_INIT: Initialize the VM
-s_SYS_INIT:
-            ; Return stack
-            mov eax, rStack - CELL_SIZE
-            mov [rStackPtr], eax
-            mov [rDepth], 0
+; sys_INIT: Initialize the VM
+sys_INIT:
+        ; Return stack
+        mov eax, rStack - CELL_SIZE
+        mov [rStackPtr], eax
+        mov [rDepth], 0
 
-            ; Data stack
-            mov STKP, dStack
+        ; Data stack
+        mov STKP, dStack
 
-            ; PCIP = IP/PC
-            mov PCIP, THE_MEMORY
-            ret
+        ; PCIP = IP/PC
+        mov PCIP, THE_MEMORY
+        ret
 
 ; -------------------------------------------------------------------------------------
 f_BYE:
@@ -1270,64 +1239,127 @@ fileError:
         jmp f_BYE
 
 ; -------------------------------------------------------------------------------------
-; s_ACCEPT ( -- )
-s_ACCEPT:
-        mov edx, tib
-        mov ebx, [inputFP]
-        cmp ebx, 0
-        jne acc01
-        mov ebx, [STDIN]
-        ; --temp--
-                push ebx
-                push edx
-                m_push xxxyyy
-                call s_TYPEz
-                pop edx
-                pop ebx
-        ; --temp--
-acc01:  push ebx
+; s_FindWord ( strZ len--(xt flg 1)|(0) )
+s_FindWord:
         push edx
-        m_push ebx
-        call s_FGETC
-        pop edx
-        pop ebx
-        m_pop ecx               ; 0=EOF
-        m_pop eax               ; char
-        cmp ecx, 0
-        je acc99
-        cmp al, 13
-        je acc99
-        cmp al, 10
-        je acc99
-        mov [edx], al
-        inc edx
-        jmp acc01
-acc99:  mov [edx], BYTE 0
+        mov edx, [last]
+fw01:   cmp edx, 0
+        je fwNo
+        m_get2ND eax            ; OVER (strZ)
+        m_push eax
+        m_get2ND eax            ; OVER (len)
+        m_push eax
+        ; m_push '.'
+        ; call s_EMIT
+        mov eax, edx
+        add eax, 10
+        m_push eax              ; name
+        movzx eax, BYTE [edx+9]
+        m_push eax              ; length
+        call s_STREQi
+        m_pop eax
+        cmp eax, 0
+        je fwNxt
+        ; m_push 'Y'
+        ; call s_EMIT
+        m_pop eax
+        m_setTOS 0                ; **TODO** (xt)
+        m_push 0                  ; **TODO** (flg)
+        m_push 1                  ; FOUND
+        jmp fw99
+fwNxt:  mov edx, [edx]
+        jmp fw01
+fwNo:   m_pop eax               ; NOT FOUND
+        m_setTOS 0
+fw99:   pop edx
         ret
 
 ; -------------------------------------------------------------------------------------
-; s_ParseLine ( [eax]-- )
+; s_CComma ( n-- )
+s_CComma:
+        m_pop eax
+        ; **TODO**
+        ret;
+
+; -------------------------------------------------------------------------------------
+; s_Comma ( n-- )
+s_Comma:
+        m_pop eax
+        ; **TODO**
+        ret
+
+; -------------------------------------------------------------------------------------
+; s_ParseWord ( strZ len-- )
+s_ParseWord:
+        m_Save2 ecx, edx
+        m_pop ecx
+        m_pop edx
+
+pwNUM:  ; NUMBER?
+        m_push edx
+        m_push ecx
+        call s_IsNum
+        m_pop eax
+        cmp eax, 0
+        je pwWd
+        cmp [state], 0
+        je pw99
+        ; Compile the number
+        m_push 11               ; LIT4
+        call s_CComma
+        call s_Comma
+        jmp pw99
+
+pwWd:   ; WORD?
+        m_push edx
+        m_push ecx
+        call s_FindWord
+        m_pop eax
+        cmp eax, 0
+        je pwNO
+        ; Call or Compile the word
+        ;**TODO**
+        m_pop eax
+        m_pop eax
+        m_push 'F'
+        call s_EMIT
+        ;**TODO**
+        jmp pw99
+
+pwNO:   ; NOT found!
+        m_push 'N'
+        call s_EMIT
+        m_push edx
+        m_push ecx
+        call s_TYPE
+        m_push '?'
+        call s_EMIT
+        m_push '?'
+        call s_EMIT
+        ; jmp s_Abort
+        
+pw99:   m_Restore2 ecx, edx
+        ret
+
+; -------------------------------------------------------------------------------------
+; s_ParseLine ( -- )
 s_ParseLine:
+        mov [toIn], tib
+pl01:   call s_WORD
+        cmp TOS, 0
+        je pl99
+        call s_ParseWord
+        jmp pl01
+pl99:   m_pop eax
+        m_pop eax
+        ret
+
+; -------------------------------------------------------------------------------------
+s_LoadLine:
         m_push tib
         m_push eax
         call s_STRCPYz
-        mov [toIn], tib
-pl01:   call s_WORD
-        m_pop ecx
-        m_pop edx
-        cmp ecx, 0
-        je pl99
-        ; TEMP--
-                m_push edx
-                m_push ecx
-                m_push '['
-                call EMIT
-                call s_TYPE
-                m_push ']'
-                call EMIT
-        ; --TEMP
-        jmp pl01
-pl99:   ret
+        jmp s_ParseLine
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -1356,21 +1388,29 @@ entry $
         mov eax, [esi + 4]
         mov [fileName], eax
 
-        ; Initialize the VM
-go:     call s_SYS_INIT
-        m_push hello
+go:     ; Initialize the VM
+        call sys_INIT
+        mov [last], xLAST
+        mov [here], xHERE
+
+hi:     m_push hello
         call s_TYPEz
         ; m_push [fileName]
         ; call s_TYPEz
         mov eax, str_001
-        call s_ParseLine
+        call s_LoadLine
         mov eax, str_002
-        call s_ParseLine
-        m_push ok
-        call s_TYPEz
-        call s_ACCEPT
-        m_push bye
-        call s_TYPEz
+        call s_LoadLine
+        mov eax, str_003
+        call s_LoadLine
+        mov eax, str_999
+        call s_LoadLine
+        ; --TEMP-->>
+            m_push ok
+            call s_TYPEz
+            m_push bye
+            call s_TYPEz
+        ; <<--TEMP--
         push 0
         call [ExitProcess]
 
@@ -1379,5 +1419,63 @@ cpuLoop:
         m_NEXT
 ; -------------------------------------------------------------------------------------
 section '.mem' data readable writable
-THE_MEMORY: rb 128*1024*1024
+THE_MEMORY:
+    m_Define DCell, INLINE, 4, "cell", 0, xCell
+        m_Lit1 4
+        m_Exit
+    m_Define DCells, INLINE, 5, "cells", DCell, xtCells
+        m_Lit1 4
+        db op_MUL
+        m_Exit
+    m_Define DExit, INLINE, 6, "(exit)", DCells, xExit
+        m_Lit1 op_EXIT
+        m_Exit
+    m_Define DHereAddr, 0, 6, "(here)", DExit, xHereAddr
+        m_Lit4 here
+        m_Exit
+    m_Define DHere, 0, 4, "here", DHereAddr, xHere
+        m_Call xHereAddr
+        db op_FETCH
+        m_Exit
+    m_Define DLastAddr, 0, 6, "(last)", DHere, xLastAddr
+        m_Lit4 last
+        m_Exit
+    m_Define DLast, 0, 4, "last", DLastAddr, xLast
+        m_Call xHereAddr
+        db op_FETCH
+        m_Exit
+    m_Define DStateAddr, 0, 5, "state", DLast, xStateAddr
+        m_Lit4 state
+        m_Exit
+    m_Define DCComma, 0, 2, "c,", DStateAddr, xtCComma
+        ; **TODO**
+        m_Exit
+    m_Define DComma, 0, 1, ",", DCComma, xtComma
+        ; **TODO**
+        m_Exit
+    m_Define DDefineWord, 0, 1, ":", DComma, xDefineWord
+        db op_DEFINE
+        m_Lit1 1
+        m_Lit4 state
+        m_Lit1 op_STORE
+        m_Exit
+    m_Define DEndDef, IMMEDIATE, 1, ";", DDefineWord, xEndDef
+        c_CComma op_EXIT
+        m_Lit1 0
+        m_Lit4 state
+        m_Lit1 op_STORE
+        m_Exit
+    m_DefinePrim  DAdd,   1, "+",    DEndDef, xtAdd,   op_ADD
+    m_DefinePrim  DSub,   1, "-",    DAdd,    xtSub,   op_SUB
+    m_DefinePrim  DMult,  1, "*",    DSub,    xtMult,  op_MUL
+    m_DefinePrim  DSlMod, 4, "/mod", DMult,   xtSlMod, op_SLASHMOD
+    m_DefinePrim  DAnd,   3, "and",  DSlMod,  xtAnd,   op_AND
+    m_DefinePrim  DOr,    2, "or",   DAnd,    xtOr,    op_OR
+    m_DefinePrim  DXor,   3, "xor",  DOr,     xtXor,   op_XOR
+xLAST:
+   m_Define DAbort, 0, 5, "abort", DXor, xtAbort
+        ; **TODO**
+       m_Exit
+
+xHERE:  rb MEM_SZ
 MEM_END:
