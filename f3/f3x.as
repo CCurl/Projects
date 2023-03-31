@@ -16,6 +16,10 @@ TOS  equ [esp]     ; Top Of Stack
 
 format PE console 
 
+include 'win32ax.inc'
+library msvcrt, 'msvcrt.dll'
+import msvcrt, putchar, 'putchar'
+
 ; -------------------------------------------------------------------------------------
 macro NEXT
 {
@@ -109,43 +113,79 @@ coldStart:
 
 ; -------------------------------------------------------------------------------------
 DOCOL:
-    rPUSH esi           ; push current esi on to the return stack
-	add eax, 4          ; eax points to codeword, so add 4 to make
-	mov esi, eax        ; esi point to first data word
-	NEXT
+        rPUSH esi           ; push current esi on to the return stack
+        add eax, 4          ; eax points to codeword, so add 4 to make
+        mov esi, eax        ; esi point to first data word
+        NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "EXIT",4,0,EXIT
-    rPOP esi            ; get esi back
-	NEXT
+        rPOP esi            ; get esi back
+        NEXT
 
 ; -------------------------------------------------------------------------------------
 DefWord "QUIT",4,0,QUIT
-Q1: dd RSPINIT
-    dd INTERPRET
-    dd BRANCH, Q1
+Q1:     dd zRSP
+        dd INTERPRET
+        dd BRANCH, Q1
 
 ; -------------------------------------------------------------------------------------
-DefCode "0RSP",4,0,RSPINIT
-    mov ebp, rStack
-    NEXT
+DefCode "0RSP",4,0,zRSP
+        mov ebp, rStack
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "0SP",3,0,zSP
+        mov esp, [InitialESP]
+        NEXT
 
 ; -------------------------------------------------------------------------------------
 DefWord "INTERPRET",9,0,INTERPRET
-    ; **TODO**
-    dd EXIT
+        ; **TODO**
+        dd LIT, 'I', EMIT
+        dd EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "BRANCH",9,0,BRANCH
-    lodsd
-    mov esi, eax
-    NEXT
+DefCode "BRANCH",6,0,BRANCH
+        lodsd
+        mov esi, eax
+        NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "DUP",3,0,xDUP
-    mov eax, TOS
-    push eax
-    NEXT
+DefCode "0BRANCH",7,0,zBRANCH
+        lodsd
+        pop edx
+        test edx, edx
+        jnz zB99
+        mov esi, eax
+zB99:   NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "DUP",3,0,fDUP
+        mov eax, TOS
+        push eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "SWAP",4,0,SWAP
+        pop eax
+        pop ebx
+        push eax
+        push ebx
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "OVER",4,0,OVER
+        pop eax
+        mov ebx, TOS
+        push eax
+        push ebx
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefWord "?DUP",4,0,qDUP
+        dd fDUP, zBRANCH, qd99, fDUP
+qd99:   NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "DROP",4,0,DROP
@@ -153,8 +193,49 @@ DefCode "DROP",4,0,DROP
         NEXT
 
 ; -------------------------------------------------------------------------------------
+DefCode "LIT",3,0,LIT
+        lodsd
+        push eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "1+",2,0,INCTOS
+        inc DWORD TOS
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "1-",2,0,DECTOS
+        dec DWORD TOS
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "@",1,0,FETCH
+        mov edx, TOS
+        mov eax, [edx]
+        mov TOS, eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "C@",2,0,CFETCH
+        mov edx, TOS
+        movzx eax, BYTE [edx]
+        mov TOS, eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "EMIT",4,0,EMIT         ; ( ch-- )
+        call [putchar]
+        pop eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+; : type ( addr count-- ) ?dup if begin over c@ emit swap 1+ swap 1- dup while then drop ;
 DefWord "TYPE",4,0,TYPE
-        dd EXIT
+        dd qDUP, zBRANCH, ty99
+ty01:   dd OVER, CFETCH, EMIT
+        dd SWAP, INCTOS, SWAP, DECTOS
+        dd fDUP, zBRANCH, ty01
+ty99:   dd DROP, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefCode "WORDS",5,0,WORDS
