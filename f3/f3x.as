@@ -11,6 +11,7 @@ IP   equ esi       ; Program-Counter/Instruction-Pointer
 SP   equ esp       ; Stack-Pointer
 RSP  equ ebp       ; Return Stack-Pointer
 TOS  equ [esp]     ; Top Of Stack
+CELL_SIZE = 4
 ;
 ; **************************************************************************
 
@@ -83,7 +84,6 @@ section '.bss' data readable writable
 
 ver db 'f3 v0.1', 13, 10, 0
 
-CELL_SIZE = 4
 InitialESP dd 0
 
 here      dd 0
