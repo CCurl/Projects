@@ -51,6 +51,7 @@ macro DefWord Name, Length, Flags, Tag
            db Name        ; Name
            db 0           ; NULL-terminator
     LastTag equ Tag
+    align CELL_SIZE
     Tag:   dd DOCOL
 }
 
@@ -64,6 +65,7 @@ macro DefCode Name, Length, Flags, Tag
            db Name        ; Name
            db 0           ; NULL-terminator
     LastTag equ Tag
+    align CELL_SIZE
     Tag:
 }
 
@@ -103,7 +105,7 @@ section '.code' code readable executable
 entry $
         mov [InitialESP], esp
         mov ebp, rStack
-
+        
         mov esi, coldStart
         NEXT
 
@@ -112,9 +114,15 @@ coldStart:
     dd QUIT
 
 ; -------------------------------------------------------------------------------------
+DefWord "QUIT",4,0,QUIT
+q1:     dd zRSP
+        dd INTERPRET
+        dd BRANCH, q1
+
+; -------------------------------------------------------------------------------------
 DOCOL:
         rPUSH esi           ; push current esi on to the return stack
-        add eax, 4          ; eax points to codeword, so add 4 to make
+        add eax, CELL_SIZE  ; eax points to codeword, so add (CELL_SIZE) to make
         mov esi, eax        ; esi point to first data word
         NEXT
 
@@ -122,12 +130,6 @@ DOCOL:
 DefCode "EXIT",4,0,EXIT
         rPOP esi            ; get esi back
         NEXT
-
-; -------------------------------------------------------------------------------------
-DefWord "QUIT",4,0,QUIT
-Q1:     dd zRSP
-        dd INTERPRET
-        dd BRANCH, Q1
 
 ; -------------------------------------------------------------------------------------
 DefCode "0RSP",4,0,zRSP
@@ -156,15 +158,32 @@ DefCode "0BRANCH",7,0,zBRANCH
         lodsd
         pop edx
         test edx, edx
-        jnz zB99
+        jnz zBX
         mov esi, eax
-zB99:   NEXT
+zBX:    NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "?BRANCH",7,0,nzBRANCH
+        lodsd
+        pop edx
+        test edx, edx
+        jz nzBX
+        mov esi, eax
+nzBX:   NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "DUP",3,0,fDUP
         mov eax, TOS
         push eax
         NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "?DUP",4,0,qDUP
+        mov eax, TOS
+        test edx, edx
+        jz qdX
+        push eax
+qdX:    NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "SWAP",4,0,SWAP
@@ -183,12 +202,13 @@ DefCode "OVER",4,0,OVER
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "?DUP",4,0,qDUP
-        dd fDUP, zBRANCH, qd99, fDUP
-qd99:   NEXT
+DefCode "DROP",4,0,DROP
+        pop eax
+        NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "DROP",4,0,DROP
+DefCode "2DROP",5,0,DROP2
+        pop eax
         pop eax
         NEXT
 
@@ -229,13 +249,13 @@ DefCode "EMIT",4,0,EMIT         ; ( ch-- )
         NEXT
 
 ; -------------------------------------------------------------------------------------
-; : type ( addr count-- ) ?dup if begin over c@ emit swap 1+ swap 1- dup while then drop ;
+; : type ( addr count-- ) ?dup if begin over c@ emit swap 1+ swap 1- dup while then 2drop ;
 DefWord "TYPE",4,0,TYPE
-        dd qDUP, zBRANCH, ty99
-ty01:   dd OVER, CFETCH, EMIT
+        dd qDUP, zBRANCH, tyX
+tyS:    dd OVER, CFETCH, EMIT
         dd SWAP, INCTOS, SWAP, DECTOS
-        dd fDUP, zBRANCH, ty01
-ty99:   dd DROP, EXIT
+        dd fDUP, nzBRANCH, tyS
+tyX:    dd DROP2, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefCode "WORDS",5,0,WORDS
