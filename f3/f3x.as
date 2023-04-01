@@ -58,8 +58,8 @@ macro rPUSH val
 ; ------------------------------------------------------------------------------
 macro rPOP val
 {
-    mov val, DWORD [ebp]
     sub ebp, CELL_SIZE
+    mov val, DWORD [ebp]
 }
 
 ; ------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ macro DefCode Name, Length, Flags, Tag
            db 0           ; NULL-terminator
     LastTag equ Tag
     align CELL_SIZE
-    Tag:
+    Tag: dd Tag+CELL_SIZE
 }
 
 ; ------------------------------------------------------------------------------
@@ -137,8 +137,7 @@ q1:     dd zRSP
 
 ; -------------------------------------------------------------------------------------
 DOCOL:
-        TRC ':'
-
+        ; TRC ':'
         rPUSH esi           ; push current esi on to the return stack
         add eax, CELL_SIZE  ; eax points to codeword, so add (CELL_SIZE) to make
         mov esi, eax        ; esi point to first data word
