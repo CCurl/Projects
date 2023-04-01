@@ -95,7 +95,8 @@ macro DefCode Name, Length, Flags, Tag
            db 0           ; NULL-terminator
     LastTag equ Tag
     align CELL_SIZE
-    Tag: dd Tag+CELL_SIZE
+    Tag: dd cd_#Tag
+    cd_#Tag:
 }
 
 ; ------------------------------------------------------------------------------
