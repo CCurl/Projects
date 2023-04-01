@@ -11,12 +11,16 @@ macro PUTc {
     int	0x80		; call kernel
  }
 
+macro PUTs {
+    pop edx         ; Length
+    pop ecx         ; message to write
+    mov	ebx,1		; file descriptor (stdout)
+    mov	eax,4		; system call number (sys_write)
+    int	0x80		; call kernel
+ }
+
 macro TRC ch
 {
     push ch
     PUTc
 }
-
-s_EMIT:
-    PUTc
-    NEXT

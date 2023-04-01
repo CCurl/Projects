@@ -35,7 +35,10 @@ rStack  dd 64 dup (0)
 regs  dd   0 dup (100)        ; My pseudo-registers
 rbase dd   0
 
-buf4  db   0 dup (4)          ; A buffer for EMIT
+buf4     db   0 dup (  4)        ; A buffer for EMIT
+tib      db   0 dup (128)        ; the Text Input Buffer
+curWord  db   0 dup ( 32)        ; the current word
+toIn     dd   0                  ; >IN - current char ptr
 
 ; -------------------------------------------------------------------------------------
 macro NEXT
@@ -139,12 +142,13 @@ DOCOL:
 
 ; -------------------------------------------------------------------------------------
 DefCode "EXIT",4,0,EXIT
+        TRC ';'
         rPOP esi            ; get esi back
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "0RSP",4,0,zRSP
-        TRC 'R'
+        TRC '^'
         mov ebp, rStack
         NEXT
 
@@ -158,6 +162,40 @@ DefWord "INTERPRET",9,0,INTERPRET
         ; **TODO**
         dd LIT, 'I', EMIT
         dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "TIB",3,0,TIB
+        dd LIT, tib, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ">IN",3,0,TOIN
+        dd LIT, toIn, EXIT
+
+; -------------------------------------------------------------------------------------
+DefCode "WORD",4,0,xtWORD
+        mov ebx, curWord
+        push ebx
+        mov edx, toIn
+        xor ecx, ecx            ; ecx => Length
+wd01:   mov al, [edx]           ; Skip whitespace
+        test al, 32
+        jg wd02
+        test al, al
+        jz wdX
+        inc edx
+        jmp wd01
+wd02:   mov al, [edx]           ; Skip whitespace
+        test al, 33
+        jl wdX
+        inc ebx
+        inc ecx
+        inc edx
+        jmp wd02
+wdX:    mov [toIn], edx
+        mov [ebx], BYTE 0
+        push curWord
+        push ecx
+        NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "BRANCH",6,0,BRANCH
