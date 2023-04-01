@@ -17,29 +17,57 @@ CELL_SIZE = 4
 
 format PE console 
 
+section '.idata' data readable import
+
 include 'win32ax.inc'
 library msvcrt, 'msvcrt.dll'
 import msvcrt, putchar, 'putchar'
 
 ; -------------------------------------------------------------------------------------
+section '.bdata' data readable writable
+ver db 'f3 v0.1', 13, 10, 0
+
+InitialESP dd 0
+InitialEBP dd 0
+SaveEBP    dd 0
+
+here      dd 0
+last      dd 0
+state     dd 0
+base      dd 0
+
+rStack  dd 64 dup (0)
+
+regs  dd   0 dup (100)        ; My pseudo-registers
+rbase dd   0
+
+; -------------------------------------------------------------------------------------
 macro NEXT
 {
        lodsd
-       jmp eax
+       jmp DWORD [eax]
 }
 
 ; ------------------------------------------------------------------------------
 macro rPUSH val
 {
     mov [ebp], DWORD val
-    add ebp, 4
+    add ebp, CELL_SIZE
 }
 
 ; ------------------------------------------------------------------------------
 macro rPOP val
 {
-    mov val, [ebp]
-    sub ebp, 4
+    mov val, DWORD [ebp]
+    sub ebp, CELL_SIZE
+}
+
+; ------------------------------------------------------------------------------
+macro TRC ch
+{
+    push ch
+    call [putchar]
+    pop eax
 }
 
 ; ------------------------------------------------------------------------------
@@ -80,32 +108,20 @@ INLINE    equ 2
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
-section '.bss' data readable writable
-
-ver db 'f3 v0.1', 13, 10, 0
-
-InitialESP dd 0
-
-here      dd 0
-last      dd 0
-state     dd 0
-base      dd 0
-
-rStack  dd 256 dup (0)
-
-regs  dd   0 dup (100)        ; My pseudo-registers
-rbase dd   0
-
-; -------------------------------------------------------------------------------------
-; -------------------------------------------------------------------------------------
-; -------------------------------------------------------------------------------------
 section '.code' code readable executable
 
 ; -------------------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------
 entry $
         mov [InitialESP], esp
+        mov [InitialEBP], ebp
+
         mov ebp, rStack
         
+        TRC 'A'
+        
+        cld
         mov esi, coldStart
         NEXT
 
@@ -121,6 +137,8 @@ q1:     dd zRSP
 
 ; -------------------------------------------------------------------------------------
 DOCOL:
+        TRC ':'
+
         rPUSH esi           ; push current esi on to the return stack
         add eax, CELL_SIZE  ; eax points to codeword, so add (CELL_SIZE) to make
         mov esi, eax        ; esi point to first data word
@@ -133,6 +151,7 @@ DefCode "EXIT",4,0,EXIT
 
 ; -------------------------------------------------------------------------------------
 DefCode "0RSP",4,0,zRSP
+        TRC 'R'
         mov ebp, rStack
         NEXT
 
@@ -243,21 +262,21 @@ DefCode "C@",2,0,CFETCH
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "!",1,0,STORE
+DefCode "!",1,0,fSTORE
         pop edx
         pop eax
-        move [edx], eax
+        mov [edx], eax
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "C!",2,0,CSTORE
         pop edx
         pop eax
-        move [edx], al
+        mov [edx], al
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "+",1,0,fADD
+DefCode "+",1,0,xtADD
         pop edx
         pop eax
         add eax, edx
@@ -265,7 +284,7 @@ DefCode "+",1,0,fADD
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "-",1,0,fSUB
+DefCode "-",1,0,xSUB
         pop edx
         pop eax
         sub eax, edx
@@ -273,15 +292,15 @@ DefCode "-",1,0,fSUB
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "*",1,0,fMUL
+DefCode "*",1,0,xMUL
         pop edx
         pop eax
-        mul eax, edx
+        mul edx
         push eax
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "/",1,0,fDIV
+DefCode "/",1,0,xDIV
         pop edx
         pop eax
         ; **TODO**
@@ -289,7 +308,7 @@ DefCode "/",1,0,fDIV
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "/MOD",4,0,fSLMOD
+DefCode "/MOD",4,0,xSLMOD
         pop edx
         pop eax
         ; **TODO**
@@ -320,7 +339,7 @@ DefCode "WORDS",5,0,WORDS
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
-section '.mem' data readable writable
+section '.mem' readable writable
 MEM:    
 xHERE:  rb MEM_SZ
 MEM_END:
