@@ -39,7 +39,7 @@ regs  dd  100 dup (0)           ; My pseudo-registers
 rbase dd    0
 
 toIn     dd    0                ; >IN - current char ptr
-tib      db  128 dup (0)        ; The Text Input Buffer
+tib      db  128 dup (0)        ; The Tef Input Buffer
 curWord  db   32 dup (0)        ; The current word
 buf4     db    4 dup (0)        ; A buffer for EMIT (LINUX)
 
@@ -135,7 +135,6 @@ q1:     dd zRSP
 
 ; -------------------------------------------------------------------------------------
 DOCOL:
-        ; TRC ':'
         rPUSH esi           ; push current esi on to the return stack
         add eax, CELL_SIZE  ; eax points to codeword, so add (CELL_SIZE) to make
         mov esi, eax        ; esi point to first data word
@@ -161,12 +160,12 @@ DefWord "CR",2,0,CR
         dd LIT, 13, EMIT, LIT, 10, EMIT, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefWord "BL",2,0,xtBL
+DefWord "BL",2,0,fBL
         dd LIT, 32, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefWord "SPACE",5,0,SPACE
-        dd xtBL, EMIT, EXIT
+        dd fBL, EMIT, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefWord "OK",2,0,OK
@@ -177,8 +176,8 @@ DefWord "OK",2,0,OK
 DefWord "INTERPRET",9,0,INTERPRET
         dd OK
         dd TIB, LIT, 128, ACCEPT, DROP
-        dd TIB, TOIN, xtSTORE
-in01:   dd xtWORD, fDUP, zBRANCH, inX
+        dd TIB, TOIN, fSTORE
+in01:   dd fWORD, fDUP, zBRANCH, inX
         dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT ; **TEMP**
         ; **TODO**
         dd BRANCH, in01
@@ -193,7 +192,7 @@ DefWord ">IN",3,0,TOIN
         dd LIT, toIn, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "WORD",4,0,xtWORD       ; ( --addr len )
+DefCode "WORD",4,0,fWORD       ; ( --addr len )
         mov ebx, curWord
         push ebx                ; addr
         push DWORD 0            ; len
@@ -226,8 +225,6 @@ wdX:    mov [toIn], edx
 ; -------------------------------------------------------------------------------------
 DefCode "ACCEPT",6,0,ACCEPT     ; ( addr sz--num )
         ACCEPTx
-        ; add eax, 65
-        ; TRC eax
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -326,7 +323,7 @@ DefCode "C@",2,0,CFETCH
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "!",1,0,xtSTORE
+DefCode "!",1,0,fSTORE
         pop edx
         pop eax
         mov [edx], eax
@@ -340,7 +337,7 @@ DefCode "C!",2,0,CSTORE
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "+",1,0,xtADD
+DefCode "+",1,0,fADD
         pop edx
         pop eax
         add eax, edx
