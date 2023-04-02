@@ -33,7 +33,9 @@ last      dd 0
 state     dd 0
 base      dd 0
 
-rStack  dd 64 dup (0)
+rStack  dd 64 dup (0)           ; The return stack
+lStack  dd 64 dup (0)           ; The loop stack
+lSP     dd lStack               ; The loop stack pointer
 
 regs  dd  100 dup (0)           ; My pseudo-registers
 rbase dd    0
@@ -177,8 +179,10 @@ DefWord "INTERPRET",9,0,INTERPRET
         dd OK
         dd TIB, LIT, 128, ACCEPT, DROP
         dd TIB, TOIN, fSTORE
-in01:   dd fWORD, fDUP, zBRANCH, inX
+in01:   dd xtWORD, xtDUP, zBRANCH, inX
         dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT ; **TEMP**
+        ; **TEMP**
+        dd LIT, 's', LIT, 500000000, 0, xtDO, xtLOOP, LIT, 'e', CR
         ; **TODO**
         dd BRANCH, in01
 inX:    dd DROP2, EXIT
@@ -192,7 +196,7 @@ DefWord ">IN",3,0,TOIN
         dd LIT, toIn, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "WORD",4,0,fWORD       ; ( --addr len )
+DefCode "WORD",4,0,xtWORD       ; ( --addr len )
         mov ebx, curWord
         push ebx                ; addr
         push DWORD 0            ; len
@@ -252,7 +256,7 @@ DefCode "?BRANCH",7,0,nzBRANCH
 nzBX:   NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "DUP",3,0,fDUP
+DefCode "DUP",3,0,xtDUP
         mov eax, TOS
         push eax
         NEXT
@@ -337,7 +341,7 @@ DefCode "C!",2,0,CSTORE
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "+",1,0,fADD
+DefCode "+",1,0,xtADD
         pop edx
         pop eax
         add eax, edx
@@ -345,7 +349,7 @@ DefCode "+",1,0,fADD
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "-",1,0,xSUB
+DefCode "-",1,0,xtSUB
         pop edx
         pop eax
         sub eax, edx
@@ -353,7 +357,7 @@ DefCode "-",1,0,xSUB
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "*",1,0,xMUL
+DefCode "*",1,0,xtMUL
         pop edx
         pop eax
         mul edx
@@ -361,7 +365,7 @@ DefCode "*",1,0,xMUL
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "/",1,0,xDIV
+DefCode "/",1,0,xtDIV
         pop ebx
         pop eax
         xor edx, edx
@@ -402,6 +406,34 @@ DefCode "TYPE",4,0,TYPE         ; ( addr len-- )
 DefWord "WORDS",5,0,WORDS
         ; **TODO**
         dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefCode "DO", 2, 9, xtDO
+        mov edx, [lSP]
+        mov [edx], DWORD esi    ; loop start
+        add edx, CELL_SIZE
+        pop eax                 ; To
+        mov [edx], DWORD eax
+        add edx, CELL_SIZE
+        pop eax                 ; From / I
+        mov [edx], DWORD eax
+        add edx, CELL_SIZE
+        mov [lSP], DWORD edx
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "LOOP", 2, 9, xtLOOP
+        mov edx, [lSP]
+        mov ecx, DWORD [edx]              ; I
+        inc ecx
+        cmp ecx, DWORD [edx-CELL_SIZE]    ; To
+        jge lpDone
+        mov [edx], ecx
+        mov esi, DWORD [edx-CELL_SIZE*2]  ; Back to start
+        NEXT
+lpDone: sub edx, CELL_SIZE*3
+        mov [lSP], DWORD edx
+        NEXT
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
