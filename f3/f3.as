@@ -149,6 +149,7 @@ DefCode "EXIT",4,0,EXIT
 
 ; -------------------------------------------------------------------------------------
 DefCode "0RSP",4,0,zRSP
+        mov [lSP], lStack
         mov ebp, rStack
         NEXT
 
@@ -182,7 +183,9 @@ DefWord "INTERPRET",9,0,INTERPRET
 in01:   dd xtWORD, xtDUP, zBRANCH, inX
         dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT ; **TEMP**
         ; **TEMP**
-        dd LIT, 's', LIT, 500000000, 0, xtDO, xtLOOP, LIT, 'e', CR
+        dd LIT, 's', EMIT
+        dd LIT, 500000000, LIT, 0, xtDO, xtLOOP
+        dd LIT, 'e', EMIT, CR
         ; **TODO**
         dd BRANCH, in01
 inX:    dd DROP2, EXIT
@@ -410,26 +413,26 @@ DefWord "WORDS",5,0,WORDS
 ; -------------------------------------------------------------------------------------
 DefCode "DO", 2, 9, xtDO
         mov edx, [lSP]
+        pop ecx                 ; From / I
+        pop ebx                 ; To
+        add edx, CELL_SIZE
         mov [edx], DWORD esi    ; loop start
         add edx, CELL_SIZE
-        pop eax                 ; To
-        mov [edx], DWORD eax
+        mov [edx], DWORD ebx
         add edx, CELL_SIZE
-        pop eax                 ; From / I
-        mov [edx], DWORD eax
-        add edx, CELL_SIZE
+        mov [edx], DWORD ecx
         mov [lSP], DWORD edx
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "LOOP", 2, 9, xtLOOP
         mov edx, [lSP]
-        mov ecx, DWORD [edx]              ; I
+        mov ecx, DWORD [edx]            ; I
         inc ecx
-        cmp ecx, DWORD [edx-CELL_SIZE]    ; To
-        jge lpDone
         mov [edx], ecx
-        mov esi, DWORD [edx-CELL_SIZE*2]  ; Back to start
+        cmp ecx, DWORD [edx-CELL_SIZE]  ; TO
+        jge lpDone
+        mov esi, DWORD [edx-CELL_SIZE*2]            ; Loop start
         NEXT
 lpDone: sub edx, CELL_SIZE*3
         mov [lSP], DWORD edx
