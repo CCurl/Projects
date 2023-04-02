@@ -1,13 +1,34 @@
 ; I/O support for Windows
 ; ------------------------------------------------------------------------------
 
-macro TRC ch
+macro EMITx
 {
-    push ch
     call [putchar]
     pop eax
 }
 
-s_EMIT:
-    TRC
-    NEXT
+macro KEYx
+{
+    push ecx
+    push edx
+    call [_getch]
+    pop edx
+    pop ecx
+    push eax
+}
+
+macro KEYq
+{
+    call [_kbhit]
+    push eax
+}
+
+macro TRC ch
+{
+    push ecx
+    push edx
+    push ch
+    EMITx
+    pop edx
+    pop ecx
+}

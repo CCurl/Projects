@@ -15,8 +15,11 @@ CELL_SIZE = 4
 ;
 ; **************************************************************************
 
-include 'lin-su.inc'
-; include 'win-su.inc'
+; FOR_OS equ WINDOWS
+; FOR_OS equ LINUX
+
+match =WINDOWS, FOR_OS { include 'win-su.inc' }
+match =LINUX,   FOR_OS { include 'lin-su.inc' }
 
 ; -------------------------------------------------------------------------------------
 ver db 'f3 v0.1', 13, 10, 0
@@ -36,8 +39,8 @@ regs  dd   0 dup (100)        ; My pseudo-registers
 rbase dd   0
 
 buf4     db   0 dup (  4)        ; A buffer for EMIT
-tib      db   0 dup (128)        ; the Text Input Buffer
-curWord  db   0 dup ( 32)        ; the current word
+tib      db   0 dup (128)        ; The Text Input Buffer
+curWord  db   0 dup ( 32)        ; The current word
 toIn     dd   0                  ; >IN - current char ptr
 
 ; -------------------------------------------------------------------------------------
@@ -98,14 +101,14 @@ IMMEDIATE equ 1
 INLINE    equ 2
 
 ; -------------------------------------------------------------------------------------
-include 'lin-io.inc'
-; include 'win-io.inc'
+match =WINDOWS, FOR_OS { include 'win-io.inc' }
+match =LINUX,   FOR_OS { include 'lin-io.inc' }
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
-segment readable executable
-; section '.code' code readable executable
+match =WINDOWS, FOR_OS { section '.code' code readable executable }
+match =LINUX,   FOR_OS { segment readable executable }
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -115,8 +118,6 @@ entry $
         mov [InitialEBP], ebp
 
         mov ebp, rStack
-        
-        TRC 'A'
         
         cld
         mov esi, coldStart
@@ -142,13 +143,11 @@ DOCOL:
 
 ; -------------------------------------------------------------------------------------
 DefCode "EXIT",4,0,EXIT
-        TRC ';'
         rPOP esi            ; get esi back
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "0RSP",4,0,zRSP
-        TRC '^'
         mov ebp, rStack
         NEXT
 
@@ -158,9 +157,31 @@ DefCode "0SP",3,0,zSP
         NEXT
 
 ; -------------------------------------------------------------------------------------
+DefWord "CR",2,0,CR
+        dd LIT, 13, EMIT, LIT, 10, EMIT, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "BL",2,0,xtBL
+        dd LIT, 32, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "SPACE",5,0,SPACE
+        dd xtBL, EMIT, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "OK",2,0,OK
+        dd SPACE, LIT, 'O', EMIT, LIT, 'K', EMIT
+        dd CR, EXIT
+
+
+; -------------------------------------------------------------------------------------
 DefWord "INTERPRET",9,0,INTERPRET
+        dd OK
+        dd TIB, LIT, 128, ACCEPT; , DROP
+        dd TIB, TOIN, xtSTORE
+        dd TIB, SWAP, TYPE
+        dd SPACE, xtWORD, TYPE
         ; **TODO**
-        dd LIT, 'I', EMIT
         dd EXIT
 
 ; -------------------------------------------------------------------------------------
@@ -172,29 +193,56 @@ DefWord ">IN",3,0,TOIN
         dd LIT, toIn, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "WORD",4,0,xtWORD
+DefCode "WORD",4,0,xtWORD       ; ( --addr len )
+        TRC '~'
         mov ebx, curWord
-        push ebx
-        mov edx, toIn
+        mov edx, [toIn]
+        xor eax, eax
         xor ecx, ecx            ; ecx => Length
 wd01:   mov al, [edx]           ; Skip whitespace
         test al, 32
         jg wd02
-        test al, al
-        jz wdX
+        cmp al, 0
+        je wdX
         inc edx
         jmp wd01
-wd02:   mov al, [edx]           ; Skip whitespace
-        test al, 33
-        jl wdX
+wd02:   mov [ebx], al           ; Collect word
+        TRC eax
         inc ebx
         inc ecx
         inc edx
-        jmp wd02
+        mov al, [edx]           ; Next char
+        cmp al, 33
+        jl wdX
+        cmp ecx, 32
+        jl wd02
 wdX:    mov [toIn], edx
         mov [ebx], BYTE 0
         push curWord
         push ecx
+        TRC '~'
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "ACCEPT",6,0,ACCEPT     ; ( addr sz--num )
+        pop ecx                 ; max length
+        pop edx                 ; to-addr
+        push 0                  ; num read
+ac0:    cmp ecx, 0
+        je acX
+        KEYx
+        pop eax
+        cmp eax, 13
+        je acX
+        cmp eax, 3              ; **TEMP** <ctrl>-c
+        je 0
+        mov [edx], al
+        inc edx
+        inc DWORD TOS
+        dec ecx
+        TRC eax
+        jmp ac0
+acX:    mov [edx], BYTE 0
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -293,7 +341,7 @@ DefCode "C@",2,0,CFETCH
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "!",1,0,fSTORE
+DefCode "!",1,0,xtSTORE
         pop edx
         pop eax
         mov [edx], eax
@@ -332,24 +380,36 @@ DefCode "*",1,0,xMUL
 
 ; -------------------------------------------------------------------------------------
 DefCode "/",1,0,xDIV
-        pop edx
+        pop ebx
         pop eax
-        ; **TODO**
+        xor edx, edx
+        idiv ebx
         push eax
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "/MOD",4,0,xSLMOD
-        pop edx
+        pop ebx
         pop eax
-        ; **TODO**
-        push eax
+        xor edx, edx
+        idiv ebx
         push edx
+        push eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "KEY",3,0,KEY         ; ( ch-- )
+        KEYx
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "KEY?",4,0,KEYQ         ; ( ch-- )
+        KEYq
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "EMIT",4,0,EMIT         ; ( ch-- )
-        PUTc
+        EMITx
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -369,8 +429,9 @@ DefCode "WORDS",5,0,WORDS
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
-segment readable writable
-; section '.mem' readable writable
+match =WINDOWS, FOR_OS { section '.mem' readable writable }
+match =LINUX,   FOR_OS { segment readable writable }
+
 MEM:    
 xHERE:  rb MEM_SZ
 MEM_END:
