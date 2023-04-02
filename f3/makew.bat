@@ -1,1 +1,1 @@
-fasm -d FOR_OS=WINDOWS f3x.as
+fasm -d FOR_OS=WINDOWS f3.as

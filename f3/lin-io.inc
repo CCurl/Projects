@@ -1,26 +1,54 @@
 ; I/O support for Linux
 ; ------------------------------------------------------------------------------
 
-macro PUTc {
+; ( ch-- )
+macro EMITx {
     pop eax
     mov	[buf4], al  ; put char in message
+    mov	eax,4		; system call number (sys_write)
+    mov	ebx,1		; file descriptor (stdout)
     mov	ecx,buf4    ; message to write
     mov	edx,1		; message length
-    mov	ebx,1		; file descriptor (stdout)
-    mov	eax,4		; system call number (sys_write)
     int	0x80		; call kernel
- }
+}
 
-macro PUTs {
-    pop edx         ; Length
+; ( addr len-- )
+macro TYPEx {
+    pop edx         ; length
     pop ecx         ; message to write
-    mov	ebx,1		; file descriptor (stdout)
     mov	eax,4		; system call number (sys_write)
+    mov	ebx,1		; file descriptor (stdout)
     int	0x80		; call kernel
- }
+}
 
 macro TRC ch
 {
+    push ebx
+    push ecx
+    push edx
     push ch
-    PUTc
+    EMITx
+    pop edx
+    pop ecx
+    pop ebx
+}
+
+; ( addr sz--num )
+macro ACCEPTx {
+    pop edx         ; sz
+    pop ecx         ; buffer
+    mov	eax,3		; system call number (sys_read)
+    mov	ebx,0		; file descriptor (stdin)
+    int	0x80		; call kernel
+    push eax        ; number of bytes read
+}
+
+; ( --ch )
+macro KEYx {
+    push 0
+}
+
+; ( --flg )
+macro KEYq {
+    push 0
 }
