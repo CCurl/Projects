@@ -175,29 +175,50 @@ DefWord "BENCH",5,0,BENCH
         dd EXIT
 
 ; -------------------------------------------------------------------------------------
+DefCode ",",1,0,COMMA
+        pop eax
+        mov edx, [v_HERE]
+        mov [edx], eax
+        add edx, CELL_SIZE
+        mov [v_HERE], edx
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "EXEC",1,0,EXEC
+        pop eax                         ; **TODO**
+        NEXT
+
+; -------------------------------------------------------------------------------------
 DefWord "INTERPRET",9,0,INTERPRET
         dd OK
         dd TIB, LIT, 128, ACCEPT, DROP
         dd TIB, TOIN, fSTORE
-        dd BENCH
 in01:   dd xtWORD                       ; ( --str len )
-        dd DUP1, zBRANCH, inX           ; ?dup if exit then
+        dd DUP1, zBRANCH, inX           ; dup 0= if drop2 exit then
         ; dd OVER, OVER, LIT, '(', EMIT, TYPE, LIT, ')', EMIT
         dd OVER, OVER, NUMq             ; ( str len--str len num flg )
         dd zBRANCH, in02                ; ( str len num f--str len num )
         dd NIP, NIP                     ; ( str len num--num )
-        dd DROP                         ; **TODO**: if state=1, compile LIT, <num>
+        dd STATE, FETCH, LIT, 1, EQUALS ; if state=1, compile LIT, <num>
+        dd zBRANCH, in01
+        dd LIT, LIT, COMMA, COMMA        ; Compile LIT <num>
         dd BRANCH, in01
-        ; dd LIT, 1
 in02:   ; Not a number                  ; ( --str len num )
         ; Try to find it in the dictionary ...
         dd DROP                         ; Discard garbage 'num'
         ; dd OVER, OVER, LIT, '-', EMIT, TYPE, LIT, '-', EMIT
         dd FIND                         ; ( str len--[str len 0] | [xt flags 1] )
         dd zBRANCH, inERR               ; ( a b f--a b )
-        dd DROP, DROP                   ; ( xt flags-- ) **TODO**: compile or execute
+        dd LIT, 1, EQUALS               ; if flags=1, execute (immediate)
+        dd nzBRANCH, inCX               ; ( xt f--xt )
+        dd STATE, FETCH, LIT, 1, EQUALS ; STATE @ 1 = IF COMMA THEN
+        dd zBRANCH, inCX
+        dd COMMA                        ; ( xt -- ): compile
+        dd BRANCH, in01
+inCX:   dd EXEC                         ; ( xt-- ): execute
         dd BRANCH, in01
 inERR:  ; Not a number or word - ERROR  ; ( --str len )
+        dd BENCH                        ; **TEMP**
         dd LIT, '[', EMIT, TYPE, LIT
         dd ']', EMIT, LIT, '?', DUP1, EMIT, EMIT
         dd QUIT
@@ -525,6 +546,17 @@ DefCode "/",1,0,xtDIV
         xor edx, edx
         idiv ebx
         push eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "=",1,0,EQUALS
+        pop ebx
+        pop eax
+        cmp eax, ebx
+        je fTrue
+fFalse: push 0
+        NEXT
+fTrue:  push -1
         NEXT
 
 ; -------------------------------------------------------------------------------------
