@@ -32,3 +32,22 @@ macro TRC ch
     pop edx
     pop ecx
 }
+
+macro ACCEPTx
+{
+    pop eax
+    pop eax
+    push 0
+}
+
+macro TYPEx
+{
+    pop eax
+    pop eax
+}
+
+macro ioTIMER
+{
+    call [GetTickCount]
+    push eax
+}

@@ -22,30 +22,6 @@ match =WINDOWS, FOR_OS { include 'win-su.inc' }
 match =LINUX,   FOR_OS { include 'lin-su.inc' }
 
 ; -------------------------------------------------------------------------------------
-ver db 'f3 v0.1', 13, 10, 0
-
-InitialESP dd 0
-InitialEBP dd 0
-SaveEBP    dd 0
-
-here      dd 0
-last      dd 0
-state     dd 0
-base      dd 0
-
-rStack  dd 64 dup (0)           ; The return stack
-lStack  dd 64 dup (0)           ; The loop stack
-lSP     dd lStack               ; The loop stack pointer
-
-regs  dd  100 dup (0)           ; My pseudo-registers
-rbase dd    0
-
-toIn     dd    0                ; >IN - current char ptr
-tib      db  128 dup (0)        ; The Tef Input Buffer
-curWord  db   32 dup (0)        ; The current word
-buf4     db    4 dup (0)        ; A buffer for EMIT (LINUX)
-
-; -------------------------------------------------------------------------------------
 macro NEXT
 {
        lodsd
@@ -70,7 +46,7 @@ macro rPOP val
 macro DefWord Name, Length, Flags, Tag
 {
     d#Tag: dd LastTag     ; Link
-           dd Tag         ; XT
+           dd Tag         ; XT / Code-Field-Address (CFA)
            db Flags       ; Flags
            db Length      ; Length
            db Name        ; Name
@@ -81,10 +57,26 @@ macro DefWord Name, Length, Flags, Tag
 }
 
 ; ------------------------------------------------------------------------------
+macro DefVar Name, Length, Flags, Tag
+{
+d_#Tag: dd LastTag      ; Link
+        dd Tag          ; XT / Code-Field-Address (CFA)
+        db Flags        ; Flags
+        db Length       ; Length
+        db Name         ; Name
+        db 0            ; NULL-terminator
+align CELL_SIZE
+LastTag equ d_#Tag
+Tag:     dd cd_#Tag
+cd_#Tag: push v_#Tag
+        NEXT
+}
+
+; ------------------------------------------------------------------------------
 macro DefCode Name, Length, Flags, Tag
 {
-    d#Tag: dd LastTag     ; Link
-           dd Tag         ; XT
+   d_#Tag: dd LastTag     ; Link
+           dd Tag         ; XT / Code-Field-Address (CFA)
            db Flags       ; Flags
            db Length      ; Length
            db Name        ; Name
@@ -127,7 +119,7 @@ entry $
 
 ; -------------------------------------------------------------------------------------
 coldStart:
-    dd QUIT
+        dd QUIT
 
 ; -------------------------------------------------------------------------------------
 DefWord "QUIT",4,0,QUIT
@@ -180,6 +172,9 @@ DefWord "INTERPRET",9,0,INTERPRET
         dd OK
         dd TIB, LIT, 128, ACCEPT, DROP
         dd TIB, TOIN, fSTORE
+        dd LIT, 's', EMIT
+        dd LIT, 500000000, LIT, 0, xtDO, xtLOOP
+        dd LIT, 'e', EMIT, CR
 in01:   dd xtWORD, xtDUP, zBRANCH, inX
         dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT ; **TEMP**
         ; **TEMP**
@@ -386,6 +381,8 @@ DefCode "/MOD",4,0,xSLMOD
         push eax
         NEXT
 
+; 
+
 ; -------------------------------------------------------------------------------------
 DefCode "KEY",3,0,KEY         ; ( ch-- )
         KEYx
@@ -405,6 +402,12 @@ DefCode "EMIT",4,0,EMIT         ; ( ch-- )
 DefCode "TYPE",4,0,TYPE         ; ( addr len-- )
         TYPEx
         NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "TIMER",5,0,TIMER     ; ( --n )
+        ioTIMER
+        NEXT
+
 ; -------------------------------------------------------------------------------------
 DefWord "WORDS",5,0,WORDS
         ; **TODO**
@@ -439,11 +442,43 @@ lpDone: sub edx, CELL_SIZE*3
         NEXT
 
 ; -------------------------------------------------------------------------------------
+; Some variables ...
+; -------------------------------------------------------------------------------------
+DefVar "(HERE)",6,0,HERE
+DefVar "(LAST)",6,0,LAST
+DefVar "STATE",5,0,STATE
+DefVar "BASE",4,0,BASE
+
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
-match =WINDOWS, FOR_OS { section '.mem' readable writable }
+; -------------------------------------------------------------------------------------
+match =WINDOWS, FOR_OS { section '.bdata' readable writable }
 match =LINUX,   FOR_OS { segment readable writable }
 
-MEM:    
-xHERE:  rb MEM_SZ
+; -------------------------------------------------------------------------------------
+ver db 'f3 v0.1', 13, 10, 0
+
+InitialESP dd 0
+InitialEBP dd 0
+SaveEBP    dd 0
+
+rStack   dd 64 dup (0)           ; The return stack
+lStack   dd 64 dup (0)           ; The loop stack
+lSP      dd lStack               ; The loop stack pointer
+
+regs     dd  100 dup (0)           ; My pseudo-registers
+rbase    dd    0
+
+toIn     dd    0                ; >IN - current char ptr
+tib      db  128 dup (0)        ; The Tef Input Buffer
+curWord  db   32 dup (0)        ; The current word
+buf4     db    4 dup (0)        ; A buffer for EMIT (LINUX)
+
+v_HERE:  dd xHERE
+v_LAST:  dd LastTag
+v_STATE: dd 0
+v_BASE:  dd 10
+
+xHERE:
+MEM:     rb MEM_SZ  
 MEM_END:
