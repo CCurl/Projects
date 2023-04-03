@@ -33,17 +33,25 @@ macro TRC ch
     pop ecx
 }
 
-macro ACCEPTx
+macro ioACCEPT
 {
-    pop eax
-    pop eax
-    push 0
+    pop eax             ; ( buffer len--buffer )
+    ; pop eax
+    call [gets]
 }
 
-macro TYPEx
+macro ioTYPE
 {
-    pop eax
-    pop eax
+            pop ecx
+            pop edx
+    type01: test ecx, ecx
+            jz typeX
+            movzx eax, BYTE [edx]
+            TRC eax
+            inc edx
+            dec ecx
+            jmp type01
+    typeX:  
 }
 
 macro ioTIMER

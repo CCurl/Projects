@@ -13,7 +13,7 @@ macro EMITx {
 }
 
 ; ( addr len-- )
-macro TYPEx {
+macro ioTYPE {
     pop edx         ; length
     pop ecx         ; message to write
     mov	eax,4		; system call number (sys_write)
@@ -36,7 +36,7 @@ macro TRC ch
 }
 
 ; ( addr sz--num )
-macro ACCEPTx {
+macro ioACCEPT {
     pop edx         ; sz
     pop ecx         ; buffer
     mov	eax,3		; system call number (sys_read)
@@ -59,4 +59,3 @@ macro KEYq {
 macro ioTIMER {
     push 0
 }
-

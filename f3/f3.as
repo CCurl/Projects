@@ -123,8 +123,8 @@ coldStart:
 
 ; -------------------------------------------------------------------------------------
 DefWord "QUIT",4,0,QUIT
-q1:     dd zRSP
-        dd INTERPRET
+        dd zRSP
+q1:     dd INTERPRET
         dd BRANCH, q1
 
 ; -------------------------------------------------------------------------------------
@@ -180,27 +180,79 @@ DefWord "INTERPRET",9,0,INTERPRET
         dd TIB, LIT, 128, ACCEPT, DROP
         dd TIB, TOIN, fSTORE
         dd BENCH
-in01:   dd xtWORD, xtDUP, zBRANCH, inX
-        dd NUMQ, zBRANCH, in02
-        dd DROP                 ; TODO: compile?
+in01:   dd xtWORD                       ; ( --str len )
+        dd DUP1, zBRANCH, inX           ; ?dup if exit then
+        ; dd OVER, OVER, LIT, '(', EMIT, TYPE, LIT, ')', EMIT
+        dd OVER, OVER, NUMq             ; ( str len--str len num flg )
+        dd zBRANCH, in02                ; ( str len num f--str len num )
+        dd NIP, NIP                     ; ( str len num--num )
+        dd DROP                         ; **TODO**: if state=1, compile LIT, <num>
         dd BRANCH, in01
-in02:   ; It is in the dictionary?
-        dd FIND, zBRANCH, inERR
-        dd DROP2                ; TODO: compile or execute
+        ; dd LIT, 1
+in02:   ; Not a number                  ; ( --str len num )
+        ; Try to find it in the dictionary ...
+        dd DROP                         ; Discard garbage 'num'
+        ; dd OVER, OVER, LIT, '-', EMIT, TYPE, LIT, '-', EMIT
+        dd FIND                         ; ( str len--[str len 0] | [xt flags 1] )
+        dd zBRANCH, inERR               ; ( a b f--a b )
+        dd DROP, DROP                   ; ( xt flags-- ) **TODO**: compile or execute
         dd BRANCH, in01
-inERR:  dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT
-        dd LIT, '?', xtDUP, EMIT, EMIT
+inERR:  ; Not a number or word - ERROR  ; ( --str len )
+        dd LIT, '[', EMIT, TYPE, LIT
+        dd ']', EMIT, LIT, '?', DUP1, EMIT, EMIT
         dd QUIT
 inX:    dd DROP2, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "NUMBER?",7,0,NUMQ         ; ( a n--(num 1)|(a n 0) )
-        ; **TODO**
-        push 0
-        NEXT
+; digitQ: Set EDX=1 if EAX is a digit in base EBX, else EDX=0.
+;           NOTE: EAX will be the converted digit if EDX=1.
+digitQ: cmp eax, '0'                    ; <'0' means no
+        jl dqNo
+        sub eax, '0'                    ; Convert to number
+        cmp eax, ebx                    ; 0 .. (base-1) => OK
+        jl dqYes
+        cmp ebx, 10                     ; BASE>10 needs more checking
+        jle dqNo
+        sub eax, 7                      ; Hex: 'A'-'0'-7 => 10
+        cmp eax, 9
+        jle dqNo
+        cmp eax, ebx
+        jge dqNo
+dqYes:  mov edx, 1
+        ret
+dqNo:   mov edx, 0
+        ret
 
 ; -------------------------------------------------------------------------------------
-toLower: ; makes dl lowercase if between A-Z
+; NUMBER? try to convert (str len) into a number.
+;         Stack effect: ( str len--num flg )
+DefCode "NUMBER?",7,0,NUMq
+        pop ecx                     ; len
+        pop edi                     ; str
+        push 0                      ; num
+        push 0                      ; flg
+        mov ebx, [v_BASE]
+nq01:   test ecx, ecx               ; ecx=0 => end of string
+        jz nqX
+        movzx  eax, BYTE [edi]      ; eax => char
+        call digitQ
+        test edx, edx               ; edx=0 => invalid char
+        jz nqNo
+        pop edx                     ; Discard flg
+        pop edx                     ; TOS => the current number
+        imul edx, ebx               ; TOS = (TOS * BASE) + DIGIT
+        add edx, eax
+        push edx                    ; New num
+        push 1                      ; New flg
+        inc edi
+        dec ecx
+        jmp nq01
+nqNo:   pop eax                     ; Discard flg
+        push 0                      ; flg=0
+nqX:    NEXT
+
+; -------------------------------------------------------------------------------------
+toLower: ; Make DL lower-case if between A-Z
         cmp dl, 'A'
         jl tlX
         cmp dl, 'Z'
@@ -209,13 +261,13 @@ toLower: ; makes dl lowercase if between A-Z
 tlX:    ret
 
 ; -------------------------------------------------------------------------------------
-; strEqI: Case insenstive compare
-;         Params: eax: str1, ebx, len1
-;                 ecx: str2, edx: len2
-;         Returns: eax = 0: Not equal, eax != 0 equal
-strEqI: cmp ebx, edx            ; Lens the same?
+; strEqI: Case-insensitive string-equals.
+;         Params: string 1: EAX/EBX (string/len)
+;                 string 2: ECX/EDX (string/len)
+;         Return: EAX=0 => Not equal, or EAX=1 => equal
+strEqI: cmp ebx, edx            ; Are the lengths the same?
         jne eqiNo
-eqi01:  test ebx, ebx
+eqi01:  test ebx, ebx           ; No more chars?
         jz eqiYes
         mov dl, [eax]           ; char1
         call toLower
@@ -224,35 +276,38 @@ eqi01:  test ebx, ebx
         call toLower
         cmp dl, dh
         jne eqiNo
-        inc eax
+        inc eax                 ; So far, so good ... next chars
         inc ecx
         dec ebx
         jmp eqi01
-eqiNo:  xor eax, eax
+eqiNo:  xor eax, eax            ; Strings are not equal
         ret
-eqiYes: mov eax, 1
+eqiYes: mov eax, 1              ; Strings are equal
         ret
 
 ; -------------------------------------------------------------------------------------
-DefCode "FIND",4,0,FIND         ; ( a n--(xt f 1)|(a n 0) )
-        pop edx                 ; len1
-        pop ecx                 ; name1
-        mov eax, [v_LAST]
+; FIND: Look for a word in the dictionary.
+;       Stack: if found,     ( str len--xt flags 1 )
+;              if not found, ( str len--str len 0 )
+DefCode "FIND",4,0,FIND
+        pop edx                 ; string
+        pop ecx                 ; length
+        mov eax, [v_LAST]       ; EAX: the current dict entry
 fw01:   test eax, eax           ; end of dictionary?
         jz fwNo
-        push edx                ; strEqI stomps on these
-        push ecx
-        push eax
+        push edx                ; Save string
+        push ecx                ; Save length
+        push eax                ; Save the current word
         add eax, CELL_SIZE*2+1  ; add length offset
-        movzx ebx, BYTE [eax]   ; len2
-        inc eax                 ; name2
+        movzx ebx, BYTE [eax]   ; length2
+        inc eax                 ; string2
         call strEqI
-        pop ebx                 ; current dict entry (was eax)
-        pop ecx                 ; len1
-        pop edx                 ; name1
+        pop ebx                 ; Get current dict entry (was EAX)
+        pop ecx                 ; Get length back
+        pop edx                 ; Get string back
         test eax, eax           ; Not 0 means they are equal
         jnz fwYes
-        mov eax, DWORD [ebx]    ; Not equal, move to the next word
+        mov eax, [ebx]          ; Not equal, move to the next word
         jmp fw01
 fwNo:   push ecx                ; Not found, return (--name len 0)
         push edx
@@ -275,13 +330,16 @@ DefWord ">IN",3,0,TOIN
         dd LIT, toIn, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "WORD",4,0,xtWORD       ; ( --addr len )
+; WORD: Parse the next word from TIB.
+;       Stack: ( --str len )
+;       NOTE: len=0 means end of line
+DefCode "WORD",4,0,xtWORD
         mov ebx, curWord
         push ebx                ; addr
         push DWORD 0            ; len
         mov edx, [toIn]
         xor eax, eax
-wd01:   mov al, [edx]           ; Skip whitespace
+wd01:   mov al, [edx]           ; Skip any leading whitespace
         cmp al, 32
         jg wd02
         cmp al, 13
@@ -302,12 +360,12 @@ wd02:   mov [ebx], al           ; Collect word
         cmp TOS, DWORD 32
         jl wd02
 wdX:    mov [toIn], edx
-        mov [ebx], BYTE 0
+        mov [ebx], BYTE 0       ; Add NULL terminator
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "ACCEPT",6,0,ACCEPT     ; ( addr sz--num )
-        ACCEPTx
+        ioACCEPT
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -335,7 +393,7 @@ DefCode "?BRANCH",7,0,nzBRANCH
 nzBX:   NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "DUP",3,0,xtDUP
+DefCode "DUP",3,0,DUP1
         mov eax, TOS
         push eax
         NEXT
@@ -371,6 +429,13 @@ DefCode "OVER",4,0,OVER
         pop eax
         mov ebx, TOS
         push eax
+        push ebx
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "NIP",3,0,NIP
+        pop ebx
+        pop eax
         push ebx
         NEXT
 
@@ -489,7 +554,7 @@ DefCode "EMIT",4,0,EMIT         ; ( ch-- )
 
 ; -------------------------------------------------------------------------------------
 DefCode "TYPE",4,0,TYPE         ; ( addr len-- )
-        TYPEx
+        ioTYPE
         NEXT
 
 ; -------------------------------------------------------------------------------------
