@@ -186,6 +186,43 @@ in01:   dd xtWORD, xtDUP, zBRANCH, inX
 inX:    dd DROP2, EXIT
 
 ; -------------------------------------------------------------------------------------
+; strEqI: Case insenstive compare
+;         Params: edx: str1, ecx: len1, eax: str2, ebx, len2
+;         Returns: eax = 0: Not equal, eax != 0 equal
+strEqI: mov eax, 0
+        ; **TODO**
+        ret
+
+; -------------------------------------------------------------------------------------
+DefCode "FIND",3,0,FIND         ; ( a n--(xt f 1)|(a n 0) )
+        pop ecx
+        pop edx
+        mov eax, [v_LAST]
+fw01:   test eax, eax
+        jz fwNo
+        push edx
+        push ecx
+        push eax
+        mov ebx, 111    ; len2
+        mov eax, 222    ; name2
+        call strEqI
+        pop ebx
+        pop ecx
+        pop edx
+        test eax, eax
+        jnz fwYes
+        mov eax, DWORD [ebx]
+        jmp fw01
+fwNo:   push edx
+        push ecx
+        push eax
+        NEXT
+fwYes:  push 1          ; XT
+        push 1          ; Flags
+        push 1          ; FOUND!
+        NEXT
+
+; -------------------------------------------------------------------------------------
 DefWord "TIB",3,0,TIB
         dd LIT, tib, EXIT
 
@@ -257,6 +294,16 @@ nzBX:   NEXT
 DefCode "DUP",3,0,xtDUP
         mov eax, TOS
         push eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "2DUP",4,0,DUP2
+        pop ebx
+        pop eax
+        push eax
+        push ebx
+        push eax
+        push ebx
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -381,8 +428,6 @@ DefCode "/MOD",4,0,xSLMOD
         push eax
         NEXT
 
-; 
-
 ; -------------------------------------------------------------------------------------
 DefCode "KEY",3,0,KEY         ; ( ch-- )
         KEYx
@@ -448,6 +493,7 @@ DefVar "(HERE)",6,0,HERE
 DefVar "(LAST)",6,0,LAST
 DefVar "STATE",5,0,STATE
 DefVar "BASE",4,0,BASE
+DefVar "PAD",4,0,PAD
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -478,6 +524,7 @@ v_HERE:  dd xHERE
 v_LAST:  dd LastTag
 v_STATE: dd 0
 v_BASE:  dd 10
+v_PAD:   dd 64 dup(0)
 
 xHERE:
 MEM:     rb MEM_SZ  
