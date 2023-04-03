@@ -45,46 +45,46 @@ macro rPOP val
 ; ------------------------------------------------------------------------------
 macro DefWord Name, Length, Flags, Tag
 {
-    d#Tag: dd LastTag     ; Link
-           dd Tag         ; XT / Code-Field-Address (CFA)
-           db Flags       ; Flags
-           db Length      ; Length
-           db Name        ; Name
-           db 0           ; NULL-terminator
-    LastTag equ Tag
-    align CELL_SIZE
-    Tag:   dd DOCOL
+        d_#Tag: dd LastTag     ; Link
+                dd Tag         ; XT / Code-Field-Address (CFA)
+                db Flags       ; Flags
+                db Length      ; Length
+                db Name        ; Name
+                db 0           ; NULL-terminator
+        align CELL_SIZE
+        LastTag equ d_#Tag
+        Tag:    dd  DOCOL
 }
 
 ; ------------------------------------------------------------------------------
 macro DefVar Name, Length, Flags, Tag
 {
-d_#Tag: dd LastTag      ; Link
-        dd Tag          ; XT / Code-Field-Address (CFA)
-        db Flags        ; Flags
-        db Length       ; Length
-        db Name         ; Name
-        db 0            ; NULL-terminator
-align CELL_SIZE
-LastTag equ d_#Tag
-Tag:     dd cd_#Tag
-cd_#Tag: push v_#Tag
+        d_#Tag: dd LastTag      ; Link
+                dd Tag          ; XT / Code-Field-Address (CFA)
+                db Flags        ; Flags
+                db Length       ; Length
+                db Name         ; Name
+                db 0            ; NULL-terminator
+        align CELL_SIZE
+        LastTag equ  d_#Tag
+        Tag:    dd   c_#Tag
+        c_#Tag: push v_#Tag
         NEXT
 }
 
 ; ------------------------------------------------------------------------------
 macro DefCode Name, Length, Flags, Tag
 {
-   d_#Tag: dd LastTag     ; Link
-           dd Tag         ; XT / Code-Field-Address (CFA)
-           db Flags       ; Flags
-           db Length      ; Length
-           db Name        ; Name
-           db 0           ; NULL-terminator
-    LastTag equ Tag
-    align CELL_SIZE
-    Tag: dd cd_#Tag
-    cd_#Tag:
+        d_#Tag: dd LastTag     ; Link
+                dd Tag         ; XT / Code-Field-Address (CFA)
+                db Flags       ; Flags
+                db Length      ; Length
+                db Name        ; Name
+                db 0           ; NULL-terminator
+        align CELL_SIZE
+        LastTag equ  d_#Tag
+        Tag:    dd   c_#Tag
+        c_#Tag:
 }
 
 ; ------------------------------------------------------------------------------
@@ -168,58 +168,102 @@ DefWord "OK",2,0,OK
         dd CR, EXIT
 
 ; -------------------------------------------------------------------------------------
+DefWord "BENCH",5,0,BENCH
+        dd LIT, 's', EMIT
+        dd LIT, 500000000, LIT, 0, xtDO, xtLOOP
+        dd LIT, 'e', EMIT
+        dd EXIT
+
+; -------------------------------------------------------------------------------------
 DefWord "INTERPRET",9,0,INTERPRET
         dd OK
         dd TIB, LIT, 128, ACCEPT, DROP
         dd TIB, TOIN, fSTORE
-        dd LIT, 's', EMIT
-        dd LIT, 500000000, LIT, 0, xtDO, xtLOOP
-        dd LIT, 'e', EMIT, CR
+        dd BENCH
 in01:   dd xtWORD, xtDUP, zBRANCH, inX
-        dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT ; **TEMP**
-        ; **TEMP**
-        dd LIT, 's', EMIT
-        dd LIT, 500000000, LIT, 0, xtDO, xtLOOP
-        dd LIT, 'e', EMIT, CR
-        ; **TODO**
+        dd NUMQ, zBRANCH, in02
+        dd DROP                 ; TODO: compile?
         dd BRANCH, in01
+in02:   ; It is in the dictionary?
+        dd FIND, zBRANCH, inERR
+        dd DROP2                ; TODO: compile or execute
+        dd BRANCH, in01
+inERR:  dd LIT, '[', EMIT, TYPE, LIT, ']', EMIT
+        dd LIT, '?', xtDUP, EMIT, EMIT
+        dd QUIT
 inX:    dd DROP2, EXIT
 
 ; -------------------------------------------------------------------------------------
-; strEqI: Case insenstive compare
-;         Params: edx: str1, ecx: len1, eax: str2, ebx, len2
-;         Returns: eax = 0: Not equal, eax != 0 equal
-strEqI: mov eax, 0
+DefCode "NUMBER?",7,0,NUMQ         ; ( a n--(num 1)|(a n 0) )
         ; **TODO**
+        push 0
+        NEXT
+
+; -------------------------------------------------------------------------------------
+toLower: ; makes dl lowercase if between A-Z
+        cmp dl, 'A'
+        jl tlX
+        cmp dl, 'Z'
+        jg tlX
+        add dl, 0x20
+tlX:    ret
+
+; -------------------------------------------------------------------------------------
+; strEqI: Case insenstive compare
+;         Params: eax: str1, ebx, len1
+;                 ecx: str2, edx: len2
+;         Returns: eax = 0: Not equal, eax != 0 equal
+strEqI: cmp ebx, edx            ; Lens the same?
+        jne eqiNo
+eqi01:  test ebx, ebx
+        jz eqiYes
+        mov dl, [eax]           ; char1
+        call toLower
+        mov dh, dl
+        mov dl, [ecx]           ; char 2
+        call toLower
+        cmp dl, dh
+        jne eqiNo
+        inc eax
+        inc ecx
+        dec ebx
+        jmp eqi01
+eqiNo:  xor eax, eax
+        ret
+eqiYes: mov eax, 1
         ret
 
 ; -------------------------------------------------------------------------------------
-DefCode "FIND",3,0,FIND         ; ( a n--(xt f 1)|(a n 0) )
-        pop ecx
-        pop edx
+DefCode "FIND",4,0,FIND         ; ( a n--(xt f 1)|(a n 0) )
+        pop edx                 ; len1
+        pop ecx                 ; name1
         mov eax, [v_LAST]
-fw01:   test eax, eax
+fw01:   test eax, eax           ; end of dictionary?
         jz fwNo
-        push edx
+        push edx                ; strEqI stomps on these
         push ecx
         push eax
-        mov ebx, 111    ; len2
-        mov eax, 222    ; name2
+        add eax, CELL_SIZE*2+1  ; add length offset
+        movzx ebx, BYTE [eax]   ; len2
+        inc eax                 ; name2
         call strEqI
-        pop ebx
-        pop ecx
-        pop edx
-        test eax, eax
+        pop ebx                 ; current dict entry (was eax)
+        pop ecx                 ; len1
+        pop edx                 ; name1
+        test eax, eax           ; Not 0 means they are equal
         jnz fwYes
-        mov eax, DWORD [ebx]
+        mov eax, DWORD [ebx]    ; Not equal, move to the next word
         jmp fw01
-fwNo:   push edx
-        push ecx
-        push eax
+fwNo:   push ecx                ; Not found, return (--name len 0)
+        push edx
+        push 0
         NEXT
-fwYes:  push 1          ; XT
-        push 1          ; Flags
-        push 1          ; FOUND!
+fwYes:  add ebx, CELL_SIZE      ; Offset to XT
+        push DWORD [ebx]        ; XT
+        add ebx, CELL_SIZE      ; Offset to Flags
+        movzx eax, BYTE [ebx]   ; Flags
+        push eax
+        push 1                  ; FOUND!
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -459,7 +503,7 @@ DefWord "WORDS",5,0,WORDS
         dd EXIT
 
 ; -------------------------------------------------------------------------------------
-DefCode "DO", 2, 9, xtDO
+DefCode "DO", 2, 0, xtDO
         mov edx, [lSP]
         pop ecx                 ; From / I
         pop ebx                 ; To
@@ -473,7 +517,7 @@ DefCode "DO", 2, 9, xtDO
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "LOOP", 2, 9, xtLOOP
+DefCode "LOOP", 4, 0, xtLOOP
         mov edx, [lSP]
         mov ecx, DWORD [edx]            ; I
         inc ecx

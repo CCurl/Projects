@@ -23,6 +23,7 @@ macro TYPEx {
 
 macro TRC ch
 {
+    push eax
     push ebx
     push ecx
     push edx
@@ -31,6 +32,7 @@ macro TRC ch
     pop edx
     pop ecx
     pop ebx
+    pop eax
 }
 
 ; ( addr sz--num )
@@ -52,3 +54,9 @@ macro KEYx {
 macro KEYq {
     push 0
 }
+
+; ( --n )
+macro ioTIMER {
+    push 0
+}
+
