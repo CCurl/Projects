@@ -110,10 +110,9 @@ match =LINUX,   FOR_OS { segment readable executable }
 entry $
         mov [InitialESP], esp
         mov [InitialEBP], ebp
+        cld
 
         mov ebp, rStack
-        
-        cld
         mov esi, coldStart
         NEXT
 
@@ -170,11 +169,6 @@ DefWord "OK",2,0,OK
         dd CR, EXIT
 
 ; -------------------------------------------------------------------------------------
-DefWord "BENCH",5,0,BENCH
-        dd TIMER, SWAP, LIT, 0, xtDO, xtLOOP, TIMER, SWAP, xtSUB, DOT
-        dd EXIT
-
-; -------------------------------------------------------------------------------------
 DefCode ",",1,0,COMMA
         pop eax
         mov edx, [v_HERE]
@@ -193,32 +187,28 @@ DefWord "INTERPRET",9,0,INTERPRET
         dd OK
         dd TIB, LIT, 128, ACCEPT, DROP
         dd TIB, TOIN, fSTORE
-in01:   dd xtWORD                       ; ( --str len )
-        dd DUP1, zBRANCH, inX           ; dup 0= if drop2 exit then
-        ; dd OVER, OVER, LIT, '(', EMIT, TYPE, LIT, ')', EMIT
-        dd OVER, OVER, NUMq             ; ( str len--str len num flg )
-        dd zBRANCH, in02                ; ( str len num f--str len num )
-        dd NIP, NIP                     ; ( str len num--num )
-        dd STATE, FETCH, LIT, 1, EQUALS ; if state=1, compile LIT, <num>
+in01:   dd xtWORD                               ; ( --str len )
+        dd DUP1, zBRANCH, inX                   ; dup 0= if drop2 exit then
+        dd OVER, OVER, NUMq                     ; ( str len--str len num flg )
+        dd zBRANCH, in02                        ; ( str len num f--str len num )
+        dd NIP, NIP                             ; ( str len num--num )
+        dd STATE, FETCH, LIT, 1, EQUALS         ; if state=1, compile LIT, <num>
         dd zBRANCH, in01
-        dd LIT, LIT, COMMA, COMMA        ; Compile LIT <num>
+        dd LIT, LIT, COMMA, COMMA               ; Compile LIT <num>
         dd BRANCH, in01
-in02:   ; Not a number                  ; ( --str len num )
-        ; Try to find it in the dictionary ...
-        dd DROP                         ; Discard garbage 'num'
-        ; dd OVER, OVER, LIT, '-', EMIT, TYPE, LIT, '-', EMIT
-        dd FIND                         ; ( str len--[str len 0] | [xt flags 1] )
-        dd zBRANCH, inERR               ; ( a b f--a b )
-        dd LIT, IMMEDIATE, EQUALS       ; if immediate, execute it now
-        dd nzBRANCH, inCX               ; ( xt f--xt )
-        dd STATE, FETCH, LIT, 1, EQUALS ; STATE @ 1 = IF COMMA THEN
+in02:   ; Not a number, in dictionary?          ; ( --str len num )
+        dd DROP                                 ; Discard garbage 'num'
+        dd FIND                                 ; ( str len--[str len 0] | [xt flags 1] )
+        dd zBRANCH, inERR                       ; ( a b f--a b )
+        dd LIT, IMMEDIATE, EQUALS               ; if immediate, execute it now
+        dd nzBRANCH, inCX                       ; ( xt f--xt )
+        dd STATE, FETCH, LIT, 1, EQUALS         ; STATE @ 1 = IF COMMA THEN
         dd zBRANCH, inCX
-        dd COMMA                        ; ( xt -- ): compile
+        dd COMMA                                ; ( xt -- ): compile
         dd BRANCH, in01
-inCX:   dd EXECUTE                      ; ( xt-- ): execute
+inCX:   dd EXECUTE                              ; ( xt-- ): execute
         dd BRANCH, in01
-inERR:  ; Not a number or word - ERROR  ; ( --str len )
-        dd BENCH                        ; **TEMP**
+inERR:  ; Not a number or word - ERROR          ; ( --str len )
         dd LIT, '[', EMIT, TYPE, LIT
         dd ']', EMIT, LIT, '?', DUP1, EMIT, EMIT
         dd QUIT
@@ -672,15 +662,23 @@ lpDone: sub edx, CELL_SIZE*3
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "<#", 2, 0, DOTinit
+DefCode "<#", 2, 0, DOTinit             ; ( n--u )
         mov [isNeg], BYTE 0
         mov [dotLen], BYTE 0
         mov eax, dotBuf+63
         mov [dotPtr], eax
-        NEXT
+	pop eax                         ; Check if negative
+	test eax, eax
+	jns di99
+	cmp [v_BASE], DWORD 10          ; Only for base 10
+	jne di99
+	mov [isNeg], BYTE 1
+	neg eax
+di99:   push eax
+NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "#", 1, 0, DOTlb
+DefCode "#", 1, 0, DOTlb                ; ( u1--u2 )
         pop eax
         xor edx, edx
         idiv DWORD [v_BASE]
@@ -697,13 +695,21 @@ lb1:    mov eax, [dotPtr]
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "#S", 2, 0, DOTlbS
-lbS1:   dd DOTlb, DUP1, nzBRANCH, lbS1, EXIT
+DefWord "#S", 2, 0, DOTlbS              ; ( u--0)
+lbS1:   dd DOTlb, DUP1, nzBRANCH, lbS1
+        dd EXIT
 
 ; -------------------------------------------------------------------------------------
 DefCode "#>", 2, 0, DOTdone
-        pop eax
-        movzx eax, BYTE [dotLen]
+        pop eax                         ; Discard garbage 0 left on stack from #S
+        cmp [isNeg], BYTE 1             ; Prepend the '-' if necessary
+        jne dd99
+        inc BYTE [dotLen]
+        mov eax, [dotPtr]
+        dec eax
+        mov [eax], BYTE '-'
+        mov [dotPtr], eax
+dd99:   movzx eax, BYTE [dotLen]
         push [dotPtr]
         push eax
         NEXT
@@ -711,6 +717,11 @@ DefCode "#>", 2, 0, DOTdone
 ; -------------------------------------------------------------------------------------
 DefWord ".", 1, 0, DOT
         dd DOTinit, DOTlbS, DOTdone, TYPE, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "BENCH",5,0,BENCH
+        dd TIMER, SWAP, LIT, 0, xtDO, xtLOOP, TIMER, SWAP, xtSUB, DOT
+        dd EXIT
 
 ; -------------------------------------------------------------------------------------
 ; Some variables ...
@@ -733,11 +744,11 @@ InitialESP dd 0
 InitialEBP dd 0
 SaveEBP    dd 0
 
-rStack   dd 64 dup (0)           ; The return stack
-lStack   dd 64 dup (0)           ; The loop stack
-lSP      dd lStack               ; The loop stack pointer
+rStack   dd 64 dup (0)          ; The return stack
+lStack   dd 64 dup (0)          ; The loop stack
+lSP      dd lStack              ; The loop stack-pointer
 
-regs     dd  100 dup (0)           ; My pseudo-registers
+regs     dd  100 dup (0)        ; My pseudo-registers
 rbase    dd    0
 
 toIn     dd    0                ; >IN - current char ptr
