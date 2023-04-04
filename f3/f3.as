@@ -184,9 +184,9 @@ DefCode ",",1,0,COMMA
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "EXEC",1,0,EXEC
+DefCode "EXECUTE",7,0,EXECUTE
         pop eax                         ; **TODO**
-        NEXT
+        jmp DWORD [eax]
 
 ; -------------------------------------------------------------------------------------
 DefWord "INTERPRET",9,0,INTERPRET
@@ -209,13 +209,13 @@ in02:   ; Not a number                  ; ( --str len num )
         ; dd OVER, OVER, LIT, '-', EMIT, TYPE, LIT, '-', EMIT
         dd FIND                         ; ( str len--[str len 0] | [xt flags 1] )
         dd zBRANCH, inERR               ; ( a b f--a b )
-        dd LIT, 1, EQUALS               ; if flags=1, execute (immediate)
+        dd LIT, IMMEDIATE, EQUALS       ; if immediate, execute it now
         dd nzBRANCH, inCX               ; ( xt f--xt )
         dd STATE, FETCH, LIT, 1, EQUALS ; STATE @ 1 = IF COMMA THEN
         dd zBRANCH, inCX
         dd COMMA                        ; ( xt -- ): compile
         dd BRANCH, in01
-inCX:   dd EXEC                         ; ( xt-- ): execute
+inCX:   dd EXECUTE                      ; ( xt-- ): execute
         dd BRANCH, in01
 inERR:  ; Not a number or word - ERROR  ; ( --str len )
         dd BENCH                        ; **TEMP**
@@ -420,6 +420,12 @@ DefCode "DUP",3,0,DUP1
         NEXT
 
 ; -------------------------------------------------------------------------------------
+DefCode "?DUP",4,0,qDUP
+        cmp TOS, DWORD 0
+        jnz c_DUP1
+        NEXT
+
+; -------------------------------------------------------------------------------------
 DefCode "2DUP",4,0,DUP2
         pop ebx
         pop eax
@@ -428,14 +434,6 @@ DefCode "2DUP",4,0,DUP2
         push eax
         push ebx
         NEXT
-
-; -------------------------------------------------------------------------------------
-DefCode "?DUP",4,0,qDUP
-        mov eax, TOS
-        test edx, edx
-        jz qdX
-        push eax
-qdX:    NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "SWAP",4,0,SWAP
@@ -549,6 +547,14 @@ DefCode "/",1,0,xtDIV
         NEXT
 
 ; -------------------------------------------------------------------------------------
+DefCode "<",1,0,LESSTHAN
+        pop ebx
+        pop eax
+        cmp eax, ebx
+        jl fTrue
+        jmp fFalse
+
+; -------------------------------------------------------------------------------------
 DefCode "=",1,0,EQUALS
         pop ebx
         pop eax
@@ -558,6 +564,14 @@ fFalse: push 0
         NEXT
 fTrue:  push -1
         NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode ">",1,0,GREATERTHAN
+        pop ebx
+        pop eax
+        cmp eax, ebx
+        jg fTrue
+        jmp fFalse
 
 ; -------------------------------------------------------------------------------------
 DefCode "/MOD",4,0,xSLMOD
@@ -571,17 +585,17 @@ DefCode "/MOD",4,0,xSLMOD
 
 ; -------------------------------------------------------------------------------------
 DefCode "KEY",3,0,KEY         ; ( ch-- )
-        KEYx
+        ioKEY
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "KEY?",4,0,KEYQ         ; ( ch-- )
-        KEYq
+        ioKEYq
         NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "EMIT",4,0,EMIT         ; ( ch-- )
-        EMITx
+        ioEMIT
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -592,12 +606,42 @@ DefCode "TYPE",4,0,TYPE         ; ( addr len-- )
 ; -------------------------------------------------------------------------------------
 DefCode "TIMER",5,0,TIMER     ; ( --n )
         ioTIMER
-        NEXT
+nxt:    NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "WORDS",5,0,WORDS
-        ; **TODO**
+DefWord "CREATE",6,0,CREATE     ; ( --n )
+        dd xtWORD
+        dd DROP, DROP ; **TODO**
         dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ":",1,0,xtDEFINE
+        dd CREATE
+        dd LIT, 1, STATE, fSTORE
+        dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ";",1,IMMEDIATE,ENDWORD
+        dd LIT, EXIT, COMMA
+        dd LIT, 0, STATE, fSTORE
+        dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefCode "WORDS",5,0,WORDS
+        mov eax, [v_LAST]       ; EAX: the current dict entry
+ww01:   test eax, eax           ; end of dictionary?
+        jz nxt
+        push eax                ; Save the current word
+        add eax, CELL_SIZE*2+1  ; add length offset
+        movzx ebx, BYTE [eax]   ; length
+        inc eax                 ; string
+        push eax
+        push ebx
+        ioTYPE
+        TRC 9
+        pop ebx                 ; Get addr back
+        mov eax, [ebx]          ; Move to the next word
+        jmp ww01
 
 ; -------------------------------------------------------------------------------------
 DefCode "DO", 2, 0, xtDO

@@ -2,7 +2,7 @@
 ; ------------------------------------------------------------------------------
 
 ; ( ch-- )
-macro EMITx {
+macro ioEMIT {
     pop eax
     mov	[buf4], al  ; put char in message
     mov	eax,4		; system call number (sys_write)
@@ -28,7 +28,7 @@ macro TRC ch
     push ecx
     push edx
     push ch
-    EMITx
+    ioEMIT
     pop edx
     pop ecx
     pop ebx
@@ -46,12 +46,12 @@ macro ioACCEPT {
 }
 
 ; ( --ch )
-macro KEYx {
+macro ioKEY {
     push 0
 }
 
 ; ( --flg )
-macro KEYq {
+macro ioKEYq {
     push 0
 }
 

@@ -1,13 +1,13 @@
 ; I/O support for Windows
 ; ------------------------------------------------------------------------------
 
-macro EMITx
+macro ioEMIT
 {
     call [putchar]
     pop eax
 }
 
-macro KEYx
+macro ioKEY
 {
     push ecx
     push edx
@@ -17,7 +17,7 @@ macro KEYx
     push eax
 }
 
-macro KEYq
+macro ioKEYq
 {
     call [_kbhit]
     push eax
@@ -28,7 +28,7 @@ macro TRC ch
     push ecx
     push edx
     push ch
-    EMITx
+    ioEMIT
     pop edx
     pop ecx
 }
