@@ -40,18 +40,25 @@ macro ioACCEPT
     call [gets]
 }
 
+winTYPE:
+        pop ecx
+        rPUSH ecx
+        pop ecx
+        pop edx
+type01: test ecx, ecx
+        jz typeX
+        movzx eax, BYTE [edx]
+        TRC eax
+        inc edx
+        dec ecx
+        jmp type01
+typeX:  rPOP ecx
+        push ecx
+        ret
+
 macro ioTYPE
 {
-            pop ecx
-            pop edx
-    type01: test ecx, ecx
-            jz typeX
-            movzx eax, BYTE [edx]
-            TRC eax
-            inc edx
-            dec ecx
-            jmp type01
-    typeX:  
+    call winTYPE
 }
 
 macro ioTIMER

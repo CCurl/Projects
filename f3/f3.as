@@ -124,8 +124,7 @@ coldStart:
 ; -------------------------------------------------------------------------------------
 DefWord "QUIT",4,0,QUIT
         dd zRSP
-q1:     dd INTERPRET
-        dd BRANCH, q1
+quitL:  dd INTERPRET, BRANCH, quitL
 
 ; -------------------------------------------------------------------------------------
 DOCOL:
@@ -141,9 +140,12 @@ DefCode "EXIT",4,0,EXIT
 
 ; -------------------------------------------------------------------------------------
 DefCode "0RSP",4,0,zRSP
-        mov [lSP], lStack
-        mov ebp, rStack
-        NEXT
+        mov ebp, rStack         ; Reset the return stack
+        mov [lSP], lStack       ; Reset the loop stack too
+        cmp esp, [InitialESP]   ; Reset the data stack if underflow
+        jle rs0X
+        mov esp, [InitialESP]
+rs0X:   NEXT
 
 ; -------------------------------------------------------------------------------------
 DefCode "0SP",3,0,zSP
@@ -169,9 +171,7 @@ DefWord "OK",2,0,OK
 
 ; -------------------------------------------------------------------------------------
 DefWord "BENCH",5,0,BENCH
-        dd LIT, 's', EMIT
-        dd LIT, 500000000, LIT, 0, xtDO, xtLOOP
-        dd LIT, 'e', EMIT
+        dd TIMER, SWAP, LIT, 0, xtDO, xtLOOP, TIMER, SWAP, xtSUB, DOT
         dd EXIT
 
 ; -------------------------------------------------------------------------------------
@@ -672,13 +672,53 @@ lpDone: sub edx, CELL_SIZE*3
         NEXT
 
 ; -------------------------------------------------------------------------------------
+DefCode "<#", 2, 0, DOTinit
+        mov [isNeg], BYTE 0
+        mov [dotLen], BYTE 0
+        mov eax, dotBuf+63
+        mov [dotPtr], eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "#", 1, 0, DOTlb
+        pop eax
+        xor edx, edx
+        idiv DWORD [v_BASE]
+        push eax
+        add edx, '0'
+        cmp edx, '9'
+        jle lb1
+        add edx, 7
+lb1:    mov eax, [dotPtr]
+        dec eax
+        mov [eax], BYTE dl
+        mov [dotPtr], eax
+        inc BYTE [dotLen]
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefWord "#S", 2, 0, DOTlbS
+lbS1:   dd DOTlb, DUP1, nzBRANCH, lbS1, EXIT
+
+; -------------------------------------------------------------------------------------
+DefCode "#>", 2, 0, DOTdone
+        pop eax
+        movzx eax, BYTE [dotLen]
+        push [dotPtr]
+        push eax
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefWord ".", 1, 0, DOT
+        dd DOTinit, DOTlbS, DOTdone, TYPE, EXIT
+
+; -------------------------------------------------------------------------------------
 ; Some variables ...
 ; -------------------------------------------------------------------------------------
 DefVar "(HERE)",6,0,HERE
 DefVar "(LAST)",6,0,LAST
 DefVar "STATE",5,0,STATE
 DefVar "BASE",4,0,BASE
-DefVar "PAD",4,0,PAD
 
 ; -------------------------------------------------------------------------------------
 ; -------------------------------------------------------------------------------------
@@ -701,15 +741,19 @@ regs     dd  100 dup (0)           ; My pseudo-registers
 rbase    dd    0
 
 toIn     dd    0                ; >IN - current char ptr
-tib      db  128 dup (0)        ; The Tef Input Buffer
+tib      db  128 dup (0)        ; The Text Input Buffer
 curWord  db   32 dup (0)        ; The current word
 buf4     db    4 dup (0)        ; A buffer for EMIT (LINUX)
+
+isNeg    db  0
+dotLen   db  0
+dotPtr   dd  0
+dotBuf   db 64 dup (0)
 
 v_HERE:  dd xHERE
 v_LAST:  dd LastTag
 v_STATE: dd 0
 v_BASE:  dd 10
-v_PAD:   dd 64 dup(0)
 
 xHERE:
 MEM:     rb MEM_SZ  
