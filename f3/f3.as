@@ -121,11 +121,6 @@ coldStart:
         dd QUIT
 
 ; -------------------------------------------------------------------------------------
-DefWord "QUIT",4,0,QUIT
-        dd zRSP
-quitL:  dd INTERPRET, BRANCH, quitL
-
-; -------------------------------------------------------------------------------------
 DOCOL:
         rPUSH esi           ; push current esi on to the return stack
         add eax, CELL_SIZE  ; eax points to codeword, so add (CELL_SIZE) to make
@@ -152,23 +147,6 @@ DefCode "0SP",3,0,zSP
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "CR",2,0,CR
-        dd LIT, 13, EMIT, LIT, 10, EMIT, EXIT
-
-; -------------------------------------------------------------------------------------
-DefWord "BL",2,0,fBL
-        dd LIT, 32, EXIT
-
-; -------------------------------------------------------------------------------------
-DefWord "SPACE",5,0,SPACE
-        dd fBL, EMIT, EXIT
-
-; -------------------------------------------------------------------------------------
-DefWord "OK",2,0,OK
-        dd SPACE, LIT, 'O', EMIT, LIT, 'K', EMIT
-        dd CR, EXIT
-
-; -------------------------------------------------------------------------------------
 DefCode ",",1,0,COMMA
         pop eax
         mov edx, [v_HERE]
@@ -178,61 +156,13 @@ DefCode ",",1,0,COMMA
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefCode "EXECUTE",7,0,EXECUTE
-        pop eax                         ; **TODO**
-        jmp DWORD [eax]
-
-; -------------------------------------------------------------------------------------
-DefWord "INTERPRET",9,0,INTERPRET
-        dd OK
-        dd TIB, LIT, 128, ACCEPT, DROP
-        dd TIB, TOIN, fSTORE
-in01:   dd xtWORD                               ; ( --str len )
-        dd DUP1, zBRANCH, inX                   ; dup 0= if drop2 exit then
-        dd OVER, OVER, NUMq                     ; ( str len--str len num flg )
-        dd zBRANCH, in02                        ; ( str len num f--str len num )
-        dd NIP, NIP                             ; ( str len num--num )
-        dd STATE, FETCH, LIT, 1, EQUALS         ; if state=1, compile LIT, <num>
-        dd zBRANCH, in01
-        dd LIT, LIT, COMMA, COMMA               ; Compile LIT <num>
-        dd BRANCH, in01
-in02:   ; Not a number, in dictionary?          ; ( --str len num )
-        dd DROP                                 ; Discard garbage 'num'
-        dd FIND                                 ; ( str len--[str len 0] | [xt flags 1] )
-        dd zBRANCH, inERR                       ; ( a b f--a b )
-        dd LIT, IMMEDIATE, EQUALS               ; if immediate, execute it now
-        dd nzBRANCH, inCX                       ; ( xt f--xt )
-        dd STATE, FETCH, LIT, 1, EQUALS         ; STATE @ 1 = IF COMMA THEN
-        dd zBRANCH, inCX
-        dd COMMA                                ; ( xt -- ): compile
-        dd BRANCH, in01
-inCX:   dd EXECUTE                              ; ( xt-- ): execute
-        dd BRANCH, in01
-inERR:  ; Not a number or word - ERROR          ; ( --str len )
-        dd LIT, '[', EMIT, TYPE, LIT
-        dd ']', EMIT, LIT, '?', DUP1, EMIT, EMIT
-        dd QUIT
-inX:    dd DROP2, EXIT
-
-; -------------------------------------------------------------------------------------
-; digitQ: Set EDX=1 if EAX is a digit in base EBX, else EDX=0.
-;           NOTE: EAX will be the converted digit if EDX=1.
-digitQ: cmp eax, '0'                    ; <'0' means no
-        jl dqNo
-        sub eax, '0'                    ; Convert to number
-        cmp eax, ebx                    ; 0 .. (base-1) => OK
-        jl dqYes
-        cmp ebx, 10                     ; BASE>10 needs more checking
-        jle dqNo
-        sub eax, 7                      ; Hex: 'A'-'0'-7 => 10
-        cmp eax, 9
-        jle dqNo
-        cmp eax, ebx
-        jge dqNo
-dqYes:  mov edx, 1
-        ret
-dqNo:   mov edx, 0
-        ret
+DefCode "C,",2,0,CCOMMA
+        pop eax
+        mov edx, [v_HERE]
+        mov [edx], eax
+        inc edx
+        mov [v_HERE], edx
+        NEXT
 
 ; -------------------------------------------------------------------------------------
 ; NUMBER? try to convert (str len) into a number.
@@ -333,21 +263,16 @@ fwYes:  add ebx, CELL_SIZE      ; Offset to XT
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "TIB",3,0,TIB
-        dd LIT, tib, EXIT
+DefCode "EXECUTE",7,0,EXECUTE
+        pop eax                         ; **TODO**
+        jmp DWORD [eax]
 
 ; -------------------------------------------------------------------------------------
-DefWord ">IN",3,0,TOIN
-        dd LIT, toIn, EXIT
-
-; -------------------------------------------------------------------------------------
-; WORD: Parse the next word from TIB.
-;       Stack: ( --str len )
-;       NOTE: len=0 means end of line
-DefCode "WORD",4,0,xtWORD
-        mov ebx, curWord
-        push ebx                ; addr
-        push DWORD 0            ; len
+; doWORD: Parse the next word from >IN into curWord.
+;       Return: ECX: length
+;       NOTE: ECX=0 means end of line
+doWord: mov ebx, curWord
+        xor ecx, ecx            ; len
         mov edx, [toIn]
         xor eax, eax
 wd01:   mov al, [edx]           ; Skip any leading whitespace
@@ -364,14 +289,21 @@ wd01:   mov al, [edx]           ; Skip any leading whitespace
 wd02:   mov [ebx], al           ; Collect word
         inc ebx
         inc edx
-        inc DWORD TOS           ; Increment len
+        inc ecx                 ; Increment len
         mov al, [edx]           ; Next char
         cmp al, 33
         jl wdX
-        cmp TOS, DWORD 32
+        cmp ecx, 32
         jl wd02
 wdX:    mov [toIn], edx
         mov [ebx], BYTE 0       ; Add NULL terminator
+        ret
+
+; -------------------------------------------------------------------------------------
+DefCode "WORD",4,0,xtWORD       ; ( --addr len )
+        call doWord
+        push DWORD curWord
+        push ecx
         NEXT
 
 ; -------------------------------------------------------------------------------------
@@ -599,22 +531,65 @@ DefCode "TIMER",5,0,TIMER     ; ( --n )
 nxt:    NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "CREATE",6,0,CREATE     ; ( --n )
-        dd xtWORD
-        dd DROP, DROP ; **TODO**
-        dd EXIT
+; doCreate: Params: EDX: word-name, ECX: length
+doCreate:
+        mov edx, curWord
+        mov edi, [v_HERE]               ; Use EDI as HERE
+        mov eax, [v_LAST]
+        mov [edi], eax                  ; Link
+        mov [v_LAST], edi               ; Update LAST
+        add edi, CELL_SIZE
+        push edi                        ; FWD ref for the XT
+        add edi, CELL_SIZE
+        mov [edi], BYTE 0               ; Flags
+        inc edi
+        mov [edi], cl                   ; Length
+        inc edi
+crt01:  test ecx, ecx                   ; word-name
+        jz crt02
+        mov al, [edx]
+        mov [edi], al
+        inc edi
+        inc edx
+        dec ecx
+        jmp crt01
+crt02:  mov [edi], BYTE 0               ; null terminator
+crtA:   test edi, CELL_SIZE-1           ; align
+        jz crt03
+        inc edi
+        jmp crtA
+crt03:  pop eax                         ; resolve XT fwd ref
+        mov [eax],edi
+        mov [edi], DWORD DOCOL          ; CFA for DOCOL
+        add edi, CELL_SIZE
+        mov [v_HERE], edi
+        ret
 
 ; -------------------------------------------------------------------------------------
-DefWord ":",1,0,xtDEFINE
-        dd CREATE
-        dd LIT, 1, STATE, fSTORE
-        dd EXIT
+DefCode "CREATE",6,0,CREATE
+        call doWord
+        call doCreate
+        NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord ";",1,IMMEDIATE,ENDWORD
-        dd LIT, EXIT, COMMA
-        dd LIT, 0, STATE, fSTORE
-        dd EXIT
+; digitQ: Set EDX=1 if EAX is a digit in base EBX, else EDX=0.
+;           NOTE: EAX will be the converted digit if EDX=1.
+digitQ: cmp eax, '0'                    ; <'0' means no
+        jl dqNo
+        sub eax, '0'                    ; Convert to number
+        cmp eax, ebx                    ; 0 .. (base-1) => OK
+        jl dqYes
+        cmp ebx, 10                     ; BASE>10 needs more checking
+        jle dqNo
+        sub eax, 7                      ; Hex: 'A'-'0'-7 => 10
+        cmp eax, 9
+        jle dqNo
+        cmp eax, ebx
+        jge dqNo
+dqYes:  mov edx, 1
+        ret
+dqNo:   mov edx, 0
+        ret
 
 ; -------------------------------------------------------------------------------------
 DefCode "WORDS",5,0,WORDS
@@ -695,11 +670,6 @@ lb1:    mov eax, [dotPtr]
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord "#S", 2, 0, DOTlbS              ; ( u--0)
-lbS1:   dd DOTlb, DUP1, nzBRANCH, lbS1
-        dd EXIT
-
-; -------------------------------------------------------------------------------------
 DefCode "#>", 2, 0, DOTdone
         pop eax                         ; Discard garbage 0 left on stack from #S
         cmp [isNeg], BYTE 1             ; Prepend the '-' if necessary
@@ -715,8 +685,103 @@ dd99:   movzx eax, BYTE [dotLen]
         NEXT
 
 ; -------------------------------------------------------------------------------------
-DefWord ".", 1, 0, DOT
+DefCode "HERE",4,0,HERE
+        push DWORD [v_HERE]
+        NEXT
+
+; -------------------------------------------------------------------------------------
+DefCode "LAST",4,0,LAST
+        push DWORD [v_LAST]
+        NEXT
+
+; -------------------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------
+; -------------------------------------------------------------------------------------
+DefWord "QUIT",4,0,QUIT
+        dd zRSP
+quitL:  dd INTERPRET, BRANCH, quitL
+
+; -------------------------------------------------------------------------------------
+DefWord "CR",2,0,CR
+        dd LIT, 13, EMIT, LIT, 10, EMIT, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "BL",2,0,fBL
+        dd LIT, 32, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "SPACE",5,0,SPACE
+        dd fBL, EMIT, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "OK",2,0,OK
+        dd SPACE, LIT, 'O', EMIT, LIT, 'K', EMIT
+        dd CR, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "INTERPRET",9,0,INTERPRET
+        dd OK
+        dd TIB, LIT, 128, ACCEPT, DROP
+        dd TIB, TOIN, fSTORE
+in01:   dd xtWORD                               ; ( --str len )
+        dd DUP1, zBRANCH, inX                   ; dup 0= if drop2 exit then
+        dd OVER, OVER, NUMq                     ; ( str len--str len num flg )
+        dd zBRANCH, in02                        ; ( str len num f--str len num )
+        dd NIP, NIP                             ; ( str len num--num )
+        dd STATE, FETCH, LIT, 1, EQUALS         ; if state=1, compile LIT, <num>
+        dd zBRANCH, in01
+        dd LIT, LIT, COMMA, COMMA               ; Compile LIT <num>
+        dd BRANCH, in01
+in02:   ; Not a number, in dictionary?          ; ( --str len num )
+        dd DROP                                 ; Discard garbage 'num'
+        dd FIND                                 ; ( str len--[str len 0] | [xt flags 1] )
+        dd zBRANCH, inERR                       ; ( a b f--a b )
+        dd LIT, IMMEDIATE, EQUALS               ; if immediate, execute it now
+        dd nzBRANCH, inCX                       ; ( xt f--xt )
+        dd STATE, FETCH, LIT, 1, EQUALS         ; STATE @ 1 = IF COMMA THEN
+        dd zBRANCH, inCX
+        dd COMMA                                ; ( xt -- ): compile
+        dd BRANCH, in01
+inCX:   dd EXECUTE                              ; ( xt-- ): execute
+        dd BRANCH, in01
+inERR:  ; Not a number or word - ERROR          ; ( --str len )
+        dd LIT, '[', EMIT, TYPE, LIT
+        dd ']', EMIT, LIT, '?', DUP1, EMIT, EMIT
+        dd QUIT
+inX:    dd DROP2, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "TIB",3,0,TIB
+        dd LIT, tib, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ">IN",3,0,TOIN
+        dd LIT, toIn, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ":",1,0,xtDEFINE
+        dd CREATE
+        dd LIT, 1, STATE, fSTORE
+        dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ";",1,IMMEDIATE,ENDWORD
+        dd LIT, EXIT, COMMA
+        dd LIT, 0, STATE, fSTORE
+        dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "#S", 2, 0, DOTlbS              ; ( u--0)
+lbS1:   dd DOTlb, DUP1, nzBRANCH, lbS1
+        dd EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord "(.)", 3, 0, DOTn
         dd DOTinit, DOTlbS, DOTdone, TYPE, EXIT
+
+; -------------------------------------------------------------------------------------
+DefWord ".", 1, 0, DOT
+        dd DOTn, SPACE, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefWord "BENCH",5,0,BENCH
@@ -726,8 +791,6 @@ DefWord "BENCH",5,0,BENCH
 ; -------------------------------------------------------------------------------------
 ; Some variables ...
 ; -------------------------------------------------------------------------------------
-DefVar "(HERE)",6,0,HERE
-DefVar "(LAST)",6,0,LAST
 DefVar "STATE",5,0,STATE
 DefVar "BASE",4,0,BASE
 
