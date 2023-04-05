@@ -560,8 +560,6 @@ crtA:   test edi, CELL_SIZE-1           ; align
         jmp crtA
 crt03:  pop eax                         ; resolve XT fwd ref
         mov [eax],edi
-        mov [edi], DWORD DOCOL          ; CFA for DOCOL
-        add edi, CELL_SIZE
         mov [v_HERE], edi
         ret
 
@@ -623,14 +621,19 @@ DefCode "DO", 2, 0, xtDO
         NEXT
 
 ; -------------------------------------------------------------------------------------
+DefCode "I", 1, 0, I
+        mov edx, [lSP]
+        push DWORD [edx]
+        NEXT
+
+; -------------------------------------------------------------------------------------
 DefCode "LOOP", 4, 0, xtLOOP
         mov edx, [lSP]
-        mov ecx, DWORD [edx]            ; I
-        inc ecx
-        mov [edx], ecx
-        cmp ecx, DWORD [edx-CELL_SIZE]  ; TO
+        inc DWORD [edx]                         ; I
+        mov ecx, DWORD [edx]
+        cmp ecx, DWORD [edx-CELL_SIZE]          ; TO
         jge lpDone
-        mov esi, DWORD [edx-CELL_SIZE*2]            ; Loop start
+        mov esi, DWORD [edx-CELL_SIZE*2]        ; Loop start
         NEXT
 lpDone: sub edx, CELL_SIZE*3
         mov [lSP], DWORD edx
@@ -760,15 +763,13 @@ DefWord ">IN",3,0,TOIN
 
 ; -------------------------------------------------------------------------------------
 DefWord ":",1,0,xtDEFINE
-        dd CREATE
-        dd LIT, 1, STATE, fSTORE
-        dd EXIT
+        dd CREATE, LIT, DOCOL, COMMA
+        dd STATE1, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefWord ";",1,IMMEDIATE,ENDWORD
         dd LIT, EXIT, COMMA
-        dd LIT, 0, STATE, fSTORE
-        dd EXIT
+        dd STATE0, EXIT
 
 ; -------------------------------------------------------------------------------------
 DefWord "'",1,0,TICK
