@@ -13,7 +13,7 @@
         1+ 1+
     again ;
 
-variable num cell
+variable num
 : num-primes 4 num ! 11 do
         i 3 prime? if num ++ then 1 +i
     loop num ? ;
@@ -36,7 +36,7 @@ variable num cell
 : m-hdr ." The Mandelbrot Set" cr ;
 : sqr dup * ; inline
 
-1000000 const TGT
+1000000 constant TGT
 
 : doQ r1 sqr r6 / s3
       r2 sqr r6 / s4
