@@ -229,11 +229,11 @@ char *ParseWord(char *word, char *line)
         WComma((USHORT)(HERE+3));
         CComma(RET);
 
-        if (string_equals(word, "(HERE)")) ADDR_HERE = HERE;
-        if (string_equals(word, "(LAST)")) ADDR_LAST = HERE;
-        if (string_equals(word, "BASE")) ADDR_BASE = HERE;
-        if (string_equals(word, "STATE")) ADDR_STATE = HERE;
-        if (string_equals(word, "(MEM_SZ)")) ADDR_MEM_SZ = HERE;
+        //if (string_equals(word, "(HERE)")) ADDR_HERE = HERE;
+        //if (string_equals(word, "(LAST)")) ADDR_LAST = HERE;
+        //if (string_equals(word, "BASE")) ADDR_BASE = HERE;
+        //if (string_equals(word, "STATE")) ADDR_STATE = HERE;
+        //if (string_equals(word, "(MEM_SZ)")) ADDR_MEM_SZ = HERE;
 
         Comma(0);
         SyncMem(true);

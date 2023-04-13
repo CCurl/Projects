@@ -20,6 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="forth-dis.c" />
+    <ClCompile Include="forth-vm.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="forth-vm.h" />
+    <ClInclude Include="Shared.h" />
+    <ClInclude Include="string.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

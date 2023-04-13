@@ -9,11 +9,12 @@
 
 \ Variables mess up the disassembler, put them first
 
-.VARIABLE. (HERE)   \ .INLINE.
-.VARIABLE. (LAST)   \ .INLINE.
-.VARIABLE. BASE     \ .INLINE.
-.VARIABLE. STATE    \ .INLINE.
-.VARIABLE. (MEM_SZ) \ .INLINE.
+: (CELL)   $08 ; .INLINE.
+: (HERE)   $10 ; .INLINE.
+: (LAST)   $14 ; .INLINE.
+: BASE     $18 ; .INLINE.
+: STATE    $20 ; .INLINE.
+: (MEM_SZ) $24 ; .INLINE.
 
 .VARIABLE. >IN
 .VARIABLE. #NEG

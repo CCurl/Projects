@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "Shared.h"
+#include "string.h"
 #include "forth-vm.h"
 
 CELL ORG = 0x0040;
@@ -10,7 +11,7 @@ char input_fn[64];
 char output_fn[64];
 FILE *input_fp = NULL;
 FILE *output_fp = NULL;
-CELL PC;
+CELL PC, arg1, arg2;
 BYTE IR;
 
 CELL ADDR_CELL     = 0x08;
@@ -20,6 +21,7 @@ CELL ADDR_BASE     = 0x18;
 CELL ADDR_INPUTFP  = 0x1C;
 CELL ADDR_STATE    = 0x20;
 CELL ADDR_MEM_SZ   = 0x24;
+int memory_size;
 
 // ------------------------------------------------------------------------------------------
 void dis_range(CELL start, CELL end, char *bytes)
@@ -42,7 +44,7 @@ void dis_start(CELL start, int num, char *bytes)
 // ------------------------------------------------------------------------------------------
 void dis_rangeCell(CELL start, CELL end, char *bytes)
 {
-	char x[8];
+	char x[12];
 	while (start <= end)
 	{
 		CELL val = CELL_AT(start);
@@ -192,12 +194,12 @@ CELL dis_one(char *bytes, char *desc)
 	case JMP:
 		arg1 = CELL_AT(PC);
 		sprintf(desc, "JMP %04lx", arg1);
-		if (the_memory[arg1] == DICTP)
-		{
-			arg2 = CELL_AT(arg1+1);
-			DICT_T *dp = (DICT_T *)&(the_memory[arg2]);
-			sprintf(desc, "JMP %s (%04lx)\n;", dp->name, arg1);
-		}
+		//if (the_memory[arg1] == DICTP)
+		//{
+		//	arg2 = CELL_AT(arg1+1);
+		//	DICT_T *dp = (DICT_T *)&(the_memory[arg2]);
+		//	sprintf(desc, "JMP %s (%04lx)\n;", dp->name, arg1);
+		//}
 		dis_PC2(CELL_SZ, bytes);
 		return CELL_SZ;
 
@@ -213,9 +215,9 @@ CELL dis_one(char *bytes, char *desc)
 
 	case CALL:
 		arg1 = CELL_AT(PC);
-		arg2 = CELL_AT(arg1+1);
-		DICT_T *dp = (DICT_T *)&(the_memory[arg2]);
-		sprintf(desc, "CALL %s (%04lx)", dp->name, arg1);
+		//arg2 = CELL_AT(arg1+1);
+		//DICT_T *dp = (DICT_T *)&(the_memory[arg2]);
+		sprintf(desc, "CALL (%04lx)", arg1);
 		dis_PC2(CELL_SZ, bytes);
 		return CELL_SZ;
 
@@ -512,11 +514,11 @@ void load_vm()
 	fclose(input_fp);
 	input_fp = NULL;
 
-	ADDR_HERE = GetSysVarAddr("(HERE)");
-	ADDR_LAST = GetSysVarAddr("(LAST)");
-	ADDR_BASE = GetSysVarAddr("BASE");
-	ADDR_STATE = GetSysVarAddr("STATE");
-	ADDR_MEM_SZ = GetSysVarAddr("(MEM_SZ)");
+	// ADDR_HERE = GetSysVarAddr("(HERE)");
+	// ADDR_LAST = GetSysVarAddr("(LAST)");
+	// ADDR_BASE = GetSysVarAddr("BASE");
+	// ADDR_STATE = GetSysVarAddr("STATE");
+	// ADDR_MEM_SZ = GetSysVarAddr("(MEM_SZ)");
 
 	printf(" done.\n");
 }
@@ -537,8 +539,6 @@ void do_dis()
 
     fclose(output_fp);
     output_fp = NULL;
-
-    dis_vm(output_fp);
 
     printf(" done.\n");
 }
