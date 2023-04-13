@@ -21,10 +21,10 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{4F6F5D5C-E3DD-4485-AF69-C984DE74D356}</ProjectGuid>
+    <ProjectGuid>{D003C4A2-293E-4D0A-AE42-7E154B57576D}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>compiler</ProjectName>
+    <ProjectName>vm</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -145,8 +145,8 @@
     <None Include="forth.src" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="forth-compiler.c" />
     <ClCompile Include="forth-vm.c" />
+    <ClCompile Include="forth.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="forth-vm.h" />

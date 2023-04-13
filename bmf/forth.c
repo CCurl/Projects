@@ -27,7 +27,7 @@ bool load_vm()
     TRACE("file_sz: %ld bytes, ", file_sz);
     fseek(input_fp, 0L, SEEK_SET);
 
-    memory_size = file_sz;
+    int memory_size = file_sz;
     init_vm(file_sz);
 
 	int num_read = fread(the_memory, 1, memory_size, input_fp);

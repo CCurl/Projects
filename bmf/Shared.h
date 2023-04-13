@@ -4,7 +4,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 
-// #define __VERBOSE__ 1
+#define __VERBOSE__ 1
 #define MEM_SZ 8*1024
 
 #ifdef __VERBOSE__
