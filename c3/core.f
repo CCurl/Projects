@@ -71,6 +71,7 @@
 : max  over over < if swap then drop ;
 
 : i  (i) @ ;
+: j  (i) 3 cells - @ ;
 : +i (i) +! ;
 : unloop (lsp) @ 3 - 0 max (lsp) ! ;
 
@@ -94,8 +95,6 @@ variable (neg)
     then ')' emit ;
 
 : count ( str--a n ) dup 1+ swap c@ ; inline
-: type  ( a n-- ) ?dup if 0 do dup c@ emit 1+ loop then drop ;
-: typez ( a-- ) dup c@ dup 0= if 2drop exit then emit 1+ typez ;
 
 : T8 ( ch-- )   r8 c! i8 ;
 : T2 ( --str end )   +regs
