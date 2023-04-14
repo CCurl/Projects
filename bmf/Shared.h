@@ -1,11 +1,10 @@
 #ifndef __FORTH_SHARED__
 #define __FORTH_SHARED__
 
-#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 
-#define __VERBOSE__ 1
-#define MEM_SZ 8*1024
+// #define __VERBOSE__ 1
+#define MEM_SZ 64*1024
 
 #ifdef __VERBOSE__
     #define TRACE(...) printf(__VA_ARGS__)
@@ -74,8 +73,8 @@
 #define NEXT       ']'
 #define INDEX      'I'
 // unused 53-99
-#define DBGDOT    222
-#define DBGDOTS   223
+#define DBGDOT    222   // DE
+#define DBGDOTS   223   // DF
 // unused 102-251
 #define NOP       252	// FC
 #define BREAK     253	// FD

@@ -140,11 +140,24 @@ CELL dis_vars(FILE *write_to)
 	return 0;
 }
 
+DICT_T *xtLookup(int xt) {
+	int x = CELL_AT(ADDR_LAST);
+	while (x > 0)
+	{
+		DICT_T *dp = (DICT_T *)&the_memory[x];
+		if (dp->XT == xt) { return dp; }
+		x = WORD_AT(x);
+	}
+
+	return NULL;
+}
+
 // ------------------------------------------------------------------------------------------
 // Where all the work is done
 // ------------------------------------------------------------------------------------------
 CELL dis_one(char *bytes, char *desc)
 {
+	DICT_T *dp;
 	IR = the_memory[PC];
 	sprintf(bytes, "%04lx: %02x", PC, (int)IR);
 	++PC;
@@ -154,7 +167,7 @@ CELL dis_one(char *bytes, char *desc)
 	case LITERAL:
 		arg1 = CELL_AT(PC);
 		dis_PC2(CELL_SZ, bytes);
-		sprintf(desc, "LITERAL %ld (%0lx)", arg1, arg1);
+		sprintf(desc, "LITERAL %ld (%08lx)", arg1, arg1);
 		return CELL_SZ;
 
 	case CLITERAL:
@@ -162,6 +175,12 @@ CELL dis_one(char *bytes, char *desc)
 		dis_PC2(1, bytes);
 		sprintf(desc, "CLITERAL %ld", arg1);
 		return 1;
+
+	case WLITERAL:
+		arg1 = WORD_AT(PC);
+		dis_PC2(WORD_SZ, bytes);
+		sprintf(desc, "WLITERAL %ld (%04lx)", arg1, arg1);
+		return WORD_SZ;
 
 	case FETCH:
 		sprintf(desc, "FETCH");
@@ -192,34 +211,30 @@ CELL dis_one(char *bytes, char *desc)
 		return 0;
 
 	case JMP:
-		arg1 = CELL_AT(PC);
+		arg1 = WORD_AT(PC);
 		sprintf(desc, "JMP %04lx", arg1);
-		//if (the_memory[arg1] == DICTP)
-		//{
-		//	arg2 = CELL_AT(arg1+1);
-		//	DICT_T *dp = (DICT_T *)&(the_memory[arg2]);
-		//	sprintf(desc, "JMP %s (%04lx)\n;", dp->name, arg1);
-		//}
-		dis_PC2(CELL_SZ, bytes);
-		return CELL_SZ;
+		dp = xtLookup(arg1);
+		if (dp) { sprintf(desc, "JMP %s (%04lx)", dp->name, arg1); }
+		dis_PC2(WORD_SZ, bytes);
+		return WORD_SZ;
 
 	case JMPZ:
-		sprintf(desc, "JMPZ %04lx", CELL_AT(PC));
-		dis_PC2(CELL_SZ, bytes);
-		return CELL_SZ;
+		sprintf(desc, "JMPZ %04lx", WORD_AT(PC));
+		dis_PC2(WORD_SZ, bytes);
+		return WORD_SZ;
 
 	case JMPNZ:
-		sprintf(desc, "JMPNZ %04lx", CELL_AT(PC));
-		dis_PC2(CELL_SZ, bytes);
-		return CELL_SZ;
+		sprintf(desc, "JMPNZ %04lx", WORD_AT(PC));
+		dis_PC2(WORD_SZ, bytes);
+		return WORD_SZ;
 
 	case CALL:
-		arg1 = CELL_AT(PC);
-		//arg2 = CELL_AT(arg1+1);
-		//DICT_T *dp = (DICT_T *)&(the_memory[arg2]);
+		arg1 = WORD_AT(PC);
 		sprintf(desc, "CALL (%04lx)", arg1);
-		dis_PC2(CELL_SZ, bytes);
-		return CELL_SZ;
+		dp = xtLookup(arg1);
+		if (dp) { sprintf(desc, "CALL %s (%04lx)", dp->name, arg1); }
+		dis_PC2(WORD_SZ, bytes);
+		return WORD_SZ;
 
 	case RET:
 		sprintf(desc, "RET");
@@ -376,6 +391,18 @@ CELL dis_one(char *bytes, char *desc)
 		sprintf(desc, "SHIFTRIGHT");
 		return 0;
 
+	case FOR:
+		sprintf(desc, "FOR");
+		return 0;
+
+	case NEXT:
+		sprintf(desc, "NEXT");
+		return 0;
+
+	case INDEX:
+		sprintf(desc, "I");
+		return 0;
+
 	case PLUSSTORE:
 		sprintf(desc, "PLUSSTORE");
 		return 0;
@@ -390,6 +417,14 @@ CELL dis_one(char *bytes, char *desc)
 
 	case BYE:
 		sprintf(desc, "BYE");
+		return 0;
+
+	case DBGDOT:
+		sprintf(desc, "[.]");
+		return 0;
+
+	case DBGDOTS:
+		sprintf(desc, "[.s]");
 		return 0;
 
 	case RESET:
@@ -411,24 +446,24 @@ void dis_dict(FILE *write_to, CELL dict_addr)
 	if (dp->next == 0)
 	{
 		sprintf(bytes, "%04lx:", addr);
-		dis_start(addr, CELL_SZ, bytes);
+		dis_start(addr, WORD_SZ, bytes);
 		fprintf(write_to, "%-32s ; End.\n", bytes);
 		return;
 	}
 
 	// Next
 	sprintf(bytes, "%04lx:", addr);
-	dis_start(addr, CELL_SZ, bytes);
-	sprintf(desc, "%s - (next: %04lx %s)", dp->name, dp->next, (next_dp->next > 0) ? next_dp->name : "<end>");
+	dis_start(addr, WORD_SZ, bytes);
+	sprintf(desc, "%s - (next: %04lx, %s)", dp->name, dp->next, (next_dp->next > 0) ? next_dp->name : "<end>");
 	fprintf(write_to, "%-32s ; %s\n", bytes, desc);
-	addr += CELL_SZ;
+	addr += WORD_SZ;
 
 	// XT, Flags
 	sprintf(bytes, "%04lx:", addr);
-	dis_start(addr, CELL_SZ+1, bytes);
+	dis_start(addr, WORD_SZ+1, bytes);
 	sprintf(desc, "XT=%04lx, flags=%02x", dp->XT, dp->flags);
 	fprintf(write_to, "%-32s ; %s\n", bytes, desc);
-	addr += CELL_SZ+1;
+	addr += WORD_SZ+1;
 
 	// Name
 	sprintf(bytes, "%04lx: %02x", addr++, dp->len);
@@ -486,7 +521,7 @@ void dis_vm(FILE *write_to)
 	{
 		dis_dict(write_to, PC);
 		fflush(write_to);
-		PC = CELL_AT(PC);
+		PC = WORD_AT(PC);
 	}
 }
 

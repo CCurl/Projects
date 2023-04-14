@@ -1,3 +1,4 @@
+#include <time.h>
 #include "Shared.h"
 #include "forth-vm.h"
 
@@ -212,7 +213,7 @@ void cpu_loop(ADDR start)
             break;
         case INC: ++TOS;                         break;
         case DEC: --TOS;                         break;
-        case GETTICK: arg1 = 12345; //  GetTickCount();
+        case GETTICK: arg1 = clock();
             push(arg1);
             break;
         case SHIFTLEFT: NOS = NOS << TOS;        break;
