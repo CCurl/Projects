@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="forth-dis.c" />
     <ClCompile Include="forth-vm.c" />
+    <ClCompile Include="string.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="forth-vm.h" />

@@ -147,6 +147,7 @@
   <ItemGroup>
     <ClCompile Include="forth-vm.c" />
     <ClCompile Include="forth.c" />
+    <ClCompile Include="string.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="forth-vm.h" />
