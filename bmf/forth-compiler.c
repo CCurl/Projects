@@ -418,13 +418,13 @@ void Compile(FILE *fp_in)
         string_rtrim(buf);
         ++line_no;
         string_copy(line, buf);
+        printf("made it here [%s]\n", line);
         ParseLine(buf);
         if (_QUIT_HIT == 1) {
             printf("QUIT hit on line %d: %s\n", line_no, line);
             break;
         }
     }
-    fclose(fp_in);
 
     DICT_T *dp = FindWord("main");
     if (dp == NULL)	{

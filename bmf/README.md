@@ -21,7 +21,7 @@ There are 10 32-bit registers in this vm: r0 thru r9.
 
 ##Building
 - Windows: There is a Visual Studio solution file
-- Linux: There is (will be) a makefile
+- Linux: There is a makefile
 
 ##Examples: 
 ```

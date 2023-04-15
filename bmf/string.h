@@ -4,7 +4,7 @@
 // *********************************************************************
 // String stuff
 // *********************************************************************
-extern char tolower(char c);
+extern char toLower(char c);
 extern int string_len(char* str);
 extern char *string_copy(char *dest, char *src);
 extern char *string_cat(char *dest, char *src);

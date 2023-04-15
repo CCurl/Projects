@@ -119,7 +119,7 @@ CELL dis_vars(FILE *write_to)
 		tmp2 = CELL_AT(tmp+1);
 		sprintf(bytes, "%04lx:", tmp);
 		dis_start(tmp, 5, bytes);
-		sprintf(desc, "LITERAL %d (0x%04lx)", tmp2, tmp2);
+		sprintf(desc, "LITERAL %ld (0x%04lx)", tmp2, tmp2);
 		fprintf(write_to, "%-32s ; %s\n", bytes, desc);
 
 		tmp = tmp+5;
@@ -219,12 +219,12 @@ CELL dis_one(char *bytes, char *desc)
 		return WORD_SZ;
 
 	case JMPZ:
-		sprintf(desc, "JMPZ %04lx", WORD_AT(PC));
+		sprintf(desc, "JMPZ %04x", WORD_AT(PC));
 		dis_PC2(WORD_SZ, bytes);
 		return WORD_SZ;
 
 	case JMPNZ:
-		sprintf(desc, "JMPNZ %04lx", WORD_AT(PC));
+		sprintf(desc, "JMPNZ %04x", WORD_AT(PC));
 		dis_PC2(WORD_SZ, bytes);
 		return WORD_SZ;
 
@@ -454,14 +454,14 @@ void dis_dict(FILE *write_to, CELL dict_addr)
 	// Next
 	sprintf(bytes, "%04lx:", addr);
 	dis_start(addr, WORD_SZ, bytes);
-	sprintf(desc, "%s - (next: %04lx, %s)", dp->name, dp->next, (next_dp->next > 0) ? next_dp->name : "<end>");
+	sprintf(desc, "%s - (next: %04x, %s)", dp->name, dp->next, (next_dp->next > 0) ? next_dp->name : "<end>");
 	fprintf(write_to, "%-32s ; %s\n", bytes, desc);
 	addr += WORD_SZ;
 
 	// XT, Flags
 	sprintf(bytes, "%04lx:", addr);
 	dis_start(addr, WORD_SZ+1, bytes);
-	sprintf(desc, "XT=%04lx, flags=%02x", dp->XT, dp->flags);
+	sprintf(desc, "XT=%04x, flags=%02x", dp->XT, dp->flags);
 	fprintf(write_to, "%-32s ; %s\n", bytes, desc);
 	addr += WORD_SZ+1;
 
@@ -500,7 +500,7 @@ void dis_vm(FILE *write_to)
 		PC += 0x10;
 	}
 
-	fprintf(write_to, ";\n", bytes);
+	fprintf(write_to, ";\n");
 	fflush(write_to);
 
 	// Code
@@ -569,7 +569,7 @@ void do_dis()
     }
 
     printf("disassembling to file %s... ", output_fn);
-    fprintf(output_fp, "; memory-size: %ld bytes, (%04lx hex)\n", memory_size, memory_size);
+    fprintf(output_fp, "; memory-size: %d bytes, (%04x hex)\n", memory_size, memory_size);
 	dis_vm(output_fp);
 
     fclose(output_fp);

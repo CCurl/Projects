@@ -4,8 +4,6 @@
 // The VM
 // ------------------------------------------------------------------------------------------
 
-extern CELL arg1, arg2, arg3;
-
 extern bool isEmbedded;
 extern bool isBYE;
 extern BYTE the_memory[];

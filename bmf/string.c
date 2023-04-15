@@ -4,7 +4,7 @@
 // *********************************************************************
 // String stuff
 // *********************************************************************
-char tolower(char c) { return (('A'<=c) && (c<='Z')) ? (c + 32) : c; }
+char toLower(char c) { return (('A'<=c) && (c<='Z')) ? (c + 32) : c; }
 
 // *********************************************************************
 int string_len(char* str)
@@ -99,7 +99,7 @@ int string_equals(char *str1, char *str2)
 
 // *********************************************************************
 int string_equals_nocase(char *str1, char *str2) {
-    while (tolower(*(str1++)) == tolower(*(str2++))) {
+    while (toLower(*(str1++)) == toLower(*(str2++))) {
         if (*(str1-1) == 0) { return 1; }
     }
     return 0;

@@ -28,3 +28,7 @@ f3/f3.exe
 f3/f3
 /bmf/forth.lst
 /bmf/forth.bin
+bmf/comp
+bmf/f-comp
+bmf/f-dis
+bmf/f-vm

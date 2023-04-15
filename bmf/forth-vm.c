@@ -1,5 +1,6 @@
 #include <time.h>
 #include "Shared.h"
+#include "string.h"
 #include "forth-vm.h"
 
 extern int string_len(char* str);
@@ -22,7 +23,7 @@ bool isBYE = false;
 
 int _QUIT_HIT = 0;
 
-CELL arg1, arg2, arg3;
+static CELL arg1, arg2, arg3;
 CELL hStdin = NULL, hStdout = NULL;
 
 // ------------------------------------------------------------------------------------------
@@ -206,7 +207,7 @@ void cpu_loop(ADDR start)
             {
                 char *cp1 = (char *)&the_memory[arg1];
                 char *cp2 = (char *)&the_memory[arg2];
-                arg3 = _strcmpi(cp1, cp2) ? 0 : 1;
+                arg3 = string_equals_nocase(cp1, cp2);
                 push(arg3);
             }
             break;
@@ -227,26 +228,24 @@ void cpu_loop(ADDR start)
             { 
                 char fn[64];
                 arg1 = pop();
-                sprintf(fn, "block-%04d.fs", arg1);
+                sprintf(fn, "block-%04ld.fs", arg1);
                 FILE *fp = fopen(fn, "rt");
                 push((CELL)fp);
                 push(TOS ? -1 : 0);
             }
             break;
         case DBGDOT: arg1 = pop();
-            printf("[%d] ", arg1);
+            printf("[%ld] ", arg1);
             break;
         case DBGDOTS: printf("(%d)[", sp);
             for (int i = 1; i <= sp; i++) {
                 printf("(%d)",i);
-                push(i);
-                pop();
             }
             printf("]");
             break;
         case NOP:              break;
         case BREAK:            break;
-        case RESET:            printf("-RESET ar %lx-", PC-1);
+        case RESET:            printf("-RESET ar %d-", PC-1);
             PC = 0;            break;
         case BYE:              return;
         default:               break;
