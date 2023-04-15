@@ -1,10 +1,7 @@
 #include <time.h>
 #include "Shared.h"
-#include "string.h"
+#include "strings.h"
 #include "forth-vm.h"
-
-extern int string_len(char* str);
-extern bool string_equals(char *str1, char *str2);
 
 // ------------------------------------------------------------------------------------------
 // The VM

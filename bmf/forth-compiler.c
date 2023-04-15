@@ -4,7 +4,7 @@
 //#include <stdlib.h>
 //#include <ctype.h>
 #include "forth-vm.h"
-#include "string.h"
+#include "strings.h"
 
 char input_fn[256];
 char output_fn[256];

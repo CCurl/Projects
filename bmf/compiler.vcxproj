@@ -147,11 +147,12 @@
   <ItemGroup>
     <ClCompile Include="forth-compiler.c" />
     <ClCompile Include="forth-vm.c" />
+    <ClCompile Include="strings.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="forth-vm.h" />
     <ClInclude Include="Shared.h" />
-    <ClInclude Include="string.c" />
+    <ClInclude Include="strings.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
