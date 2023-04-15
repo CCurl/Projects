@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+//#include <string.h>
 #include "Shared.h"
-#include "string.h"
+#include "strings.h"
 #include "forth-vm.h"
 
 CELL ORG = 0x0040;
@@ -31,7 +31,7 @@ void dis_range(CELL start, CELL end, char *bytes)
 	{
 		BYTE val = the_memory[start++];
 		sprintf(x, " %02x", (int)val);
-		strcat(bytes, x);
+		string_cat(bytes, x);
 	}
 }
 
@@ -50,7 +50,7 @@ void dis_rangeCell(CELL start, CELL end, char *bytes)
 		CELL val = CELL_AT(start);
 		start += 4;
 		sprintf(x, " %08lx", (CELL)val);
-		strcat(bytes, x);
+		string_cat(bytes, x);
 	}
 }
 
@@ -62,7 +62,7 @@ void dis_PC2(int num, char *bytes)
 	{
 		BYTE val = the_memory[PC++];
 		sprintf(x, " %02x", (int)val);
-		strcat(bytes, x);
+		string_cat(bytes, x);
 	}
 }
 
@@ -82,7 +82,7 @@ CELL GetSysVarAddr(char *name)
 		CELL tmp = CELL_AT(addr+1);
 		DICT_T *dp = (DICT_T *)&the_memory[tmp];
 		// printf("0x%04lX, 0x%04lX, [%s] = [%s]?\n", addr, dp, name, dp->name);
-		if (strcmp(dp->name, name) == 0)
+		if (string_equals(dp->name, name))
 		{
 			tmp = addr + 11;
 			// printf("[%s] FOUND at 0x%04lx\n", name, tmp);
@@ -240,7 +240,7 @@ CELL dis_one(char *bytes, char *desc)
 		sprintf(desc, "RET");
 		if (the_memory[PC] == DICTP)
 		{
-			strcat(desc, "\n;");
+			string_cat(desc, "\n;");
 		}
 		return 0;
 
@@ -584,12 +584,12 @@ void process_arg(char *arg)
     if (*arg == 'i') 
     {
         arg = arg+2;
-        strcpy(input_fn, arg);
+        string_copy(input_fn, arg);
     }
     else if (*arg == 'o') 
     {
         arg = arg+2;
-        strcpy(output_fn, arg);
+        string_copy(output_fn, arg);
     }
     else if (*arg == '?') 
     {
@@ -609,8 +609,8 @@ void process_arg(char *arg)
 
 int main (int argc, char **argv)
 {
-    strcpy(input_fn, "forth.bin");
-	strcpy(output_fn, "forth.lst");
+    string_copy(input_fn, "forth.bin");
+	string_copy(output_fn, "forth.lst");
 
     for (int i = 1; i < argc; i++)
     {
