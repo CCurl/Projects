@@ -7,6 +7,7 @@
 #include <string.h>
 #include <conio.h>
 #include <stdarg.h>
+#include <time.h>
 
 typedef int CELL;
 typedef unsigned short ushort;
@@ -50,6 +51,6 @@ extern void printString(const char* s);
 extern void printStringF(const char* fmt, ...);
 extern void printChar(char c);
 extern void doEditor();
-extern void doCompiler(char *);
+extern void doOuter(char *);
 
 #endif 

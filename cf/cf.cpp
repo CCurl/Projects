@@ -9,19 +9,24 @@ char *pc, *toIn;
 byte user[USER_SZ];
 CELL stk[STK_SZ+1];
 CELL rstk[STK_SZ+1];
-char sp = 0, rsp = 0;
+CELL lstk[STK_SZ+1];
+CELL regs[100];
+char sp = 0, rsp = 0, lsp = 0, rb = 0;
 ushort here, last, isOK;
 CELL t1;
 
-#define TOS stk[sp]
-#define NOS stk[sp-1]
-#define NEXT goto Next
+#define TOS     stk[sp]
+#define NOS     stk[sp-1]
+#define L0      lstk[lsp]
+#define L1      lstk[lsp-1]
+#define L2      lstk[lsp-2]
+#define NEXT    goto Next
 
-void push(CELL v) { if (sp < STK_SZ) { stk[++sp] = v; } }
-CELL pop() { return (sp) ? stk[sp--] : 0; }
+inline void push(CELL x) { stk[++sp] = x; }
+inline CELL pop() { return stk[sp--]; }
 
-void rpush(CELL v) { if (rsp < STK_SZ) { rstk[++rsp] = v; } }
-CELL rpop() { return (rsp) ? rstk[rsp--] : 0; }
+inline void rpush(CELL v) { rstk[++rsp] = v; }
+inline CELL rpop() { return rstk[rsp--]; }
 
 int charAvailable() { return _kbhit(); }
 int getChar() { return _getch(); }
@@ -88,6 +93,10 @@ void run(ushort pc) {
                 else { printChar(c); }
             } else { printChar(c); }
         } ++pc;                                            NEXT;
+    case '%': t1 = NOS; push(t1);                          NEXT;
+    case '#': t1 = TOS; push(t1);                          NEXT;
+    case '$': t1 = TOS; TOS=NOS; NOS=t1;                   NEXT;
+    case '\\': sp = (0<sp) ? sp-1: 0;                      NEXT;
     case '+': t1 = pop(); TOS += t1;                       NEXT;
     case '-': t1 = pop(); TOS -= t1;                       NEXT;
     case '*': t1 = pop(); TOS *= t1;                       NEXT;
@@ -98,9 +107,17 @@ void run(ushort pc) {
     case '.': printStringF("%d ", pop());                  NEXT;
     case ',': printChar(pop());                            NEXT;
     case 'c':  rpush(pc+2); pc = WFO(pc);                  NEXT;
+    case 'd':  t1=user[pc++]-'0'; --regs[t1+rb];           NEXT;
+    case 'i':  t1=user[pc++]-'0'; ++regs[t1+rb];           NEXT;
+    case 'r':  t1=user[pc++]-'0'; push(regs[t1+rb]);       NEXT;
+    case 's':  t1=user[pc++]-'0'; regs[t1+rb]=pop();       NEXT;
+    case 't':  push(clock());                              NEXT;
     case 'l':  push(lfo(pc)); pc += CELL_SZ;               NEXT;
     case ';': t1 = rpop(); if (!t1) { rsp = 0; return; }
         pc = t1;                                           NEXT;
+    case '[': lsp += 3; L0=pop(); L1=pop(); L2=pc;         NEXT;
+    case ']': if (++L0 < L1) { pc=L2; } else { lsp-=3; }   NEXT;
+    case 'I': push(L0);                                    NEXT;
     default: ERR("-ir-");                                  return;
     }
 }
@@ -248,6 +265,7 @@ char* rtrim(char *cp) {
 void initVM() {
     last = USER_SZ-1;
     here = 0;
+    sp = rsp = lsp = rb = 0;
 }
 
 int loop() {
