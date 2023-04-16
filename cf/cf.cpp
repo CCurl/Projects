@@ -101,7 +101,7 @@ void run(ushort pc) {
     case 'l':  push(lfo(pc)); pc += CELL_SZ;               NEXT;
     case ';': t1 = rpop(); if (!t1) { rsp = 0; return; }
         pc = t1;                                           NEXT;
-    default: ERR("-ir-");                                  NEXT;
+    default: ERR("-ir-");                                  return;
     }
 }
 
@@ -128,6 +128,7 @@ void doFind(const char* wd) {
     ushort cp = last;
     while (cp && (cp < USER_SZ)) {
         DICT_T* dp = (DICT_T*)&user[cp];
+        if (dp->name[0] == 0) { return; }
         if (strcmp(dp->name, wd) == 0) {
             TOS = (CELL)dp;
             push(1);
@@ -135,20 +136,6 @@ void doFind(const char* wd) {
         }
         cp += dp->sz;
     }
-}
-
-void doDefine(const char* wd) {
-    // printStringF("-def:%s-", wd);
-    CCM(';');
-    int sz = strlen(wd) + 4;
-    while (sz % 4) { ++sz; }
-    ushort newLast = last - sz;
-    if (newLast <= here) { ERR("-df-"); return; }
-    DICT_T* dp = (DICT_T*)&user[newLast];
-    dp->sz = sz;
-    dp->xt = here;
-    strcpy(dp->name, wd);
-    last = newLast;
 }
 
 int isNum(const char* wd) {
@@ -170,6 +157,20 @@ int isNum(const char* wd) {
     if (isNeg) { x = -x; }
     push(x);
     return 1;
+}
+
+void doDefine(const char* wd) {
+    // printStringF("-def:%s-", wd);
+    CCM(';');
+    int sz = strlen(wd) + 4;
+    while (sz % 4) { ++sz; }
+    ushort newLast = last - sz;
+    if (newLast <= here) { ERR("-df-"); return; }
+    DICT_T* dp = (DICT_T*)&user[newLast];
+    dp->sz = sz;
+    dp->xt = here;
+    strcpy(dp->name, wd);
+    last = newLast;
 }
 
 void doCompile(const char* wd) {
@@ -194,14 +195,15 @@ void doCompile(const char* wd) {
 
 int doInterpret(const char* wd) {
     // printStringF("-int:%s-", wd);
+    if (isNum(wd)) { return 1; }
     doFind(wd);
     if (pop()) {
         DICT_T* dp = (DICT_T*)pop();
         run(dp->xt);
         return 1;
     }
-    if (isNum(wd)) { return 1; }
     if (strcmp(wd,"edit")==0) {
+        doEditor();
         return 1;
     }
     byte* cp = &user[here];
@@ -215,7 +217,7 @@ void doAsm(const char* wd) {
     while (*wd) { CCM(*(wd++)); }
 }
 
-void doCompiler(char* cp) {
+void doOuter(char* cp) {
     char buf[32];
     toIn = cp;
     int mode = INTERP;
@@ -256,11 +258,11 @@ int loop() {
         if (sp==0) { push(-1); }
         doEditor();
         initVM();
-        doCompiler(theBlock);
+        doOuter(theBlock);
     } else if (strcmp(buf, "bye") == 0) {
         return 0;
     } else {
-        doCompiler(buf);
+        doOuter(buf);
     }
     return 1;
 }

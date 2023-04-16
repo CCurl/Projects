@@ -307,4 +307,5 @@ void doEditor() {
         Color(WHITE, 0);
         showFooter();
     }
+    CursorOn();
 }
