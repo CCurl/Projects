@@ -4,7 +4,7 @@
 \ It then writes that image to a file specified by -i:<filename>. The default is forth.bin.
 \ The image file is read by the VM (forth.exe) when it boots.
 \
-\ NB: don't inline anything that might have a ';' in it ... that is RET
+\ NB: don't inline anything that might have a char 15 in it ... that is RET
 \ -----------------------------------------------------------------
 
 \ Variables mess up the disassembler, put them first
@@ -139,7 +139,7 @@ MEM_SZ . HERE . free .
 
 : test GETTICK 500000000 0 FOR NEXT GETTICK SWAP - . ;
 
-.QUIT
+\ .QUIT
 // ------------------------------
 
 : \ 0 >IN @ C! ; IMMEDIATE

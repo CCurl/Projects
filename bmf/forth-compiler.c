@@ -38,7 +38,7 @@ extern int _QUIT_HIT;
 
 OPCODE_T theOpcodes[] = {
           { "LITERAL",          LITERAL,          "LITERAL",        0 }
-        , { "CLIT",             CLITERAL,         "CLIT",           IS_INLINE }
+        , { "CLITERAL",         CLITERAL,         "CLITERAL",       IS_INLINE }
         , { "WLIT",             WLITERAL,         "WLIT",           IS_INLINE }
         , { "FETCH",            FETCH,            "FETCH",          IS_INLINE }
         , { "STORE",            STORE,            "STORE",          IS_INLINE }
@@ -407,6 +407,17 @@ void CompilerInit()
     Store(ADDR_BASE, BASE);
 }
 
+void LoadPrimitives()
+{
+    OPCODE_T *op = &theOpcodes[0];
+    while (op->opcode) {
+        if (op->forth_prim[0]) {
+            DefineWord(op->forth_prim, op->flags);
+        }
+        ++op;
+    }
+}
+
 void Compile(FILE *fp_in)
 {
     int line_no = 0;
@@ -418,7 +429,10 @@ void Compile(FILE *fp_in)
         string_rtrim(buf);
         ++line_no;
         string_copy(line, buf);
-        printf("made it here [%s]\n", line);
+        printf("[line %d]", line_no);
+        if (line_no == 234) {
+            printf("break");
+        }
         ParseLine(buf);
         if (_QUIT_HIT == 1) {
             printf("QUIT hit on line %d: %s\n", line_no, line);
@@ -445,6 +459,8 @@ void do_compile()
     printf("compiling from %s...\n", input_fn);
     CompilerInit();
     // return;
+
+    LoadPrimitives();
 
     input_fp = fopen(input_fn, "rt");
     if (!input_fp) {
