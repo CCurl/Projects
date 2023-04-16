@@ -10,6 +10,8 @@ CELL t1;
 
 #define TOS stk[sp]
 #define NOS stk[sp-1]
+#define NEXT goto Next
+
 void push(CELL v) { if (sp < STK_SZ) { stk[++sp] = v; } }
 CELL pop() { return (sp) ? stk[sp--] : 0; }
 
@@ -34,9 +36,11 @@ void printStringF(const char* fmt, ...) {
 
 #define WFO(l) (user[l+1]*256 | user[l])
 #define WFA(l) ((*(l+1)*256) | (*l))
+
 void wsa(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
 void wso(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
 
+#ifdef NEEDS_ALIGN
 CELL lfo(ushort l) {
     CELL x = user[l++];
     x += (user[l++]<<8);
@@ -51,42 +55,45 @@ void lso(ushort l, CELL v) {
     user[l++]=(v%0xff); v=v>>8;
     user[l] = (v%0xff);
 }
+#else
+CELL lfo(ushort l) { return *(CELL*)(&user[l]); }
+CELL lfa(ushort l) { return *(CELL*)(&user[l]); }
+#endif
 
 #define CCM(x) user[here++]=x
 
 void run(ushort pc) {
-    isOK = 1;
-    while (isOK && (betw(pc, 0, USER_SZ))) {
-        byte ir = user[pc++];
-        switch (ir) {
-        case 0: return;
-        case '"': while ((user[pc]) && (user[pc] != '"')) {
-                char c = user[pc++];
-                if (c == '%') {
-                    c = user[pc++];
-                    if (c == 'd') { printStringF("%d", pop()); }
-                    else if (c == 'x') { printStringF("%x", pop()); }
-                    else if (c == 'n') { printString("\r\n"); }
-                    else if (c == 'b') { printChar(' '); }
-                    else if (c == 'c') { printChar(pop()); }
-                    else { printChar(c); }
-                } else { printChar(c); }
-            } ++pc;                                            break;
-        case '+': t1 = pop(); TOS += t1;                       break;
-        case '-': t1 = pop(); TOS -= t1;                       break;
-        case '*': t1 = pop(); TOS *= t1;                       break;
-        case '/': t1 = pop(); TOS /= (t1 ? t1 : 1);            break;
-        case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;       break;
-        case '<': t1 = pop(); TOS = (TOS < t1) ? 1 : 0;        break;
-        case '>': t1 = pop(); TOS = (TOS > t1) ? 1 : 0;        break;
-        case '.': printStringF("%d ", pop());                  break;
-        case ',': printChar(pop());                            break;
-        case 'c':  rpush(pc+2); pc = WFO(pc);                  break;
-        case 'l':  push(lfo(pc)); pc += CELL_SZ;               break;
-        case ';': t1 = rpop(); if (!t1) { rsp = 0; return; }
-            pc = t1;                                           break;
-        default: ERR("-ir-");                                  break;
-        }
+    isOK = 1;N
+    ext:
+    byte ir = user[pc++];
+    switch (ir) {
+    case 0: return;
+    case '"': while ((user[pc]) && (user[pc] != '"')) {
+            char c = user[pc++];
+            if (c == '%') {
+                c = user[pc++];
+                if (c == 'd') { printStringF("%d", pop()); }
+                else if (c == 'x') { printStringF("%x", pop()); }
+                else if (c == 'n') { printString("\r\n"); }
+                else if (c == 'b') { printChar(' '); }
+                else if (c == 'c') { printChar(pop()); }
+                else { printChar(c); }
+            } else { printChar(c); }
+        } ++pc;                                            NEXT;
+    case '+': t1 = pop(); TOS += t1;                       NEXT;
+    case '-': t1 = pop(); TOS -= t1;                       NEXT;
+    case '*': t1 = pop(); TOS *= t1;                       NEXT;
+    case '/': t1 = pop(); TOS /= (t1 ? t1 : 1);            NEXT;
+    case '=': t1 = pop(); TOS = (TOS == t1) ? 1 : 0;       NEXT;
+    case '<': t1 = pop(); TOS = (TOS < t1) ? 1 : 0;        NEXT;
+    case '>': t1 = pop(); TOS = (TOS > t1) ? 1 : 0;        NEXT;
+    case '.': printStringF("%d ", pop());                  NEXT;
+    case ',': printChar(pop());                            NEXT;
+    case 'c':  rpush(pc+2); pc = WFO(pc);                  NEXT;
+    case 'l':  push(lfo(pc)); pc += CELL_SZ;               NEXT;
+    case ';': t1 = rpop(); if (!t1) { rsp = 0; return; }
+        pc = t1;                                           NEXT;
+    default: ERR("-ir-");                                  NEXT;
     }
 }
 
