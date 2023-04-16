@@ -1,5 +1,10 @@
 #include "cf.h"
 
+enum {
+    STOP, NOOP, RET, CALL, BRANCH0, BRANCHG0,
+    LIT1, LIT4, FETCH1, FETCH4, STORE1, STORE4
+};
+
 char *pc, *toIn;
 byte user[USER_SZ];
 CELL stk[STK_SZ+1];
@@ -37,10 +42,10 @@ void printStringF(const char* fmt, ...) {
 #define WFO(l) (user[l+1]*256 | user[l])
 #define WFA(l) ((*(l+1)*256) | (*l))
 
+#ifdef NEEDS_ALIGN
 void wsa(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
 void wso(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
 
-#ifdef NEEDS_ALIGN
 CELL lfo(ushort l) {
     CELL x = user[l++];
     x += (user[l++]<<8);
@@ -56,18 +61,21 @@ void lso(ushort l, CELL v) {
     user[l] = (v%0xff);
 }
 #else
+void wsa(byte* l, ushort v) { *(ushort*)l = v; }
+void wso(ushort l, ushort v) { *(ushort*)&user[l] = v; }
 CELL lfo(ushort l) { return *(CELL*)(&user[l]); }
-CELL lfa(ushort l) { return *(CELL*)(&user[l]); }
+void lso(ushort l, CELL v) { *(CELL*)(&user[l]) = v; }
 #endif
 
-#define CCM(x) user[here++]=x
+#define CCM(x) user[here++]=(byte)(x)
 
 void run(ushort pc) {
-    isOK = 1;N
-    ext:
+    isOK = 1;
+    Next:
     byte ir = user[pc++];
     switch (ir) {
-    case 0: return;
+    case STOP: return;
+    case NOOP: return;
     case '"': while ((user[pc]) && (user[pc] != '"')) {
             char c = user[pc++];
             if (c == '%') {
@@ -236,7 +244,7 @@ char* rtrim(char *cp) {
 }
 
 void initVM() {
-    last = USER_SZ;
+    last = USER_SZ-1;
     here = 0;
 }
 

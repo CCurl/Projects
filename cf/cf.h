@@ -27,7 +27,7 @@ typedef unsigned char byte;
 #define ASM      CYAN
 
 #define STK_SZ     15
-#define USER_SZ   256
+#define USER_SZ    64*1024
 #define CELL_SZ    sizeof(CELL)
 
 #define betw(x, y, z) ((y <= x) && (x <= z))
