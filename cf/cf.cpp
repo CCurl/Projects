@@ -44,12 +44,13 @@ void printStringF(const char* fmt, ...) {
     printString(buf);
 }
 
-#define WFO(l) (user[l+1]*256 | user[l])
-#define WFA(l) ((*(l+1)*256) | (*l))
 
 #ifdef NEEDS_ALIGN
-void wsa(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
-void wso(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
+#define WFO(l) (user[l+1]*256 | user[l])        // WordFromOffset
+#define WFA(l) ((*(l+1)*256) | (*l))            // WordFromAddress
+
+void WSA(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
+void WSO(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
 
 CELL lfo(ushort l) {
     CELL x = user[l++];
@@ -66,13 +67,17 @@ void lso(ushort l, CELL v) {
     user[l] = (v%0xff);
 }
 #else
-void wsa(byte* l, ushort v) { *(ushort*)l = v; }
-void wso(ushort l, ushort v) { *(ushort*)&user[l] = v; }
-CELL lfo(ushort l) { return *(CELL*)(&user[l]); }
-void lso(ushort l, CELL v) { *(CELL*)(&user[l]) = v; }
+#define WFO(l) *(ushort*)&user[l]         // WordFromOffset
+#define WFA(l) *(ushort*)(l)              // WordFromAddress
+
+#define WSO(l, v)   *(ushort*)&user[l] = (v)
+#define WSA(l, v)   *(ushort*)l = (v)
+
+#define LFO(l)      *(CELL*)(&user[l])
+#define LSO(l, v)   *(CELL*)(&user[l]) = v
 #endif
 
-#define CCM(x) user[here++]=(byte)(x)
+#define CCOMMA(x) user[here++]=(byte)(x)
 
 void run(ushort pc) {
     isOK = 1;
@@ -112,7 +117,7 @@ void run(ushort pc) {
     case 'r':  t1=user[pc++]-'0'; push(regs[t1+rb]);       NEXT;
     case 's':  t1=user[pc++]-'0'; regs[t1+rb]=pop();       NEXT;
     case 't':  push(clock());                              NEXT;
-    case 'l':  push(lfo(pc)); pc += CELL_SZ;               NEXT;
+    case 'l':  push(LFO(pc)); pc += CELL_SZ;               NEXT;
     case ';': t1 = rpop(); if (!t1) { rsp = 0; return; }
         pc = t1;                                           NEXT;
     case '[': lsp += 3; L0=pop(); L1=pop(); L2=pc;         NEXT;
@@ -176,9 +181,13 @@ int isNum(const char* wd) {
     return 1;
 }
 
+void doAsm(const char* wd) {
+    while (*wd) { CCOMMA(*(wd++)); }
+}
+
 void doDefine(const char* wd) {
     // printStringF("-def:%s-", wd);
-    CCM(';');
+    CCOMMA(';');
     int sz = strlen(wd) + 4;
     while (sz % 4) { ++sz; }
     ushort newLast = last - sz;
@@ -192,46 +201,41 @@ void doDefine(const char* wd) {
 
 void doCompile(const char* wd) {
     // printStringF("-com:%s-", wd);
-    doFind(wd);
-    if (pop()) {
-        DICT_T* dp = (DICT_T*)pop();
-        CCM('c');
-        wso(here, dp->xt);
-        here += 2;
-        return;
-    }
     if (isNum(wd)) {
         CELL x = pop();
-        CCM('l');
-        lso(here, x);
+        CCOMMA('l');
+        LSO(here, x);
         here += CELL_SZ;
         return;
     }
-    while (*wd) { CCM(*(wd++)); }
+    doFind(wd);
+    if (pop()) {
+        DICT_T* dp = (DICT_T*)pop();
+        CCOMMA('c');
+        WSO(here, dp->xt);
+        here += 2;
+        return;
+    }
+    while (*wd) { CCOMMA(*(wd++)); }
 }
 
-int doInterpret(const char* wd) {
+void doInterpret(const char* wd) {
     // printStringF("-int:%s-", wd);
-    if (isNum(wd)) { return 1; }
+    if (isNum(wd)) { return; }
     doFind(wd);
     if (pop()) {
         DICT_T* dp = (DICT_T*)pop();
         run(dp->xt);
-        return 1;
+        return;
     }
     if (strcmp(wd,"edit")==0) {
         doEditor();
-        return 1;
+        return;
     }
     byte* cp = &user[here];
     while (*wd) { *(cp++) = *(wd++); }
     *cp = ';';
     run(here);
-    return 0;
-}
-
-void doAsm(const char* wd) {
-    while (*wd) { CCM(*(wd++)); }
 }
 
 void doOuter(char* cp) {
@@ -242,7 +246,7 @@ void doOuter(char* cp) {
         char c = peekCh();
         if (!c) { return; }
         if (betw(c, 1, 7)) { mode = getOneCh(); continue; }
-        if (getWord(buf) == 0) { continue; }
+        if (getWord(buf) == 0) { return; }
         switch (mode) {
         case DEFINE:  doDefine(buf);                    break;
         case COMPILE: doCompile(buf);                   break;
@@ -273,7 +277,7 @@ int loop() {
     printf(" ok\r\n>");
     fgets(buf, 96, stdin);
     if (strcmp(rtrim(buf), "edit") == 0) {
-        if (sp==0) { push(-1); }
+        if (sp==0) { push(0); }
         doEditor();
         initVM();
         doOuter(theBlock);
