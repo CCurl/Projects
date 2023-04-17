@@ -5,12 +5,20 @@
 
 #include "cf.h"
 
+#define COMMAND       1
+#define INSERT        2
+#define REPLACE       3
+#define curLEFT     200
+#define curRIGHT    201
+#define curUP       202
+#define curDOWN     203
+
 #define LLEN       100
 #define NUM_LINES   20
 #define BLOCK_SZ    (NUM_LINES)*(LLEN)
 #define MAX_CUR     (BLOCK_SZ-1)
 #define SETC(c)     edLines[line][off]=c
-int line, off, blkNum;
+int line, off, blkNum, mode;
 int cur, isDirty = 0;
 char theBlock[BLOCK_SZ];
 const char* msg = NULL;
@@ -257,30 +265,54 @@ void doType(int isInsert) {
     }
 }
 
+void insertMode() { mode = INSERT; }
+int isCursorMove(char c) {
+    if (c == curLEFT) { return 1; }
+    return 0;
+}
+
+int doInsertReplace(char c) {
+    if (mode == INSERT) { insertChar(c, 1); }
+    else { edSetCh(c); }
+    return 1;
+}
+
+int moveCursor(int c) {
+    switch (c) {
+        case 9: mv(0,8);                            break;
+        case 'a': mv(0,-1);                         break;
+        case 'd': mv(0,1);                          break;
+        case 'w': mv(-1,0);                         break;
+        case 's': mv(1,0);                          break;
+        case 'q': mv(0,-off);                       break;
+        case 'e': mv(0,99);                         break;
+        case 't': mv(-99,-99);                      break;
+        case 'l': mv(99,99);                        break;
+    }
+    return 1;
+}
+
 int processEditorChar(char c) {
+    if (c==27) { mode = COMMAND; return 1; }
+    if (betw(c,32,126) && betw(mode,COMMAND,INSERT)) {
+        return doInsertReplace(c);
+    }
+    if (isCursorMove(c)) { return moveCursor(c); }
     printChar(c);
     cur = (line*LLEN) + off;
+    mode = COMMAND;
     switch (c) {
     case 'Q': toBlock(); return 0;              break;
-    case 9: mv(0,8);                            break;
-    case 'a': mv(0,-1);                         break;
-    case 'd': mv(0,1);                          break;
-    case 'w': mv(-1,0);                         break;
-    case 's': mv(1,0);                          break;
-    case 'q': mv(0,-off);                       break;
-    case 'e': mv(0,99);                         break;
-    case 't': mv(-99,-99);                      break;
-    case 'l': mv(99,99);                        break;
     case 'i': doType(1);                        break;
     case 'r': doType(0);                        break;
     case 'x': deleteChar();                     break;
     case 'L': edRdBlk();                        break;
     case 'W': edSvBlk();                        break;
-    case 'M': edSetCh(COMMENT);                 break;
-    case 'C': edSetCh(COMPILE);                 break;
-    case 'D': edSetCh(DEFINE);                  break;
-    case 'I': edSetCh(INTERP);                  break;
-    case 'A': edSetCh(ASM);                     break;
+    case 'M': edSetCh(COMMENT); insertMode();   break;
+    case 'C': edSetCh(COMPILE); insertMode();   break;
+    case 'D': edSetCh(DEFINE);  insertMode();   break;
+    case 'I': edSetCh(INTERP);  insertMode();   break;
+    case 'A': edSetCh(ASM);     insertMode();   break;
     case '+': if (isDirty) { edSvBlk(); }
             ++blkNum;
             edRdBlk();
