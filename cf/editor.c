@@ -8,10 +8,8 @@
 #define COMMAND       1
 #define INSERT        2
 #define REPLACE       3
-#define curLEFT     200
-#define curRIGHT    201
-#define curUP       202
-#define curDOWN     203
+
+enum { curLEFT = 200, curRIGHT, curUP, curDOWN, curHOME, curEND, curPGUP, curPGDN };
 
 #define LLEN       100
 #define NUM_LINES   20
@@ -266,10 +264,7 @@ void doType(int isInsert) {
 }
 
 void insertMode() { mode = INSERT; }
-int isCursorMove(int c) {
-    if (c == curLEFT) { return 1; }
-    return 0;
-}
+int isCursorMove(int c) { return betw(c,curLEFT,curEND) ? 1 : 0; }
 
 int doInsertReplace(char c) {
     if (mode == INSERT) { insertChar(c, 1); }
