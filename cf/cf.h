@@ -19,8 +19,13 @@
 #endif
 
 typedef int CELL;
-typedef unsigned short ushort;
 typedef unsigned char byte;
+
+typedef struct {
+    byte *xt;
+    byte l;
+    char name[31];
+} DICT_T;
 
 #define RED      1
 #define GREEN    2
@@ -30,23 +35,18 @@ typedef unsigned char byte;
 #define CYAN     6
 #define WHITE    7
 
-#define COMMENT  WHITE
-#define COMPILE  GREEN
-#define DEFINE   RED
-#define INTERP   YELLOW
-#define ASM      CYAN
+#define COMMENT  '('
+#define COMPILE  '^'
+#define DEFINE   ':'
+#define INTERP   '_'
+#define ASM      '~'
 
 #define STK_SZ     15
-#define USER_SZ    60*1024
+#define USER_SZ    1024*1024
 #define CELL_SZ    sizeof(CELL)
+#define DICT_SZ    sizeof(DICT_T)
 
 #define betw(x, y, z) ((y <= x) && (x <= z))
-
-typedef struct {
-    ushort xt;
-    byte sz;
-    char name[32];
-} DICT_T;
 
 extern char theBlock[];
 
