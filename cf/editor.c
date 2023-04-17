@@ -85,23 +85,23 @@ void edSetCh(char c) {
 
 int edGetChar() {
     CursorOn();
-    int c = getChar();
+    int c = key();
     CursorOff();
     // in PuTTY, cursor keys are <esc>, '[', [A..D]
     // other keys are <esc>, '[', [1..6] , '~'
     if (c == 27) {
-        c = getChar();
+        c = key();
         if (c == '[') {
-            c = getChar();
+            c = key();
             if (c == 'A') { return 'w'; } // up
             if (c == 'B') { return 's'; } // down
             if (c == 'C') { return 'd'; } // right
             if (c == 'D') { return 'a'; } // left
-            if (c == '1') { if (getChar() == '~') { return 'q'; } } // home
-            if (c == '4') { if (getChar() == '~') { return 'e'; } } // end
-            if (c == '5') { if (getChar() == '~') { return 't'; } } // top (pgup)
-            if (c == '6') { if (getChar() == '~') { return 'l'; } } // last (pgdn)
-            if (c == '3') { if (getChar() == '~') { return 'x'; } } // del
+            if (c == '1') { if (key() == '~') { return 'q'; } } // home
+            if (c == '4') { if (key() == '~') { return 'e'; } } // end
+            if (c == '5') { if (key() == '~') { return 't'; } } // top (pgup)
+            if (c == '6') { if (key() == '~') { return 'l'; } } // last (pgdn)
+            if (c == '3') { if (key() == '~') { return 'x'; } } // del
         }
         return c;
     }
@@ -109,7 +109,7 @@ int edGetChar() {
         // in Windows, cursor keys are 224, [HPMK]
         // other keys are 224, [GOIQS]
         if (c == 224) {
-            c = getChar();
+            c = key();
             if (c == 'H') { return 'w'; } // up
             if (c == 'P') { return 's'; } // down
             if (c == 'M') { return 'd'; } // right
@@ -245,7 +245,7 @@ void insertChar(char c, int refresh) {
 void doType(int isInsert) {
     CursorOff();
     while (1) {
-        char c = getChar();
+        char c = key();
         if (c == 27) { return; }
         int isBS = ((c == 127) || (c == 8));
         if (isBS) {
@@ -266,7 +266,7 @@ void doType(int isInsert) {
 }
 
 void insertMode() { mode = INSERT; }
-int isCursorMove(char c) {
+int isCursorMove(int c) {
     if (c == curLEFT) { return 1; }
     return 0;
 }
@@ -325,10 +325,10 @@ int processEditorChar(char c) {
     return 1;
 }
 
-void doEditor() {
+void doEditor(CELL blk) {
     line = 0;
     off = 0;
-    blkNum = pop();
+    blkNum = blk;
     if (0 <= blkNum) { edRdBlk(); }
     blkNum = (0 <= blkNum) ? blkNum : 0;
     CLS();
