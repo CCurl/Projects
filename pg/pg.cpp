@@ -164,7 +164,8 @@ long parse(const char *src) {
 int main() {
     sp = rsp = lsp = 0;
     here = 0;
-    run(parse("T500 1000#**0[]T$-.N"));
-    here = 0;
-    run(parse("T500 1000#**{d#}\\T$-.N"));
+    run(parse("T500 1000#**#.0[]T$-.N"));
+    run(parse("T500 1000#**#.{d#}\\T$-.N"));
+    PS(here+1); PS(WDSZ);
+    run(parse("*."));
 }
