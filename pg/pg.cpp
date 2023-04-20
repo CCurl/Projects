@@ -2,14 +2,17 @@
 #include <stdio.h>
 #include <time.h>
 
+#define CODESZ      1000
+#define DICTSZ      1000
+
 #define NEXT        goto next
 #define PS(x)       stk[++sp]=(x)
-#define PP          stk[sp--]
+#define POP         stk[sp--]
 #define S0          stk[sp]
 #define S1          stk[sp-1]
 #define S2          stk[sp-2]
 #define RPS(x)      rstk[++rsp]=(x)
-#define RPP         rstk[rsp--]
+#define RPOP        rstk[rsp--]
 #define R0          rstk[rsp]
 #define R1          rstk[rsp-1]
 #define R2          rstk[rsp-2]
@@ -20,25 +23,29 @@
 #define L2          lstk[lsp-2]
 #define BTW(a,b,c)  ((b<=a)&&(a<=c))
 
-#define WDSZ        sizeof(long)
+#define WORDSZ      sizeof(long)
 #define OPIR(x)     x.ir[3]
 #define OPARG(x)    (x.wd&0x00ffffff)
 #define u           OPIR(code[pc-1])
 
 typedef union {
     unsigned long wd;
-    unsigned char ir[WDSZ];
+    unsigned char ir[WORDSZ];
 } op_t;
 
 typedef struct {
     unsigned long addr;
-    char attr[WDSZ];
+    char attr[3];
+    char len;
     char name[16];
 } dict_t;
 
 unsigned long ir;
-long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t, here;
-op_t code[0x00FFFFFF];
+long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t;
+long here, last;
+char *toIN, wd[32];
+op_t code[CODESZ];
+dict_t dict[DICTSZ];
 
 void run(long pc) {
     next:
@@ -60,13 +67,13 @@ void run(long pc) {
         case '+': S1+=S0; D1; NEXT;
         case ',': printf("%c",u); NEXT;
         case '-': S1-=S0; D1; NEXT;
-        case '.': printf(" %ld",PP); NEXT;
+        case '.': printf(" %ld",POP); NEXT;
         case '/': S1/=S0; D1; NEXT;
         case '0': case '1': case '2': case '3': 
         case '4': case '5': case '6': case '7': 
         case '8': case '9': printf("%c",u); NEXT;
-        case ':': printf("%c",u); NEXT;
-        case ';': printf("%c",u); NEXT;
+        case ':': RPS(pc); pc = OPARG(code[pc-1]); NEXT;
+        case ';': pc = (0<rsp) ? RPOP : 0; NEXT;
         case '<': S1=(S1<S0)?-1:0;  D1; NEXT;
         case '=': S1=(S1==S0)?-1:0; D1; NEXT;
         case '>': S1=(S1>S0)?-1:0;  D1; NEXT;
@@ -98,10 +105,9 @@ void run(long pc) {
         case 'X': printf("%c",u); NEXT;
         case 'Y': printf("%c",u); NEXT;
         case 'Z': printf("%c",u); NEXT;
-        case '[': lsp+=3; L0=PP; L1=PP; L2=pc; NEXT;
+        case '[': lsp+=3; L0=POP; L1=POP; L2=pc; NEXT;
         case '\\': if (0<sp) sp--; NEXT;
-        case ']': if (++L0<L1) { pc=L2; }
-                else { lsp-=3; } NEXT;
+        case ']': if (++L0<L1) { pc=L2; } else { lsp-=3; } NEXT;
         case '^': printf("%c",u); NEXT;
         case '_': printf("%c",u); NEXT;
         case '`': printf("%c",u); NEXT;
@@ -133,9 +139,12 @@ void run(long pc) {
         case 'z': printf("%c",u); NEXT;
         case '{': lsp+=3; L2=(long)pc; NEXT;
         case '|': printf("%c",u); NEXT;
-        case '}': if (PP) { pc=L2; } else { lsp -=3; } NEXT;
+        case '}': if (POP) { pc=L2; } else { lsp -=3; } NEXT;
         case '~': printf("%c",u); NEXT;
     }
+}
+
+void define() {
 }
 
 long compile(char op, long arg) {
@@ -144,18 +153,76 @@ long compile(char op, long arg) {
     return here-1;
 }
 
-long parse(const char *src) {
-    const char *cp = src;
+int doWord() {
+    int l=0;
+    while (BTW(*toIN,1,32)) { ++toIN; }
+    while (32 < *toIN) { wd[l++] = *(toIN++); }
+    wd[l] = 0;
+    return l;
+}
+
+int doNum() {
+    if (BTW(*toIN,'0','9')) {
+        long num = 0;
+        while BTW(*toIN,'0','9') { num = (num*10) + *(toIN++) - '0'; }
+        compile(1, num);
+        return 1;
+    }
+    return 0;
+}
+
+int doCreate() {
+    int l = doWord();
+    if (l==0) { return 0; }
+    dict_t *dp = &dict[last++];
+    dp->addr = here;
+    dp->attr[0] = dp->attr[1] = dp->attr[2] = 0;
+    if (15<l) { l = 15; }
+    dp->len = l;
+    for (int i=0; i<=l; i++) { dp->name[i] = wd[i]; }
+    return 1;
+}
+
+int strEq(char *s1, char *s2) {
+    while (*s1 && *s2) {
+        if (*s1 == *s2) { ++s1; ++s2; }
+        else { return 0; }
+    }
+    return (*s1 == *s2) ? 1 : 0;
+}
+
+int doFind(char *nm) {
+    int l = 0;
+    while (nm[l]) { ++l; }
+    for (int i = last-1; 0 <= i; i--) {
+        dict_t *dp = &dict[i];
+        if ((dp->len == l) && strEq(nm, dp->name)) { return i; }
+    }
+    return -1;
+}
+
+int doDict() {
+    int l = doWord();
+    if (l==0) { return 0; }
+    if ((l==1) && (wd[0]==':')) { return doCreate(); }
+    if ((l==1) && (wd[0]=='0')) { compile(';',0); return 1; }
+    int f = doFind(wd);
+    if (f < 0) {
+        for (int i = 0; i < l; i++) { compile(wd[i], 0); }
+        return 1;
+    }
+    if (dict[f].attr[0] & 0x01) { run(dict[f].addr); }
+    else { compile(':', dict[f].addr); }
+    return 1;
+}
+
+long doParse(const char *src) {
+    toIN = (char*)src;
     long st = here;
-    while (*cp) {
-        if (*cp < 33) { ++cp; continue; }
-        if (BTW(*cp,'0','9')) {
-            long num = 0;
-            while BTW(*cp,'0','9') { num = (num*10) + *(cp++) - '0'; }
-            compile(1, num);
-            continue;
-        }
-        compile(*(cp++), 0);
+    while (*toIN) {
+        while (BTW(*toIN,1,32)) { ++toIN; continue; }
+        if (doNum()) { continue; }
+        if (doDict()) { continue; }
     }
     compile(0,0);
     return st;
@@ -163,9 +230,11 @@ long parse(const char *src) {
 
 int main() {
     sp = rsp = lsp = 0;
-    here = 0;
-    run(parse("T500 1000#**#.0[]T$-.N"));
-    run(parse("T500 1000#**#.{d#}\\T$-.N"));
-    PS(here+1); PS(WDSZ);
-    run(parse("*."));
+    here = last = 0;
+    compile(0, 0);
+    doParse(": timer T ; : elapsed timer $ - . ;");
+    run(doParse("timer 500 1000 # * * # . 0 [ ] elapsed N"));
+    run(doParse("T 500 1000 #**#.{d#}\\T$-.N"));
+    PS(here+1); PS(WORDSZ);
+    run(doParse("*."));
 }
