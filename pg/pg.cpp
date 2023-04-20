@@ -2,23 +2,23 @@
 #include <stdio.h>
 #include <time.h>
 
-#define NEXT goto next
-#define PS(x)  stk[++sp]=(x)
-#define PP     stk[sp--]
-#define S0     stk[sp]
-#define S1     stk[sp-1]
-#define S2     stk[sp-2]
-#define RPS(x) rstk[++rsp]=(x)
-#define RPP    rstk[rsp--]
-#define R0     rstk[rsp]
-#define R1     rstk[rsp-1]
-#define R2     rstk[rsp-2]
-#define D1     sp--
-#define D2     sp-=2
-#define L0     lstk[lsp]
-#define L1     lstk[lsp-1]
-#define L2     lstk[lsp-2]
-#define BTW(a,b,c) ((b<=a)&&(a<=c))
+#define NEXT        goto next
+#define PS(x)       stk[++sp]=(x)
+#define PP          stk[sp--]
+#define S0          stk[sp]
+#define S1          stk[sp-1]
+#define S2          stk[sp-2]
+#define RPS(x)      rstk[++rsp]=(x)
+#define RPP         rstk[rsp--]
+#define R0          rstk[rsp]
+#define R1          rstk[rsp-1]
+#define R2          rstk[rsp-2]
+#define D1          sp--
+#define D2          sp-=2
+#define L0          lstk[lsp]
+#define L1          lstk[lsp-1]
+#define L2          lstk[lsp-2]
+#define BTW(a,b,c)  ((b<=a)&&(a<=c))
 
 #define WDSZ        sizeof(long)
 #define OPIR(x)     x.ir[3]
