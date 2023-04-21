@@ -89,13 +89,13 @@ void run(long pc) {
         NCASE 'N': printf("\n");
         NCASE 'L': t=code[pc++];
             if (t=='@') { S0 = *(long*)S0; }                  // l@
-            else if (t=='!') { *(long*)S1 = S0; } D2;         // l!
+            else if (t=='!') { *(long*)S0 = S1; D2; }         // l!
         NCASE 'l': t=code[pc++];
             if (t=='@') { S0 = vars.l[S0]; }                  // l@
-            else if (t=='!') { vars.l[S0] = S1; } D2;         // l!
+            else if (t=='!') { vars.l[S0] = S1; D2; }         // l!
         NCASE 'm': t=code[pc++];
             if (t=='@') { S0 = *(byte*)S0; }                  // m@
-            else if (t=='!') { *(byte*)S1 = (byte)S0; } D2;   // m!
+            else if (t=='!') { *(byte*)S1 = (byte)S0; D2; }   // m!
         NCASE 'Q': exit(0);
         NCASE 'T': PS(clock());
         NCASE '[': lsp+=3; L0 = POP; L1 = POP; L2 = pc;
@@ -105,8 +105,8 @@ void run(long pc) {
         NCASE 'e': printf("%c",(char)POP);
         NCASE 'i': ++S0;
         NCASE '{': lsp += 3; L2 = pc;
-        NCASE '}': if (S0) { pc = L2; } else { lsp -= 3; }
-        default: return;
+        NCASE '}': if (S0) { pc = L2; } else { lsp -= 3; }; NEXT;
+        default: printf("-ir:%d-",code[pc-1]); return;
     }
 }
 
@@ -202,15 +202,15 @@ int main() {
     sp = rsp = lsp = 0;
     HERE = 0;
     LAST = 0;
-    doParse(":i H 0 ;     :i L 1 ;  :i here H l@; :i last L l@ ;");
-    doParse(":i dup # ;   :i swap $ ; :i drop \\ ;");
-    doParse(":i a aa ;    :i >a a> ;  :i a@+ a1 ; :i a!+ a2 ;");
-    doParse(":i begin { ; :i while } ;");
-    doParse(":i 1+  i ;   :i 1- d ;");
-    doParse(":i do    [ ; :i loop  ] ;");
-    doParse(":I if here ; :I then last swap l! ;");
-    doParse(":  timer T ; : elapsed timer swap - . N ;");
-    doParse(":  mil 1000 dup * * ; : #. dup . ;");
+    doParse(":i H 0     ;   :i L 1 ;  :i here H l@; :i last L l@ ;");
+    doParse(":i dup #   ;   :i swap $ ; :i drop \\ ;");
+    doParse(":i a aa    ;   :i >a a> ;  :i a@+ a1 ; :i a!+ a2 ;");
+    doParse(":i begin { ;   :i while } ;");
+    doParse(":i 1+  i   ;   :i 1- d ;");
+    doParse(":i do  [   ;   :i loop  ] ;");
+    doParse(":I if here ;   :I then last swap l! ;");
+    doParse(": timer T  ;   : elapsed timer swap - . N ;");
+    doParse(": mil 1000 dup * * ; : #. dup . ;");
     run(doParse("timer 500 mil #. 0 do loop elapsed"));
     run(doParse("timer 200 mil #. begin 1- while drop elapsed"));
     run(doParse("here . last . N"));
