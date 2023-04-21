@@ -5,6 +5,7 @@
 #define CODESZ      1000
 #define DICTSZ      1000
 
+#define NCASE       goto next; case
 #define NEXT        goto next
 #define PS(x)       stk[++sp]=(x)
 #define POP         stk[sp--]
@@ -22,6 +23,8 @@
 #define L1          lstk[lsp-1]
 #define L2          lstk[lsp-2]
 #define BTW(a,b,c)  ((b<=a)&&(a<=c))
+#define HERE        vars.l[0]
+#define LAST        vars.l[1]
 
 #define WORDSZ      sizeof(long)
 #define OPIR(x)     x.ir[3]
@@ -30,22 +33,27 @@
 
 #define IMMED       0x01
 #define INLINE      0x02
+#define LIT          1
+
+typedef unsigned char byte;
+typedef unsigned long ulong;
 
 typedef union {
-    unsigned long wd;
-    unsigned char ir[WORDSZ];
+    ulong wd;
+    byte ir[WORDSZ];
 } op_t;
 
 typedef struct {
-    unsigned long addr;
-    char attr[3];
-    char len;
+    ulong addr;
+    byte attr[2];
+    byte flgs;
+    byte len;
     char name[16];
 } dict_t;
 
 unsigned long ir;
 long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t;
-long here, last;
+union { byte b[10000*sizeof(long)]; long l[10000]; } vars;
 char *toIN, wd[32];
 op_t code[CODESZ];
 dict_t dict[DICTSZ];
@@ -54,106 +62,105 @@ void run(long pc) {
     next:
 
     switch(OPIR(code[pc++])) {
-        case 0: return;
-        case 1: PS(OPARG(code[pc-1])); NEXT;
-        case ' ': NEXT;
-        case '!': printf("%c",u); NEXT;
-        case '"': printf("%c",u); NEXT;
-        case '#': t=S0; PS(t); NEXT;
-        case '$': t=S0; S0=S1; S1=t; NEXT;
-        case '%': t=S1; PS(t); NEXT;
-        case '&': printf("%c",u); NEXT;
-        case '\'': D1; NEXT;
-        case '(': printf("%c",u); NEXT;
-        case ')': printf("%c",u); NEXT;
-        case '*': S1*=S0; D1; NEXT;
-        case '+': S1+=S0; D1; NEXT;
-        case ',': printf("%c",u); NEXT;
-        case '-': S1-=S0; D1; NEXT;
-        case '.': printf(" %ld",POP); NEXT;
-        case '/': S1/=S0; D1; NEXT;
-        case '0': case '1': case '2': case '3': 
-        case '4': case '5': case '6': case '7': 
-        case '8': case '9': printf("%c",u); NEXT;
-        case ':': RPS(pc); pc = OPARG(code[pc-1]); NEXT;
-        case ';': pc = (0<rsp) ? RPOP : 0; NEXT;
-        case '<': S1=(S1<S0)?-1:0;  D1; NEXT;
-        case '=': S1=(S1==S0)?-1:0; D1; NEXT;
-        case '>': S1=(S1>S0)?-1:0;  D1; NEXT;
-        case '?': printf("%c",u); NEXT;
-        case '@': printf("%c",u); NEXT;
-        case 'A': printf("%c",u); NEXT;
-        case 'B': printf("%c",u); NEXT;
-        case 'C': printf("%c",u); NEXT;
-        case 'D': printf("%c",u); NEXT;
-        case 'E': printf("%c",u); NEXT;
-        case 'F': printf("%c",u); NEXT;
-        case 'G': printf("%c",u); NEXT;
-        case 'H': printf("%c",u); NEXT;
-        case 'I': PS(L0); NEXT;
-        case 'J': printf("%c",u); NEXT;
-        case 'K': printf("%c",u); NEXT;
-        case 'L': printf("%c",u); NEXT;
-        case 'M': printf("%c",u); NEXT;
-        case 'N': printf("\n"); NEXT;
-        case 'O': printf("%c",u); NEXT;
-        case 'P': printf("%c",u); NEXT;
-        case 'Q': exit(0); NEXT;
-        case 'R': printf("%c",u); NEXT;
-        case 'S': printf("%c",u); NEXT;
-        case 'T': PS(clock()); NEXT;
-        case 'U': printf("%c",u); NEXT;
-        case 'V': printf("%c",u); NEXT;
-        case 'W': printf("%c",u); NEXT;
-        case 'X': printf("%c",u); NEXT;
-        case 'Y': printf("%c",u); NEXT;
-        case 'Z': printf("%c",u); NEXT;
-        case '[': lsp+=3; L0=POP; L1=POP; L2=pc; NEXT;
-        case '\\': if (0<sp) sp--; NEXT;
-        case ']': if (++L0<L1) { pc=L2; } else { lsp-=3; } NEXT;
-        case '^': printf("%c",u); NEXT;
-        case '_': printf("%c",u); NEXT;
-        case '`': printf("%c",u); NEXT;
-        case 'a': printf("%c",u); NEXT;
-        case 'b': printf("%c",u); NEXT;
-        case 'c': printf("%c",u); NEXT;
-        case 'd': --S0; NEXT;
-        case 'e': printf("%c",u); NEXT;
-        case 'f': printf("%c",u); NEXT;
-        case 'g': printf("%c",u); NEXT;
-        case 'h': printf("%c",u); NEXT;
-        case 'i': ++S0; NEXT;
-        case 'j': printf("%c",u); NEXT; 
-        case 'k': printf("%c",u); NEXT;
-        case 'l': printf("%c",u); NEXT;
-        case 'm': printf("%c",u); NEXT;
-        case 'n': printf("%c",u); NEXT;
-        case 'o': printf("%c",u); NEXT;
-        case 'p': printf("%c",u); NEXT;
-        case 'q': printf("%c",u); NEXT;
-        case 'r': printf("%c",u); NEXT;
-        case 's': printf("%c",u); NEXT;
-        case 't': printf("%c",u); NEXT;
-        case 'u': printf("%c",u); NEXT;
-        case 'v': printf("%c",u); NEXT;
-        case 'w': printf("%c",u); NEXT;
-        case 'x': printf("%c",u); NEXT;
-        case 'y': printf("%c",u); NEXT;
-        case 'z': printf("%c",u); NEXT;
-        case '{': lsp+=3; L2=(long)pc; NEXT;
-        case '|': printf("%c",u); NEXT;
-        case '}': if (POP) { pc=L2; } else { lsp -=3; } NEXT;
-        case '~': printf("%c",u); NEXT;
+        NCASE LIT: PS(OPARG(code[pc-1]));
+        NCASE ' ':
+        NCASE '!': vars.l[S0] = S1; D2;
+        NCASE '"': while (0) {}
+        NCASE '#': t=S0; PS(t);
+        NCASE '$': t=S0; S0=S1; S1=t;
+        NCASE '%': t=S1; PS(t);
+        NCASE '&': printf("%c",u);
+        NCASE '\'': D1;
+        NCASE '(': printf("%c",u);
+        NCASE ')': printf("%c",u);
+        NCASE '*': S1*=S0; D1;
+        NCASE '+': S1+=S0; D1;
+        NCASE ',': printf("%c",u);
+        NCASE '-': S1-=S0; D1;
+        NCASE '.': printf(" %ld",POP);
+        NCASE '/': S1 /= ((S0)?S0:1); D1;
+        NCASE '0': case '1': case '2': case '3': 
+        NCASE '4': case '5': case '6': case '7': 
+        NCASE '8': case '9': printf("%c",u);
+        NCASE ':': RPS(pc); pc = OPARG(code[pc-1]);
+        NCASE ';': pc = (0<rsp) ? RPOP : 0;
+        NCASE '<': S1=(S1<S0)?-1:0;  D1;
+        NCASE '=': S1=(S1==S0)?-1:0; D1;
+        NCASE '>': S1=(S1>S0)?-1:0;  D1;
+        NCASE '?': printf("%c",u);
+        NCASE '@': S0 = vars.l[S0];
+        NCASE 'a': PS(a);
+        NCASE 'A': printf("%c",u);
+        NCASE 'B': printf("%c",u);
+        NCASE 'C': S0 = vars.b[S0];
+        NCASE 'D': printf("%c",u);
+        NCASE 'E': printf("%c",u);
+        NCASE 'F': printf("%c",u);
+        NCASE 'G': printf("%c",u);
+        NCASE 'H': printf("%c",u);
+        NCASE 'I': PS(L0);
+        NCASE 'J': printf("%c",u);
+        NCASE 'K': printf("%c",u);
+        NCASE 'L': printf("%c",u);
+        NCASE 'M': printf("%c",u);
+        NCASE 'N': printf("\n");
+        NCASE 'O': printf("%c",u);
+        NCASE 'P': printf("%c",u);
+        NCASE 'Q': exit(0);
+        NCASE 'R': printf("%c",u);
+        NCASE 'S': printf("%c",u);
+        NCASE 'T': PS(clock());
+        NCASE 'U': printf("%c",u);
+        NCASE 'V': printf("%c",u);
+        NCASE 'W': printf("%c",u);
+        NCASE 'X': printf("%c",u);
+        NCASE 'Y': printf("%c",u);
+        NCASE 'Z': printf("%c",u);
+        NCASE '[': lsp+=3; L0=POP; L1=POP; L2=pc;
+        NCASE '\\': if (0<sp) sp--;
+        NCASE ']': if (++L0<L1) { pc=L2; } else { lsp-=3; }
+        NCASE '^': printf("%c",u);
+        NCASE '_': printf("%c",u);
+        NCASE '`': printf("%c",u);
+        NCASE 'a': printf("%c",u);
+        NCASE 'b': printf("%c",u);
+        NCASE 'c': S0 = vars.b[S0];
+        NCASE 'd': --S0;
+        NCASE 'e': printf("%c",(char)POP);
+        NCASE 'f': printf("%c",u);
+        NCASE 'g': printf("%c",u);
+        NCASE 'h': printf("%c",u);
+        NCASE 'i': ++S0;
+        NCASE 'j': printf("%c",u); 
+        NCASE 'k': printf("%c",u);
+        NCASE 'l': printf("%c",u);
+        NCASE 'm': printf("%c",u);
+        NCASE 'n': printf("%c",u);
+        NCASE 'o': printf("%c",u);
+        NCASE 'p': printf("%c",u);
+        NCASE 'q': printf("%c",u);
+        NCASE 'r': printf("%c",u);
+        NCASE 's': printf("%c",u);
+        NCASE 't': printf("%c",u);
+        NCASE 'u': printf("%c",u);
+        NCASE 'v': printf("%c",u);
+        NCASE 'w': printf("%c",u);
+        NCASE 'x': printf("%c",u);
+        NCASE 'y': printf("%c",u);
+        NCASE 'z': printf("%c",u);
+        NCASE '{': lsp+=3; L2=(long)pc;
+        NCASE '|': printf("%c",u);
+        NCASE '}': if (POP) { pc=L2; } else { lsp -=3; }
+        NCASE '~': printf("%c",u); NEXT;
+        NCASE 0:
+        default: return;
     }
 }
 
-void define() {
-}
-
-long compile(unsigned char op, unsigned long arg) {
-    code[here].wd = arg;
-    OPIR(code[here++]) = op;
-    return here-1;
+long compile(byte op, ulong arg) {
+    code[HERE].wd = arg;
+    OPIR(code[HERE++]) = op;
+    return HERE-1;
 }
 
 int doWord() {
@@ -168,25 +175,26 @@ int doNum() {
     if (BTW(*toIN,'0','9')) {
         long num = 0;
         while BTW(*toIN,'0','9') { num = (num*10) + *(toIN++) - '0'; }
-        compile(1, num);
+        compile(LIT, num);
         return 1;
     }
     return 0;
 }
 
-int doCreate() {
+int doCreate(byte flgs) {
     int l = doWord();
     if (l==0) { return 0; }
-    dict_t *dp = &dict[last++];
-    dp->addr = here;
-    dp->attr[0] = dp->attr[1] = dp->attr[2] = 0;
+    dict_t *dp = &dict[LAST++];
+    dp->addr = HERE;
+    dp->flgs = flgs;
+    dp->attr[0] = dp->attr[1] = 0;
     if (15<l) { l = 15; }
     dp->len = l;
     for (int i=0; i<=l; i++) { dp->name[i] = wd[i]; }
     return 1;
 }
 
-int strEq(char *s1, char *s2) {
+int strEq(const char *s1, const char *s2) {
     while (*s1 && *s2) {
         if (*s1 == *s2) { ++s1; ++s2; }
         else { return 0; }
@@ -197,7 +205,7 @@ int strEq(char *s1, char *s2) {
 int doFind(char *nm) {
     int l = 0;
     while (nm[l]) { ++l; }
-    for (int i = last-1; 0 <= i; i--) {
+    for (int i = LAST-1; 0 <= i; i--) {
         dict_t *dp = &dict[i];
         if ((dp->len == l) && strEq(nm, dp->name)) { return i; }
     }
@@ -207,27 +215,29 @@ int doFind(char *nm) {
 int doDict() {
     int l = doWord();
     if (l==0) { return 0; }
-    if ((l==1) && (wd[0]==':')) { return doCreate(); }
-    if ((l==1) && (wd[0]=='0')) { compile(';',0); return 1; }
+    if (strEq(wd, ":")) { return doCreate(0); }
+    if (strEq(wd,":i")) { return doCreate(INLINE); }
+    if (strEq(wd,":I")) { return doCreate(IMMED); }
     int f = doFind(wd);
     if (f < 0) {
         for (int i = 0; i < l; i++) { compile(wd[i], 0); }
         return 1;
     }
-    if (dict[f].attr[0] & IMMED) { run(dict[f].addr); }
-    else {
-        if (dict[f].attr[0] & IMMED) {;
-            long x = dict[f].addr;
-            compile(OPIR(code[x]), OPARG(code[x]));
-            while (OPIR(code[++x]) != ';') { compile(OPIR(code[x]), OPARG(code[x])); }
-        } else { compile(':', dict[f].addr); }
+    if (dict[f].flgs & IMMED) {
+        run(dict[f].addr);
+    } else if (dict[f].flgs & INLINE) {;
+        long x = dict[f].addr;
+        compile(OPIR(code[x]), OPARG(code[x]));
+        while (OPIR(code[++x]) != ';') { compile(OPIR(code[x]), OPARG(code[x])); }
+    } else {
+        compile(':', dict[f].addr);
     }
     return 1;
 }
 
 long doParse(const char *src) {
     toIN = (char*)src;
-    long st = here;
+    long st = HERE;
     while (*toIN) {
         while (BTW(*toIN,1,32)) { ++toIN; continue; }
         if (doNum()) { continue; }
@@ -237,13 +247,24 @@ long doParse(const char *src) {
     return st;
 }
 
+void defNum(const char *nm, long val) {
+    toIN = (char*) nm;
+    doCreate(INLINE);
+    compile(LIT, val);
+    compile(';', 0);
+    printf("-%s: %08lx-", nm, val);
+}
+
 int main() {
     sp = rsp = lsp = 0;
-    here = last = 0;
-    compile(0, 0);
-    doParse(": timer T ; : elapsed timer $ - . ;");
-    run(doParse("timer 500 1000 # * * # . 0 [ ] elapsed N"));
-    run(doParse("T 500 1000 #**#.{d#}\\T$-.N"));
-    PS(here+1); PS(WORDSZ);
-    run(doParse("*."));
+    HERE = 0;
+    LAST = 0;
+    doParse(": here 0 @ ; : last 1 @ ;");
+    doParse(":I if here ; :I then last $! ;");
+    doParse(":i begin { ; :i while } ;");
+    doParse(":i do    [ ; :i loop  ] ;");
+    doParse(" : timer T ;  : elapsed timer $ - . ;");
+    run(doParse("timer 500 1000 # * * # . 0 do loop elapsed N"));
+    run(doParse("T 200 1000 #**#.{ d # }\\T$-.N"));
+    run(doParse("here . last . N"));
 }
