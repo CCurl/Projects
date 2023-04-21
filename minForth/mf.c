@@ -204,8 +204,7 @@ int main() {
     LAST = 0;
     doParse(":i H 0 ;     :i L 1 ;  :i here H l@; :i last L l@ ;");
     doParse(":i dup # ;   :i swap $ ; :i drop \\ ;");
-    doParse(":i a aa ;    :i >a a> ;  :i a@ a@ ; :i a! a! ; :i a@+ a1 ; :i a!+ a2 ;");
-    doParse(":i L@ L@ ;   :i L! L! ;  :i l@ l@ ; :i l! l! ;");
+    doParse(":i a aa ;    :i >a a> ;  :i a@+ a1 ; :i a!+ a2 ;");
     doParse(":i begin { ; :i while } ;");
     doParse(":i 1+  i ;   :i 1- d ;");
     doParse(":i do    [ ; :i loop  ] ;");
