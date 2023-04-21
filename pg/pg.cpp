@@ -28,6 +28,9 @@
 #define OPARG(x)    (x.wd&0x00ffffff)
 #define u           OPIR(code[pc-1])
 
+#define IMMED       0x01
+#define INLINE      0x02
+
 typedef union {
     unsigned long wd;
     unsigned char ir[WORDSZ];
@@ -147,7 +150,7 @@ void run(long pc) {
 void define() {
 }
 
-long compile(char op, long arg) {
+long compile(unsigned char op, unsigned long arg) {
     code[here].wd = arg;
     OPIR(code[here++]) = op;
     return here-1;
@@ -211,8 +214,14 @@ int doDict() {
         for (int i = 0; i < l; i++) { compile(wd[i], 0); }
         return 1;
     }
-    if (dict[f].attr[0] & 0x01) { run(dict[f].addr); }
-    else { compile(':', dict[f].addr); }
+    if (dict[f].attr[0] & IMMED) { run(dict[f].addr); }
+    else {
+        if (dict[f].attr[0] & IMMED) {;
+            long x = dict[f].addr;
+            compile(OPIR(code[x]), OPARG(code[x]));
+            while (OPIR(code[++x]) != ';') { compile(OPIR(code[x]), OPARG(code[x])); }
+        } else { compile(':', dict[f].addr); }
+    }
     return 1;
 }
 
