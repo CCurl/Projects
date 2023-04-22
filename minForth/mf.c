@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define CODESZ      100000
+#define MEM_SZ      1000
 #define VARSSZ      1000
 #define DICTSZ      1000
 
@@ -12,25 +12,21 @@
 #define POP         stk[sp--]
 #define S0          stk[sp]
 #define S1          stk[sp-1]
-#define S2          stk[sp-2]
 #define RPS(x)      rstk[++rsp]=(long)(x)
 #define RPOP        rstk[rsp--]
 #define R0          rstk[rsp]
-#define R1          rstk[rsp-1]
-#define R2          rstk[rsp-2]
 #define D1          sp--
 #define D2          sp-=2
 #define L0          lstk[lsp]
 #define L1          lstk[lsp-1]
 #define L2          lstk[lsp-2]
 #define BTW(a,b,c)  ((b<=a)&&(a<=c))
-#define HERE        vars.l[0]
-#define LAST        vars.l[1]
+#define MEMB(x)     mem.b[(x)]
+#define MEML(x)     mem.l[(x)]
+#define HERE        MEML(0)
+#define LAST        MEML(1)
 
 #define WORDSZ      sizeof(long)
-#define OPIR(x)     x.ir[3]
-#define OPARG(x)    (x.wd&0x00ffffff)
-#define u           OPIR(code[pc-1])
 
 #define IMMED       0x01
 #define INLINE      0x02
@@ -47,23 +43,21 @@ typedef struct {
     char name[16];
 } dict_t;
 
-unsigned long ir;
 long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t, a;
-union { byte b[VARSSZ*sizeof(long)]; long l[VARSSZ]; } vars;
+union { byte b[MEM_SZ*sizeof(long)]; long l[MEM_SZ]; } mem;
 char *toIN, wd[32];
-char code[CODESZ];
 dict_t dict[DICTSZ];
 
-void run(long pc) {
+void run(long st) {
+    byte *pc = &MEMB(st);
     next:
 
-    // printf("-pc/ir:%ld/%c/%d-",pc,code[pc],code[pc]);
-    switch(code[pc++]) {
-        case 0: return;
-        case LIT: PS(*(long*)(&code[pc])); pc += sizeof(long);
-        NCASE ' ':
-        NCASE '!': vars.l[a] = POP;
-        NCASE '@': PS(vars.l[a]);
+    // printf("-pc/ir:%ld/%c/%d-",pc,MEMB(pc),MEMB(pc));
+    switch(*(pc++)) {
+        NCASE ' ': // NOP
+        NCASE LIT: PS(*(long*)pc); pc += sizeof(long);
+        NCASE '!': MEML(a) = POP;
+        NCASE '@': PS(MEML(a));
         NCASE '#': t=S0; PS(t);
         NCASE '$': t=S0; S0=S1; S1=t;
         NCASE '%': t=S1; PS(t);
@@ -73,45 +67,43 @@ void run(long pc) {
         NCASE '-': S1-=S0; D1;
         NCASE '.': printf(" %ld",POP);
         NCASE '/': S1 /= ((S0)?S0:1); D1;
-        NCASE ':': RPS(pc+sizeof(long)); pc = *(long*)&code[pc];
-        NCASE ';': pc = (0<rsp) ? RPOP : 0;
+        NCASE ':': RPS(pc+sizeof(long)); pc = (byte*)&mem.b[*(long*)pc];
+        NCASE ';': pc = (0<rsp) ? (byte*)RPOP : 0;
         NCASE '<': S1=(S1<S0)?-1:0;  D1;
         NCASE '=': S1=(S1==S0)?-1:0; D1;
         NCASE '>': S1=(S1>S0)?-1:0;  D1;
-        NCASE 'a': t=code[pc++];
+        NCASE 'a': t=*(pc++);
             if (t=='a') { PS(a); }                          // a
             else if (t=='>') { a = POP; }                   // >a
-            else if (t=='@') { PS(vars.b[a]); }             // a@
-            else if (t=='!') { vars.b[a] = (byte)POP; }     // a!
-            else if (t=='1') { PS(vars.b[a++]); }           // a@+
-            else if (t=='2') { vars.b[a++] = (byte)POP; }   // a!+
+            else if (t=='@') { PS(MEMB(a)); }              // a@
+            else if (t=='!') { MEMB(a) = (byte)POP; }      // a!
+            else if (t=='1') { PS(MEMB(a++)); }            // a@+
+            else if (t=='2') { MEMB(a++) = (byte)POP; }    // a!+
         NCASE 'I': PS(L0);
         NCASE 'N': printf("\n");
-        NCASE 'L': t=code[pc++];
-            if (t=='@') { S0 = *(long*)S0; }                  // l@
-            else if (t=='!') { *(long*)S0 = S1; D2; }         // l!
-        NCASE 'l': t=code[pc++];
-            if (t=='@') { S0 = vars.l[S0]; }                  // l@
-            else if (t=='!') { vars.l[S0] = S1; D2; }         // l!
-        NCASE 'm': t=code[pc++];
-            if (t=='@') { S0 = *(byte*)S0; }                  // m@
-            else if (t=='!') { *(byte*)S1 = (byte)S0; D2; }   // m!
+        NCASE 'l': t=*(pc++);
+            if (t=='@') { S0 = MEML(S0); }                 // l@
+            else if (t=='!') { MEML(S0) = S1; D2; }        // l!
+        NCASE 'm': t=*(pc++);
+            if (t=='@') { S0 = *(byte*)S0; }                // m@
+            else if (t=='!') { *(byte*)S1 = (byte)S0; D2; } // m!
         NCASE 'Q': exit(0);
         NCASE 'T': PS(clock());
-        NCASE '[': lsp+=3; L0 = POP; L1 = POP; L2 = pc;
-        NCASE ']': if (++L0 < L1) { pc = L2; } else { lsp -= 3; }
+        NCASE '[': lsp+=3; L0 = POP; L1 = POP; L2 = (long)pc;
+        NCASE ']': if (++L0 < L1) { pc = (byte*)L2; } else { lsp -= 3; }
         NCASE '\\': if (0 < sp) sp--;
         NCASE 'd': --S0;
         NCASE 'e': printf("%c",(char)POP);
         NCASE 'i': ++S0;
-        NCASE '{': lsp += 3; L2 = pc;
-        NCASE '}': if (S0) { pc = L2; } else { lsp -= 3; }; NEXT;
-        default: printf("-ir:%d-",code[pc-1]); return;
+        NCASE '{': lsp += 3; L2 = (long)pc;
+        NCASE '}': if (S0) { pc = (byte*)L2; } else { lsp -= 3; }; NEXT;
+        NCASE 0: return;
+        default: printf("-ir:%d-",*(pc-1)); return;
     }
 }
 
-void cComma(char v) { code[HERE++] = v; }
-void comma(long v) { *(long*)&code[HERE] = v; HERE += sizeof(long); }
+void cComma(char v) { MEMB(HERE++) = v; }
+void comma(long v) { *(long*)&MEMB(HERE) = v; HERE += sizeof(long); }
 
 int doWord() {
     int l=0;
@@ -125,15 +117,17 @@ int doNum() {
     if (BTW(*toIN,'0','9')) {
         long num = 0;
         while BTW(*toIN,'0','9') { num = (num*10) + *(toIN++) - '0'; }
+        // printf("-num:%ld-\n",num);
         cComma(LIT); comma(num);
         return 1;
     }
+    // printf("-nn-\n");
     return 0;
 }
 
 int doCreate(byte flgs) {
     int l = doWord();
-    // printf("-cr:%s-",wd);
+    // printf("-cr:%s-\n",wd);
     if (l==0) { return 0; }
     dict_t *dp = &dict[LAST++];
     dp->addr = HERE;
@@ -164,10 +158,11 @@ int doFind(char *nm) {
 
 int doDict() {
     int l = doWord();
+    // printf("-dd:%s-\n",wd);
     if (l==0) { return 0; }
     if (strEq(wd, ":")) { return doCreate(0); }
     if (strEq(wd,":i")) { return doCreate(INLINE); }
-    if (strEq(wd,":I")) { return doCreate(IMMED); }
+    if (strEq(wd,":M")) { return doCreate(IMMED); }
     int f = doFind(wd);
     if (f < 0) {
         for (int i = 0; i < l; i++) { cComma(wd[i]); }
@@ -177,9 +172,10 @@ int doDict() {
     if (dp->flgs & IMMED) {
         run(dp->addr);
     } else if (dict[f].flgs & INLINE) {;
-        char *x = &code[dp->addr];
-        cComma(*(x++));
-        while (*x != ';') { cComma(*(x++)); }
+        long x = dp->addr;
+        // printf("-in:%ld,%ld-\n",x,HERE);
+        cComma(MEMB(x++));
+        while (MEMB(x) != ';') { cComma(MEMB(x++)); }
     } else {
         cComma(':'); comma((long)dp->addr);
     }
@@ -200,7 +196,7 @@ long doParse(const char *src) {
 
 int main() {
     sp = rsp = lsp = 0;
-    HERE = 0;
+    HERE = 32;
     LAST = 0;
     doParse(":i H 0     ;   :i L 1 ;  :i here H l@; :i last L l@ ;");
     doParse(":i dup #   ;   :i swap $ ; :i drop \\ ;");
@@ -208,9 +204,10 @@ int main() {
     doParse(":i begin { ;   :i while } ;");
     doParse(":i 1+  i   ;   :i 1- d ;");
     doParse(":i do  [   ;   :i loop  ] ;");
-    doParse(":I if here ;   :I then last swap l! ;");
+    doParse(":M if here ;   :M then last swap l! ;");
     doParse(": timer T  ;   : elapsed timer swap - . N ;");
     doParse(": mil 1000 dup * * ; : #. dup . ;");
+    // run(doParse("timer 100 #. 0 do loop elapsed"));
     run(doParse("timer 500 mil #. 0 do loop elapsed"));
     run(doParse("timer 200 mil #. begin 1- while drop elapsed"));
     run(doParse("here . last . N"));
