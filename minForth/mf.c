@@ -5,18 +5,18 @@
 #define MEM_SZ      1000
 #define VARSSZ      1000
 #define DICTSZ      1000
+#define STK_MASK    0x0f
 
 #define NCASE       goto next; case
-#define NEXT        goto next
-#define PS(x)       stk[++sp]=(x)
-#define POP         stk[sp--]
+#define PUSH(x)     push((long)x)
+#define POP         pop()
+#define RPUSH(x)    rpush((long)x)
+#define RPOP        rpop()
 #define S0          stk[sp]
-#define S1          stk[sp-1]
-#define RPS(x)      rstk[++rsp]=(long)(x)
-#define RPOP        rstk[rsp--]
+#define S1          stk[(sp-1)&STK_MASK]
+#define D1          sp=((sp-1)&STK_MASK)
+#define D2          sp=((sp-2)&STK_MASK)
 #define R0          rstk[rsp]
-#define D1          sp--
-#define D2          sp-=2
 #define L0          lstk[lsp]
 #define L1          lstk[lsp-1]
 #define L2          lstk[lsp-2]
@@ -43,52 +43,61 @@ typedef struct {
     char name[16];
 } dict_t;
 
-long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t, a;
+long stk[STK_MASK+1], rstk[STK_MASK+1], lstk[30], sp, rsp, lsp, t, a;
 union { byte b[MEM_SZ*sizeof(long)]; long l[MEM_SZ]; } mem;
 char *toIN, wd[32];
 dict_t dict[DICTSZ];
 
-void run(long st) {
-    byte *pc = &MEMB(st);
+void push(long x) { sp = ((sp+1) & STK_MASK); stk[sp] = x; }
+long pop() { long x = stk[sp]; D1; return x; }
+
+void rpush(long x) { rsp = ((rsp+1) & STK_MASK); rstk[rsp] = x; }
+long rpop() { long x = rstk[rsp]; (rsp = (rsp-1) & STK_MASK); return x; }
+
+void run(long start) {
+    byte *pc = &MEMB(start);
     next:
 
-    // printf("-pc/ir:%ld/%c/%d-",pc,MEMB(pc),MEMB(pc));
+    // printf("-pc/ir:%ld/%c/%d-",pc,*(pc),*(pc));
     switch(*(pc++)) {
         NCASE ' ': // NOP
-        NCASE LIT: PS(*(long*)pc); pc += sizeof(long);
+        NCASE LIT: PUSH(*(long*)pc); pc += sizeof(long);
         NCASE '!': MEML(a) = POP;
-        NCASE '@': PS(MEML(a));
-        NCASE '#': t=S0; PS(t);
+        NCASE '@': PUSH(MEML(a));
+        NCASE '#': t=S0; PUSH(t);
         NCASE '$': t=S0; S0=S1; S1=t;
-        NCASE '%': t=S1; PS(t);
+        NCASE '%': t=S1; PUSH(t);
         NCASE '\'': D1;
         NCASE '*': S1*=S0; D1;
         NCASE '+': S1+=S0; D1;
         NCASE '-': S1-=S0; D1;
         NCASE '.': printf(" %ld",POP);
         NCASE '/': S1 /= ((S0)?S0:1); D1;
-        NCASE ':': RPS(pc+sizeof(long)); pc = (byte*)&mem.b[*(long*)pc];
-        NCASE ';': pc = (0<rsp) ? (byte*)RPOP : 0;
+        NCASE ':': if (*(pc+sizeof(long)) != ';') { RPUSH(pc+sizeof(long)); }
+        case  'J': pc = &MEMB(*(long*)pc); 
+        NCASE 'Z': if (S0 == 0) { pc = &MEMB(*(long*)pc); } else { pc+=sizeof(long); }
+        NCASE 'z': if (S0 != 0) { pc = &MEMB(*(long*)pc); } else { pc+=sizeof(long); }
+        NCASE ';': if (0 < rsp) { pc = (byte*)RPOP; } else { return; }
         NCASE '<': S1=(S1<S0)?-1:0;  D1;
         NCASE '=': S1=(S1==S0)?-1:0; D1;
         NCASE '>': S1=(S1>S0)?-1:0;  D1;
         NCASE 'a': t=*(pc++);
-            if (t=='a') { PS(a); }                          // a
-            else if (t=='>') { a = POP; }                   // >a
-            else if (t=='@') { PS(MEMB(a)); }              // a@
-            else if (t=='!') { MEMB(a) = (byte)POP; }      // a!
-            else if (t=='1') { PS(MEMB(a++)); }            // a@+
-            else if (t=='2') { MEMB(a++) = (byte)POP; }    // a!+
-        NCASE 'I': PS(L0);
+            if (t=='a') { PUSH(a); }                        // a
+        else if (t=='>') { a = POP; }                       // >a
+            else if (t=='@') { PUSH(MEMB(a)); }             // a@
+            else if (t=='!') { MEMB(a) = (byte)POP; }       // a!
+            else if (t=='1') { PUSH(MEMB(a++)); }           // a@+
+            else if (t=='2') { MEMB(a++) = (byte)POP; }     // a!+
+        NCASE 'I': PUSH(L0);
         NCASE 'N': printf("\n");
         NCASE 'l': t=*(pc++);
-            if (t=='@') { S0 = MEML(S0); }                 // l@
-            else if (t=='!') { MEML(S0) = S1; D2; }        // l!
+            if (t=='@') { S0 = MEML(S0); }
+            else if (t=='!') { MEML(S0) = S1; D2; }
         NCASE 'm': t=*(pc++);
-            if (t=='@') { S0 = *(byte*)S0; }                // m@
-            else if (t=='!') { *(byte*)S1 = (byte)S0; D2; } // m!
+            if (t=='@') { S0 = *(byte*)S0; }
+            else if (t=='!') { *(byte*)S1 = (byte)S0; D2; }
         NCASE 'Q': exit(0);
-        NCASE 'T': PS(clock());
+        NCASE 'T': PUSH(clock());
         NCASE '[': lsp+=3; L0 = POP; L1 = POP; L2 = (long)pc;
         NCASE ']': if (++L0 < L1) { pc = (byte*)L2; } else { lsp -= 3; }
         NCASE '\\': if (0 < sp) sp--;
@@ -96,7 +105,7 @@ void run(long st) {
         NCASE 'e': printf("%c",(char)POP);
         NCASE 'i': ++S0;
         NCASE '{': lsp += 3; L2 = (long)pc;
-        NCASE '}': if (S0) { pc = (byte*)L2; } else { lsp -= 3; }; NEXT;
+        NCASE '}': if (S0) { pc = (byte*)L2; } else { lsp -= 3; }
         NCASE 0: return;
         default: printf("-ir:%d-",*(pc-1)); return;
     }
@@ -117,11 +126,9 @@ int doNum() {
     if (BTW(*toIN,'0','9')) {
         long num = 0;
         while BTW(*toIN,'0','9') { num = (num*10) + *(toIN++) - '0'; }
-        // printf("-num:%ld-\n",num);
         cComma(LIT); comma(num);
         return 1;
     }
-    // printf("-nn-\n");
     return 0;
 }
 
@@ -136,6 +143,12 @@ int doCreate(byte flgs) {
     dp->len = l;
     for (int i=0; i<=l; i++) { dp->name[i] = wd[i]; }
     return 1;
+}
+
+int strLen(const char *s1) {
+    int l = 0;
+    while (*(s1++)) { ++l; }
+    return l;
 }
 
 int strEq(const char *s1, const char *s2) {
@@ -173,7 +186,6 @@ int doDict() {
         run(dp->addr);
     } else if (dict[f].flgs & INLINE) {;
         long x = dp->addr;
-        // printf("-in:%ld,%ld-\n",x,HERE);
         cComma(MEMB(x++));
         while (MEMB(x) != ';') { cComma(MEMB(x++)); }
     } else {
@@ -190,8 +202,20 @@ long doParse(const char *src) {
         if (doNum()) { continue; }
         if (doDict()) { continue; }
     }
-    cComma(0);
+    MEMB(HERE) = 0;
     return st;
+}
+
+int repl() {
+    char tib[128];
+    printf(" ok\n");
+    if (tib != fgets(tib, sizeof(tib), stdin)) { return 0; }
+    int l = strLen(tib);
+    while ((0 < l) && (tib[l-1] < 33)) { tib[--l] = 0; }
+    long h = doParse(tib);
+    if ((tib[0] == ':') && (tib[l-1] == ';')) { return 1; }
+    run(h); HERE = h;
+    return 1;
 }
 
 int main() {
@@ -201,14 +225,15 @@ int main() {
     doParse(":i H 0     ;   :i L 1 ;  :i here H l@; :i last L l@ ;");
     doParse(":i dup #   ;   :i swap $ ; :i drop \\ ;");
     doParse(":i a aa    ;   :i >a a> ;  :i a@+ a1 ; :i a!+ a2 ;");
-    doParse(":i begin { ;   :i while } ;");
+    doParse(":i begin { ;   :i while } ; : bye Q ;");
     doParse(":i 1+  i   ;   :i 1- d ;");
     doParse(":i do  [   ;   :i loop  ] ;");
     doParse(":M if here ;   :M then last swap l! ;");
     doParse(": timer T  ;   : elapsed timer swap - . N ;");
     doParse(": mil 1000 dup * * ; : #. dup . ;");
-    // run(doParse("timer 100 #. 0 do loop elapsed"));
-    run(doParse("timer 500 mil #. 0 do loop elapsed"));
-    run(doParse("timer 200 mil #. begin 1- while drop elapsed"));
+    doParse(": bm1 mil #. timer swap 0 do loop elapsed ;");
+    doParse(": bm2 mil #. timer swap begin 1- while drop elapsed ;");
     run(doParse("here . last . N"));
+    while (repl()) { }
+    printf(" bye\n");
 }
