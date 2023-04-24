@@ -7,7 +7,7 @@ load string.f
 
 variable p 100 allot
 
-: words-n last swap 1+ 1 do .word tab i 10 mod 0= if cr then word-sz + loop drop ;
+: words-n last swap 1+ 1 do dup .word tab i 10 mod 0= if cr then word-sz + loop drop ;
 : edit s" nvim ." system ;      
 : pull s" git pull" system ;      
 : pw s" pw" system ;
