@@ -1,5 +1,5 @@
 Machine Forth opcodes:
-
+```
  (MuP21 Assembler Instructions)
 From: http://www.ultratechnology.com/p21fchp9.html (chapter 9)
 
@@ -82,3 +82,4 @@ From: http://www.ultratechnology.com/p21fchp9.html (chapter 9)
    1E   NOP      null operation (delay 10ns)
    1F   DROP     discard the item on the top of the data
                  stack
+```
