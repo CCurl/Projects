@@ -4,8 +4,8 @@ immediate
 
 -d- : 8 108 7 1 -e- immediate
 -d- ;     1 -e- inline
--d- AC!   5 -e- inline
--d- AC@   6 -e- inline
+-d- !AC   5 -e- inline
+-d- @AC   6 -e- inline
 -d- SYS   7 -e- inline
 -d- @A+   9 -e- inline
 -d- @A   11 -e- inline

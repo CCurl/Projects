@@ -3,8 +3,9 @@ MF is based on the MuP21 (Machine Forth VM) opcodes, with some liberties taken.
 
 Obvious differences:
     - Machine Forth uses 20-bit cells, MF uses 32-bit cells
-    - Machine Forth does not support byte addressing, MF supports byte addressing (opcodes 5 and 6)
+    - Machine Forth only supports word addressing, MF supports both word and byte addressing
     - Machine Forth packs 4 5-bit instructions into one word, in MF each instruction is 1 byte
+    - MF uses unused MuP21 opcpdes 5, 6, 7, 8, 12, and 14.
 
 From: http://www.ultratechnology.com/p21fchp9.html (chapter 9)
 ```
@@ -19,20 +20,20 @@ From: http://www.ultratechnology.com/p21fchp9.html (chapter 9)
    04   CALL     Subroutine call.  (push the address of the next location in memory to the 
                     return stack, and jump to the 10 bit address in the lower 10 bits of 
                     the current word.)
-   05  AC!       unused (used for AC!)
-   06  AC@       unused (used for AC@)
-   07  SYS       unused (used for SysOP)
-   08            unused (used for LIT1)
+   05   !AC      MuP21 unused (used for !AC)
+   06   @AC      MuP21 unused (used for @AC)
+   07   SYS      MuP21 unused (used for SysOP)
+   08   LIT1     MuP21 unused (used for LIT1)
    09   @A+      fetch a value from memory pointed to by the A register, place it on the top of
                     the data stack, and increment A
-   10   #        fetch the next cell from memory as a literal and place it
+   10   LIT      fetch the next cell from memory as a literal and place it
                     on the top of the data stack
    11   @A       fetch a value from memory pointed to by the A register, place it on the top of
                     the data stack, and increment A 
-   12   !        unused (used for !)
+   12   !        MuP21 unused (used for !)
    13   !A+      remove the item in the top of data stack and store it
                     into memory pointed to by the A register, increment A
-   14   @        unused (used for @)
+   14   @        MuP21 unused (used for @)
    15   !A       remove the item in the top of data stack and store it into 
                     memory pointed to by the A register
    16   COM      complement all 21 bits in T (top of data stack)
@@ -44,7 +45,7 @@ From: http://www.ultratechnology.com/p21fchp9.html (chapter 9)
                      of logically exclusively-oring them together
    21   AND      remove the top two items from the data stack and replace them with the result
                      of logically and-ing them together
-   22            reserved
+   22            MuP21 unused
    23   +        remove the top two items from the data stack and replace them with the result
                      of adding them together
    24   POP      move one item from the return stack to the data stack
