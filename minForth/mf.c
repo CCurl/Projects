@@ -16,12 +16,12 @@
 #define CELL_SZ     sizeof(long)
 
 enum {
-    JUMP=0, RET, JMPT0, JMPC0, CALL, ACSTOREINC, ACATINC, SYS,
-    U8, AATINC, LIT, AAT, LIT1, ASTOREINC, UE, ASTORE,
-    COM, TIMES2, DIV2, ADDMULT, XOR, AND, U16, ADD,
+    JUMP=0, RET, JMPT0, JMPC0, CALL, ACSTORE, ACAT, SYS,
+    LIT1, AATINC, LIT, AAT, AINC, ASTOREINC, U14, ASTORE,
+    COM, TIMES2, DIV2, ADDMULT, XOR, AND, U22, ADD,
     POPR, AVALUE, DUP, OVER, PUSHR, TOA, NOP, DROP,
-    EMIT=101, FOPEN, FCLOSE, CCOMMA, COMMA, CREATE, FIND,
-    DOT, HA, LA, STA, CSZ
+    EMIT=101, DOT10, DOT16, FOPEN, FCLOSE, CCOMMA, COMMA, 
+    CREATE, FIND, HA, LA, STA, CSZ
 };
 
 typedef unsigned char byte;
@@ -116,13 +116,14 @@ void sysOP(long op) {
     switch (op)
     {
         case  EMIT:   putchar((int)pop());
+        BCASE DOT10:  printf("%ld", pop());
+        BCASE DOT16:  printf("%lx", pop());
         BCASE FOPEN:  x2=pop(); x1=pop(); push((long)fopen((char*)x1, (char*)x2));
         BCASE FCLOSE: x1=pop(); fclose((FILE*)x1);
         BCASE CCOMMA: x1=pop(); CComma(x1);
         BCASE COMMA:  x1=pop(); Comma(x1);
         BCASE CREATE: create(0);
         BCASE FIND:   find(0);
-        BCASE DOT:    printf("%ld ", pop());
         BCASE HA:     push((long)&H);
         BCASE LA:     push((long)&L);
         BCASE STA:    push((long)&st);
@@ -135,34 +136,30 @@ void run(byte *pc) {
     next:
     // printf("-pc/ir:%p/%d-\n",pc,*(pc));
     switch(*(pc++)) {
-        // 00-07: Flow control
         case  JUMP: pc = (byte*)GetNumAt(pc); 
         NCASE RET: if (0 < rsp) { pc = (byte*)RPOP; } else { return; }
         NCASE JMPT0: if (S0 == 0) { pc = (byte*)GetNumAt(pc); } else { pc+=CELL_SZ; }
         NCASE JMPC0: if (cf != 0) { pc = (byte*)GetNumAt(pc); } else { pc+=CELL_SZ; }
         NCASE CALL: RPUSH(pc+CELL_SZ); pc = (byte*)GetNumAt(pc);
-        NCASE ACSTOREINC: MEMB(a++) = (byte)pop();  // NON-standard 
-        NCASE ACATINC: push(MEMB(a++));             // NON-standard 
-        NCASE SYS: sysOP(pop());                    // NON-standard 
-        // 08-15: Memory access
-        NCASE U8: // Unused
+        NCASE ACSTORE: MEMB(a) = (byte)pop();   // NON-standard 
+        NCASE ACAT: push(MEMB(a));              // NON-standard 
+        NCASE SYS: sysOP(pop());                // NON-standard 
+        NCASE LIT1: push(*(pc++));              // NON-standard 
         NCASE AATINC: push(MEML(a++));
         NCASE LIT: push(GetNumAt(pc)); pc += CELL_SZ;
         NCASE AAT: push(MEML(a));
-        NCASE LIT1: push(*(pc++));                  // NON-standard 
+        NCASE AINC: a++;                        // NON-standard 
         NCASE ASTOREINC: MEML(a++) = pop();
-        NCASE UE: // Unused
+        NCASE U14: // Unused
         NCASE ASTORE: MEML(a) = pop();
-        // 16-23: ALU instructions
         NCASE COM: S0 = ~S0;
         NCASE TIMES2: S0 *= 2;
         NCASE DIV2:   S0 /= 2;
         NCASE ADDMULT: if (S0 & 0x01) { S0 += S1; }
         NCASE XOR: t=pop(); S0 ^= t;
         NCASE AND: t=pop(); S0 &= t;
-        NCASE U16: // Unused
+        NCASE U22: // Unused
         NCASE ADD: t=pop(); S0 += t;
-        // 24-31: Register instructions
         NCASE POPR: push(rpop());
         NCASE AVALUE: push(a);
         NCASE DUP: t=S0; push(t);
@@ -211,7 +208,9 @@ int isWord(char *cp) {
     //printf("-word:%s?-\n",cp);
     de_t *dp = find(cp);
     if (!dp) { return 0; }
-    CComma(CALL); Comma(dp->xt);
+    if (dp->f & 0x02) { run((byte*)dp->xt); }
+    if (dp->f & 0x04) { CComma(*(byte*)(dp->xt)); }
+    else { CComma(CALL); Comma(dp->xt); }
     return 1;
 }
 
@@ -228,15 +227,22 @@ int parse(const char *cp) {
     return 1;
 }
 
-void repl(char *cp) {
-    byte *cH = H, *cL = L;
-    in = cp;
-    if (in == 0) {
-        printf(" ok\n");
-        in = fgets(tib, sizeof(tib), stdin);
-        if (!in) { st = 999; return; }
+char *getInput() {
+    FILE *fp = input_fp ? (FILE*)input_fp : stdin;
+    if (fp == stdin) { printf(" ok\n"); }
+    if (tib != fgets(tib, sizeof(tib), fp)) {
+        fclose(fp);
+        input_fp=0;
+        tib[0]=0;
     }
-    if (parse(in) == 0) { H = cH; return; }
+    return tib;
+}
+
+void repl(char *cp) {
+    byte *cH=H, *cL=L;
+    in = cp;
+    if (in == 0) { in = getInput(); }
+    if (parse(in) == 0) { H=cH; return; }
     if (cL == L) { CComma(RET); H=cH; run(H); }
 }
 
@@ -248,13 +254,17 @@ int main(int argc, char **argv) {
         input_fp = (long)fopen(argv[1],"rb");
         if (input_fp) { printf("Cannot open: %s\n", argv[1]); }
     }
-    repl("-d- immediate 12 2 12 110 7 12 2 12 112 7 23 29 1 -e-");
-    repl("-d- : 12 106 7 1 -e- immediate");
-    repl("-d- ; 12 1 12 104 7 1 -e-");
-    repl("-d- . 12 108 7 1 -e-");
-    repl("-d- emit 12 101 7 1 -e-");
+    repl("-d- immediate 8 111 7  8 113 7  17 23 29  8 2  5 1 -e-");
+    repl("-d- inline    8 111 7  8 113 7  17 23 29  8 4  5 1 -e-");
+    repl("-d- : 8 108 7 1 -e-");
+    repl("immediate");
+    repl("-d- ; 1 -e-");
+    repl("inline");
+    repl("-d- .10 8 102 7 1 -e-");
+    repl("-d- .16 8 103 7 1 -e-");
+    repl("-d- emit 8 101 7 1 -e-");
     repl("-d- sys 7 1 -e-");
-    repl("123 . 65 emit");
+    repl("123 .16 65 emit");
     while (st != 999) { repl(0); }
     return 0;
 }
