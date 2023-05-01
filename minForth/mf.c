@@ -17,7 +17,7 @@
 
 enum {
     JUMP=0, RET, JMPT0, JMPC0, CALL, ACSTORE, ACAT, SYS,
-    LIT1, AATINC, LIT, AAT, AINC, ASTOREINC, U14, ASTORE,
+    LIT1, AATINC, LIT, AAT, STORE, ASTOREINC, FETCH, ASTORE,
     COM, TIMES2, DIV2, ADDMULT, XOR, AND, U22, ADD,
     POPR, AVALUE, DUP, OVER, PUSHR, TOA, NOP, DROP,
     EMIT=101, DOT10, DOT16, FOPEN, FCLOSE, CCOMMA, COMMA, 
@@ -127,7 +127,7 @@ void sysOP(long op) {
         BCASE HA:     push((long)&H);
         BCASE LA:     push((long)&L);
         BCASE STA:    push((long)&st);
-        BCASE CSZ:    push(CELL_SZ);
+        BCASE CSZ:    push(CELL_SZ);    break;
         default: printf("-sysOP:%ld?-", op);
     }
 }
@@ -141,24 +141,24 @@ void run(byte *pc) {
         NCASE JMPT0: if (S0 == 0) { pc = (byte*)GetNumAt(pc); } else { pc+=CELL_SZ; }
         NCASE JMPC0: if (cf != 0) { pc = (byte*)GetNumAt(pc); } else { pc+=CELL_SZ; }
         NCASE CALL: RPUSH(pc+CELL_SZ); pc = (byte*)GetNumAt(pc);
-        NCASE ACSTORE: MEMB(a) = (byte)pop();   // NON-standard 
-        NCASE ACAT: push(MEMB(a));              // NON-standard 
-        NCASE SYS: sysOP(pop());                // NON-standard 
-        NCASE LIT1: push(*(pc++));              // NON-standard 
-        NCASE AATINC: push(MEML(a++));
+        NCASE ACSTORE: *(byte*)a = (byte)pop();         // NON-standard, AC! 
+        NCASE ACAT: push(*(byte*)a);                    // NON-standard, AC@
+        NCASE SYS: sysOP(pop());                        // NON-standard
+        NCASE LIT1: push(*(pc++));                      // NON-standard
+        NCASE AATINC: push(GetNumAt((byte*)(a++))); 
         NCASE LIT: push(GetNumAt(pc)); pc += CELL_SZ;
-        NCASE AAT: push(MEML(a));
-        NCASE AINC: a++;                        // NON-standard 
-        NCASE ASTOREINC: MEML(a++) = pop();
-        NCASE U14: // Unused
-        NCASE ASTORE: MEML(a) = pop();
+        NCASE AAT: push(GetNumAt((byte*)a));
+        NCASE STORE: SetNumAt((byte*)S0,S1); sp-=2;      // NON-standard
+        NCASE ASTOREINC: SetNumAt((byte*)(a++),pop());
+        NCASE FETCH: push(GetNumAt((byte*)S0));          // NON-standard, FORTH @
+        NCASE ASTORE: SetNumAt((byte*)a, pop());
         NCASE COM: S0 = ~S0;
         NCASE TIMES2: S0 *= 2;
         NCASE DIV2:   S0 /= 2;
         NCASE ADDMULT: if (S0 & 0x01) { S0 += S1; }
         NCASE XOR: t=pop(); S0 ^= t;
         NCASE AND: t=pop(); S0 &= t;
-        NCASE U22: // Unused
+        NCASE U22:                                      // Unused
         NCASE ADD: t=pop(); S0 += t;
         NCASE POPR: push(rpop());
         NCASE AVALUE: push(a);
@@ -254,17 +254,7 @@ int main(int argc, char **argv) {
         input_fp = (long)fopen(argv[1],"rb");
         if (input_fp) { printf("Cannot open: %s\n", argv[1]); }
     }
-    repl("-d- immediate 8 111 7  8 113 7  17 23 29  8 2  5 1 -e-");
-    repl("-d- inline    8 111 7  8 113 7  17 23 29  8 4  5 1 -e-");
-    repl("-d- : 8 108 7 1 -e-");
-    repl("immediate");
-    repl("-d- ; 1 -e-");
-    repl("inline");
-    repl("-d- .10 8 102 7 1 -e-");
-    repl("-d- .16 8 103 7 1 -e-");
-    repl("-d- emit 8 101 7 1 -e-");
-    repl("-d- sys 7 1 -e-");
-    repl("123 .16 65 emit");
+    if (!input_fp) { input_fp = (long)fopen("mf.f","rb"); }
     while (st != 999) { repl(0); }
     return 0;
 }
