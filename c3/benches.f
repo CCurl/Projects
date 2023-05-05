@@ -18,19 +18,24 @@ variable num
         i 3 prime? if num ++ then 1 +i
     loop num ? ;
 
-: bm1 cr ." Bench: decrement loop, " dup . ." iterations ... "
-    timer swap begin 1- dup while drop elapsed ;
-: bm2 cr ." Bench: empty do loop, " dup . ." iterations ... "
+: bm1 cr ." Bench 1: decrement loop, " dup . ." iterations ... "
+    timer swap begin 1- -while drop elapsed ;
+: bm2 cr ." Bench 2: register decrement loop, " dup . ." iterations ... "
+    s1 timer begin d1 r1 0= until elapsed ;
+: bm3 cr ." Bench 3: empty do/loop, " dup . ." iterations ... "
     timer swap 0 do loop elapsed ;
-: bm3 cr ." Bench: register decrement loop, " dup . ." iterations ... "
-    s9 timer begin d9 r9 while elapsed ;
-: bm4 cr ." Bench: number of primes in " dup . ." ... "
+: bm4 cr ." Bench 4: empty for/next, " dup . ." iterations ... "
+    timer swap for next elapsed ;
+: bm5 cr ." Bench 5: number of primes in " dup . ." ... "
     timer swap num-primes elapsed ;
+
+\ load-abort
 
 250 mil bm1
 250 mil bm2
 250 mil bm3
-  2 mil bm4
+250 mil bm4
+2 mil bm5
 
 \ Mandelbrot
 : m-hdr ." The Mandelbrot Set" cr ;
@@ -44,7 +49,7 @@ variable num
       r1 r2 * 100 / r9 + s2
       r3 r4 - r8 + s1
       i5 ;
-: doL 0 s1 0 s2 0 s5 r6 s7 begin i0 doQ r5 r7 < while ;
+: doL 0 s1 0 s2 0 s5 r6 s7 begin i0 doQ r5 r7 < 0= until ;
 : doO doL r5 40 + dup 126 > if drop 32 then emit ;
 : doX -490 s8 95 0 do doO r8  8 + s8 loop cr ;
 : doY -340 s9 35 0 do doX r9 20 + s9 loop ;

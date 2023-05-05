@@ -1,15 +1,21 @@
+: last (last) @ ;
+: immediate 1 last cell + c! ;
+: inline 2 last cell + c! ;
+
+: mem-end   mem  mem-sz  + ;
+: vars-end  vars vars-sz + ;
+
+: ++ dup @ 1+ swap ! ; inline
+: -- dup @ 1- swap ! ; inline
+
 : here (here) @ ;
-: c, here c! 1 (here) +! ;
+: c, here c! (here) ++ ;
 : , here ! here cell + (here) ! ;
 
 : vhere  (vhere) @ ;
 : allot  vhere + (vhere) ! ;
-: vc, vhere c! 1 (vhere) +! ;
+: vc, vhere c! (vhere) ++ ;
 : v,  vhere ! cell allot ;
-
-: last (last) @ ;
-: immediate 1 last cell + c! ;
-: inline 2 last cell + c! ;
 
 : \ 0 >in @ ! ; immediate
 : [ 0 state ! ; immediate
@@ -22,8 +28,8 @@
 : val  vhere constant ;
 : (val)  here 1- cell - constant ;
 
-: does>  r> last ! ;
 : :noname  here 1 state ! ;
+: does>  r> last ! ;
 : exec  >r ;
 
 : if    (jmpz) c, here 0 , ; immediate
@@ -32,9 +38,17 @@
 : exit  (exit) c,   ; immediate
 
 : begin  here         ; immediate
-: while  (jmpnz) c, , ; immediate
-: until  (jmpz)  c, , ; immediate
-: again  (jmp)   c, , ; immediate
+: until  (jmpz) c, , ; immediate
+: again  (jmp) c, , ; immediate
+: while  (jmpz) c, here 0 , ; immediate
+: repeat swap (jmp) c, , here swap ! ; immediate
+: for 0 swap do ; inline
+: next -loop ; inline
+
+\ MachineForth words
+: -if     (dup) c,  (jmpz) c, here 0 , ; immediate
+: -until  (dup) c,  (jmpz) c, , ; immediate
+: -while  (jmpnz) c, , ; immediate
 
 : tuck  swap over ; inline
 : nip   swap drop ; inline
@@ -42,9 +56,13 @@
 : 2drop drop drop ; inline
 : ?dup  dup if dup then ;
 
-: ++  dup @  1+ swap ! ; inline
+: /   /mod nip  ; inline
+: mod /mod drop ; inline
+
+: +! swap over @ + swap ! ;  inline
 : c++ dup c@ 1+ swap c! ; inline
 : 2*  dup + ; inline
+: 2/  2 / ; inline
 : 2+  1+ 1+ ; inline
 : <=  > 0= ; inline
 : >=  < 0= ; inline
@@ -74,16 +92,16 @@
 : +i (i) +! ;
 : unloop (lsp) @ 3 - 0 max (lsp) ! ;
 
-: /   /mod nip  ; inline
-: mod /mod drop ; inline
-
 variable (neg)
+variable #bufp
+: hold #bufp -- #bufp @ c! ;          \ ( c -- )
 : #digit '0' + dup '9' > if 7 + then ;
-: <# 0 swap dup 0 < (neg) ! abs ;    \ ( n1 -- 0 n2 )
-: # base @ /mod swap #digit swap ;   \ ( u1 -- c u2 )
-: #S begin # dup while ;             \ ( u1 -- u2 )
-: #> drop (neg) @ if '-' then ;
-: #P begin emit dup while drop ;     \ ( 0 ... n 0 -- )
+: >neg dup 0 < (neg) ! abs ;          \ ( n1 -- u1 )
+: <# here 66 + #bufp ! 0 hold >neg ;  \ ( n1 -- u1 )
+: # base @ /mod swap #digit hold ;    \ ( u1 -- u2 )
+: #S begin # dup 0= until ;           \ ( u1 -- 0 )
+: #> drop (neg) @ if '-' hold then ;
+: #P #bufp @ typez ;                  \ ( 0 ... n 0 -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
 
@@ -94,6 +112,7 @@ variable (neg)
     then ')' emit ;
 
 : count ( str--a n ) dup 1+ swap c@ ; inline
+: dump for dup c@ . 1+ next drop ;
 
 : T8 ( ch-- )   r8 c! i8 ;
 : T2 ( --str end )   +regs
@@ -114,20 +133,19 @@ variable (neg)
 
 : .word cell + 1+ count type ;
 : words +regs 0 s1 last s2 begin
-        r2 mem-end < if 
+        r2 mem-end < while
             i1 r1 #11 mod 0= if cr then
             r2 .word tab r2 word-sz + s2
-        else ." (" r1 . ." words)" -regs exit
-        then
-    again ;
+    repeat
+    ." (" r1 . ." words)" -regs ;
 
 : binary  %10 base ! ;
 : decimal #10 base ! ;
 : hex     $10 base ! ;
 : ? @ . ;
 
-: rshift ( n1 s--n2 ) 0 do 2 / loop ;
 : lshift ( n1 s--n2 ) 0 do 2* loop ;
+: rshift ( n1 s--n2 ) 0 do 2/ loop ;
 
 : load next-word drop 1- (load) ;
 : load-abort 99 state ! ;
