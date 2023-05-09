@@ -2,6 +2,7 @@
 
 ' s-len loaded?
 
+load mf.f
 load memory.f
 
 : s-len ( str--len ) c@ ; inline
@@ -21,9 +22,9 @@ load memory.f
     dup 9 > if 7 + then
     s-catc ;
 : s-catn ( dst n-- ) 
-    swap >r <# #s #>
-    begin r@ swap s-catc ?dup while
-    rdrop ;
+    +regs <# #s #> #bufp @ s2 s-end s1
+    begin r2+ c@ dup r1+ c! while repeat
+    -regs ;
 : s-scatc ( c dst-- )   swap s-catc ;
 : s-scatn ( n dst-- )   swap s-catn ;
 : s-findc ( str ch--a|0 ) \ NB: str is not counted
@@ -40,16 +41,16 @@ load memory.f
     over c@ over c@ <> if 2drop 0 exit then
     +regs s2 s1 -1 s8
     r1 c@ 0 do
-        r1 c@ r2 c@ <> if 0 s8 999 (i) ! then i1 i2
+        r1+ c@ r2+ c@ <> if 0 s8 999 (i) ! then
     loop r8 -regs ;
 : s-eq-i ( s1 s2--f )
     over c@ over c@ <> if 2drop 0 exit then
     +regs s2 s1 -1 s8
     r1 c@ 0 do 
-        r1 c@ lower r2 c@ lower <> 
-        if 0 s8 999 (i) ! then i1 i2 
+        r1+ c@ lower r2+ c@ lower <> 
+        if 0 s8 999 (i) ! then
     loop r8 -regs ;
 : s-from-sz ( s sz-- )
     +regs s2 s1   r1 s-trunc
-    begin r2 c@ dup if r1 s-scatc i2 1 then while
+    begin r2 c@ dup while r1 s-scatc i2 1 repeat
     -regs ;
