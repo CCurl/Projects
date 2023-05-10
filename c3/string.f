@@ -5,7 +5,11 @@
 load mf.f
 load memory.f
 
-: s-len ( str--len ) c@ ; inline
+: s-len  ( str--len ) c@ ; inline
+: s-lenz ( strz--len )
+    +regs s1 0 s2
+    begin r1+ c@ while i2 repeat
+    r2 -regs ;
 : s-end ( str--end ) dup s-len + 1+ ; inline
 : s-cpy ( dst src-- ) tuck s-len 2+ cmove ;
 : s-trunc ( str-- ) 0 swap 2dup 1+ c! c! ;
@@ -15,12 +19,12 @@ load memory.f
     r1 s-len r2 s-len + r1 c!
     -regs ;
 : s-catc ( str ch-- )
-    +regs s2 s1 r1 s-end s3
-    r2 r3 c! 0 r3 1+ c!
+    +regs s2 dup s1 s-end s3
+    r2 r3+ c! 0 r3 c!
     r1 c++ -regs ;
 : s-catd ( str d-- )
     dup 9 > if 7 + then
-    s-catc ;
+    '0' + s-catc ;
 : s-catn ( dst n-- ) 
     +regs <# #s #> #bufp @ s2 s-end s1
     begin r2+ c@ dup r1+ c! while repeat
@@ -52,5 +56,5 @@ load memory.f
     loop r8 -regs ;
 : s-from-sz ( s sz-- )
     +regs s2 s1   r1 s-trunc
-    begin r2 c@ dup while r1 s-scatc i2 1 repeat
-    -regs ;
+    begin r2+ c@ dup while r1 s-scatc repeat
+    drop -regs ;
