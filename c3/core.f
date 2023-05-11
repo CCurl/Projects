@@ -86,6 +86,10 @@
 : abs  dup 0 < if negate then ;
 : min  over over > if swap then drop ;
 : max  over over < if swap then drop ;
+: btw ( n a b--f )
+    +regs s3 s2 s1
+    r2 r1 <= r1 r3 <= and
+    -regs ;
 
 : i  (i) @ ;
 : j  (i) 3 cells - @ ;
