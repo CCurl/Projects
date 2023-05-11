@@ -1,7 +1,5 @@
 ' cmove loaded?
 
-load mf.f
-
 : cmove ( src dst num-- )
     +regs s3 s2 s1
     r3 if 

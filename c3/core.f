@@ -101,7 +101,7 @@ variable #bufp
 : # base @ /mod swap #digit hold ;    \ ( u1 -- u2 )
 : #S begin # dup 0= until ;           \ ( u1 -- 0 )
 : #> drop (neg) @ if '-' hold then ;
-: #P #bufp @ typez ;                  \ ( 0 ... n 0 -- )
+: #P #bufp @ typez ;                  \ ( -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
 
