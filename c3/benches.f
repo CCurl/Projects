@@ -4,29 +4,36 @@
 : elapsed timer swap - ms ;
 : mil #1000 dup * * ;
 
-: prime? begin ( n 3--f )
-        over over /mod swap if  \ test 2
-            over < if drop exit then
-        else 
-            drop = exit
+: prime?  ( n 3--f )
+    begin
+        over over /mod swap
+        if over < if drop exit then
+        else  drop = exit
         then
         1+ 1+
     again ;
 
 variable num
-: num-primes 4 num ! 11 do
-        i 3 prime? if num ++ then 1 +i
-    loop num ? ;
+: num-primes 4 s9 11 do
+        i 3 prime? if i9 then 1 +i
+    loop r9 . ;
 
-: bm1 cr ." Bench 1: decrement loop, " dup . ." iterations ... "
+: bm1 cr ." Bench 1: -while loop, " dup . ." iterations ... "
     timer swap begin 1- -while drop elapsed ;
-: bm2 cr ." Bench 2: register decrement loop, " dup . ." iterations ... "
-    s1 timer begin d1 r1 0= until elapsed ;
-: bm3 cr ." Bench 3: empty do/loop, " dup . ." iterations ... "
+
+: bm2 cr ." Bench 2: while/repeat loop, " dup . ." iterations ... "
+    timer swap begin dup while 1- repeat drop elapsed ;
+
+: bm3 cr ." Bench 3: register decrement loop, " dup . ." iterations ... "
+    s1 timer begin r1- 0= until elapsed ;
+
+: bm4 cr ." Bench 4: empty do/loop, " dup . ." iterations ... "
     timer swap 0 do loop elapsed ;
-: bm4 cr ." Bench 4: empty for/next, " dup . ." iterations ... "
+
+: bm5 cr ." Bench 5: empty for/next, " dup . ." iterations ... "
     timer swap for next elapsed ;
-: bm5 cr ." Bench 5: number of primes in " dup . ." ... "
+
+: bm6 cr ." Bench 6: number of primes in " dup . ." ... "
     timer swap num-primes elapsed ;
 
 \ load-abort
@@ -35,7 +42,8 @@ variable num
 250 mil bm2
 250 mil bm3
 250 mil bm4
-2 mil bm5
+250 mil bm5
+  2 mil bm6
 
 \ Mandelbrot
 : m-hdr ." The Mandelbrot Set" cr ;
