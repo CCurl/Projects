@@ -2,8 +2,8 @@
 
 ' web loaded?
 
-load screen.f
-load string.f
+load screen.c3
+load string.c3
 
 variable p 100 allot
 

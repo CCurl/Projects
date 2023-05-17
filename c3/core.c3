@@ -168,8 +168,8 @@ here mem -   . ." code bytes used, " last here - . ." bytes free." cr
 vhere vars - . ." variable bytes used, " vars-end vhere - . ." bytes free."
 forget
 
-: benches forget s" benches.f" (load) ;
-: sb forget s" sandbox.f" (load) ;
-: work forget s" work.f" (load) ;
-: ed forget s" editor.f" (load) ;
+: benches forget s" benches.c3" (load) ;
+: sb forget s" sandbox.c3" (load) ;
+: work forget s" work.c3" (load) ;
+: ed forget s" editor.c3" (load) ;
 marker

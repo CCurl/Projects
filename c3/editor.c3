@@ -2,12 +2,12 @@
 
 ' edit loaded?
 
-: rl forget s" editor.f" (load) ;
+: rl forget s" editor.c3" (load) ;
 
-load file.f
-load string.f
-load screen.f
-load memory.f
+load file.c3
+load string.c3
+load screen.c3
+load memory.c3
 
 500 constant max-lines
 128 constant max-width
@@ -243,4 +243,4 @@ val bottom  (val) (bottom)
     fn read-file
     cls edit-loop ;
 
-edit editor.f
+edit editor.c3

@@ -1,6 +1,6 @@
 \ A sandbox for messing around
 
-load string.f
+load string.c3
 
 variable p 100 allot
 variable q 100 allot
