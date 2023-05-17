@@ -2,6 +2,9 @@
 : immediate 1 last cell + c! ;
 : inline 2 last cell + c! ;
 
+-ML- !  8 3 -MLX- inline
+-ML- - 19 3 -MLX- inline
+
 : mem-end   mem  mem-sz  + ;
 : vars-end  vars vars-sz + ;
 
@@ -99,12 +102,12 @@
 variable (neg)
 variable #bufp
 : hold #bufp -- #bufp @ c! ;          \ ( c -- )
-: #digit dup 9 > if 7 + then '0' + ;  \ ( n--c )
+: #digit dup 9 > if 7 + then '0' + ;  \ ( n -- c )
 : >neg dup 0 < (neg) ! abs ;          \ ( n1 -- u1 )
 : <# here #66 + #bufp ! 0 hold >neg ; \ ( n1 -- u1 )
 : # base @ /mod swap #digit hold ;    \ ( u1 -- u2 )
-: #S begin # dup 0= until ;           \ ( 0 -- )
-: #> drop (neg) @ if '-' hold then ; 
+: #S begin # dup 0= until drop ;      \ ( u1 -- )
+: #> (neg) @ if '-' hold then ;       \ ( -- )
 : #P #bufp @ typez ;                  \ ( -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
