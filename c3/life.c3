@@ -1,10 +1,10 @@
-// Conway's game of life
+\ Conway's game of life
 
 load random.c3
 load screen.c3
 
-// : LIFE 17 (lex) ! ;
-// LIFE
+\ : LIFE 17 (lex) ! ;
+\ LIFE
 
 variable (r)
 variable (c)

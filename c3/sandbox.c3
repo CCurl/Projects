@@ -1,4 +1,4 @@
-// A sandbox for messing around
+\ A sandbox for messing around
 
 load string.c3
 
@@ -44,7 +44,7 @@ s" 111,222,333,444" r1 9 ',' extract-field r1 count type ." ,"
 
 load-abort
 
-// Some trigonometry stuff ...
+\ Some trigonometry stuff ...
 var xf  (var) (xf)  : >xf  (xf)  ! ;
 var xt  (var) (xt)  : >xt  (xt)  ! ;
 var yf  (var) (yf)  : >yf  (yf)  ! ;
@@ -55,7 +55,7 @@ var hyp (var) (hyp) : >hyp (hyp) ! ;
 
 : sqr dup * ; inline
 
-// The Babylon square root algorithm
+\ The Babylon square root algorithm
 : T0 ( n--sqrt ) dup 4 / begin >r dup r@ / r@ + 2 / dup r> - while nip ;
 : sqrt ( n--0|sqrt ) dup 0 > if T0 else drop 0 then ;
 
