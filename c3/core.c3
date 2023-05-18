@@ -1,28 +1,99 @@
+// ***********************************************
+// c3 opcodes
+// ***********************************************
+
+// : (stop)      0 ; inline
+// : (lit1)      1 ; inline
+: (lit4)         2 ; inline
+-ML- EXIT        3 3 -MLX- inline
+: (exit)         3 ;
+: (call)         4 ; inline
+: (jmp)          5 ; inline
+: (jmpz)         6 ; inline
+: (jmpnz)        7 ; inline
+-ML- !           8 3 -MLX- inline
+-ML- c!          9 3 -MLX- inline
+-ML- @          10 3 -MLX- inline
+-ML- c@         11 3 -MLX- inline
+: (dup)         12 ; inline
+-ML- DUP        12 3 -MLX- inline
+-ML- SWAP       13 3 -MLX- inline
+-ML- OVER       14 3 -MLX- inline
+-ML- DROP       15 3 -MLX- inline
+-ML- +          16 3 -MLX- inline
+-ML- *          17 3 -MLX- inline
+-ML- /MOD       18 3 -MLX- inline
+-ML- -          19 3 -MLX- inline
+-ML- 1+         20 3 -MLX- inline
+-ML- 1-         21 3 -MLX- inline
+-ML- <          22 3 -MLX- inline
+-ML- =          23 3 -MLX- inline
+-ML- >          24 3 -MLX- inline
+-ML- 0=         25 3 -MLX- inline
+-ML- >R         26 3 -MLX- inline
+-ML- R@         27 3 -MLX- inline
+-ML- R>         28 3 -MLX- inline
+-ML- DO         29 3 -MLX- inline
+-ML- LOOP       30 3 -MLX- inline
+-ML- -LOOP      31 3 -MLX- inline
+-ML- (I)        32 3 -MLX- inline
+-ML- COM        33 3 -MLX- inline
+-ML- AND        34 3 -MLX- inline
+-ML- OR         35 3 -MLX- inline
+-ML- XOR        36 3 -MLX- inline
+-ML- EMIT       37 3 -MLX- inline
+-ML- TIMER      38 3 -MLX- inline
+-ML- SYSTEM     39 3 -MLX- inline
+-ML- KEY        40 3 -MLX- inline
+-ML- ?KEY       41 3 -MLX- inline
+: (TYPE)        42 ; inline
+-ML- TYPE       42 3 -MLX- inline
+-ML- TYPEZ      43 3 -MLX- inline
+// : (:)        44 ; inline
+// : (;)        45 ; inline
+-ML- CREATE     46 3 -MLX- inline
+-ML- '          47 3 -MLX- inline
+-ML- NEXT-WORD  48 3 -MLX- inline
+-ML- FOPEN      49 3 -MLX- inline
+-ML- FCLOSE     50 3 -MLX- inline
+-ML- (load)     51 3 -MLX- inline
+-ML- FREAD      52 3 -MLX- inline
+-ML- FWRITE     53 3 -MLX- inline
+// : (iX)       54 ; inline
+// : (dX)       55 ; inline
+// : (rX)       56 ; inline
+// : (rX-)      57 ; inline
+// : (rX+)      58 ; inline
+// : (sX)       59 ; inline
+-ML- +REGs      60 3 -MLX- inline
+-ML- -REGS      61 3 -MLX- inline
+// : INLINE     62 ; inline
+// : IMMEDIATE  63 ; inline
+
+// ***********************************************
+// OK ... now we can get things going
+// ***********************************************
+
+: [ 0 state ! ; immediate
+: ] 1 state ! ;
+
 : last (last) @ ;
-: immediate 1 last cell + c! ;
-: inline 2 last cell + c! ;
+: here (here) @ ;
+: c, here c! here 1+     (here) ! ;
+: ,  here !  here cell + (here) ! ;
 
--ML- !  8 3 -MLX- inline
--ML- - 19 3 -MLX- inline
-
+// Now we can start
 : mem-end   mem  mem-sz  + ;
 : vars-end  vars vars-sz + ;
 
 : ++ dup @ 1+ swap ! ; inline
 : -- dup @ 1- swap ! ; inline
 
-: here (here) @ ;
-: c, here c! (here) ++ ;
-: , here ! here cell + (here) ! ;
-
 : vhere  (vhere) @ ;
 : allot  vhere + (vhere) ! ;
 : vc, vhere c! (vhere) ++ ;
 : v,  vhere ! cell allot ;
 
-: \ 0 >in @ ! ; immediate
-: [ 0 state ! ; immediate
-: ] 1 state ! ;
 : bye 999 state ! ;
 : cells cell * ; inline
 
@@ -48,7 +119,7 @@
 : for 0 swap do ; inline
 : next -loop ; inline
 
-\ MachineForth words
+// Some 'MachineForth' inspired words
 : -if     (dup) c,  (jmpz) c, here 0 , ; immediate
 : -until  (dup) c,  (jmpz) c, , ; immediate
 : -while  (jmpnz) c, , ; immediate
@@ -89,10 +160,7 @@
 : abs  dup 0 < if negate then ;
 : min  over over > if swap then drop ;
 : max  over over < if swap then drop ;
-: btw ( n a b--f )
-    +regs s3 s2 s1
-    r2 r1 <= r1 r3 <= and
-    -regs ;
+: btw +regs s3 s2 s1 r1 r2 >= r1 r3 <= and -regs ;
 
 : i  (i) @ ;
 : j  (i) 3 cells - @ ;
@@ -101,14 +169,14 @@
 
 variable (neg)
 variable #bufp
-: hold #bufp -- #bufp @ c! ;          \ ( c -- )
-: #digit dup 9 > if 7 + then '0' + ;  \ ( n -- c )
-: >neg dup 0 < (neg) ! abs ;          \ ( n1 -- u1 )
-: <# here #66 + #bufp ! 0 hold >neg ; \ ( n1 -- u1 )
-: # base @ /mod swap #digit hold ;    \ ( u1 -- u2 )
-: #S begin # dup 0= until drop ;      \ ( u1 -- )
-: #> (neg) @ if '-' hold then ;       \ ( -- )
-: #P #bufp @ typez ;                  \ ( -- )
+: hold #bufp -- #bufp @ c! ;          // ( c -- )
+: #digit dup 9 > if 7 + then '0' + ;  // ( n -- c )
+: >neg dup 0 < (neg) ! abs ;          // ( n1 -- u1 )
+: <# here #66 + #bufp ! 0 hold >neg ; // ( n1 -- u1 )
+: # base @ /mod swap #digit hold ;    // ( u1 -- u2 )
+: #S begin # dup 0= until drop ;      // ( u1 -- )
+: #> (neg) @ if '-' hold then ;       // ( -- )
+: #P #bufp @ typez ;                  // ( -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
 

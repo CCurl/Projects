@@ -1,4 +1,4 @@
-\ Random words
+// Random words
 
 ' seed loaded?
 

@@ -1,4 +1,4 @@
-\ A simple source code editor
+// A simple source code editor
 
 ' edit loaded?
 

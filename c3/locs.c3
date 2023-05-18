@@ -1,8 +1,8 @@
-\ Support for local variables, 5 at a time
-\
-\ Examples:
-\ : btw  ( n h l--f ) +locs  >3 >2 >1  x2 x1 <   x1 x3 <   and  -locs ;
-\ : btwi ( n h l--f ) +locs  >3 >2 >1  x2 x1 <=  x1 x3 <=  and  -locs ;
+// Support for local variables, 5 at a time
+//
+// Examples:
+// : btw  ( n h l--f ) +locs  >3 >2 >1  x2 x1 <   x1 x3 <   and  -locs ;
+// : btwi ( n h l--f ) +locs  >3 >2 >1  x2 x1 <=  x1 x3 <=  and  -locs ;
 
 ' +locs loaded?
 
