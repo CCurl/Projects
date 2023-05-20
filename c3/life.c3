@@ -1,7 +1,7 @@
 \ Conway's game of life
 
-load random.f
-load screen.f
+load random.c3
+load screen.c3
 
 \ : LIFE 17 (lex) ! ;
 \ LIFE

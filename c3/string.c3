@@ -1,8 +1,8 @@
-\ string.f - some string handling words
+\ string.c3 - some string handling words
 
 ' s-len loaded?
 
-load memory.f
+load memory.c3
 
 : s-len  ( str--len ) c@ ; inline
 : s-lenz ( strz--len )
@@ -28,7 +28,7 @@ load memory.f
     begin r2+ c@ ?dup while r1 s-scatc repeat
     -regs ;
 : s-scatn ( n str-- )   swap s-catn ;
-: s-findc ( sz ch--a|0 ) \ NB: str is not counted
+: s-findc ( strz ch--a|0 )
     +regs s2 s1 0 s8
     r1 s-len 0 do
         r1 c@ s3 r3 r2 = r3 0= or
