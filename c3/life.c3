@@ -17,11 +17,11 @@ variable pop pop-sz allot
 variable bak pop-sz allot
 variable ln cols allot
 
-: x5 ( a--b ) DUP C@ 1+ OVER C! 1+ ; INLINE
+: T6 ( a--b ) DUP C@ 1+ OVER C! 1+ ;
 : b++ ( -- )
-    r4 1- cols - x5 x5 x5 DROP
-    r4 1-        x5 1+ x5 DROP
-    r4 1- cols + x5 x5 x5 DROP ;
+    r4 1- cols - T6 T6 T6 DROP
+    r4 1-        T6 1+ T6 DROP
+    r4 1- cols + T6 T6 T6 DROP ;
 
 : alive? ( a b -- c )
     DUP 2 = IF DROP EXIT THEN
@@ -48,7 +48,7 @@ variable ln cols allot
 : one-gen 1 1 ->b s4
     cols rows ->p 1 1 ->p
     DO I C@ IF b++ THEN i4 LOOP
-    bak->pop .pop r7 . i7 ;
+    bak->pop .pop r7+ . ;
 
 : pc 53 rows! 150 cols! ;
 : laptop 25 rows! 70 cols! ;
