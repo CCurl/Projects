@@ -4,11 +4,32 @@
 
 load memory.c3
 
+: lower ( c1--c2 ) dup 'A' 'Z' btw if 32 + then ;
+: upper ( c1--c2 ) dup 'a' 'z' btw if 32 - then ;
+
+\ Words for NULL-Terminated strings
+\ Compare N chars ... case-sensitive
+: sz-eq-n ( str1 str2 N--F )
+    +regs s3 s2 s1 1
+    begin r3- while
+        r1+ c@ r2+ c@ = 0=
+        if 1- dup s3 then
+    repeat -regs ;
+
+\ Compare N chars ... NOT case-sensitive
+: sz-eqi-n ( str1 str2 N--F )
+    +regs s3 s2 s1 1
+    begin r3- while
+        r1+ c@ lower r2+ c@ lower = 0=
+        if 1- dup s3 then
+    repeat -regs ;
+
+: sz-len ( strz--len ) +regs s1 0 begin r1+ c@ while 1+ repeat -regs ;
+: sz-eq  ( str1 str2--f ) dup sz-len 1+ sz-eq-n ;
+: sz-eqi ( str1 str2--f ) dup sz-len 1+ sz-eqi-n ;
+
+\ Words for Counted strings
 : s-len  ( str--len ) c@ ; inline
-: s-lenz ( strz--len )
-    +regs s1 0 s2
-    begin r1+ c@ while i2 repeat
-    r2 -regs ;
 : s-end ( str--end ) dup s-len + 1+ ; inline
 : s-cpy ( dst src-- ) tuck s-len 2+ cmove ;
 : s-trunc ( str-- ) 0 swap 2dup 1+ c! c! ;
@@ -34,24 +55,12 @@ load memory.c3
         r1 c@ s3 r3 r2 = r3 0= or
         if r1 s8 999 +i then i1
     loop r8 -regs ;
-: lower ( c1--c2 )
-    dup 'A' 'Z' btw if 32 + then ;
-: upper ( c1--c2 )
-    dup 'a' 'z' btw if 32 - then ;
-: s-eq ( s1 s2--f )
-    over c@ over c@ <> if 2drop 0 exit then
-    +regs s2 s1 -1 s8
-    r1 c@ 0 do
-        r1+ c@ r2+ c@ <> if 0 s8 999 (i) ! then
-    loop r8 -regs ;
-: s-eq-i ( s1 s2--f )
-    over c@ over c@ <> if = exit then
-    +regs s2 s1 -1 s8
-    r1 c@ 0 do 
-        r1+ c@ lower r2+ c@ lower <> 
-        if 0 s8 999 (i) ! then
-    loop r8 -regs ;
+: s-eq  ( s1 s2--f ) swap 1+ swap count 1+ sz-eq-n ;
+: s-eqi ( s1 s2--f ) swap 1+ swap count 1+ sz-eqi-n ;
+
+\ Make counted string from NULL-Terminated string
 : s-from-sz ( s sz-- )
     +regs s2 s1   r1 s-trunc
     begin r2+ c@ ?dup while r1 s-scatc repeat
     -regs ;
+: sz-to-s ( s sz-- ) swap s-from-sz ;

@@ -246,5 +246,5 @@ forget
 : benches forget s" benches.c3" (load) ;
 : sb forget s" sandbox.c3" (load) ;
 : work forget s" work.c3" (load) ;
-: ed forget s" nvim ." system ;
+: nvim s" nvim ." system ;
 marker

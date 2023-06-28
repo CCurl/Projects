@@ -5,13 +5,14 @@
 load screen.c3
 load string.c3
 
-variable p 100 allot
+variable p #100 allot
 
-: ?cr r1+ 9 > if cr 0 s1 else tab then ;
+: ?cr r1+ #9 > if cr 0 s1 else tab then ;
 : words-n 0 s1 last s2 for r2 .word ?cr r2 word-sz + s2 next ;
 : edit s" nvim work.c3" system ;      
 : pull s" git pull" system ;      
 : pw s" pw" system ;
+: pwd s" cd" system ;
 : li s" chrome https://fwut-proc-a.mmm.com:1443/netaccess/loginuser.html" system ;
 : yahoo s" chrome http://mail.yahoo.com" system ;
 : dev s" gz-server ccc" system ;
@@ -21,6 +22,8 @@ variable p 100 allot
 : web  ( n-- )  p s" gz-server " s-cpy   p s-scatn   p s"  w" s-cat   p system ;
 : db  s" start E:\Code\GitRepos\360DB\DBProject\360ePlatformCore.sln"  system ;
 : bws s" cd E:\Code\GitRepos\BWServiceDefinitions\ && nvim ."  system ;
-: prebill s" cd E:\Code\GitRepos\SIA\SPA\prebilldashboard\ && nvim ."  system ;
+: cadb s" cd E:\Code\GitRepos\SIA\SPA\AuditExpertDashboard\ && nvim ."  system ;
+: cawf s" cd E:\Code\GitRepos\SIA\SPA\AuditExpertWorkflow\ && nvim ."  system ;
+: prebill s" cd E:\Code\GitRepos\SIA\SPA\PrebillDashboard\ && nvim ."  system ;
 : bwp s" explorer E:\Code\GitRepos\BWPluginModules"  system ;
-cr ." words added: " 15 words-n
+cr ." words added: " 20 words-n
