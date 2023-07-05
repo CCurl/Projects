@@ -210,11 +210,11 @@ variable #bufp
     (call) c, [ (lit4) c, ' count drop drop , ] ,
     (type) c, ;  immediate
 
-: .word cell + 1+ count type ;
+: .word ( a-- ) cell + 1+ count type ;
 : words +regs 0 s1 0 s3 last s2 begin
         r2 mem-end < while
-            r1+ #10 > if 0 s1 cr then
-            i3 r2 .word tab r2 word-sz + s2
+            r2 dup .word word-sz + s2 i3
+            r1+ #9 > if cr 0 s1 else tab then
     repeat
     ." (" r3 . ." words)" -regs ;
 
