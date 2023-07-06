@@ -23,6 +23,19 @@ require("config")
 - Windows: %LOCALAPPDATA%/nvim/lua/config/init.lua
 - Linux: ~/.config/nvim/init.lua
 ```
+... NEW - literally just these 9 lines ...
+-- **********************************************
+-- Options
+-- **********************************************
+local opt = vim.opt
+
+opt.number = true
+opt.relativenumber = true
+opt.ruler = false
+opt.scrolloff = 8
+
+... OLD ...
+
 -- **********************************************
 -- packer ...
 -- **********************************************
