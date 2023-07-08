@@ -47,7 +47,7 @@ int memFind(char *x) {
 }
 
 char nextCh() {
-    
+    return 0;
 }
 
 void run(const char *x) {
@@ -135,7 +135,7 @@ void run(const char *x) {
     NCASE 'r': printf("%c",IR);
     NCASE 's': printf("%c",IR);
     NCASE 't': printf("%c",IR);
-    NCASE 'IR': printf("%c",IR);
+    NCASE 'u': printf("%c",IR);
     NCASE 'v': printf("%c",IR);
     NCASE 'w': printf("%c",IR);
     NCASE 'x': printf("%c",IR);
