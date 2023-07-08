@@ -29,97 +29,97 @@ void run(const char *x) {
     u = *(pc++);
 
     switch(u) {
-    case ' ': NEXT;
-    case '!': printf("%c",u); NEXT;
-    case '"': printf("%c",u); NEXT;
-    case '#': t=S0; PS(t); NEXT;
-    case '$': t=S0; S0=S1; S1=t; NEXT;
-    case '%': t=S1; PS(t); NEXT;
-    case '&': printf("%c",u); NEXT;
-    case '\'': D1; NEXT;
-    case '(': if (PP==0) { while (*(pc++)!=')') {} } NEXT;
-    case ')': printf("%c",u); NEXT;
-    case '*': S1*=S0; D1; NEXT;
-    case '+': S1+=S0; D1; NEXT;
-    case ',': printf("%c",u); NEXT;
-    case '-': S1-=S0; D1; NEXT;
-    case '.': printf(" %ld",PP); NEXT;
-    case '/': S1/=S0; D1; NEXT;
-    case '0': case '1': case '2': case '3': 
-    case '4': case '5': case '6': case '7': 
-    case '8': case '9': PS(u-'0');
+    NCASE ' ':
+    NCASE '!': printf("%c",u);
+    NCASE '"': printf("%c",u);
+    NCASE '#': t=S0; PS(t);
+    NCASE '$': t=S0; S0=S1; S1=t;
+    NCASE '%': t=S1; PS(t);
+    NCASE '&': printf("%c",u);
+    NCASE '\'': D1;
+    NCASE '(': if (PP==0) { while (*(pc++)!=')') {} }
+    NCASE ')': printf("%c",u);
+    NCASE '*': S1*=S0; D1;
+    NCASE '+': S1+=S0; D1;
+    NCASE ',': printf("%c",u);
+    NCASE '-': S1-=S0; D1;
+    NCASE '.': printf(" %ld",PP);
+    NCASE '/': S1/=S0; D1;
+    NCASE '0': NCASE '1': NCASE '2': NCASE '3': 
+    NCASE '4': NCASE '5': NCASE '6': NCASE '7': 
+    NCASE '8': NCASE '9': PS(u-'0');
         while (BTW(*pc,'0','9')) { S0=(S0*10)+(*(pc++)-'0'); }
-        NEXT;
-    case ':': printf("%c",u); NEXT;
-    case ';': printf("%c",u); NEXT;
-    case '<': S1=(S1<S0)?-1:0;  D1; NEXT;
-    case '=': S1=(S1==S0)?-1:0; D1; NEXT;
-    case '>': S1=(S1>S0)?-1:0;  D1; NEXT;
-    case '?': printf("%c",u); NEXT;
-    case '@': printf("%c",u); NEXT;
-    case 'A': printf("%c",u); NEXT;
-    case 'B': printf("%c",u); NEXT;
-    case 'C': printf("%c",u); NEXT;
-    case 'D': printf("%c",u); NEXT;
-    case 'E': printf("%c",u); NEXT;
-    case 'F': printf("%c",u); NEXT;
-    case 'G': printf("%c",u); NEXT;
-    case 'H': printf("%c",u); NEXT;
-    case 'I': PS(L0); NEXT;
-    case 'J': printf("%c",u); NEXT;
-    case 'K': printf("%c",u); NEXT;
-    case 'L': printf("%c",u); NEXT;
-    case 'M': printf("%c",u); NEXT;
-    case 'N': printf("%c",10); NEXT;
-    case 'O': printf("%c",u); NEXT;
-    case 'P': printf("%c",u); NEXT;
-    case 'Q': exit(0); NEXT;
-    case 'R': printf("%c",u); NEXT;
-    case 'S': printf("%c",u); NEXT;
-    case 'T': PS(clock()/1000); NEXT;
-    case 'U': printf("%c",u); NEXT;
-    case 'V': printf("%c",u); NEXT;
-    case 'W': printf("%c",u); NEXT;
-    case 'X': printf("%c",u); NEXT;
-    case 'Y': printf("%c",u); NEXT;
-    case 'Z': printf("%c",u); NEXT;
-    case '[': lsp+=3; L0=PP; L1=PP; L2=(long)pc; NEXT;
-    case '\\': if (0<sp) sp--; NEXT;
-    case ']': if (++L0<L1) { pc=(char *)L2; }
-        else { lsp-=3; } NEXT;
-    case '^': printf("%c",u); NEXT;
-    case '_': printf("%c",u); NEXT;
-    case '`': printf("%c",u); NEXT;
-    case 'a': printf("%c",u); NEXT;
-    case 'b': printf("%c",u); NEXT;
-    case 'c': printf("%c",u); NEXT;
-    case 'd': --S0; NEXT;
-    case 'e': printf("%c",u); NEXT;
-    case 'f': printf("%c",u); NEXT;
-    case 'g': printf("%c",u); NEXT;
-    case 'h': printf("%c",u); NEXT;
-    case 'i': ++S0; NEXT;
-    case 'j': printf("%c",u); NEXT; 
-    case 'k': printf("%c",u); NEXT;
-    case 'l': printf("%c",u); NEXT;
-    case 'm': printf("%c",u); NEXT;
-    case 'n': printf("%c",u); NEXT;
-    case 'o': printf("%c",u); NEXT;
-    case 'p': printf("%c",u); NEXT;
-    case 'q': printf("%c",u); NEXT;
-    case 'r': printf("%c",u); NEXT;
-    case 's': printf("%c",u); NEXT;
-    case 't': printf("%c",u); NEXT;
-    case 'u': printf("%c",u); NEXT;
-    case 'v': printf("%c",u); NEXT;
-    case 'w': printf("%c",u); NEXT;
-    case 'x': printf("%c",u); NEXT;
-    case 'y': printf("%c",u); NEXT;
-    case 'z': printf("%c",u); NEXT;
-    case '{': lsp+=3; L2=(long)pc; NEXT;
-    case '|': printf("%c",u); NEXT;
-    case '}': if (PP) { pc=(char*)L2; } else { lsp -=3; } NEXT;
-    case '~': printf("%c",u); NEXT;
+       
+    NCASE ':': printf("%c",u);
+    NCASE ';': printf("%c",u);
+    NCASE '<': S1=(S1<S0)?-1:0;  D1;
+    NCASE '=': S1=(S1==S0)?-1:0; D1;
+    NCASE '>': S1=(S1>S0)?-1:0;  D1;
+    NCASE '?': printf("%c",u);
+    NCASE '@': printf("%c",u);
+    NCASE 'A': printf("%c",u);
+    NCASE 'B': printf("%c",u);
+    NCASE 'C': printf("%c",u);
+    NCASE 'D': printf("%c",u);
+    NCASE 'E': printf("%c",u);
+    NCASE 'F': printf("%c",u);
+    NCASE 'G': printf("%c",u);
+    NCASE 'H': printf("%c",u);
+    NCASE 'I': PS(L0);
+    NCASE 'J': printf("%c",u);
+    NCASE 'K': printf("%c",u);
+    NCASE 'L': printf("%c",u);
+    NCASE 'M': printf("%c",u);
+    NCASE 'N': printf("%c",10);
+    NCASE 'O': printf("%c",u);
+    NCASE 'P': printf("%c",u);
+    NCASE 'Q': exit(0);
+    NCASE 'R': printf("%c",u);
+    NCASE 'S': printf("%c",u);
+    NCASE 'T': PS(clock()/1000);
+    NCASE 'U': printf("%c",u);
+    NCASE 'V': printf("%c",u);
+    NCASE 'W': printf("%c",u);
+    NCASE 'X': printf("%c",u);
+    NCASE 'Y': printf("%c",u);
+    NCASE 'Z': printf("%c",u);
+    NCASE '[': lsp+=3; L0=PP; L1=PP; L2=(long)pc;
+    NCASE '\\': if (0<sp) sp--;
+    NCASE ']': if (++L0<L1) { pc=(char *)L2; }
+        else { lsp-=3; }
+    NCASE '^': printf("%c",u);
+    NCASE '_': printf("%c",u);
+    NCASE '`': printf("%c",u);
+    NCASE 'a': printf("%c",u);
+    NCASE 'b': printf("%c",u);
+    NCASE 'c': printf("%c",u);
+    NCASE 'd': --S0;
+    NCASE 'e': printf("%c",u);
+    NCASE 'f': printf("%c",u);
+    NCASE 'g': printf("%c",u);
+    NCASE 'h': printf("%c",u);
+    NCASE 'i': ++S0;
+    NCASE 'j': printf("%c",u); 
+    NCASE 'k': printf("%c",u);
+    NCASE 'l': printf("%c",u);
+    NCASE 'm': printf("%c",u);
+    NCASE 'n': printf("%c",u);
+    NCASE 'o': printf("%c",u);
+    NCASE 'p': printf("%c",u);
+    NCASE 'q': printf("%c",u);
+    NCASE 'r': printf("%c",u);
+    NCASE 's': printf("%c",u);
+    NCASE 't': printf("%c",u);
+    NCASE 'u': printf("%c",u);
+    NCASE 'v': printf("%c",u);
+    NCASE 'w': printf("%c",u);
+    NCASE 'x': printf("%c",u);
+    NCASE 'y': printf("%c",u);
+    NCASE 'z': printf("%c",u);
+    NCASE '{': lsp+=3; L2=(long)pc;
+    NCASE '|': printf("%c",u);
+    NCASE '}': if (PP) { pc=(char*)L2; } else { lsp -=3; }
+    NCASE '~': printf("%c",u);
     }
 }
 
