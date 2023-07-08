@@ -148,8 +148,31 @@ void run(const char *x) {
     }
 }
 
+char buf[1000];
+
+void memtest() {
+    cm_init(buf, sizeof(buf));
+    char *x1 = cm_malloc(10); printf("x1: %p\n", x1);
+    char *x2 = cm_malloc(10); printf("x2: %p\n", x2);
+    cm_free(x2);
+    char *x3 = heap_get(10); printf("x3: %p\n", x3);
+    char *x4 = cm_malloc(10); printf("x4: %p\n", x4);
+    cm_free(x1);
+    cm_free(x4);
+    cm_free(x3);
+    cm_free(x2);
+    char *x5 = cm_malloc(20); printf("x5: %p\n", x5);
+    cm_free(x5);
+    x5 = cm_malloc(20); printf("x5: %p\n", x5);
+    cm_free(0);
+    printf("\n");
+    return 0;
+}
+
+
 int main() {
+    memtest();
     sp = rsp = lsp = 0;
-    run("T500 1000#**0[]T$-.N");
-    run("T500 1000#**{d#}\\T$-.N");
+    //run("T500 1000#**0[]T$-.N");
+    //run("T500 1000#**{d#}\\T$-.N");
 }

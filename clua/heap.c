@@ -11,19 +11,19 @@ typedef struct heap_t {
 } HEAP_T;
 
 static HEAP_T *start, *end;
-static char *heap;
-static int hh, heap_sz;
+static char *heap, *hh, *h_end;
+static int heap_sz;
 
 void cm_init(char *buf, int sz) {
-	heap = buf;
+	heap = hh = buf;
 	heap_sz = sz;
-	hh = 0;
+    h_end = heap + heap_sz;
 	start = end = NULL;
 }
 
 char *heap_get(sz) {
-	if (hh+sz >= heap_sz) { return NULL; }
-	char *ret = &heap[hh];
+	if (hh+sz >= h_end) { return NULL; }
+	char *ret = hh;
 	hh += sz;
 	return ret;
 }
@@ -60,32 +60,16 @@ char *cm_malloc(int sz) {
 }
 
 // Garbage collect one entry 'x'
-// Merge with next and/or prev if it is also free
 static void cm_gc(HEAP_T *x) {
     // printf("-gc(x:%p)-", x);
     if (x->isFree == 1) { return; }
-    HEAP_T *p = x->prev, *n = x->next;
-    // collect n into x?
-    if (n && n->isFree) {
-        // printf("-n:%p into x-", n);
-	if (end == n) { end = x; }
-        x->sz += n->sz + sizeof(HEAP_T);
-	x->next = n->next;
-	n = n->next;
-        // printf("-x new sz=%d-", x->sz);
-	if (n) { n->prev = x; }
-    }
-    // collect x into p?
-    if (p && p->isFree) {
-        // printf("-x into p:%p-", p);
-	if (end == x) { end = p; }
-        p->sz += x->sz + sizeof(HEAP_T);
-	p->next = n;
-        // printf("-p new sz=%d-", p->sz);
-	if (n) { n->prev = p; }
-    }
     x->isFree = 1;
-    // printf("\n");
+    while (end && end->isFree) {
+        hh = end;
+        end = end->prev;
+    }
+    if (end == NULL) { start = NULL; }
+    else { end->next = NULL; }
 }
 
 void cm_free(char *ptr) {
