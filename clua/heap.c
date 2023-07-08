@@ -29,7 +29,7 @@ static char *cm_get(sz) {
     return ret;
 }
 
-HEAP_T *cm_new(int sz) {
+static HEAP_T *cm_new(int sz) {
     HEAP_T *x = (HEAP_T *)cm_get(sizeof(HEAP_T));
     x->prev = NULL;
     x->next = entries;
@@ -51,7 +51,7 @@ void cm_free(char *ptr) {
     if (ptr == NULL) { return; }
     HEAP_T *x = entries;
     while (x && (x->ptr >= ptr)) { x = x->next; }
-    if (x->ptr == ptr) {
+    if (x && (x->ptr == ptr)) {
         printf("free this: %p", x);
     }
 }
