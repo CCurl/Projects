@@ -179,8 +179,8 @@ variable #bufp
 : >neg dup 0 < (neg) ! abs ;          \ ( n1 -- u1 )
 : <# here #66 + #bufp ! 0 hold >neg ; \ ( n1 -- u1 )
 : # base @ /mod swap #digit hold ;    \ ( u1 -- u2 )
-: #S begin # dup 0= until drop ;      \ ( u1 -- )
-: #> (neg) @ if '-' hold then ;       \ ( -- )
+: #S begin # dup 0= until ;           \ ( u1 -- )
+: #> drop (neg) @ if '-' hold then ;  \ ( -- )
 : #P #bufp @ typez ;                  \ ( -- )
 : (.) <# #S #> #P ;
 : . (.) space ;
@@ -192,6 +192,7 @@ variable #bufp
     then ')' emit ;
 
 : count ( str--a n ) dup 1+ swap c@ ; inline
+: ctype ( cstr-- ) count type ;
 : dump ( a n-- ) for dup c@ . 1+ next drop ;
 
 : T2 ( --str end )   +regs   >in ++
@@ -205,12 +206,11 @@ variable #bufp
 
 : s" ( --str ) T2 state @ 0= if drop exit then (vhere) ! (lit4) c, , ; immediate
 
-: ." ( -- ) T2 state @ 0= if drop count type exit then
+: ." ( -- ) T2 state @ 0= if drop ctype exit then
     (vhere) ! (lit4) c, ,
-    (call) c, [ (lit4) c, ' count drop drop , ] ,
-    (type) c, ;  immediate
+    (call) c, [ (lit4) c, ' ctype drop drop , ] , ;  immediate
 
-: .word ( a-- ) cell + 1+ count type ;
+: .word ( a-- ) cell + 1+ ctype ;
 : words +regs 0 s1 0 s3 last s2 begin
         r2 mem-end < while
             r2 dup .word word-sz + s2 i3
