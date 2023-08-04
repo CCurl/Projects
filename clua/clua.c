@@ -151,22 +151,24 @@ void run(const char *x) {
 char buf[1000];
 
 void memtest() {
-    cm_init(buf, sizeof(buf));
-    char *x1 = cm_malloc(10); printf("x1: %p\n", x1);
-    char *x2 = cm_malloc(10); printf("x2: %p\n", x2);
-    cm_free(x2);
-    char *x3 = heap_get(10); printf("x3: %p\n", x3);
-    char *x4 = cm_malloc(10); printf("x4: %p\n", x4);
-    cm_free(x1);
-    cm_free(x4);
-    cm_free(x3);
-    cm_free(x2);
-    char *x5 = cm_malloc(20); printf("x5: %p\n", x5);
-    cm_free(x5);
-    x5 = cm_malloc(20); printf("x5: %p\n", x5);
-    cm_free(0);
+    hm_init(buf, sizeof(buf), 10);
+    char *x0 = hm_malloc(2000); printf("x0: %p\n", x0);
+    char *x1 = hm_malloc(20); printf("x1: %p\n", x1);
+    char *x2 = hm_malloc(100); printf("x2: %p\n", x2);
+    hm_free(x1);
+    char *x3 = hm_malloc(10); printf("x3: %p\n", x3);
+    hm_free(x3);
+    char *x4 = hm_malloc(20); printf("x4: %p\n", x4);
+    char *x5 = hm_malloc(50); printf("x5: %p\n", x5);
+    hm_free(x1);
+    hm_free(x4);
+    hm_free(x3);
+    hm_free(x2);
+    hm_free(x5);
+    x5 = hm_malloc(200); printf("x5: %p\n", x5);
+    hm_free(0);
+    hm_init(NULL, 0, 0);
     printf("\n");
-    return 0;
 }
 
 

@@ -2,51 +2,54 @@
 
 #include "heap.h"
 
-#define NULL 0
-
 typedef struct heap_t { 
     struct heap_t *prev, *next;
-    int sz, isFree;
+    uint32_t sz, isFree;
     char *ptr; 
 } HEAP_T;
 
 static HEAP_T *start, *end;
 static char *heap, *hh, *h_end;
-static int heap_sz;
+static int heap_sz, sz_match;
 
-void cm_init(char *buf, int sz) {
-	heap = hh = buf;
-	heap_sz = sz;
+void hm_init(char *buf, uint32_t buf_sz, uint32_t match) {
+    heap = hh = buf;
+    heap_sz = buf_sz;
     h_end = heap + heap_sz;
-	start = end = NULL;
+    start = end = NULL;
+    sz_match = match ? match : 50;
 }
 
-char *heap_get(sz) {
-	if (hh+sz >= h_end) { return NULL; }
-	char *ret = hh;
-	hh += sz;
-	return ret;
+static char *get_mem(sz) {
+    if (hh+sz >= h_end) { return NULL; }
+    char *ret = hh;
+    hh += sz;
+    return ret;
 }
 
-static char *reuse(int sz) {
+// Reuse a free entry that is "close enough" to the requested size,
+// reserving larger entries for later requests that are larger.
+static char *reuse(uint32_t sz) {
     HEAP_T *x = start;
+    HEAP_T *best = NULL;
     while (x) {
         if (x->isFree && (sz <= x->sz)) {
             x->isFree = 0;
-	    return x->ptr;
+            #pragma warning( disable : 4018 )
+            if ((x->sz - sz) <= sz_match) { return x->ptr; }
         }
         x = x->next;
     }
     return NULL;
 }
 
-char *cm_malloc(int sz) {
+char *hm_malloc(uint32_t sz) {
     char *ptr = reuse(sz);
     if (ptr) { return ptr; }
-    while (sz % 4) { ++sz; }
-    HEAP_T *x = (HEAP_T *)heap_get(sizeof(HEAP_T));
+    while (sz & 0x03) { ++sz; }
+    HEAP_T *x = (HEAP_T *)get_mem(sizeof(HEAP_T));
     if (!x) { return NULL; }
-    ptr = heap_get(sz);
+    ptr = get_mem(sz);
     if (!ptr) { hh -= sizeof(HEAP_T); return NULL; }
     x->prev = end;
     x->next = NULL;
@@ -60,24 +63,23 @@ char *cm_malloc(int sz) {
 }
 
 // Garbage collect one entry 'x'
-static void cm_gc(HEAP_T *x) {
-    // printf("-gc(x:%p)-", x);
-    if (x->isFree == 1) { return; }
+static void do_gc(HEAP_T *x) {
+    if (x->isFree) { return; }
     x->isFree = 1;
     while (end && end->isFree) {
-        hh = end;
+        hh = (char*)end;
         end = end->prev;
     }
     if (end == NULL) { start = NULL; }
     else { end->next = NULL; }
 }
 
-void cm_free(char *ptr) {
+void hm_free(char *ptr) {
     if (ptr == NULL) { return; }
     HEAP_T *x = start;
     while (x) {
-        if (x->ptr == ptr) { cm_gc(x); return; }
+        if (x->ptr == ptr) { do_gc(x); return; }
         if (x->ptr < ptr) { x = x->next; }
-	else { return; }
+    else { return; }
     }
 }
