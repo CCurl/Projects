@@ -1,4 +1,4 @@
-// heap - A heap-based memory manager
+// heap - A simple heap-based memory manager
 
 #include "heap.h"
 

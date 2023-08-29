@@ -21,7 +21,7 @@ variable T0
     +regs   s2 s1   0 s4
     begin 
         r2 fgetc   swap s3
-        0= if 0 r1 c!   r4 1 -regs exit then
+        0= if 0 r1 c!   r4 dup 0= -regs exit then
         r3 10 = if  0 r1 c!  r4 0 -regs exit then
         r3 13 <> if r3 r1+ c!   i4 then
     again ;
@@ -29,3 +29,9 @@ variable T0
 : fputc   ( c fh-- )     ch-output emit rs-output ;
 : fputs   ( str fh-- )   ch-output count type rs-output ;
 : fputs-z ( strz fh-- )  ch-output count typez rs-output ;
+
+
+: test s" file.c3" fopen-rt s1
+	begin vhere r1 fgets nip
+		if r1 fclose drop exit else vhere typez then
+	again ;
