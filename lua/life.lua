@@ -1,7 +1,7 @@
 -- life.lua
 
 scr = require("screen")
-scr.szX = 150
+scr.szX = 190
 scr.szY =  45
 
 rows=300
@@ -9,7 +9,7 @@ cols=300
 mult=1000000
 
 function toNDX(r,c) return (r*mult)+c end
-function toRC(ndx) return math.floor(ndx/mult), (ndx%mult) end
+function toRC(ndx) return math.tointeger(ndx/mult), (ndx%mult) end
 
 function makeRand(n)
     local rnd = math.random
@@ -99,4 +99,4 @@ function RL()
 end
 
 upperLeft = toNDX(10, 10)
-g = life(makeRand(rows^2*.7), 50)
+g = life(makeRand(rows^2*.7), 1000)
