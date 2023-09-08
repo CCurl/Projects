@@ -1,11 +1,11 @@
--- life.lua
+-- Conway's Game of Life in LUA
 
 scr = require("screen")
 scr.szX = 190
 scr.szY =  45
 
-rows=300
-cols=300
+rows=200
+cols=400
 mult=1000000
 
 function toNDX(r,c) return (r*mult)+c end
@@ -20,7 +20,27 @@ function makeRand(n)
     return g;
 end
 
-function neighbors(g, ndx)
+disp = function(g, gen)
+    local ul = upperLeft
+    local wr = io.write
+    scr.toXY(1, 1)
+    for y = 0, scr.szY do
+        local t = {}
+        for x = 0, scr.szX do
+            t[x] = (g[ul+x] and "*") or " "
+        end
+        wr(table.concat(t),"\n")
+        ul = ul + mult
+    end
+    print(gen or "")
+end
+
+moveTo = function(g, r, c)
+    upperLeft = toNDX(r, c)
+    if g then disp(g) end
+end
+
+function alive(g, ndx)
     local n = 0
     local x = ndx-mult-1
 
@@ -37,31 +57,10 @@ function neighbors(g, ndx)
     if (g[x+1]) then n = n + 1 end
     if (g[x+2]) then n = n + 1 end
     
-    return n
-end
-
-disp = function(g)
-    local wr = io.write
-    local ul = upperLeft
-    scr.toXY(1, 1)
-    for y = 0, scr.szY do
-        local t = {}
-        for x = 0, scr.szX do
-            t[x] = (g[ul+x] and "*") or " "
-        end
-        wr(table.concat(t),"\n")
-        ul = ul + mult
+    if (n == 2) then return g[ndx]
+    elseif (n == 3) then return true
+    else return false
     end
-end
-
-moveTo = function(g, r, c)
-    upperLeft = toNDX(r, c)
-    disp(g)
-end
-
-move = function(g, addR, addC)
-    r, c = toRC(upperLeft)
-    moveTo(g, r+addR, c+addC)
 end
 
 oneGen = function(g)
@@ -70,24 +69,19 @@ oneGen = function(g)
         local ndx = toNDX(r, 0)
         for c = 0, cols do
             local a = false
-            n = neighbors(g, ndx)
-            if (n == 2) then a = g[ndx]
-            elseif (n == 3) then a = true
-            end
-            if (a) then w[ndx] = a end
+            if alive(g, ndx) then w[ndx] = true end
             ndx = ndx + 1
         end
     end
     return w
 end
 
-life = function(g, c)
+life = function(g, gens)
     scr.cls()
     scr.curOff()
-    for i =  1, c do
-        disp(g)
-        print(i)
+    for i =  1, gens do
         g = oneGen(g)
+        disp(g, i)
     end
     scr.curOn()
     return g
@@ -98,5 +92,6 @@ function RL()
     require("life")
 end
 
-upperLeft = toNDX(10, 10)
-g = life(makeRand(rows^2*.7), 1000)
+g=makeRand(rows*cols*.7)
+moveTo(g, 20, 20)
+g = life(g, 1000)
