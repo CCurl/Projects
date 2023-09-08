@@ -9,7 +9,7 @@ cols=400
 mult=1000000
 
 function toNDX(r,c) return (r*mult)+c end
-function toRC(ndx) return math.tointeger(ndx/mult), (ndx%mult) end
+function toRC(ndx) return math.floor(ndx/mult), (ndx%mult) end
 
 function makeRand(n)
     local rnd = math.random
