@@ -1,11 +1,11 @@
 -- Conway's Game of Life in LUA
 
 scr = require("screen")
-scr.szX = 190
-scr.szY =  45
+scr.Width  = 190
+scr.Height =  45
 
-rows=200
-cols=400
+rows=100
+cols=300
 mult=1000000
 
 function toNDX(r,c) return (r*mult)+c end
@@ -22,14 +22,13 @@ end
 
 disp = function(g, gen)
     local ul = upperLeft
-    local wr = io.write
     scr.toXY(1, 1)
-    for y = 0, scr.szY do
+    for y = 0, scr.Height do
         local t = {}
-        for x = 0, scr.szX do
+        for x = 0, scr.Width do
             t[x] = (g[ul+x] and "*") or " "
         end
-        wr(table.concat(t),"\n")
+        io.write(table.concat(t),"\n")
         ul = ul + mult
     end
     print(gen or "")
@@ -64,13 +63,11 @@ function alive(g, ndx)
 end
 
 oneGen = function(g)
-    w = {}
+    local w = {}
     for r = 0, rows do
-        local ndx = toNDX(r, 0)
+        ndx = toNDX(r, 0)
         for c = 0, cols do
-            local a = false
-            if alive(g, ndx) then w[ndx] = true end
-            ndx = ndx + 1
+            if alive(g, ndx+c) then w[ndx+c] = true end
         end
     end
     return w
@@ -92,6 +89,6 @@ function RL()
     require("life")
 end
 
-g=makeRand(rows*cols*.7)
+g = makeRand(rows*cols*.7)
 moveTo(g, 20, 20)
 g = life(g, 1000)
