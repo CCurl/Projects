@@ -35,7 +35,7 @@ typedef struct {
     char cval[32];
     char *string;
     double num;
-    int op;
+    int id;
 } TOK_T;
 
 const char *tok_input;
@@ -60,7 +60,7 @@ int oneOf(char ch, const char *chars) {
     return 0;
 }
 
-int tokNew(int type, char *name) {
+int newToken(int type, char *name) {
     if (numTokens < maxTokens) {
         tokens[++numTokens].type = type;
         if (name) { strcpy(tokens[numTokens].cval, name); }
@@ -71,15 +71,15 @@ int tokNew(int type, char *name) {
 }
 
 int newKw(int id, char *name) {
-    if (tokNew(TOK_KW, name)) {
-        tokens[numTokens].op = id;
+    if (newToken(TOK_KW, name)) {
+        tokens[numTokens].id = id;
     }
     return numTokens;
 }
 
-int newVal(int op, double num, char *str) {
+int newVal(int id, double num, char *str) {
     char *ty = "??";
-    switch(op) {
+    switch(id) {
         case VAL_NUM: ty = "num";    break;
         case VAL_T:   ty = "true";   break;
         case VAL_F:   ty = "false";  break;
@@ -87,8 +87,8 @@ int newVal(int op, double num, char *str) {
         case VAL_NIL: ty = "nil";    break;
         default: break;
     }
-    if (tokNew(TOK_VAL, ty)) {
-        tokens[numTokens].op = op;
+    if (newToken(TOK_VAL, ty)) {
+        tokens[numTokens].id = id;
         tokens[numTokens].num = num;
         tokens[numTokens].string = str;
         return numTokens;
@@ -96,9 +96,9 @@ int newVal(int op, double num, char *str) {
     return 0;
 }
 
-int newOp(int op, char *name) {
-    if (tokNew(TOK_OP, name)) {
-        tokens[numTokens].op = op;
+int newOp(int id, char *name) {
+    if (newToken(TOK_OP, name)) {
+        tokens[numTokens].id = id;
         return numTokens;
     }
     return 0;
@@ -127,7 +127,7 @@ int kwCheck(char *id) {
     if (strEq(id, "true")    ) { return newVal(VAL_T, 0, 0); }
     if (strEq(id, "false")   ) { return newVal(VAL_F, 0, 0); }
     if (strEq(id, "nil")     ) { return newVal(VAL_NIL, 0, 0); }
-    return tokNew(TOK_ID, id);
+    return newToken(TOK_ID, id);
 }
 
 int toId() {
@@ -267,8 +267,8 @@ char *tokToName(int tok) {
 
 void tokDump(int n) {
     TOK_T *p = &tokens[n];
-    printf("%4d: type %-3d %-3s  cval: %-16s  num: %-8g  op: %-4d  str: %s\n",
-        n, p->type, tokToName(p->type), p->cval, p->num, p->op, p->string ? p->string : "");
+    printf("%4d: type %-3d %-3s  cval: %-16s  num: %-8g  id: %-4d  str: %s\n",
+        n, p->type, tokToName(p->type), p->cval, p->num, p->id, p->string ? p->string : "");
 
 }
 
