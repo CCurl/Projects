@@ -62,7 +62,7 @@ void run(const char *x) {
     NCASE '$': t=S0; S0=S1; S1=t;
     NCASE '%': t=S1; PS(t);
     NCASE '&': printf("%c",IR);
-    NCASE '\'': D1;
+    NCASE 39: D1;
     NCASE '(': if (PP==0) { while (*(pc++)!=')') {} }
     NCASE ')': printf("%c",IR);
     NCASE '*': S1*=S0; D1;
@@ -171,9 +171,33 @@ void memtest() {
     printf("\n");
 }
 
+extern int tok_err;
+extern int tok_parse(const char *line);
+extern char tokMsg[];
+extern const char *tok_input;
+extern void tokDumpAll();
 
 int main() {
     memtest();
+
+    char line[256];
+    FILE *fp;
+    fopen_s(&fp, "code.ccc", "rt");
+    // fopen_s(&fp, "clua.c", "rt");
+    // fopen_s(&fp, "tokenizer.c", "rt");
+    // fopen_s(&fp, "heap.c", "rt");
+    // fopen_s(&fp, "../lua/life.lua", "rt");
+    while (fp && (fgets(line, sizeof(line), fp) == line)) {
+        if (tok_parse(line)) { break; }
+    }
+    if (fp) { fclose(fp); }
+    tokDumpAll();
+    if (tok_err) {
+        printf("ERROR: [%s] at [%s]", tokMsg, tok_input);
+    } else {
+        printf("no errors");
+    }
+
     sp = rsp = lsp = 0;
     //run("T500 1000#**0[]T$-.N");
     //run("T500 1000#**{d#}\\T$-.N");
