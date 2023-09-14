@@ -165,11 +165,11 @@ int toNum() {
 
 int toStr() {
     static char chs[1024];
-    char c = NextCh;
     size_t len = 0;
-    while (PeekCh && (PeekCh != c)) { chs[len++] = NextCh; }
+    char delim = NextCh;
+    while (PeekCh && (PeekCh != delim)) { chs[len++] = NextCh; }
+    if (PeekCh) { NextCh; }
     chs[len] = 0;
-    NextCh;
     if (newVal(VAL_STR, 0, malloc(len+1))) {
         strcpy(tokens[numTokens].string, chs);
         return numTokens;
