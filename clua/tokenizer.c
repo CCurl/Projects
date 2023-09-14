@@ -240,21 +240,30 @@ int isStr() {
     return 0;
 }
 
-int tok_parse(const char *line) {
-    printf("%s", line);
-    tok_input = line;
+// Retrieve the next token from the input stream, "tok_input".
+// Return value:
+//  -1:  tok_input is empty.
+//   0:  Error (not a valid token).
+//  >0,  the index into the "tokens" array.
+// 
+int tokParseOne() {
     char ws[] = { 32, 9, 10, 13, 0 };
-    while (PeekCh && (!tok_err)) {
-        while (oneOf(PeekCh, ws)) { SkipCh; }
-        if (!PeekCh) { continue; }
-        if (isId()) { continue; }
-        if (isNum()) { continue; }
-        if (isOp()) { continue; }
-        if (isStr()) { continue; }
-        tokErr("ERROR: unknown token.");
-        return 1;
-    }
+    while (oneOf(PeekCh, ws)) { SkipCh; }
+    if (!PeekCh) { return -1; }
+    if (isId())  { return numTokens; }
+    if (isNum()) { return numTokens; }
+    if (isOp())  { return numTokens; }
+    if (isStr()) { return numTokens; }
+    tokErr("ERROR: unknown token.");
     return 0;
+}
+
+int tokParseLine(const char *src) {
+    tok_input = src;
+    while (PeekCh && (!tok_err)) {
+        tokParseOne();
+    }
+    return tok_err;
 }
 
 char *tokToName(int tok) {

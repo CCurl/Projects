@@ -172,7 +172,8 @@ void memtest() {
 }
 
 extern int tok_err;
-extern int tok_parse(const char *line);
+extern int tokParseOne();
+extern int tokParseLine(const char *line);
 extern char tokMsg[];
 extern const char *tok_input;
 extern void tokDumpAll();
@@ -188,7 +189,8 @@ int main() {
     // fopen_s(&fp, "heap.c", "rt");
     // fopen_s(&fp, "../lua/life.lua", "rt");
     while (fp && (fgets(line, sizeof(line), fp) == line)) {
-        if (tok_parse(line)) { break; }
+        printf("%s", line);
+        if (tokParseLine(line)) { break; }
     }
     if (fp) { fclose(fp); }
     tokDumpAll();
