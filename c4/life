@@ -5,14 +5,24 @@ load init
 : LIFE 17 (lex) ! ;
 LIFE
 
+variable (sr)
+variable (sc)
+
 variable (r)
 variable (c)
+
+: s-rows   (sr) @ ; : s-rows!  (sr) ! ; 
+: s-cols   (sc) @ ; : s-cols!  (sc) ! ;
+
+: pc     53 s-rows! 150 s-cols! ;
+: laptop 25 s-rows!  50 s-cols! ;
 
 : rows   (r) @ ; : rows!  (r) ! ; 
 : cols   (c) @ ; : cols!  (c) ! ;
 : pop-sz rows 2 + cols 2 + * ;
 
-100 rows! 300 cols!
+200 rows! 400 cols!
+
 variable pop pop-sz allot
 variable bak pop-sz allot
 variable ln cols allot
@@ -40,8 +50,8 @@ variable ln cols allot
 : ->b ( c r -- v ) cols * + bak + ;
 
 : .pop 1 DUP ->XY
-    rows 1+ 1 DO ln s6 
-        cols 1+ 1 DO BL I J ->p C@ IF DROP '*' THEN r6 c! i6 LOOP
+    s-rows 1+ 1 DO ln s6 
+        s-cols 1+ 1 DO BL I J ->p C@ IF DROP '*' THEN r6 c! i6 LOOP
         0 r6 c! ln qtype cr
     LOOP ;
 
@@ -50,8 +60,6 @@ variable ln cols allot
     DO I C@ IF b++ THEN i4 LOOP
     bak->pop .pop r7 . i7 ;
 
-: pc 53 rows! 150 cols! ;
-: laptop 25 rows! 50 cols! ;
 : gen? one-gen key? ;
 : gens 0 DO gen? IF key DROP UNLOOP EXIT THEN LOOP ;
 : life 1 s7 clr-bak rand-pop 
