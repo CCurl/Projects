@@ -2,15 +2,15 @@
 
 ' edit loaded?
 
-: rl forget s" editor.c3" (load) ;
+: rl forget " editor.c3" (load) ;
 
 load file.c3
 load string.c3
 load screen.c3
 load memory.c3
 
-val lines (val) (lines)   : >ml (lines) ! ;
-40 >ml
+val lines (val) (lines)   : >lines (lines) ! ;
+40 >lines
 
 : last-line lines 1- ;
 
@@ -24,7 +24,7 @@ val lines (val) (lines)   : >ml (lines) ! ;
 lines line-len * constant buf-sz
 
 variable buf buf-sz 100 + allot
-variable done
+variable done 0 done !
 variable fn 32 allot
 variable cmd 32 allot
 variable msg 32 allot
@@ -47,8 +47,8 @@ val refresh? (val) (rfr)
 : rc->pos   ( -- )    row-addr   col +   >pos ;
 : ->cur     ( -- )    col 1+   row 1+   ->yx ;
 : reset     ( -- )    clr-buf 0 >row 0 >col ;
-: >msg      ( s-- )   ?dup if msg swap s-cpy else 0 msg ! then ;
-: clr-msg   ( -- )    0 >msg ;
+: >msg      ( s-- )   msg swap s-cpy ;
+: clr-msg   ( -- )    >msg s-trunc ;
 : clr-line  ( n--)    line-addr line-len BL fill ;
 
 : find-eol ( line--a )
@@ -78,24 +78,24 @@ val refresh? (val) (rfr)
 
 : read-file ( fn-- )
     clr-buf   fopen-rb   ?dup
-	0= if s" -not found-" >msg exit then
+	0= if " -not found-" >msg exit then
     dup load-file fclose ;
 
 : write-file ( fn-- )
-    fopen-wb ?dup 0= if s" -fail-" >msg exit then
-    buf buf-sz type
+    fopen-wb ?dup 0= if " -write fail-" >msg exit then
+    buf qtype
     r1 fclose   ->stdout
-    s" -saved-" >msg ;
+    " -saved-" >msg ;
 
 : show-footer ( -- )
     cr cr ." cb: [" clip-board 6 type ." ...], "
-    fn count type msg count type clr-eol ;
+    fn qtype space msg qtype clr-eol ;
 
 : ?refresh ( -- )
     refresh? 0= if exit then
-	cur-off 1 1 ->yx
+	cur-off 1 1 ->xy
 	lines 0 do
-		i line-addr line-len type clr-eol cr
+		i line-addr line-len qtype clr-eol cr
 	loop
 	show-footer
 	cur-on ->cur
@@ -191,8 +191,8 @@ val refresh? (val) (rfr)
 : edit-loop ( -- )
     begin
         exit? if exit then
-        ?refresh   rc->pos   key
-        handle-ch
+        ?refresh   rc->pos
+        key handle-ch
     again ;
 
 : init ( -- )

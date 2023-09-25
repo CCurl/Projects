@@ -12,6 +12,12 @@ variable T1
 : cols   T1 @ ; : cols!  T1 ! ;
 : pop-sz rows 2 + cols 2 + * ;
 
+variable T0
+variable T1
+
+: s-rows   T0 @ ; : s-rows!  T0 ! ; 
+: s-cols   T1 @ ; : s-cols!  T1 ! ;
+
 100 rows! 300 cols!
 variable pop pop-sz allot
 variable bak pop-sz allot
@@ -40,9 +46,9 @@ variable ln cols allot
 : ->b ( c r -- v ) cols * + bak + ;
 
 : .pop 1 DUP ->XY
-    rows 1+ 1 DO ln s6 
-        cols 1+ 1 DO BL I J ->p C@ IF DROP '*' THEN r6+ c! LOOP
-        0 r6 c! ln typez cr
+    s-rows 1+ 1 DO ln s6 
+        s-cols 1+ 1 DO BL I J ->p C@ IF DROP '*' THEN r6+ c! LOOP
+        0 r6 c! ln QTYPE cr
     LOOP ;
 
 : one-gen 1 1 ->b s4
@@ -50,9 +56,10 @@ variable ln cols allot
     DO I C@ IF b++ THEN i4 LOOP
     bak->pop .pop r7+ . ;
 
-: pc 53 rows! 150 cols! ;
-: laptop 25 rows! 70 cols! ;
-: huge 95 rows! 290 cols! ;
+: pc     50 s-rows! 150 s-cols! ;
+: laptop 25 s-rows!  70 s-cols! ;
+: huge   95 s-rows! 290 s-cols! ;
+
 : gen? one-gen ?key ;
 : gens 0 DO gen? IF key DROP UNLOOP EXIT THEN LOOP ;
 : life 1 s7 clr-bak rand-pop 
