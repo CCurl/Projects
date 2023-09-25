@@ -3,7 +3,8 @@
 ' type loaded?
 
 \ Words for NULL-Terminated strings
-: s-catn ( str n-- ) ITOA S-CAT ;
+: s-catn  ( str n-- ) ITOA S-CAT ;
+: s-scatn ( n str-- ) SWAP s-catn ;
 
 \ Words for Counted strings
 : sc-len ( str--len ) C@ ; INLINE
