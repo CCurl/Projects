@@ -16,7 +16,7 @@ end
 function Win.draw(o)
     scr.curSave()
     scr.curOff();
-    
+
     local wr = io.write
     local ch = string.char
     scr.toXY(o.x, o.y)
@@ -73,8 +73,8 @@ end
 
 function Win.test()
     scr.cls()
-    w1 = Win:new(25,  5, 20, 15)
-    w2 = Win:new(40, 20, 10, 30)
+    local w1 = Win:new(25,  5, 20, 15)
+    local w2 = Win:new(40, 20, 10, 30)
     for i=1,50 do w1:write("w1 line #" .. i) end
     for i=1,50 do w2:write("w2 line #" .. i, false, false) end
     w2:write("end", true)

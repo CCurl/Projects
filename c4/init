@@ -20,7 +20,8 @@ reset
 
 // Screen stuff
 : ->XY ." %e[%d;%dH" ;
-: CLS ." %e[2J" 1 dup ->XY ;
+: CLS ." %e[2J%e[1;1H" ;
+: CLR-EOL ." %e[2K" ;
 : COLOR ( bg fg -- ) ." %e[%d;%dm" ;
 : FG ( fg -- ) 40 swap COLOR ;
 : CURSOR-ON  ." %e[?25h" ;
