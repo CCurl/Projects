@@ -9,47 +9,49 @@ load string.c3
 load screen.c3
 load memory.c3
 
-val lines (val) (lines)   : >lines (lines) ! ;
-40 >lines
+    0 constant md-normal
+  111 constant md-command
+  112 constant md-replace
+  113 constant md-insert
+50000 constant buf-sz
+ 1000 constant max-lines
 
-: last-line lines 1- ;
+variable buf buf-sz allot
+: buf-end buf buf-sz + ;
 
-128 constant line-len
+\ lines is an array of addresses ... where each line starts
+variable lines max-lines allot
+: last-line max-lines 1- ;
+: >lines (lines) ! ;
 
-  0 constant md-normal
-111 constant md-command
-112 constant md-replace
-113 constant md-insert
-
-lines line-len * constant buf-sz
-
-variable buf buf-sz 100 + allot
 variable done 0 done !
 variable fn 32 allot
 variable cmd 32 allot
 variable msg 32 allot
 variable clip-board 128 allot
 
-buf buf-sz + constant buf-end
+variable (scr-top)   : scr-top (scr-top) @ ;   : >scr-top (scr-top) ! ;
+variable (scr-h)     : scr-h   (scr-h)   @ ;   : >scr-h   (scr-h) ! ;
+variable (row)       : row     (row)     @ ;   : >row     (row)     ! ;
+variable (col)       : col     (col)     @ ;   : >col     (col)     ! ;   : col++ (col) ++ ;
+variable (pos)       : pos     (pos)     @ ;   : >pos     (pos)     ! ;
+variable (mode)      : mode    (mode)    @ ;   : >mode    (mode)    ! ;
+variable (#lines)    : #lines  (#lines)  @ ;   : >#lines  (#lines)  ! ;
 
-val row      (val) (row)   : >row (row) ! ;
-val col      (val) (col)   : >col (col) ! ;  : col++ (col) ++ ;
-val pos      (val) (pos)   : >pos (pos) ! ;
-val mode     (val) (mode)  : >mode (mode) ! ;
-val refresh? (val) (rfr)
-
+variable (rfr)
+: refresh? (rfr) @ ;
 : refresh   1 (rfr) ! ;
 : refreshed 0 (rfr) ! ;
 
-: clr-buf   ( -- )    buf buf-sz BL fill ;
-: line-addr ( n--a )  line-len * buf + ;
-: row-addr  ( --a )   row line-addr ;
+: clr-buf   ( -- )    buf buf-sz 0 fill ;
+: line-addr ( n--a )  lines + @ ;
+: row-addr  ( --a )   scr-top row + line-addr ;
 : rc->pos   ( -- )    row-addr   col +   >pos ;
 : ->cur     ( -- )    col 1+   row 1+   ->yx ;
-: reset     ( -- )    clr-buf 0 >row 0 >col ;
+: reset     ( -- )    clr-buf 0 >row 0 >col 0 >scr-top ;
 : >msg      ( s-- )   msg swap s-cpy ;
 : clr-msg   ( -- )    >msg s-trunc ;
-: clr-line  ( n--)    line-addr line-len BL fill ;
+: clr-line  ( n--)    line-addr line-len 0 fill ;
 
 : find-eol ( line--a )
     +regs line-addr dup s1 s2
@@ -94,8 +96,8 @@ val refresh? (val) (rfr)
 : ?refresh ( -- )
     refresh? 0= if exit then
 	cur-off 1 1 ->xy
-	lines 0 do
-		i line-addr line-len qtype clr-eol cr
+	scr-h 0 do
+        i str-top + line-addr qtype clr-eol cr
 	loop
 	show-footer
 	cur-on ->cur
