@@ -20,74 +20,92 @@ variable buf buf-sz allot
 : buf-end buf buf-sz + ;
 
 \ lines is an array of addresses ... where each line starts
-variable lines max-lines allot
+variable lines max-lines CELLS allot
 : last-line max-lines 1- ;
-: >lines (lines) ! ;
+: line-addr  ( n--a )   0 MAX last-line MIN CELLS lines + @ ;
+: >line-addr ( a n-- )  0 MAX last-line MIN CELLS lines + ! ;
 
 variable done 0 done !
 variable fn 32 allot
 variable cmd 32 allot
 variable msg 32 allot
 variable clip-board 128 allot
+variable cur-line line-len allot
 
 variable (scr-top)   : scr-top (scr-top) @ ;   : >scr-top (scr-top) ! ;
-variable (scr-h)     : scr-h   (scr-h)   @ ;   : >scr-h   (scr-h) ! ;
+variable (scr-h)     : scr-h   (scr-h)   @ ;   : >scr-h   (scr-h) ! ;  30 >scr-h
+variable (scr-w)     : scr-w   (scr-w)   @ ;   : >scr-w   (scr-h) ! ; 100 >scr-w
 variable (row)       : row     (row)     @ ;   : >row     (row)     ! ;
 variable (col)       : col     (col)     @ ;   : >col     (col)     ! ;   : col++ (col) ++ ;
 variable (pos)       : pos     (pos)     @ ;   : >pos     (pos)     ! ;
 variable (mode)      : mode    (mode)    @ ;   : >mode    (mode)    ! ;
 variable (#lines)    : #lines  (#lines)  @ ;   : >#lines  (#lines)  ! ;
 
+: #lines++ #lines 1+ >#lines ;
+: #lines-- #lines 1- >#lines ;
+
 variable (rfr)
 : refresh? (rfr) @ ;
 : refresh   1 (rfr) ! ;
 : refreshed 0 (rfr) ! ;
 
-: clr-buf   ( -- )    buf buf-sz 0 fill ;
-: line-addr ( n--a )  lines + @ ;
-: row-addr  ( --a )   scr-top row + line-addr ;
-: rc->pos   ( -- )    row-addr   col +   >pos ;
-: ->cur     ( -- )    col 1+   row 1+   ->yx ;
-: reset     ( -- )    clr-buf 0 >row 0 >col 0 >scr-top ;
-: >msg      ( s-- )   msg swap s-cpy ;
-: clr-msg   ( -- )    >msg s-trunc ;
-: clr-line  ( n--)    line-addr line-len 0 fill ;
+: clr-buf    ( -- )     buf buf-sz 0 fill 0 >#lines ;
+: row-addr   ( --a )    scr-top row + line-addr ;
+: rc->pos    ( -- )     row-addr   col +   >pos ;
+: ->cur      ( -- )     col 1+   row 1+   ->yx ;
+: reset      ( -- )     clr-buf 0 >row 0 >col 0 >scr-top ;
+: >msg       ( s-- )    msg swap s-cpy ;
+: clr-msg    ( -- )     >msg S-TRUNC ;
+: clr-line   ( n--)     10 line-addr c! ;
 
-: find-eol ( line--a )
-    +regs line-addr dup s1 s2
-    line-len 0 do 
-		r1 c@ BL > if r1 s2 then i1
-	loop
-    r2 -regs ;
+: T0   \ r2: char-ptr, r3: char
+    r3 10 = IF
+        r2 #lines >line-addr
+        #lines++
+    THEN ;
 
-: insert-line ( line-- ) >r
-	+regs r@ line-addr s1  \ src
-	r@ 1+ line-addr s2     \ dst
-	buf-end r2 - s3        \ sz
-	r1 r2 r3 -regs cmove> r> 1+ clr-line ;
-
-: delete-line ( line-- )
-    +regs dup line-addr s2 \ dst
-    1- line-addr s1        \ src
-	buf-end r1 - s3        \ sz
-    .s clip-board r2 line-len cmove
-	r1 r2 r3 -regs .s cmove ;
-
-: load-file ( fh-- )
-    >r buf buf-sz r> fread drop
-	buf-sz buf + buf do i c@ 32 < if 32 i c! then loop
-    clr-msg ;
+: buf->lines ( )
+    +REGS  buf s2  0 >#lines
+    BEGIN
+        r2+ C@ s3  r3 0= IF  -REGS  EXIT  THEN
+        T0
+    AGAIN ;
 
 : read-file ( fn-- )
-    clr-buf   fopen-rb   ?dup
-	0= if " -not found-" >msg exit then
-    dup load-file fclose ;
+    clr-buf  clr-msg
+    fopen-rt ?dup if
+        >R buf buf-sz R@ FREAD >#bytes
+        msg #bytes s-catn  msg "  bytes." S-CAT
+        R> FCLOSE
+	else
+        " -file not found-" >msg
+	then buf->lines ;
 
 : write-file ( fn-- )
-    fopen-wb ?dup 0= if " -write fail-" >msg exit then
-    buf qtype
-    r1 fclose   ->stdout
+    fopen-wb s1 r1 0= if " -write fail-" >msg exit then
+    buf r1 fputs
+    r1 fclose
     " -saved-" >msg ;
+
+: find-eol ( line--a )
+    +REGS  line-addr s1
+    BEGIN
+		r1 C@ 10 = IF r1 -REGS EXIT THEN i1
+	AGAIN ;
+
+: insert-line ( line-- ) >R
+    +REGS R@ line-addr s1  \ src
+    R@ 1+ line-addr s2     \ dst
+    buf-end r2 - s3        \ sz
+    r1 r2 r3 -REGS cmove> R> 1+ clr-line ;
+
+: delete-line ( line-- )
+    +REGS dup line-addr s2 \ dst
+    1- line-addr s1        \ src
+    buf-end r1 - s3        \ sz
+    \ .s clip-board r2 line-len cmove
+    r1 r2 r3 -REGS .s cmove ;
+
 
 : show-footer ( -- )
     cr cr ." cb: [" clip-board 6 type ." ...], "
@@ -97,14 +115,14 @@ variable (rfr)
     refresh? 0= if exit then
 	cur-off 1 1 ->xy
 	scr-h 0 do
-        i str-top + line-addr qtype clr-eol cr
+        i str-top + line-addr qtype
 	loop
 	show-footer
 	cur-on ->cur
 	refreshed ;
 
 : left   col 1- 0          max >col   ->cur ;
-: right  col 1+ line-len   min >col   ->cur ;
+: right  col 1+ scr-w      min >col   ->cur ;
 : up     row 1- 0          max >row   ->cur ;
 : down   row 1+ last-line  min >row   ->cur ;
 : home   0 >col                       ->cur ;
@@ -127,20 +145,19 @@ variable (rfr)
 : cmd-md?    ':' = ; INLINE
 : yank?      'Y' = ; INLINE
 
-
 : delete-1 ( -- ) 
-    +regs pos s1 buf-end s2
+    +REGS pos s1 buf-end s2
     begin
 		r1 r2 < while
 		r1 1+ c@ r1+ c!
-    repeat BL r1 c! -regs ;
+    repeat BL r1 c! -REGS ;
 
 : insert-1 ( -- )
-    +regs pos s1 buf-end s2
+    +REGS pos s1 buf-end s2
     begin
 		r2 r1 > while
 		r2 1- c@ r2- c!
-    repeat BL r2 c! -regs ;
+    repeat BL r2 c! -REGS ;
 
 : repl-md   md-replace >mode ;
 : ins-md    md-insert  >mode ;
@@ -153,10 +170,10 @@ variable (rfr)
 : delete-ch  ( -- )    delete-1   refresh ;
 : ins-line ( -- ) row insert-line refresh ;
 : del-line ( -- ) row delete-line refresh ;
-: yank ( -- ) row-addr clip-board line-len cmove refresh ;
+: yank ( -- ) ; \ row-addr clip-board line-len cmove refresh ;
 : put-line ( -- )
     row 1+ insert-line row 1+ >row
-    clip-board row-addr line-len cmove refresh ;
+    ; \ clip-board row-addr line-len cmove refresh ;
 
 : command-ch ( -- )    r1 emit
     'W' r1 = if fn write-file exit then

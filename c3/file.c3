@@ -26,7 +26,7 @@ variable T0
 : T2 ( -- )   T0 @ (output_fp) ! ;        \ Restore output_fp
 
 : fputc ( c  fh-- ) T1  EMIT   T2 ;
-: fputs ( sz fh-- ) T1  ZTYPE  T2 ;
+: fputs ( sz fh-- ) T1  QTYPE  T2 ;
 
 : T0 vhere #256 + ;
 : cat +REGS
