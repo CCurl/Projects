@@ -5,6 +5,8 @@
 \ Words for NULL-Terminated strings
 : s-catn  ( str n-- ) ITOA S-CAT ;
 : s-scatn ( n str-- ) SWAP s-catn ;
+: s-scpy  ( s d-- )   SWAP S-CPY ;
+: s-scat  ( s d-- )   SWAP S-CAT ;
 
 \ Words for Counted strings
 : sc-len ( str--len ) C@ ; INLINE
