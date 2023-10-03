@@ -27,7 +27,7 @@ variable done 0 done !
 variable fn 32 allot
 variable cmd 32 allot
 variable msg 32 allot
-variable clip-board 128 allot
+variable clip-board line-len allot
 
 variable (scr-top)   : scr-top (scr-top) @ ;   : >scr-top (scr-top) ! ;    0 >scr-top
 variable (scr-h)     : scr-h   (scr-h)   @ ;   : >scr-h   (scr-h)   ! ;   45 >scr-h
@@ -51,6 +51,8 @@ variable (rfr)
 : refreshed 0 (rfr) ! ;
 
 : clr-buf    ( -- )     buf buf-sz 0 fill 0 >#lines ;
+: clr-line   ( a-- )    line-len 0 fill ;
+: clr-clip   ( -- )     clip-board clr-line ;
 : cur-line   ( --a )    scr-top row + line-addr ;
 : pos        ( --a )    cur-line col + ;
 : ->cur      ( -- )     col 1+   row 1+   ->xy ;
@@ -58,9 +60,9 @@ variable (rfr)
 : reset      ( -- )     clr-buf 0 >row 0 >col 0 >scr-top ;
 : >msg       ( s-- )    msg swap s-cpy ;
 : clr-msg    ( -- )     msg S-TRUNC ;
-: .mode mode
+: .mode      ( -- )
 	mode md-command = IF ':' EMIT      THEN 
-	mode md-insert  = IF ." -INSERT-"  THEN 
+	mode md-insert  = IF ." -INSERT-"  THEN
 	mode md-replace = IF ." -REPLACE-" THEN ;
 
 : show-footer ( -- )
@@ -73,7 +75,7 @@ variable (rfr)
 	scr-h 0 DO
         scr-top I + line-addr ?DUP IF QTYPE THEN clr-eol CR
 	LOOP
-	show-footer cur-on ->cur refreshed ;
+	show-footer .s cur-on ->cur refreshed ;
 
 : read-file ( fn-- )
 	fn s-scpy   0 >#lines   0 >#bytes
@@ -104,19 +106,19 @@ variable (rfr)
 
 : line-end ( a1--a2 ) BEGIN DUP C@ 0= IF EXIT THEN 1+ AGAIN ;
 
-: insert-line ( line-- ) >R
-    +REGS R@ line-addr s1  \ src
-    R@ 1+ line-addr s2     \ dst
-    buf-end r2 - s3        \ sz
-    r1 r2 r3 -REGS cmove> R> ; \ 1+ clr-line ;
+: insert-line ( -- ) +REGS
+    cur-line      s1    \ src
+    r1 line-len + s2    \ dst
+    buf-end r2 -  s3    \ sz
+    r1 r2 r3 cmove>  -REGS
+    cur-line clr-line ;
 
-: delete-line ( -- )
-	clip-board cur-line S-CPY
-    +REGS dup line-addr s2 \ dst
-    1- line-addr s1        \ src
-    buf-end r1 - s3        \ sz
-    \ .s clip-board r2 line-len cmove
-    r1 r2 r3 -REGS .s cmove ;
+: delete-line ( -- ) +REGS
+	clr-clip clip-board cur-line S-CPY
+    cur-line       s2    \ dst
+    r2 line-len +  s1    \ src
+    buf-end r1 -   s3    \ sz
+    r1 r2 r3 cmove  -REGS ;
 
 : left   col 1- 0          max >col   ->cur ;
 : right  col 1+ scr-w      min >col   ->cur ;
@@ -124,23 +126,6 @@ variable (rfr)
 : down   row 1+ scr-h      min >row   ->cur ;
 : home   0 >col                       ->cur ;
 : end    row find-eol >col ->cur ;
-
-: esc?       27 = ;
-: exit?      done @ ;
-: up?        'k' = ; INLINE
-: down?      'j' = ; INLINE
-: left?      'h' = ; INLINE
-: right?     'l' = ; INLINE
-: home?      '_' = ; INLINE
-: end?       '$' = ; INLINE
-: del-ch?    'x' = ; INLINE
-: del-ln?    'D' = ; INLINE
-: ins-ln?    'o' = ; INLINE
-: put-ln?    'P' = ; INLINE
-: repl-md?   'R' = ; INLINE
-: ins-md?    'i' = ; INLINE
-: cmd-md?    ':' = ; INLINE
-: yank?      'Y' = ; INLINE
 
 : delete-1 ( -- ) 
     +REGS pos s1 cur-line line-end s2
@@ -159,27 +144,29 @@ variable (rfr)
 	BL r2 C! -REGS ;
 
 : cmd-clr   ->cmd clr-eol ;
-: repl-md   md-replace >mode cmd-clr .mode ->cur ;
-: ins-md    md-insert  >mode cmd-clr .mode ->cur ;
+: repl-md   md-replace >mode cmd-clr  .mode ->cur ;
+: ins-md    md-insert  >mode cmd-clr  .mode ->cur ;
 : cmd-md    md-command >mode cmd-clr  ':' emit ;
-: norm-md   md-normal >mode  cmd-clr ->cur ;
+: norm-md   md-normal  >mode cmd-clr  ->cur ;
 
 : replace-ch ( ch-- )  pos c!   col++   refresh ;
 : insert-ch  ( ch-- )  insert-1   replace-ch ;
 : delete-ch  ( -- )    delete-1   refresh ;
-: ins-line ( -- ) row insert-line refresh ;
+: ins-line-a ( -- ) insert-line refresh ;
+: ins-line-b ( -- ) row 1+ >row insert-line refresh ;
 : del-line ( -- ) delete-line refresh ;
-: yank ( -- ) ; \ cur-line clip-board line-len cmove refresh ;
+: yank ( -- ) clr-clip clip-board cur-line S-CPY refresh ;
 : put-line ( -- )
-    row 1+ insert-line row 1+ >row
-    clip-board cur-line line-len cmove refresh ;
+    cur-line clr-line
+    cur-line clip-board S-CPY refresh ;
 
-: command-ch ( -- )    r1 emit
-    'L' r1 = if fn read-file  exit then
-    'W' r1 = if fn write-file exit then
-    'Q' r1 = if 1 done !      exit then ;
+: command-ch ( -- )    r1 emit md-normal >mode
+    'L' r1 = IF fn read-file  EXIT THEN
+    'W' r1 = IF fn write-file EXIT THEN
+    'Q' r1 = IF 1 done !      EXIT THEN
+    ;
 
-: printable?    ( ch--f )  dup >r 31 > r> 127 < and ;
+: printable?    ( ch--f )  DUP >R 31 > R> 127 < AND ;
 
 : replace-mode? ( --f )   mode md-replace = ;
 : insert-mode?  ( --f )   mode md-insert  = ;
@@ -187,29 +174,30 @@ variable (rfr)
 : normal-mode?  ( --f )   mode md-normal  = ;
 
 : handle-ch ( ch-- )  s1
-    r1 esc?       if norm-md       exit then
-    insert-mode?  if r1 insert-ch  exit then
-    replace-mode? if r1 replace-ch exit then
-    command-mode? if command-ch    exit then
-    r1 up?        if up            exit then
-    r1 down?      if down          exit then
-    r1 left?      if left          exit then
-    r1 right?     if right         exit then
-    r1 home?      if home          exit then
-    r1 end?       if end           exit then
-    r1 del-ch?    if delete-ch     exit then
-    r1 ins-ln?    if ins-line      exit then
-    r1 put-ln?    if put-line      exit then
-    r1 del-ln?    if del-line      exit then
-    r1 repl-md?   if repl-md       exit then
-    r1 ins-md?    if ins-md        exit then
-    r1 cmd-md?    if cmd-md        exit then
-    r1 yank?      if yank          exit then
-    r1 . ;
+    r1 27 =       IF norm-md       EXIT THEN
+    insert-mode?  IF r1 insert-ch  EXIT THEN
+    replace-mode? IF r1 replace-ch EXIT THEN
+    command-mode? IF command-ch    EXIT THEN
+    r1 'k' =      IF up            EXIT THEN
+    r1 'j' =      IF down          EXIT THEN
+    r1 'h' =      IF left          EXIT THEN
+    r1 'l' =      IF right         EXIT THEN
+    r1 '_' =      IF home          EXIT THEN
+    r1 '$' =      IF end           EXIT THEN
+    r1 'x' =      IF delete-ch     EXIT THEN
+    r1 'o' =      IF ins-line-b    EXIT THEN
+    r1 'O' =      IF ins-line-a    EXIT THEN
+    r1 'p' =      IF put-line      EXIT THEN
+    r1 'D' =      IF del-line      EXIT THEN
+    r1 'R' =      IF repl-md       EXIT THEN
+    r1 'i' =      IF ins-md        EXIT THEN
+    r1 'Y' =      IF yank          EXIT THEN
+    r1 ':' =      IF cmd-md        EXIT THEN
+    ->cmd r1 . ->cur ;
 
 : edit-loop ( -- )
     BEGIN
-        exit? IF CR CR EXIT THEN
+        done @ IF CR CR EXIT THEN
         ?refresh
         key handle-ch
     AGAIN ;
@@ -225,4 +213,4 @@ variable (rfr)
     next-word DROP read-file
     edit-loop ;
 
-\ edit editor.c3
+laptop edit editor.c3
