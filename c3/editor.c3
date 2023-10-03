@@ -84,14 +84,14 @@ variable (rfr)
 		#lines 1+ >#lines
 	REPEAT
 	R> FCLOSE
-	msg #bytes s-catn  msg "  bytes." S-CAT
+	msg #bytes s-catn  msg "  bytes." S-CAT msg fn s-cat
 	;
 
 : write-file ( fn-- )
     fopen-wb ?DUP NOT IF " -write fail-" >msg EXIT THEN
-    >R
-	#lines 0 DO I line-addr R@ fputs 10 R@ fputc LOOP
-	R> FCLOSE
+    DUP ->file
+	#lines 0 DO I line-addr ?DUP IF QTYPE 10 EMIT THEN LOOP
+	FCLOSE ->stdout
     " -saved-" >msg ;
 
 : find-eol ( line#--n )
@@ -173,8 +173,9 @@ variable (rfr)
     clip-board cur-line line-len cmove refresh ;
 
 : command-ch ( -- )    r1 emit
+    'L' r1 = if fn read-file  exit then
     'W' r1 = if fn write-file exit then
-    'Q' r1 = if 1 done ! exit then ;
+    'Q' r1 = if 1 done !      exit then ;
 
 : printable?    ( ch--f )  dup >r 31 > r> 127 < and ;
 

@@ -28,16 +28,8 @@ VARIABLE T0
 : ->stdout  ( -- )   0 ->file ;
 
 VARIABLE T0
-: T1 ( H-- )  output-fp T0 ! ->file ;  \ Save and redirect
-: T2 ( -- )   T0 @ ->file ;            \ Restore output_fp
+: redirect    ( H-- )  output-fp T0 ! ->file ;  \ Save and redirect
+: restore-out ( -- )   T0 @ ->file ;            \ Restore output_fp
 
-: fputc ( ch H-- )  T1  EMIT   T2 ;
-: fputs ( sz H-- )  T1  QTYPE  T2 ;
-
-: T0 vhere #256 + ;
-: cat +REGS
-    NEXT-WORD DROP fopen-rt s1
-    BEGIN
-        r1 0= IF -REGS EXIT THEN
-        T0 r1 fgets IF r1 FCLOSE 0 s1 ELSE T0 QTYPE CR THEN
-    AGAIN ;
+: fputc ( ch H-- )  redirect  EMIT   restore-out ;
+: fputs ( sz H-- )  redirect  QTYPE  restore-out ;
