@@ -42,6 +42,9 @@ variable (#bytes)    : #bytes  (#bytes)  @ ;   : >#bytes  (#bytes)  ! ;
 : T0 ( n--a ) 0 max max-lines min line-len * buf + ;
 : line-addr  ( n--a )   T0 ;
 
+: laptop 33 >scr-h ;
+: pc     45 >scr-h ;
+
 variable (rfr)
 : refresh? (rfr) @ ;
 : refresh   1 (rfr) ! ;
@@ -84,8 +87,7 @@ variable (rfr)
 		#lines 1+ >#lines
 	REPEAT
 	R> FCLOSE
-	msg #bytes s-catn  msg "  bytes." S-CAT msg fn s-cat
-	;
+	msg #bytes s-catn  msg "  bytes." S-CAT ;
 
 : write-file ( fn-- )
     fopen-wb ?DUP NOT IF " -write fail-" >msg EXIT THEN
@@ -219,7 +221,7 @@ variable (rfr)
     refresh ;
 
 : edit ( -- )
-	init
+	init cls
     next-word DROP read-file
     edit-loop ;
 
