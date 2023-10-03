@@ -14,12 +14,11 @@ VARIABLE T0
 
 : fgets ( a fh--eof )
     +REGS  s2 s1  0 s4
-    r1 S-TRUNC
     BEGIN
-        r2 fgetc s5 s3
+        0 r1 C!  r2 fgetc s5 s3
         r5 0=    IF  r4 0= -REGS EXIT  THEN
         r3 10 =  IF  0     -REGS EXIT  THEN
-        r3 13 <> IF  r1 r3 S-CATC  i4  THEN
+        r3 13 <> IF  r3 r1+ C!  i4  THEN
     AGAIN ;
 
 \ Words to redirect output
