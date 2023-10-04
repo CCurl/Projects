@@ -20,9 +20,6 @@ max-lines 1+ line-len * constant buf-sz
 variable buf buf-sz allot
 : buf-end buf buf-sz + ;
 
-\ lines is an array of addresses ... where each line starts
-variable lines max-lines CELLS allot
-
 variable done 0 done !
 variable fn 32 allot
 variable cmd 32 allot
@@ -38,12 +35,10 @@ variable (mode)      : mode    (mode)    @ ;   : >mode    (mode)    ! ;
 variable (#lines)    : #lines  (#lines)  @ ;   : >#lines  (#lines)  ! ;
 variable (#bytes)    : #bytes  (#bytes)  @ ;   : >#bytes  (#bytes)  ! ;
 
-: last-line max-lines 1- ;
-: T0 ( n--a ) 0 max max-lines min line-len * buf + ;
-: line-addr  ( n--a )   T0 ;
+: line-addr  ( n--a ) 0 max max-lines min line-len * buf + ;
 
-: laptop 33 >scr-h ;
-: pc     45 >scr-h ;
+: laptop 32 >scr-h ;
+: pc     47 >scr-h ;
 
 variable (rfr)
 : refresh? (rfr) @ ;
@@ -166,8 +161,6 @@ variable (rfr)
     'Q' r1 = IF 1 done !      EXIT THEN
     ;
 
-: printable?    ( ch--f )  DUP >R 31 > R> 127 < AND ;
-
 : replace-mode? ( --f )   mode md-replace = ;
 : insert-mode?  ( --f )   mode md-insert  = ;
 : command-mode? ( --f )   mode md-command = ;
@@ -205,7 +198,7 @@ variable (rfr)
 : init ( -- )
     md-normal >mode
     clip-board s-trunc
-    0 dup >row dup >col done !
+    0 DUP >row DUP >col done !
     refresh ;
 
 : edit ( -- )
