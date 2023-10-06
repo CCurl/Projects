@@ -1,0 +1,31 @@
+// keybindings.json - Place your key bindings in this file to override the defaultsauto[]
+[
+    {
+        "key": "ctrl+alt+u",
+        "command": "editor.action.transformToLowercase"
+    },
+    {
+        "key": "ctrl+shift+alt+u",
+        "command": "editor.action.transformToUppercase"
+    },
+    {
+        "key": "f5",
+        "command": "kb-macro.playback",
+        "args": {
+            "sequence": [
+                { "command": "editor.action.addSelectionToNextFindMatch" },
+                { "command": "editor.action.clipboardCopyAction", "await": "clipboard" }
+            ]
+        }
+    },
+    {
+        "key": "f6",
+        "command": "kb-macro.playback",
+        "args": {
+            "sequence": [
+                { "command": "editor.action.addSelectionToNextFindMatch" },
+                { "command": "editor.action.clipboardPasteAction", "await": "clipboard" }
+            ]
+        }
+    }
+]
