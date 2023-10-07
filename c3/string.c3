@@ -1,6 +1,6 @@
 \ string.c3 - some string words
 
-' type loaded?
+' count loaded?
 
 \ Words for NULL-Terminated strings
 : s-catn  ( str n-- ) ITOA S-CAT ;
@@ -19,6 +19,3 @@
 : sc->sz ( sc sz-- ) SWAP 1+ S-CPY ; INLINE
 
 : count ( sc--a n ) 1+ DUP 1- C@ ;
-: type ( a n-- ) ?DUP IF
-        0 DO DUP C@ EMIT 1+ LOOP
-    THEN DROP ;

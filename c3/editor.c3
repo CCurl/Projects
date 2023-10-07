@@ -154,6 +154,8 @@ variable (rfr)
 : put-line ( -- )
     cur-line clr-line
     cur-line clip-board S-CPY refresh ;
+: scr-up scr-top 1+ >scr-top refresh ;
+: scr-dn scr-top 1- 0 max >scr-top refresh ;
 
 : command-ch ( -- )    r1 emit md-normal >mode
     'L' r1 = IF fn read-file  EXIT THEN
@@ -171,6 +173,9 @@ variable (rfr)
     insert-mode?  IF r1 insert-ch  EXIT THEN
     replace-mode? IF r1 replace-ch EXIT THEN
     command-mode? IF command-ch    EXIT THEN
+    r1   5 =      IF scr-up        EXIT THEN
+    r1  25 =      IF scr-dn        EXIT THEN
+    r1 'k' =      IF up            EXIT THEN
     r1 'k' =      IF up            EXIT THEN
     r1 'j' =      IF down          EXIT THEN
     r1 'h' =      IF left          EXIT THEN
@@ -196,9 +201,10 @@ variable (rfr)
     AGAIN ;
 
 : init ( -- )
+    0 DUP >row  DUP >col
+    DUP >scr-top  done !
     md-normal >mode
     clip-board s-trunc
-    0 DUP >row DUP >col done !
     refresh ;
 
 : edit ( -- )
