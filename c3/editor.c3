@@ -3,6 +3,7 @@
 ' edit loaded?
 
 : rl forget " editor.c3" (load) ;
+: vi " nvim editor.c3" system ;
 
 load file.c3
 load string.c3
@@ -93,7 +94,7 @@ variable (rfr)
 	FCLOSE ->stdout
     " -saved-" >msg ;
 
-: find-eol ( line#--n )
+: end-col ( line#--col )
     +REGS  line-addr s1 0 s2
     BEGIN
 		r1 r2 + C@ 0= IF r2 -REGS EXIT THEN i2
@@ -115,12 +116,14 @@ variable (rfr)
     buf-end r1 -   s3    \ sz
     r1 r2 r3 cmove  -REGS ;
 
-: left   col 1- 0          max >col   ->cur ;
-: right  col 1+ scr-w      min >col   ->cur ;
-: up     row 1- 0          max >row   ->cur ;
-: down   row 1+ scr-h      min >row   ->cur ;
-: home   0 >col                       ->cur ;
-: end    row find-eol >col ->cur ;
+: left   col 1-   0      max >col   ->cur ;
+: right  col 1+   scr-w  min >col   ->cur ;
+: up-n   row swap -   0      max   >row   ->cur ;
+: down-n row swap +   scr-h  min   >row   ->cur ;
+: up     1 up-n ;
+: down   1 down-n ;
+: home   0 >col           ->cur ;
+: end    row scr-top + end-col >col ->cur ;
 
 : delete-1 ( -- ) 
     +REGS pos s1 cur-line line-end s2
@@ -154,8 +157,10 @@ variable (rfr)
 : put-line ( -- )
     cur-line clr-line
     cur-line clip-board S-CPY refresh ;
-: scr-up scr-top 1+ >scr-top refresh ;
-: scr-dn scr-top 1- 0 max >scr-top refresh ;
+: pg-up scr-top 6 +       >scr-top 6 up-n    refresh ;
+: pg-dn scr-top 6 - 0 max >scr-top 6 down-n  refresh ;
+: scr-up scr-top 1+       >scr-top up    refresh ;
+: scr-dn scr-top 1- 0 max >scr-top down  refresh ;
 
 : command-ch ( -- )    r1 emit md-normal >mode
     'L' r1 = IF fn read-file  EXIT THEN
@@ -173,6 +178,8 @@ variable (rfr)
     insert-mode?  IF r1 insert-ch  EXIT THEN
     replace-mode? IF r1 replace-ch EXIT THEN
     command-mode? IF command-ch    EXIT THEN
+    r1   4 =      IF pg-up         EXIT THEN
+    r1  21 =      IF pg-dn         EXIT THEN
     r1   5 =      IF scr-up        EXIT THEN
     r1  25 =      IF scr-dn        EXIT THEN
     r1 'k' =      IF up            EXIT THEN
