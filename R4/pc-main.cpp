@@ -25,6 +25,8 @@ void doDelay(CELL ms) {
     ts.tv_nsec = (ms % 1000) * 1000000;
     nanosleep(&ts, NULL); 
 }
+int _kbhit() { return 0; }
+int _getch() { return 0; }
 #endif
 
 static char buf[256];
