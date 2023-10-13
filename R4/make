@@ -1,3 +1,0 @@
-#/bin/sh
-clang -D__LINUX__ -Ofast -oR4 *.cpp
-ls -l ./R4
