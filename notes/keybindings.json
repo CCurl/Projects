@@ -1,30 +1,54 @@
-// keybindings.json - Place your key bindings in this file to override the defaultsauto[]
+// Place your key bindings in this file to override the defaultsauto[]
 [
     {
-        "key": "ctrl+alt+u",
-        "command": "editor.action.transformToLowercase"
+        "key": "ctrl+shift+up",
+        "command": "editor.action.insertCursorAbove",
+        "when": "editorTextFocus"
     },
     {
-        "key": "ctrl+shift+alt+u",
-        "command": "editor.action.transformToUppercase"
+        "key": "ctrl+shift+down",
+        "command": "editor.action.insertCursorBelow",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+alt+u",
+        "command": "editor.action.transformToLowercase",
+    },
+    {
+        "key": "ctrl+alt+shift+u",
+        "command": "editor.action.transformToUppercase",
+    },
+    {
+        "key": "ctrl+w",
+        "command": "runCommands",
+        "args": {
+            "commands": [
+                { "command": "cancelSelection" },
+                { "command": "removeSecondaryCursors" },
+                { "command": "editor.action.addSelectionToNextFindMatch" },
+            ]
+        }
     },
     {
         "key": "f5",
-        "command": "kb-macro.playback",
+        "command": "runCommands",
         "args": {
-            "sequence": [
+            "commands": [
+                { "command": "cancelSelection" },
+                { "command": "removeSecondaryCursors" },
                 { "command": "editor.action.addSelectionToNextFindMatch" },
-                { "command": "editor.action.clipboardCopyAction", "await": "clipboard" }
+                { "command": "editor.action.clipboardCopyAction" }
             ]
         }
     },
     {
         "key": "f6",
-        "command": "kb-macro.playback",
+        "command": "runCommands",
         "args": {
-            "sequence": [
+            "commands": [
+                { "command": "cancelSelection" },
                 { "command": "editor.action.addSelectionToNextFindMatch" },
-                { "command": "editor.action.clipboardPasteAction", "await": "clipboard" }
+                { "command": "editor.action.clipboardPasteAction" }
             ]
         }
     }
