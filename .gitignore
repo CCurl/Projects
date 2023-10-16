@@ -10,7 +10,7 @@ S4/t-*
 S4/block-1111.s4
 S4/Code.S4
 *.fs
-/S2/h.txt
+/*/h.txt
 /mint/mint.exe
 /MINT/mint/Debug/mint.exe
 history.*
