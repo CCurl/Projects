@@ -47,6 +47,7 @@
         "args": {
             "commands": [
                 { "command": "cancelSelection" },
+                { "command": "removeSecondaryCursors" },
                 { "command": "editor.action.addSelectionToNextFindMatch" },
                 { "command": "editor.action.clipboardPasteAction" }
             ]

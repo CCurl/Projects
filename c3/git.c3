@@ -1,7 +1,7 @@
 ' git-pull loaded?
 
-: git-pull s" git pull" system ;
-: git-push s" git push" system ;
-: git-status s" git status" system ;
-: git-commit s" git commit" system ;
+: git-pull " git pull" system ;
+: git-push " git push" system ;
+: git-status " git status" system ;
+: git-commit " git commit" system ;
 
