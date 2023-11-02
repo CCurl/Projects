@@ -57,11 +57,12 @@ void run2(int start) {
         NCASE2 '[': lsp+=3; L0=PP; L1=PP; L2=pc;
             // printf("-[%ld:%ld]-", L0, L1);
         NCASE2 ']': if (++L0<L1) { pc=L2; } else { lsp-=3; }
-        NCASE2 't': if (BTW(OPC(1),0,25)) { reg[OPC(1)] = clock(); } else { PS(clock()); }
+        NCASE2 't': t=clock(); if (BTW(OPC(1),0,25)) { reg[OPC(1)]=t; } else { PS(t); }
         NCASE2 'n': PS(OP32(1));
+            // printf("-n[%d]-", OP32(1));
         NCASE2 'r': PS(reg[OPC(1)]);
         NCASE2 's': reg[OPC(1)] = OP32(1);
-            // printf("-s[%c:%ld]-", OPC(1)+'A', reg[OPC(1)]);
+            // printf("-s%c:%ld-", OPC(1)+'A', reg[OPC(1)]);
             NEXT2;
         default: dumpOp(op); NEXT2;
     }
@@ -177,17 +178,17 @@ void c01(char c0, char c1) {
     code[++here].c[0] = 0;
 }
 
+void c0_l1(char c, int32_t l) {
+    code[here].c[0] = c;
+    code[here].i32[1] = l;
+    code[++here].c[0] = 0;
+}
+
 void c01_l1(char c0, char c1, int32_t l) {
     code[here].c[0] = c0;
     code[here].c[1] = c1-'A';
     code[here].i32[1] = l;
     // printf("\nc0:%c,c1:%c,l:%d", code[here].c[0], code[here].c[1]+'A', code[here].i32[1]);
-    code[++here].c[0] = 0;
-}
-
-void c0_l1(char c, int32_t l) {
-    code[here].c[0] = c;
-    code[here].i32[1] = c;
     code[++here].c[0] = 0;
 }
 
@@ -226,7 +227,7 @@ void cc(const char *s) {
 
 int main() {
     here = sp = rsp = lsp = 0;
-    cc("tS 10sN 300sA 1000sB *BBB *ABA 0sB rA rB[+ABC] tE -ESA .A,N");
-    run("T 300 1000#**0[rArB+sC] T $-.N");
+    cc("tS 10sN 300000000 0[+ABC] tE -ESA .A,N");
+    run("T 300000000 0[rArB+sC] T $-.N");
     // run("T 250 1000#**{d#}\\ T $-.N");
 }
