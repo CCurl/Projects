@@ -1,0 +1,22 @@
+// Usage: Run the below in the folder where the tests you want are located
+// NOTE: copy git-author and au.bat and top to that folder first
+// EXAMPLE:
+//    cd \Code\CRS_Tests\forge_tests\SIA\AuditExpert
+//    copy \code\c4\git-author.c4 .
+//    copy \code\c4\git-author.bat .
+//    copy \code\c4\top.c4 .
+//    git ls-tree -r --name-only HEAD | rg .py | c4 .\git-author.c4 > out.csv
+
+: vhere   ( --a )  (vhere) @ vb + ;
+: pad     ( --a)    vhere 1000 + ;
+: work-it ( -- )   // file-name is in r1
+	r1 str-rtrim drop
+    " git-author " r2 str-cpy
+    '"'    r2 str-catc
+    r1     r2 str-cat
+    '"'    r2 str-catc
+    // r2 qtype cr ;
+    r2 system ;
+: go begin r1 256 stdin fgets 0= IF UNLOOP EXIT THEN work-it again ;
+vhere 256 + s1 pad s2 go
+bye
