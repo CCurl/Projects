@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdint.h>
 
 #define NEXT   goto next
 #define NCASE  NEXT; case
@@ -8,6 +9,7 @@
 #define NCASE2 NEXT2; case
 #define PS(x)  stk[++sp]=(cell_t)(x)
 #define PP     stk[sp--]
+#define PP32   (int32_t)stk[sp--]
 #define S0     stk[sp]
 #define S1     stk[sp-1]
 #define S2     stk[sp-2]
@@ -52,11 +54,11 @@ void run2(int start) {
         NCASE2 '*': reg[OPC(3)] = reg[OPC(1)] * reg[OPC(2)];
         NCASE2 '-': reg[OPC(3)] = reg[OPC(1)] - reg[OPC(2)];
         NCASE2 '/': reg[OPC(3)] = reg[OPC(1)] / reg[OPC(2)];
-        NCASE2 '.': printf(" %ld", reg[OPC(1)]);
+        NCASE2 '.': printf(" %jd", reg[OPC(1)]);
         NCASE2 ',': printf("%c",  (char)reg[OPC(1)]);
         NCASE2 '[': lsp+=3; L0=PP; L1=PP; L2=pc;
             // printf("-[%ld:%ld]-", L0, L1);
-        NCASE2 ']': if (++L0<L1) { pc=L2; } else { lsp-=3; }
+        NCASE2 ']': if (++L0<L1) { pc=(int)L2; } else { lsp-=3; }
         NCASE2 't': t=clock(); if (BTW(OPC(1),0,25)) { reg[OPC(1)]=t; } else { PS(t); }
         NCASE2 'n': PS(OP32(1));
             // printf("-n[%d]-", OP32(1));
@@ -89,7 +91,7 @@ void run(const char *x) {
     NCASE '+': S1+=S0; D1;
     NCASE ',': printf("%c",u);
     NCASE '-': S1-=S0; D1;
-    NCASE '.': printf(" %ld",PP);
+    NCASE '.': printf(" %jd",PP);
     NCASE '/': S1/=S0; D1;
     NCASE '0': case '1': case '2': case '3':
     case  '4': case '5': case '6': case '7':
@@ -128,9 +130,9 @@ void run(const char *x) {
     NCASE 'X': printf("%c",u);
     NCASE 'Y': printf("%c",u);
     NCASE 'Z': printf("%c",u);
-    NCASE '[': lsp+=3; L0=PP; L1=PP; L2=(long)pc;
+    NCASE '[': lsp+=3; L0=PP; L1=PP; L2=(cell_t)pc;
     NCASE '\\': if (0<sp) sp--;
-    NCASE ']': if (++L0<L1) { pc=L2; } else { lsp-=3; }
+    NCASE ']': if (++L0<L1) { pc=(int)L2; } else { lsp-=3; }
     NCASE '^': printf("%c",u);
     NCASE '_': printf("%c",u);
     NCASE '`': printf("%c",u);
@@ -160,9 +162,9 @@ void run(const char *x) {
     NCASE 'x': printf("%c",u);
     NCASE 'y': printf("%c",u);
     NCASE 'z': printf("%c",u);
-    NCASE '{': lsp+=3; L2=(long)pc;
+    NCASE '{': lsp+=3; L2=(cell_t)pc;
     NCASE '|': printf("%c",u);
-    NCASE '}': if (PP) { pc=L2; } else { lsp -=3; }
+    NCASE '}': if (PP) { pc=(int)L2; } else { lsp -=3; }
     NCASE '~': printf("%c",u);
     }
 }
@@ -217,17 +219,35 @@ void cc(const char *s) {
         else if (BTW(*s,'0','9')) { // 1234 or 1234sX
             PS(*(s++)-'0');
             while (BTW(*s,'0','9')) { S0=(S0*10)+(*(s++)-'0'); }
-            if ((s[0]=='s') && BTW(s[1],'A','Z')) { c01_l1('s' ,s[1], PP); s += 2; }
-            else { c0_l1('n', PP); }
+            if ((s[0]=='s') && BTW(s[1],'A','Z')) { c01_l1('s' ,s[1], PP32); s += 2; }
+            else { c0_l1('n', PP32); }
         }
-        else { c0(*(s++)); }
+        else if (*s<32) {return; }
+        else { printf("unknown [%d]", *(s++)); }
     }
-    run2(h);
+    // run2(h);
+}
+
+int loop(FILE *fp) {
+    char x[128], ok = 0;
+    if (fp) {
+        if (fgets(x, 128, fp) != x) { return 0; }
+    } else { fgets(x, 128, stdin); }
+    cc(x);
+    return 1;
 }
 
 int main() {
     here = sp = rsp = lsp = 0;
-    cc("tS 10sN 300000000 0[+ABC] tE -ESA .A,N");
+    FILE *fp = fopen("code.txt", "rt");
+    while (fp) {
+        if (!loop(fp)) { 
+            fclose(fp);
+            fp=NULL;
+            run2(0);
+        }
+    }
+
     run("T 300000000 0[rArB+sC] T $-.N");
     // run("T 250 1000#**{d#}\\ T $-.N");
 }

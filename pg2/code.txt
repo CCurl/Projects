@@ -1,0 +1,3 @@
+10sN
+tS 10sN 300sA 1000sB *ABA *ABA rA 0[+ABC] tE -ESA
+.A,N
