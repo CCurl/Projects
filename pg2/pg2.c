@@ -156,14 +156,14 @@ void c0123(char c0, char c1, char c2, char c3) {
     code[++here].c[0] = 0;
 }
 
-int strEq(const char *in, const char *d) {
-    while (*in || *d) if (*(in++) != *(d++)) return 0;
+int strEq(const char *s, const char *d) {
+    while (*s || *d) if (*(s++) != *(d++)) return 0;
     return 1;
 }
 
 char w[132], *in;
 
-int nextWd() {
+int nextWord() {
     // printf("-in:%s-",in);
     int l=0;
     while (*in && (*in < 33)) in++;
@@ -173,7 +173,7 @@ int nextWd() {
 }
 
 int doId() {
-    printf("-id:%s-", w);
+    printf("-id?:%s-", w);
     return 0;
 }
 
@@ -220,7 +220,7 @@ void pw() {
 void cc(char *x) {
     here = (here<1) ? 1 : here;
     in = x;
-    while (nextWd()) {
+    while (nextWord()) {
         if (strEq(w,"//")) return;
         pw();
         code[0].i64 = here;
