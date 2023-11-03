@@ -1,3 +1,5 @@
-10sN
-tS 10sN 300sA 1000sB *ABA *ABA rA 0[+ABC] tE -ESA
-.A,N
+10sN                     // N = NewLine
+tS                       // Time into reg S
+200sA 1000sB *ABA *ABA   // Set reg A to 200 million
+rA 0 [ +ABC ]            // Do the loop C=A+b
+tE -ESA ,N .A ,N         // Print elapsed time
