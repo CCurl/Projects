@@ -45,8 +45,8 @@ void dumpOp(int a, op_t *op) {
     printf("\npc: %-3d - ", a);
     printf("%2x/%c", OPC(0), BTW(OPC(0),32,126) ? (char)OPC(0) : '.');
     for (int i=1; i<CELL_SZ; i++) { printf(",%2x", OPC(i)&0xff); }
-    printf(" - i32: %8lx,%8lx", OP32(0), OP32(1));
-    printf(" - i64: %jd / %jx", OP64, OP64);
+    printf(" - i32: %8lx,%8lx", (long) OP32(0), (long)OP32(1));
+    printf(" - i64: %jx / %jd", OP64, OP64);
 }
 
 void runReg(int start) {
@@ -56,14 +56,13 @@ void runReg(int start) {
     // dumpOp(pc, op);
     switch (OPC(0)) {
         case  0: return;
-        case   '+': reg[OPC(3)] = reg[OPC(1)] + reg[OPC(2)];
+        case  '+': reg[OPC(3)] = reg[OPC(1)] + reg[OPC(2)];
         RCASE '*': reg[OPC(3)] = reg[OPC(1)] * reg[OPC(2)];
         RCASE '-': reg[OPC(3)] = reg[OPC(1)] - reg[OPC(2)];
         RCASE '/': reg[OPC(3)] = reg[OPC(1)] / reg[OPC(2)];
         RCASE '.': printf(" %jd", reg[OPC(1)]);
         RCASE ',': printf("%c",  (char)reg[OPC(1)]);
         RCASE '[': lsp+=3; L0=PP; L1=PP; L2=pc;
-            // printf("-[%ld:%ld]-", L0, L1);
         RCASE ']': if (++L0<L1) { pc=(int)L2; } else { lsp-=3; }
         RCASE 't': t=clock(); if (BTW(OPC(1),0,25)) { reg[OPC(1)]=t; } else { PS(t); }
         RCASE 'l': PS(loc[locBase+OPC(1)]);
@@ -71,9 +70,9 @@ void runReg(int start) {
         RCASE 'm': reg[OPC(1)] = OP32(1);
         RCASE 'M': loc[locBase+OPC(1)] = OP32(1);
         RCASE 'n': PS(OP32(1));
-            // printf("-n[%d]-", OP32(1));
         RCASE 'r': PS(reg[OPC(1)]);
-            // printf("-r[%d]-", OP32(1));
+        RCASE 's': reg[OPC(1)] = PP;
+        RCASE 'v': reg[OPC(2)] = reg[OPC(1)];
         NEXT2; default: dumpOp(pc-1, op); NEXT2;
     }
 }
