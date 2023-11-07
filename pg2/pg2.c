@@ -31,11 +31,13 @@
 
 typedef int64_t cell_t;
 typedef union { char c[8]; short in[4]; int32_t i32[2]; int64_t i64; double d; } op_t;
+typedef struct { char name[32]; int val; } lbl_t;
 
 op_t code[256], *op;
 cell_t stk[32], rstk[32], lstk[30], t;
 cell_t reg[26], loc[10];
-int sp, rsp, lsp, locBase, here, u, pc;
+lbl_t lbl[512];
+int sp, rsp, lsp, locBase, here, vhere, u, pc, nlbls;
 
 #define OPC(x)   op->c[x]
 #define OP32(x)  op->i32[x]
@@ -160,6 +162,13 @@ int strEq(const char *s, const char *d) {
     return 1;
 }
 
+int strCpy(char *d, const char *s) {
+    int l = 0;
+    while (*s) { *(d++) = *(s++); ++l; }
+    *d = 0;
+    return l;
+}
+
 char w[132], *in;
 
 int nextWord() {
@@ -171,8 +180,25 @@ int nextWord() {
     return l;
 }
 
+int doLabel(int isVar) {
+    if (strCpy(lbl[nlbls].name, &w[1])) {
+        lbl[nlbls].val = (isVar==0) ? here : vhere;
+        if (isVar) { vhere += sizeof(int64_t); }
+        printf("-lbl:%s:%d-", w+1, lbl[nlbls].val);
+        ++nlbls;
+    }
+
+    return 0;
+}
+
 int doId() {
-    printf("-id?:%s-", w);
+    for (int i=0; i<nlbls; i++) {
+        if (strEq(w,lbl[i].name)) {
+            printf("-id:%s:%d-", w, lbl[i].val);
+            return 0;
+        }
+    }
+    printf("-id:%s?-", w);
     return 0;
 }
 
@@ -200,6 +226,11 @@ void pw() {
         return;
     }
 
+    if (BTW(w[0],'A','Z')) {
+        doId();
+        return;
+    }
+
     switch (w[0]) {
         case  '+': c0123( w[0], w[1], w[2], w[3]);
         RETCASE '*': c0123( w[0], w[1], w[2], w[3]);
@@ -212,6 +243,8 @@ void pw() {
         RETCASE ',': c01( w[0], w[1] );
         RETCASE ']': c0(  w[0] );
         RETCASE '[': c0(  w[0] );
+        RETCASE ':': doLabel(0);
+        RETCASE 'v': doLabel(1);
         return; default: printf("unknown [%d]", w[0]);
     }
 }
@@ -248,6 +281,6 @@ int main() {
         }
     }
 
-    runStack("T 200000000 0[rArB+sC] T $-.N");
+    runStack("T 150000000 0[rArB+sC] T $-.N");
     // run("T 250 1000#**{d#}\\ T $-.N");
 }
