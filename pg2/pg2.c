@@ -3,28 +3,28 @@
 #include <time.h>
 #include <stdint.h>
 
-#define NEXT   goto stkNext
-#define NCASE  NEXT; case
-#define NEXT2  goto regNext
-#define RCASE NEXT2; case
-#define BCASE  break; case
+#define NEXT1    goto stkNext
+#define SCASE    NEXT1; case
+#define NEXT2    goto regNext
+#define RCASE    NEXT2; case
+#define BCASE    break; case
 #define RETCASE  return; case
-#define PS(x)  stk[++sp]=(cell_t)(x)
-#define PP     stk[sp--]
-#define PP32   (int32_t)stk[sp--]
-#define S0     stk[sp]
-#define S1     stk[sp-1]
-#define S2     stk[sp-2]
-#define RPS(x) rstk[++rsp]=(x)
-#define RPP    rstk[rsp--]
-#define R0     rstk[rsp]
-#define R1     rstk[rsp-1]
-#define R2     rstk[rsp-2]
-#define D1     sp--
-#define D2     sp-=2
-#define L0     lstk[lsp]
-#define L1     lstk[lsp-1]
-#define L2     lstk[lsp-2]
+#define PS(x)    stk[++sp]=(cell_t)(x)
+#define PP       stk[sp--]
+#define PP32     (int32_t)stk[sp--]
+#define S0       stk[sp]
+#define S1       stk[sp-1]
+#define S2       stk[sp-2]
+#define RPS(x)   rstk[++rsp]=(x)
+#define RPP      rstk[rsp--]
+#define R0       rstk[rsp]
+#define R1       rstk[rsp-1]
+#define R2       rstk[rsp-2]
+#define D1       sp--
+#define D2       sp-=2
+#define L0       lstk[lsp]
+#define L1       lstk[lsp-1]
+#define L2       lstk[lsp-2]
 #define BTW(a,b,c) ((b<=a)&&(a<=c))
 
 #define CELL_SZ sizeof(cell_t)
@@ -50,6 +50,8 @@ void dumpOp(int a, op_t *op) {
     printf(" - i32: %8lx,%8lx", (long) OP32(0), (long)OP32(1));
     printf(" - i64: %jx / %jd", OP64, OP64);
 }
+
+enum { ADD, SUB, MULT, DIV, EMIT, DOT, FOR, NEXT, TIMER, RLOC, SLOC };
 
 void runReg(int start) {
     pc = start;
@@ -87,40 +89,40 @@ void runStack(const char *x) {
     switch(u) {
         case  0: return;
         case  ' ':
-        NCASE '!': printf("%c",u);
-        NCASE '"': printf("%c",u);
-        NCASE '#': t=S0; PS(t);
-        NCASE '$': t=S0; S0=S1; S1=t;
-        NCASE '%': t=S1; PS(t);
-        NCASE '&': printf("%c",u);
-        NCASE '\'': D1;
-        NCASE '(': if (PP==0) { while (x[pc++]!=')') {} }
-        NCASE ')': printf("%c",u);
-        NCASE '*': S1*=S0; D1;
-        NCASE '+': S1+=S0; D1;
-        NCASE ',': printf("%c",u);
-        NCASE '-': S1-=S0; D1;
-        NCASE '.': printf(" %jd",PP);
-        NCASE '/': S1/=S0; D1;
-        NCASE '0': case '1': case '2': case '3': case  '4': case '5': case '6': case '7':
+        SCASE '!': printf("%c",u);
+        SCASE '"': printf("%c",u);
+        SCASE '#': t=S0; PS(t);
+        SCASE '$': t=S0; S0=S1; S1=t;
+        SCASE '%': t=S1; PS(t);
+        SCASE '&': printf("%c",u);
+        SCASE '\'': D1;
+        SCASE '(': if (PP==0) { while (x[pc++]!=')') {} }
+        SCASE ')': printf("%c",u);
+        SCASE '*': S1*=S0; D1;
+        SCASE '+': S1+=S0; D1;
+        SCASE ',': printf("%c",u);
+        SCASE '-': S1-=S0; D1;
+        SCASE '.': printf(" %jd",PP);
+        SCASE '/': S1/=S0; D1;
+        SCASE '0': case '1': case '2': case '3': case  '4': case '5': case '6': case '7':
         case  '8': case '9': PS(u-'0'); while (BTW(x[pc],'0','9')) { S0=(S0*10)+(x[pc++]-'0'); }
-        NCASE '<': S1=(S1<S0)?-1:0;  D1;
-        NCASE '=': S1=(S1==S0)?-1:0; D1;
-        NCASE '>': S1=(S1>S0)?-1:0;  D1;
-        NCASE 'I': PS(L0);
-        NCASE 'N': printf("\n");
-        NCASE 'Q': exit(0);
-        NCASE 'T': PS(clock());
-        NCASE '[': lsp+=3; L0=PP; L1=PP; L2=(cell_t)pc;
-        NCASE '\\': if (0<sp) sp--;
-        NCASE ']': if (++L0<L1) { pc=(int)L2; } else { lsp-=3; }
-        NCASE 'd': --S0;
-        NCASE 'i': ++S0;
-        NCASE 'l': u=x[pc++]; PS(&loc[u-'0']);
-        NCASE 'r': u=x[pc++]; PS(reg[u-'A']);
-        NCASE 's': u=x[pc++]; reg[u-'A']=PP;
-        NCASE '{': lsp+=3; L2=(cell_t)pc;
-        NCASE '}': if (PP) { pc=(int)L2; } else { lsp -=3; }
+        SCASE '<': S1=(S1<S0)?-1:0;  D1;
+        SCASE '=': S1=(S1==S0)?-1:0; D1;
+        SCASE '>': S1=(S1>S0)?-1:0;  D1;
+        SCASE 'I': PS(L0);
+        SCASE 'N': printf("\n");
+        SCASE 'Q': exit(0);
+        SCASE 'T': PS(clock());
+        SCASE '[': lsp+=3; L0=PP; L1=PP; L2=(cell_t)pc;
+        SCASE '\\': if (0<sp) sp--;
+        SCASE ']': if (++L0<L1) { pc=(int)L2; } else { lsp-=3; }
+        SCASE 'd': --S0;
+        SCASE 'i': ++S0;
+        SCASE 'l': u=x[pc++]; PS(&loc[u-'0']);
+        SCASE 'r': u=x[pc++]; PS(reg[u-'A']);
+        SCASE 's': u=x[pc++]; reg[u-'A']=PP;
+        SCASE '{': lsp+=3; L2=(cell_t)pc;
+        SCASE '}': if (PP) { pc=(int)L2; } else { lsp -=3; }
     }
 }
 
