@@ -3,10 +3,10 @@
 #include <time.h>
 #include <stdint.h>
 
-#define NEXT1    goto stkNext
-#define SCASE    NEXT1; case
-#define NEXT2    goto regNext
-#define RCASE    NEXT2; case
+#define SNEXT    goto stkNext
+#define SCASE    SNEXT; case
+#define RNEXT    goto regNext
+#define RCASE    RNEXT; case
 #define BCASE    break; case
 #define RETCASE  return; case
 #define PS(x)    stk[++sp]=(cell_t)(x)
@@ -37,7 +37,7 @@ op_t code[256], *op;
 cell_t stk[32], rstk[32], lstk[30], t;
 cell_t reg[26], loc[10];
 lbl_t lbl[512];
-int sp, rsp, lsp, locBase, here, vhere, u, pc, nlbls;
+int sp, rsp, lsp, locBase, here, vhere, u, pc, nlbls, err;
 
 #define OPC(x)   op->c[x]
 #define OP32(x)  op->i32[x]
@@ -55,7 +55,7 @@ enum {	ADD='+', SUB='-', MULT='*', DIV='/',
 	EMIT=',', DOT='.', FOR='[', NEXT=']',
 	TIME='t', RLOC='l', SLOC='L', NLOC='M',
 	RREG='r', SREG='s', NREG='n', CREG='C', XREG='x',
-	PNUM, LBL='':', VAR='v',
+	PNUM='P', LBL=':', VAR='v', EOL=0
 };
 
 void runReg(int start) {
@@ -76,13 +76,15 @@ void runReg(int start) {
         RCASE TIME: t=clock(); if (BTW(OPC(1),0,25)) { reg[OPC(1)]=t; } else { PS(t); }
         RCASE RLOC: PS(loc[locBase+OPC(1)]);
         RCASE SLOC: loc[locBase+OPC(1)] = PP;
-        RCASE NLOG: loc[locBase+OPC(1)] = OP32(1);
+        RCASE NLOC: loc[locBase+OPC(1)] = OP32(1);
         RCASE PNUM: PS(OP32(1));
+
+        RCASE NREG: reg[OPC(1)] = OP32(1);
         RCASE RREG: PS(reg[OPC(1)]);
         RCASE SREG: reg[OPC(1)] = PP;
-        RCASE NREG: reg[OPC(1)] = OP32(1);
         RCASE CREG: reg[OPC(2)] = reg[OPC(1)];
-        NEXT2; default: dumpOp(pc-1, op); NEXT2;
+        
+        RNEXT; default: dumpOp(pc-1, op); RNEXT;
     }
 }
 
@@ -188,17 +190,25 @@ int nextWord() {
 }
 
 int nextToken() {
-    if (!nextWord()) return 0;
-    if (strEq(w,"+") return ADD;
-    if (strEq(w,"*") return MULT;
-    if (strEq(w,"-") return SUB;
-    if (strEq(w,"/") return DIV;
-    if (strEq(w,"lbl") return LBL;
-    if (strEq(w,"var") return VAR;
-    if (w[0]=='r') return REG;
-    if (w[0]=='s') return SET;
-    if (w[0]=='t') return TIME;
-    if (BTW(w[0],'0','9')) return NUM;
+    if (!nextWord()) return EOL;
+    if (strEq(w, "//")) return EOL;
+    if (w[0] == '+') return ADD;
+    if (w[0] == '*') return MULT;
+    if (w[0] == '-') return SUB;
+    if (w[0] == '/') return DIV;
+    if (w[0] == ':') return LBL;
+    if (strEq(w, "[")) return FOR;
+    if (strEq(w, "]")) return NEXT;
+    if (strEq(w, "var")) return VAR;
+    if (w[0] == 'r') return RREG;
+    if (w[0] == 's') return SREG;
+    if (w[0] == 't') return TIME;
+    if (w[0] == ',') return EMIT;
+    if (w[0] == '.') return DOT;
+    if (BTW(w[0], '0', '9')) return PNUM;
+    printf("-token:[%s]?-", w);
+    err = 1;
+    return EOL;
 }
 
 int doLabel(int isVar) {
@@ -235,13 +245,13 @@ int doRegS() {
     return 0;
 }
 
-int doNum() {
+void doNum() {
     int l=0;
     PS(w[l++]-'0');
     while (BTW(w[l],'0','9')) { S0=(S0*10)+(w[l++]-'0'); }
-    if ((w[l]=='s') && BTW(w[l+1],'A','Z')) { c01_l1('m', w[l+1], PP32); }
-    else if ((w[l]=='s') && BTW(w[l+1],'0','9')) { c01_l1('M', w[l+1], PP32); }
-    else { c0_l1('n', PP32); }
+    if ((w[l]=='s') && BTW(w[l+1],'A','Z')) { c01_l1(NREG, w[l+1], PP32); }
+    else if ((w[l]=='s') && BTW(w[l+1],'0','9')) { c01_l1(NLOC, w[l+1], PP32); }
+    else { c0_l1(PNUM, PP32); }
     return;
  }
 
@@ -254,20 +264,20 @@ void pw(int tok) {
     }
 
     switch (tok) {
-        case  NUM: doNum();
-        RETCASE '+': c0123( ADD, w[1], w[2], w[3]);
-        RETCASE '*': c0123( MULT, w[1], w[2], w[3]);
-        RETCASE '-': c0123( SUB, w[1], w[2], w[3]);
-        RETCASE '/': c0123( DIV, w[1], w[2], w[3]);
-        RETCASE 'r': if (!doRegR()) { doId(); }        // RegRead
-        RETCASE 's': if (!doRegS()) { doId(); }        // RegSet
-        RETCASE 't': c01( TIME, w[1]);    // Timer
-        RETCASE '.': c01( DOT, w[1] );
-        RETCASE ',': c01( EMIT, w[1] );
-        RETCASE ']': c0(  FOR );
-        RETCASE '[': c0(  NEXT );
-        RETCASE ':': doLabel(0);
-        RETCASE 'v': doLabel(1);
+        case  PNUM: doNum();
+        RETCASE ADD:  c0123( ADD, w[1], w[2], w[3]);
+        RETCASE MULT: c0123( MULT, w[1], w[2], w[3]);
+        RETCASE SUB:  c0123( SUB, w[1], w[2], w[3]);
+        RETCASE DIV:  c0123( DIV, w[1], w[2], w[3]);
+        RETCASE RREG: if (!doRegR()) { doId(); }        // RegRead
+        RETCASE SREG: if (!doRegS()) { doId(); }        // RegSet
+        RETCASE TIME: c01( TIME, w[1]);    // Timer
+        RETCASE DOT:  c01( DOT, w[1] );
+        RETCASE EMIT: c01( EMIT, w[1] );
+        RETCASE FOR:  c0(  FOR );
+        RETCASE NEXT: c0(  NEXT );
+        RETCASE LBL:  doLabel(0);
+        RETCASE VAR:  doLabel(1);
         return; default: printf("unknown [%d]", w[0]);
     }
 }
@@ -275,9 +285,10 @@ void pw(int tok) {
 void cc(char *x) {
     here = (here<1) ? 1 : here;
     in = x;
-    while (nextWord()) {
-        if (strEq(w,"//")) return;
-        pw();
+    while (1) {
+        int tok = nextToken();
+        if ((err) || (tok == EOL)) return;
+        pw(tok);
         code[0].i64 = here;
     }
 }
@@ -289,7 +300,7 @@ int loop(FILE *fp) {
         if (fgets(x, 128, fp) != x) { return 0; }
     } else { fgets(x, 128, stdin); }
     cc(x);
-    return 1;
+    return (err) ? 0 : 1;
 }
 
 int main() {
@@ -304,6 +315,6 @@ int main() {
         }
     }
 
-    runStack("T 150000000 0[rArB+sC] T $-.N");
+    runStack("NT 150000000 0[rArB+sC] T $-.N");
     // run("T 250 1000#**{d#}\\ T $-.N");
 }

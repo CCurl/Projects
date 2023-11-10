@@ -2,7 +2,7 @@
 tS                       // Time into reg S
 150sA 1000sB *ABA *ABA   // Set reg A to 200 million
 :Lbl1
-var Test var Test2
+:Test1 :Test2
 rA 0 [ +ABC ]            // Do the loop C=A+b
-Test1 Test2 Lbl1
-tE -ESA ,N .A ,N         // Print elapsed time
+// Test1 Test2 Lbl1
+tE -ESA ,N .A            // Print elapsed time
