@@ -74,7 +74,9 @@ int sym;
 int int_val;
 char id_name[100];
 
-void syntax_error() { fprintf(stderr, "syntax error\n"); exit(1); }
+void message(char *msg) { fprintf(stderr, "%s\n", msg); }
+void error(char *err) { message(err); exit(1); }
+void syntax_error() { error("-syntax error-"); }
 
 void next_ch() { ch = getchar(); }
 
@@ -201,28 +203,24 @@ node *statement() {
           next_sym();
           x->o3 = statement();
       }
-  }
-  else if (sym == WHILE_SYM) { /* "while" <paren_expr> <statement> */
+  } else if (sym == WHILE_SYM) { /* "while" <paren_expr> <statement> */
      next_sym(); x=gen(WHILE, paren_expr(), statement());
-  }
-  else if (sym == DO_SYM)  /* "do" <statement> "while" <paren_expr> ";" */
-    { x = new_node(DO);
+  } else if (sym == DO_SYM) { /* "do" <statement> "while" <paren_expr> ";" */
+      x = new_node(DO);
       next_sym();
       x->o1 = statement();
       if (sym == WHILE_SYM) next_sym(); else syntax_error();
       x->o2 = paren_expr();
       if (sym == SEMI) next_sym(); else syntax_error();
-    }
-  else if (sym == SEMI)  /* ";" */
-    { x = new_node(EMPTY); next_sym(); }
-  else if (sym == LBRA)  /* "{" { <statement> } "}" */
-    { x = new_node(EMPTY);
+  } else if (sym == SEMI) { /* ";" */
+      x = new_node(EMPTY); next_sym();
+  } else if (sym == LBRA) { /* "{" { <statement> } "}" */
+      x = new_node(EMPTY);
       next_sym();
       while (sym != RBRA)
         { t=x; x=new_node(SEQ); x->o1=t; x->o2=statement(); }
       next_sym();
-    }
-  else { /* <expr> ";" */
+  } else { /* <expr> ";" */
       x = gen(EXPR, expr(), NULL);
       if (sym == SEMI) next_sym(); else syntax_error();
   }
@@ -240,7 +238,7 @@ node *program() {
 /*---------------------------------------------------------------------------*/
 /* Code generator. */
 
-enum { IFETCH, ISTORE, IPUSH, IPOP, IADD, ISUB, IMUL, IDIV, ILT, IGT, JZ, JNZ, JMP, HALT };
+enum { IFETCH, ISTORE, IPUSH, IDROP, IADD, ISUB, IMUL, IDIV, ILT, IGT, JZ, JNZ, JMP, HALT };
 
 typedef char code;
 code object[1000], *here = object;
@@ -269,52 +267,56 @@ void c(node *x) {
       case DO   : p1=here; c(x->o1); c(x->o2); g(JNZ); fix(hole(),p1); break;
       case EMPTY: break;
       case SEQ  : c(x->o1); c(x->o2); break;
-      case EXPR : c(x->o1); g(IPOP); break;
-      case PROG : c(x->o1); g(HALT); break;
+      case EXPR : c(x->o1); g(IDROP); break;
+      case PROG : c(x->o1); g(HALT);  break;
     }
 }
 
 /*---------------------------------------------------------------------------*/
 /* Virtual machine. */
 
-int globals[26];
+int globals[26], sp;
 
 #define ACASE    goto again; case
+#define TOS      st[sp]
+#define NOS      st[sp-1]
 
-void run() {
-  int stack[1000], *sp = stack;
-  code *pc = &object[0];
+void run(code *pc) {
+  long st[1000];
   again:
   switch (*pc++) {
-      case IFETCH : *sp++ = globals[*pc++];
-      ACASE ISTORE: globals[*pc++] = sp[-1];
-      ACASE IPUSH : *sp++ = *pc++;
-      ACASE IPOP  : --sp;
-      ACASE IADD  : sp[-2] += sp[-1]; --sp;
-      ACASE ISUB  : sp[-2] -= sp[-1]; --sp;
-      ACASE IMUL  : sp[-2] *= sp[-1]; --sp;
-      ACASE IDIV  : sp[-2] /= sp[-1]; --sp;
-      ACASE ILT   : sp[-2] = sp[-2] < sp[-1]; --sp;
-      ACASE IGT   : sp[-2] = sp[-2] > sp[-1]; --sp;
+      case IFETCH : st[++sp] = globals[*pc++];
+      ACASE ISTORE: globals[*pc++] = st[sp];
+      ACASE IPUSH : st[++sp] = *pc++;
+      ACASE IDROP : --sp;
+      ACASE IADD  : NOS += TOS; --sp;
+      ACASE ISUB  : NOS -= TOS; --sp;
+      ACASE IMUL  : NOS *= TOS; --sp;
+      ACASE IDIV  : NOS /= TOS; --sp;
+      ACASE ILT   : NOS =  NOS<TOS; --sp;
+      ACASE IGT   : NOS =  NOS>TOS; --sp;
       ACASE JMP   : pc += *pc;
-      ACASE JZ    : if (*--sp == 0) pc += *pc; else pc++;
-      ACASE JNZ   : if (*--sp != 0) pc += *pc; else pc++;
+      ACASE JZ    : if (st[sp--] == 0) pc += *pc; else pc++;
+      ACASE JNZ   : if (st[sp--] != 0) pc += *pc; else pc++;
+      ACASE HALT  : return;
   }
 }
 
 /*---------------------------------------------------------------------------*/
-
 /* Main program. */
 
 int main() {
-  int i;
   c(program());
-  printf("(%d nodes)\n", num_nodes);
 
-  for (i=0; i<26; i++) { globals[i] = 0; }
-  run();
-  for (i=0; i<26; i++) {
+  printf("(nodes: %d, ", num_nodes);
+  printf("code: %ld bytes)\n", here-&object[0]);
+
+  sp=0;
+  for (int i=0; i<26; i++) { globals[i] = 0; }
+  run(object);
+  for (int i=0; i<26; i++) {
     if (globals[i] != 0) printf("%c = %d\n", 'a'+i, globals[i]);
   }
+  if (sp) { error("-stack not empty-"); }
   return 0;
 }
