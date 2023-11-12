@@ -1,6 +1,6 @@
 {
-  a=1; b=a+2;
-  if (a<1) { c=a+b; } else { d=a*(b+1); }
+  a = 1; b=a+2;
+  if (a < 1) { c=a+b; } else { d = a*(b+1); }
   e=b*7;
   f=e/3;
   { i=100; while (i>1) { s=s+i; i=i-1; } }
