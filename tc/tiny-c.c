@@ -27,9 +27,9 @@
  *  <paren_expr> ::= "(" <expr> ")"
  *  <expr> ::= <test> | <id> "=" <expr>
  *  <test> ::= <math> | <math> "<" <math> | <math> ">" <math>
-*  <math> ::= <term> | <math> <math_op> <term>
-*  <math_op> ::= "+" | "-" | "*" | "/"
-*  <term> ::= <id> | <int> | <paren_expr>
+ *  <math> ::= <term> | <math> <math_op> <term>
+ *  <math_op> ::= "+" | "-" | "*" | "/"
+ *  <term> ::= <id> | <unt> | <paren_expr>
  *  <id> ::= "a" | "b" | "c" | "d" | ... | "z"
  *  <int> ::= <an_unsigned_decimal_integer>
  *
@@ -329,7 +329,7 @@ int main(int argc, char *argv[]) {
   c(program());
 
   printf("(nodes: %d, ", num_nodes);
-  printf("code: %ld bytes)\n", here-&object[0]);
+  printf("code: %ld bytes)\n", (int)(here-&object[0]));
 
   sp=0;
   for (int i=0; i<26; i++) { globals[i] = 0; }
