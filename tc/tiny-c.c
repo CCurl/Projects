@@ -27,12 +27,9 @@
  *  <paren_expr> ::= "(" <expr> ")"
  *  <expr> ::= <test> | <id> "=" <expr>
  *  <test> ::= <math> | <math> "<" <math> | <math> ">" <math>
- *  <math> ::= <term> |
- *            <math> "+" <term> |
- *            <math> "-" <term> |
- *            <math> "*" <term> |
- *            <math> "/" <term>
- *  <term> ::= <id> | <int> | <paren_expr>
+*  <math> ::= <term> | <math> <math_op> <term>
+*  <math_op> ::= "+" | "-" | "*" | "/"
+*  <term> ::= <id> | <int> | <paren_expr>
  *  <id> ::= "a" | "b" | "c" | "d" | ... | "z"
  *  <int> ::= <an_unsigned_decimal_integer>
  *
@@ -59,7 +56,6 @@
  * highlight the structure of the compiler.
  */
 
-
 /*---------------------------------------------------------------------------*/
 /* Lexer. */
 
@@ -73,12 +69,17 @@ int ch = ' ';
 int sym;
 int int_val;
 char id_name[100];
+FILE *input_fp = NULL;
 
 void message(char *msg) { fprintf(stderr, "%s\n", msg); }
 void error(char *err) { message(err); exit(1); }
 void syntax_error() { error("-syntax error-"); }
 
-void next_ch() { ch = getchar(); }
+void next_ch() {
+    if (input_fp) { ch = fgetc(input_fp); }
+    else { ch = getchar(); }
+    // printf("%c", ch);
+}
 
 void next_sym() {
   again:
@@ -115,6 +116,7 @@ void next_sym() {
             }
         } else { syntax_error(); }
     }
+    // printf("-[sym:%d]-",sym);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -140,6 +142,11 @@ node *gen(int k, node *o1, node *o2) {
     return x;
 }
 
+void expect_sym(int exp) {
+    if (sym != exp) { syntax_error(); }
+    next_sym();
+}
+
 node *paren_expr(); /* forward declaration */
 
 /* <term> ::= <id> | <int> | <paren_expr> */
@@ -151,21 +158,27 @@ node *term() {
   return x;
 }
 
-/* <math> ::= <term> | <math> "+" <term> | <math> "-" <term> */
+int mathop() {
+    if (sym==PLUS) { return ADD; }
+    else if (sym==MINUS) { return SUB; }
+    else if (sym==STAR)  { return MUL; }
+    else if (sym==SLASH) { return DIV; }
+    return 0;
+}
+
+/* <math> ::= <term> | <math> <math_op> <term> */
+/* <math_op> ::= "+" | "-" | "*" | "/" */
 node *sum() {
-  node *t, *x = term();
-  while ((sym == PLUS) || (sym == MINUS) || (sym == STAR) || (sym == SLASH)) {
-    t=x; x=new_node(0);
-    if (sym==PLUS) { x->kind=ADD; }
-    else if (sym==MINUS) { x->kind=SUB; }
-    else if (sym==STAR)  { x->kind=MUL; }
-    else if (sym==SLASH) { x->kind=DIV; }
-    next_sym(); x->o1=t; x->o2=term();
+  node *x = term();
+  while (mathop()) {
+    x=gen(mathop(), x, 0);
+    next_sym();
+    x->o2=term();
   }
   return x;
 }
 
-/* <test> ::= <math> | <math> "<" <math> */
+/* <test> ::= <math> | <math> "<" <math> | <math> ">" <math> */
 node *test() {
   node *x = sum();
   if (sym == LESS) { next_sym(); return gen(LT, x, sum()); }
@@ -175,7 +188,7 @@ node *test() {
 
 /* <expr> ::= <test> | <id> "=" <expr> */
 node *expr() {
-  node *t, *x;
+  node *x;
   if (sym != ID) return test();
   x = test();
   if ((x->kind==VAR) && (sym==EQUAL)) { next_sym(); return gen(SET, x, expr()); }
@@ -185,14 +198,14 @@ node *expr() {
 /* <paren_expr> ::= "(" <expr> ")" */
 node *paren_expr() {
   node *x;
-  if (sym == LPAR) next_sym(); else syntax_error();
+  expect_sym(LPAR);
   x = expr();
-  if (sym == RPAR) next_sym(); else syntax_error();
+  expect_sym(RPAR);
   return x;
 }
 
 node *statement() {
-  node *t, *x;
+  node *x;
   if (sym == IF_SYM) { /* "if" <paren_expr> <statement> */
       x = new_node(IF1);
       next_sym();
@@ -204,25 +217,31 @@ node *statement() {
           x->o3 = statement();
       }
   } else if (sym == WHILE_SYM) { /* "while" <paren_expr> <statement> */
-     next_sym(); x=gen(WHILE, paren_expr(), statement());
+     x=new_node(WHILE);
+     next_sym();
+     x->o1=paren_expr();
+     x->o2=statement();
   } else if (sym == DO_SYM) { /* "do" <statement> "while" <paren_expr> ";" */
       x = new_node(DO);
       next_sym();
       x->o1 = statement();
-      if (sym == WHILE_SYM) next_sym(); else syntax_error();
+      expect_sym(WHILE_SYM);
       x->o2 = paren_expr();
-      if (sym == SEMI) next_sym(); else syntax_error();
+      expect_sym(SEMI);
   } else if (sym == SEMI) { /* ";" */
-      x = new_node(EMPTY); next_sym();
+      x = new_node(EMPTY);
+      next_sym();
   } else if (sym == LBRA) { /* "{" { <statement> } "}" */
       x = new_node(EMPTY);
       next_sym();
-      while (sym != RBRA)
-        { t=x; x=new_node(SEQ); x->o1=t; x->o2=statement(); }
+      while (sym != RBRA) {
+        x =gen(SEQ, x, 0);
+        x->o2=statement();
+      }
       next_sym();
   } else { /* <expr> ";" */
       x = gen(EXPR, expr(), NULL);
-      if (sym == SEMI) next_sym(); else syntax_error();
+      expect_sym(SEMI);
   }
   return x;
 }
@@ -305,7 +324,8 @@ void run(code *pc) {
 /*---------------------------------------------------------------------------*/
 /* Main program. */
 
-int main() {
+int main(int argc, char *argv[]) {
+  if (argc>1) { input_fp = fopen(argv[1], "rt"); }
   c(program());
 
   printf("(nodes: %d, ", num_nodes);
