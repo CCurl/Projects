@@ -22,6 +22,9 @@
  *                  "while" <paren_expr> <statement> |
  *                  "do" <statement> "while" <paren_expr> ";" |
  *                  "{" { <statement> } "}" |
+ *                  "def" <id> "{" <statement> "}" |
+ *                  "val" <id> ";" |
+ *                  "void" <id> "(" ")" "{" <statement> "}" |
  *                  <expr> ";" |
  *                  ";"
  *  <paren_expr> ::= "(" <expr> ")"
@@ -29,9 +32,10 @@
  *  <test> ::= <math> | <math> "<" <math> | <math> ">" <math>
  *  <math> ::= <term> | <math> <math_op> <term>
  *  <math_op> ::= "+" | "-" | "*" | "/"
- *  <term> ::= <id> | <unt> | <paren_expr>
+ *  <term> ::= <id> | <unt> | <paren_expr> | <func>
  *  <id> ::= "a" | "b" | "c" | "d" | ... | "z"
  *  <int> ::= <an_unsigned_decimal_integer>
+ *  <func> ::= <id> "(" ")" ";"
  *
  * Here are a few invocations of the compiler:
  *
