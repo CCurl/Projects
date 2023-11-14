@@ -1,20 +1,22 @@
-int a;
-int b;
-int XYZ_abc;
+int nXYZ_abc_09;
 
-void abc() {
-  r=5;
-  t=r*r;
-  q=t*t;
+void Abc01_X() {
+	r=5;
+	t=r*r;
+	q=t*t;
 }
 
 {
-  a = 11; b=a+2;
-  if (a < 1) { c=a+b; }
-  else { d = a*(b+1); }
-  if (a > 1) { g=a*a; }
-  e=b*7;
-  f=e/3;
-  i=100;
-  while (i>1) { s=s+i; i=i-1; }
+	Abc00_X();
+	a = 11; b=a+2; z=999999;
+	if (a < 1) { c=a+b; }
+	else { d = a*(b+1); }
+	if (a > 1) { g=a*a; }
+	e = b*7;
+	f = e/3;
+	i = 15*1000;
+	while (i>1) { s=s+(i=i-1); }
+	n=1;
+	do { i=i+n; n=n+1; } while (i<1000);
+	aBC99_X();
 }
