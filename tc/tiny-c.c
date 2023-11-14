@@ -16,15 +16,16 @@
  * program from standard input and prints out the value of the
  * variables that are not zero.  The grammar of Tiny-C in EBNF is:
  *
- *  <program> ::= <statement>
+ *  <program> ::= <defs>
+ *  <defs> ::= <def> | <def> <def>
+ *  <def> ::= <func_def> | <var_def>
+ *  <func_def> ::= "void" <id> "(" ")" "{" <statement> "}" |
+ *  <var_def> ::= "int" <id> ";"
  *  <statement> ::= "if" <paren_expr> <statement> |
  *                  "if" <paren_expr> <statement> "else" <statement> |
  *                  "while" <paren_expr> <statement> |
  *                  "do" <statement> "while" <paren_expr> ";" |
  *                  "{" { <statement> } "}" |
- *                  "def" <id> "{" <statement> "}" |
- *                  "val" <id> ";" |
- *                  "void" <id> "(" ")" "{" <statement> "}" |
  *                  <expr> ";" |
  *                  ";"
  *  <paren_expr> ::= "(" <expr> ")"
@@ -32,8 +33,9 @@
  *  <test> ::= <math> | <math> "<" <math> | <math> ">" <math>
  *  <math> ::= <term> | <math> <math_op> <term>
  *  <math_op> ::= "+" | "-" | "*" | "/"
- *  <term> ::= <id> | <unt> | <paren_expr> | <func>
- *  <id> ::= "a" | "b" | "c" | "d" | ... | "z"
+ *  <term> ::= <id> | <int> | <paren_expr> | <func>
+ *  <id> ::= "a" | "b" | "c" | "d" | ... | "z" -- FOR NOW
+ *  <id> ::= [A-Z|a-z][A-Z|a-z|0-9|_]*
  *  <int> ::= <an_unsigned_decimal_integer>
  *  <func> ::= <id> "(" ")" ";"
  *
@@ -64,25 +66,37 @@
 /* Lexer. */
 
 #define BTWI(n,l,h) ((l<=n)&&(n<=h))
-enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, LBRA, RBRA, LPAR, RPAR,
-       PLUS, MINUS, STAR, SLASH, LESS, GRT, SEMI, EQUAL, INT, ID, EOI };
+enum { DO_SYM, ELSE_SYM, IF_SYM, WHILE_SYM, VOID_SYM, INT_SYM, //  0->5
+       LBRA, RBRA, LPAR, RPAR,                                 //  6->9
+       PLUS, MINUS, STAR, SLASH, LESS, GRT, SEMI, EQUAL,       // 10->17
+       INT, ID, EOI };                                         // 18->20
 
-char *words[] = { "do", "else", "if", "while", NULL };
+char *words[] = { "do", "else", "if", "while", "void", "int", NULL };
 
-int ch = ' ';
-int sym;
-int int_val;
-char id_name[100];
+int ch = ' ', sym, int_val;
+char id_name[64];
 FILE *input_fp = NULL;
 
-void message(char *msg) { fprintf(stderr, "%s\n", msg); }
+void message(char *msg) { fprintf(stdout, "%s\n", msg); }
 void error(char *err) { message(err); exit(1); }
 void syntax_error() { error("-syntax error-"); }
 
 void next_ch() {
     if (input_fp) { ch = fgetc(input_fp); }
     else { ch = getchar(); }
-    // printf("%c", ch);
+    //printf("(%d)", ch);
+}
+
+int isAlpha(int ch) {
+  return BTWI(ch,'A','Z') || BTWI(ch,'a','z') || (ch=='_');
+}
+
+int isNum(int ch) {
+  return BTWI(ch,'0','9');
+}
+
+int isAlphaNum(int ch) {
+  return isAlpha(ch) || isNum(ch);
 }
 
 void next_sym() {
@@ -103,24 +117,26 @@ void next_sym() {
       case ';': next_ch(); sym = SEMI;  break;
       case '=': next_ch(); sym = EQUAL; break;
       default:
-        if (BTWI(ch,'0','9')) {
+        if (isNum(ch)) {
             int_val = 0; /* missing overflow check */
-            while (BTWI(ch,'0','9')) {
-                int_val = int_val*10 + (ch - '0'); next_ch(); }
+            while (isNum(ch)) { int_val = int_val*10 + (ch - '0'); next_ch(); }
             sym = INT;
-        } else if (BTWI(ch,'a','z')) {
+        } else if (isAlpha(ch)) {
             int i = 0; /* missing overflow check */
-            while (BTWI(ch,'a','z') || ch == '_') { id_name[i++]=ch; next_ch(); }
+            while (isAlphaNum(ch)) { id_name[i++]=ch; next_ch(); }
             id_name[i] = '\0';
             sym = 0;
             while (words[sym] != NULL && strcmp(words[sym], id_name) != 0) { sym++; }
+            // printf("-ID:%s:%d-", id_name, sym);
             if (words[sym] == NULL) {
-              if (id_name[1] == '\0') { sym = ID; } // a-z only for now
-              else { syntax_error(); }
+              sym = ID;
+              // if (id_name[1] == '\0') { sym = ID; } // a-z only for now
+              // else { message("-id-len-"); syntax_error(); }
             }
-        } else { syntax_error(); }
+        } else { message("-ch-"); syntax_error(); }
+        break;
     }
-    // printf("-[sym:%d]-",sym);
+    //fsprintf("-[sym:%d]-",sym);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -147,7 +163,7 @@ node *gen(int k, node *o1, node *o2) {
 }
 
 void expect_sym(int exp) {
-    if (sym != exp) { syntax_error(); }
+    if (sym != exp) { printf("-expected[%d],not[%d]-", exp, sym); syntax_error(); }
     next_sym();
 }
 
@@ -251,11 +267,46 @@ node *statement() {
 }
 
 /* <program> ::= <statement> */
-node *program() {
+node *defs(node *st) {
+  node *x = st;
   next_sym();
-  node *x = gen(PROG, statement(), NULL);
-  if (sym != EOI) syntax_error();
-  return x;
+  while (1) {
+    if (sym==EOI) { break; }
+    if (sym==LBRA) { break; }
+    if (sym==VOID_SYM) {
+      next_sym(); expect_sym(ID);
+      printf("-FUNC %s-", id_name);
+      expect_sym(LPAR);
+      expect_sym(RPAR);
+      expect_sym(LBRA);
+      x = new_node(EMPTY);
+      while (sym != RBRA) {
+        x=gen(SEQ, x, NULL);
+        x->o2=statement();
+      }
+      next_sym();
+      continue;
+    }
+    if (sym==INT_SYM) {
+      next_sym(); expect_sym(ID);
+      printf("-VAR %s-", id_name);
+      expect_sym(SEMI);
+      continue;
+    }
+    message("-def?-"); syntax_error();
+  }
+  return st;
+}
+
+/* <program> ::= <statement> */
+node *program() {
+  node *prog = gen(PROG, NULL, NULL);
+  node *code = defs(prog);
+  if (sym != EOI) {
+    if (code->kind != PROG) { code = gen(SEQ, code, NULL); }
+    code->o1 = statement();
+  }
+  return prog;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -274,16 +325,16 @@ void c(node *x) {
   code *p1, *p2;
   switch (x->kind)
     { case VAR  : g(IFETCH); g(x->val); break;
-      case CST  : g(IPUSH); g(x->val); break;
-      case ADD  : c(x->o1); c(x->o2); g(IADD); break;
-      case MUL  : c(x->o1); c(x->o2); g(IMUL); break;
-      case SUB  : c(x->o1); c(x->o2); g(ISUB); break;
-      case DIV  : c(x->o1); c(x->o2); g(IDIV); break;
-      case LT   : c(x->o1); c(x->o2); g(ILT); break;
-      case GT   : c(x->o1); c(x->o2); g(IGT); break;
-      case SET  : c(x->o2); g(ISTORE); g(x->o1->val); break;
-      case IF1  : c(x->o1); g(JZ); p1=hole(); c(x->o2); fix(p1,here); break;
-      case IF2  : c(x->o1); g(JZ); p1=hole(); c(x->o2); g(JMP); p2=hole();
+      case CST  : g(IPUSH);  g(x->val); break;
+      case ADD  : c(x->o1);  c(x->o2); g(IADD); break;
+      case MUL  : c(x->o1);  c(x->o2); g(IMUL); break;
+      case SUB  : c(x->o1);  c(x->o2); g(ISUB); break;
+      case DIV  : c(x->o1);  c(x->o2); g(IDIV); break;
+      case LT   : c(x->o1);  c(x->o2); g(ILT); break;
+      case GT   : c(x->o1);  c(x->o2); g(IGT); break;
+      case SET  : c(x->o2);  g(ISTORE); g(x->o1->val); break;
+      case IF1  : c(x->o1);  g(JZ); p1=hole(); c(x->o2); fix(p1,here); break;
+      case IF2  : c(x->o1);  g(JZ); p1=hole(); c(x->o2); g(JMP); p2=hole();
                   fix(p1,here); c(x->o3); fix(p2,here); break;
       case WHILE: p1=here; c(x->o1); g(JZ); p2=hole(); c(x->o2);
                   g(JMP); fix(hole(),p1); fix(p2,here); break;
@@ -333,7 +384,7 @@ int main(int argc, char *argv[]) {
   c(program());
 
   printf("(nodes: %d, ", num_nodes);
-  printf("code: %ld bytes)\n", (int)(here-&object[0]));
+  printf("code: %d bytes)\n", (int)(here-&object[0]));
 
   sp=0;
   for (int i=0; i<26; i++) { globals[i] = 0; }

@@ -1,7 +1,20 @@
+int a;
+int b;
+int XYZ_abc;
+
+void abc() {
+  r=5;
+  t=r*r;
+  q=t*t;
+}
+
 {
   a = 11; b=a+2;
-  if (a < 1) { c=a+b; } else { d = a*(b+1); }
+  if (a < 1) { c=a+b; }
+  else { d = a*(b+1); }
+  if (a > 1) { g=a*a; }
   e=b*7;
   f=e/3;
-  { i=100; while (i>1) { s=s+i; i=i-1; } }
+  i=100;
+  while (i>1) { s=s+i; i=i-1; }
 }
