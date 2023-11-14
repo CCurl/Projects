@@ -314,7 +314,8 @@ node *program() {
 /*---------------------------------------------------------------------------*/
 /* Code generator. */
 
-enum { IFETCH, ISTORE, IPUSH, IDROP, IADD, ISUB, IMUL, IDIV, ILT, IGT, JZ, JNZ, JMP, ICALL, IRET, HALT };
+enum { IFETCH, ISTORE, IP1, IP2, IP4, IDROP, IADD, ISUB, IMUL, IDIV,
+        ILT, IGT, JZ, JNZ, JMP, ICALL, IRET, HALT };
 
 typedef char code;
 code vm[1000], *here = vm;
@@ -337,7 +338,10 @@ void c(node *x) {
     code *p1, *p2;
     switch (x->kind) {
         case VAR  : g(IFETCH); g2(x->val); break;
-        case CST  : g(IPUSH);  g4(x->val); break;
+        case CST  : if (BTWI(x->val,0,127)) { g(IP1); g(x->val); }
+                    else if (BTWI(x->val,128,32767)) { g(IP2); g2(x->val);  }
+                    else { g(IP4); g4(x->val);  }
+                    break;
         case ADD  : c(x->o1);  c(x->o2); g(IADD); break;
         case MUL  : c(x->o1);  c(x->o2); g(IMUL); break;
         case SUB  : c(x->o1);  c(x->o2); g(ISUB); break;
@@ -368,17 +372,17 @@ int globals[26], sp, rsp;
 #define TOS      st[sp]
 #define NOS      st[sp-1]
 
-int f4(unsigned char *pc) {
-    int x=*(pc+3);
-    x = (x<<8)|*(pc+2);
-    x = (x<<8)|*(pc+1);
-    x = (x<<8)|*(pc+0);
-    return (int)x;
+int f4(unsigned char *a) {
+    int x=*(a+3);
+    x = (x<<8)|*(a+2);
+    x = (x<<8)|*(a+1);
+    x = (x<<8)|*(a+0);
+    return x;
 }
 
-int f2(code *pc) {
-    int x=*(pc+1);
-    x = (x<<8)|*(pc+0);
+int f2(unsigned char *a) {
+    int x=*(a+1);
+    x = (x<<8)|*(a+0);
     return x;
 }
 
@@ -389,7 +393,9 @@ void run(code *pc) {
     switch (*pc++) {
         case  IFETCH: st[++sp] = globals[f2(pc)]; pc +=2;
         ACASE ISTORE: globals[f2(pc)] = st[sp]; pc += 2;
-        ACASE IPUSH : st[++sp] = f4(pc); pc += 4;
+        ACASE IP1   : st[++sp] = *(pc++);
+        ACASE IP2   : st[++sp] = f2(pc); pc += 2;
+        ACASE IP4   : st[++sp] = f4(pc); pc += 4;
         ACASE IDROP : --sp;
         ACASE IADD  : NOS += TOS; --sp;
         ACASE ISUB  : NOS -= TOS; --sp;
