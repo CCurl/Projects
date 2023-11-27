@@ -31,6 +31,9 @@
 #define DROP1      pop()
 #define DROP2      pop(); pop()
 #define BetweenI(n, x, y) ((x <= n) && (n <= y))
+#define NEXT       goto next
+#define NCASE      NEXT; case
+#define RCASE      return; case
 
 typedef struct {
     addr start;

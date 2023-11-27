@@ -318,6 +318,7 @@ enum { IFETCH, ISTORE, IP1, IP2, IP4, IDROP, IADD, ISUB, IMUL, IDIV,
         ILT, IGT, JZ, JNZ, JMP, ICALL, IRET, HALT };
 
 typedef char code;
+typedef unsigned char byte;
 code vm[1000], *here = vm;
 
 void g(code c) { *here++ = c; } /* missing overflow check */
@@ -372,7 +373,7 @@ int globals[26], sp, rsp;
 #define TOS      st[sp]
 #define NOS      st[sp-1]
 
-int f4(unsigned char *a) {
+int f4(byte *a) {
     int x=*(a+3);
     x = (x<<8)|*(a+2);
     x = (x<<8)|*(a+1);
@@ -380,7 +381,7 @@ int f4(unsigned char *a) {
     return x;
 }
 
-int f2(unsigned char *a) {
+int f2(byte *a) {
     int x=*(a+1);
     x = (x<<8)|*(a+0);
     return x;
@@ -391,11 +392,11 @@ void run(code *pc) {
     code *rst[1000];
     again:
     switch (*pc++) {
-        case  IFETCH: st[++sp] = globals[f2(pc)]; pc +=2;
-        ACASE ISTORE: globals[f2(pc)] = st[sp]; pc += 2;
+        case  IFETCH: st[++sp] = globals[f2((byte*)pc)]; pc +=2;
+        ACASE ISTORE: globals[f2((byte*)pc)] = st[sp]; pc += 2;
         ACASE IP1   : st[++sp] = *(pc++);
-        ACASE IP2   : st[++sp] = f2(pc); pc += 2;
-        ACASE IP4   : st[++sp] = f4(pc); pc += 4;
+        ACASE IP2   : st[++sp] = f2((byte*)pc); pc += 2;
+        ACASE IP4   : st[++sp] = f4((byte*)pc); pc += 4;
         ACASE IDROP : --sp;
         ACASE IADD  : NOS += TOS; --sp;
         ACASE ISUB  : NOS -= TOS; --sp;
@@ -406,11 +407,45 @@ void run(code *pc) {
         ACASE JMP   : pc += *pc;
         ACASE JZ    : if (st[sp--] == 0) pc += *pc; else pc++;
         ACASE JNZ   : if (st[sp--] != 0) pc += *pc; else pc++;
-        ACASE ICALL : /* rst[rsp++] = pc+2; pc=f2(pc); */
-                        printf("-run:call %d-\n", f2(pc)); pc += 2; 
-        ACASE IRET : if (rst) { pc=rst[--rsp]; } else { error("-return-"); }
+        ACASE ICALL : /* rst[rsp++] = pc+2; pc=f2((byte*)pc); */
+                        printf("-run:call %d-\n", f2((byte*)pc)); pc += 2;
+        ACASE IRET : if (rsp) { pc=rst[--rsp]; } else { error("-return-"); }
         ACASE HALT  : return;
     }
+}
+
+/*---------------------------------------------------------------------------*/
+/* Disassembly. */
+
+void dis() {
+    code *pc = &vm[0];
+    FILE *fp = fopen("list.txt", "wt");
+  again:
+    if (here <= pc) { return; }
+    int p = (int)(pc-&vm[0]) + 1;
+    fprintf(fp,"\n%04d: %02d ; ", p, *pc);
+    switch (*pc++) {
+        case  IFETCH: fprintf(fp,"fetch %d", f2((byte*)pc)); pc +=2;
+        ACASE ISTORE: fprintf(fp,"store %d", f2((byte*)pc)); pc +=2;
+        ACASE IP1   : fprintf(fp,"lit1 %d", *(pc++));
+        ACASE IP2   : fprintf(fp,"lit2 %d", f2((byte*)pc)); pc +=2;
+        ACASE IP4   : fprintf(fp,"lit4 %d", f4((byte*)pc)); pc +=4;
+        ACASE IDROP : fprintf(fp,"drop");
+        ACASE IADD  : fprintf(fp,"add");
+        ACASE ISUB  : fprintf(fp,"sub");
+        ACASE IMUL  : fprintf(fp,"mul");
+        ACASE IDIV  : fprintf(fp,"div");
+        ACASE ILT   : fprintf(fp,"lt");
+        ACASE IGT   : fprintf(fp,"gt");
+        ACASE JMP   : fprintf(fp,"jmp %d", p+1+(*pc++));
+        ACASE JZ    : fprintf(fp,"jz %d",  p+1+(*pc++));
+        ACASE JNZ   : fprintf(fp,"jnz %d", p+1+(*pc++));
+        ACASE ICALL : fprintf(fp,"call %d", f2((byte*)pc)); pc += 2;
+        ACASE IRET  : fprintf(fp,"ret");
+        ACASE HALT  : fprintf(fp,"halt");
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -422,7 +457,7 @@ int main(int argc, char *argv[]) {
 
     printf("(nodes: %d, ", num_nodes);
     printf("code: %d bytes)\n", (int)(here-&vm[0]));
-
+    dis();
     sp=rsp=0;
     for (int i=0; i<26; i++) { globals[i] = 0; }
     run(vm);
