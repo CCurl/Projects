@@ -285,23 +285,3 @@ _sqrt:      ; xxx TOS
 
 _tanh:      ; xxx TOS
             jmp next
-
-_stop, _lit1, _lit, _exit, _call, _jmp, _jmpz, _jmpnz, _store, _cstore, 
-_fetch, _cfetch, _dup, _swap, _over, _drop, _add, _mult, _slmod, _sub,
-_inc, _dec, _lt, _eq, _gt, _eq0, _rto, _rfetch, _rfrom, _do, 
-_loop, _loop2, _index, _com, _and, _or, _xor, _type, _ztype, _reg_i, 
-_reg_d, _reg_r, _reg_rd, _reg_ri, _reg_s, _reg_new, _reg_free,
-_sys_ops, _str_ops, _flt_ops, 
-
-_xx-sys-ops, 
-_inline, _immediate, _dot, _x3, _itoa, _atoi, _colondef, _endword, 
-_create, _find, _word, _timer, _ccomma, _comma, _key, _qkey, 
-_emit, _qtype, 
-
-_xx-str-ops, 
-_trunc, _lcase, _ucase, _x3, _strcpy, _strcat, _strcatc, _strlen, 
-_streq, _streqi, _ltrim, _rtrim, 
-
-_flt-ops, 
-_fadd, _fsub, _fmul, _x3, _fdiv, _feq, _flt, _fgt, 
-_f2i, _i2f, _fdot, _sqrt, _tanh, 
