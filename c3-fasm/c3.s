@@ -248,9 +248,34 @@ segment readable writable
 
 hi:   db 'test 123', 10, 0
 c3:   db 'c3: ', 10, 0
+
 tbl:  dq bye, lit1, lit, exit, fcall, fjmp, fjmpz, fjmpnz   ;  0 ->  7
       dq type, emit                                         ;  8 ->  9
       dq myAdd, mySub                                       ; 10 -> 11
+
+
+c3_ops:
+_stop, _lit1, _lit, _exit, _call, _jmp, _jmpz, _jmpnz, _store, _cstore, ;  0 ->  9
+_fetch, _cfetch, _dup, _swap, _over, _drop, _add, _mult, _slmod, _sub,  ; 10 -> 19
+_inc, _dec, _lt, _eq, _gt, _eq0, _rto, _rfetch, _rfrom, _do,            ; 20 -> 29
+_loop, _loop2, _index, _com, _and, _or, _xor, _type, _ztype, _reg_i,    ; 30 -> 39
+_reg_d, _reg_r, _reg_rd, _reg_ri, _reg_s, _reg_new, _reg_free,          ; 40 -> 49
+_sys_ops, _str_ops, _flt_ops                                            ; 50 -> 52
+
+sys_ops:
+_inline, _immediate, _dot, _x3, _itoa, _atoi, _colondef, _endword, 
+_create, _find, _word, _timer, _ccomma, _comma, _key, _qkey, 
+_emit, _qtype
+
+str_ops:
+_trunc, _lcase, _ucase, _x3, _strcpy, _strcat, _strcatc, _strlen, 
+_streq, _streqi, _ltrim, _rtrim, 
+
+flt_ops:
+_fadd, _fsub, _fmul, _x3, _fdiv, _feq, _flt, _fgt, 
+_f2i, _i2f, _fdot, _sqrt, _tanh
+
+
 ; here: rq 1
 toIn: rq 1
 last: rq 1
