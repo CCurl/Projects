@@ -1,25 +1,41 @@
-_stop:      ; xxx TOS
+_nop:       ; xxx TOS
             jmp next
 
-_lit1:      ; xxx TOS
+_stop:      xor rdi, rdi    ; exit code 0
+            mov rax, 60     ; sys_exit
+            syscall
+            ret
+
+_lit1:      nextByte rax
+            dPUSH rax
             jmp next
 
-_lit:       ; xxx TOS
+_lit:       nextCell rax
+            dPUSH rax
             jmp next
 
-_exit:      ; xxx TOS
+_exit:      rPOP PC
             jmp next
 
-_call:      ; xxx TOS
+_call:      nextCell rax
+            rPUSH PC
+            mov PC, rax
             jmp next
 
-_jmp:       ; xxx TOS
+_jmp:       nextCell rax
+            mov PC, rax
             jmp next
 
-_jmpz:      ; xxx TOS
+_jmpz:      dPOP rax
+            test rax, rax
+            jz _jmp
+            add PC, 8
             jmp next
 
-_jmpnz:     ; xxx TOS
+_jmpnz:     dPOP rax
+            test rax, rax
+            jnz _jmp
+            add PC, 8
             jmp next
 
 _store:     ; xxx TOS
@@ -46,7 +62,8 @@ _over:      ; xxx TOS
 _drop:      ; xxx TOS
             jmp next
 
-_add:       ; xxx TOS
+_add:       dPOP rax
+            add TOS, rax
             jmp next
 
 _mult:      ; xxx TOS
@@ -55,7 +72,8 @@ _mult:      ; xxx TOS
 _slmod:     ; xxx TOS
             jmp next
 
-_sub:       ; xxx TOS
+_sub:       dPOP rax
+            sub TOS, rax
             jmp next
 
 _inc:       ; xxx TOS
@@ -109,7 +127,9 @@ _or:        ; xxx TOS
 _xor:       ; xxx TOS
             jmp next
 
-_type:      ; xxx TOS
+_type:      dPOP rdx        ; len
+            dPOP rsi        ; string
+            call stype
             jmp next
 
 _ztype:     ; xxx TOS
@@ -139,17 +159,12 @@ _reg_new:   ; xxx TOS
 _reg_free:  ; xxx TOS
             jmp next
 
-_sys_ops:   ; xxx TOS
-            jmp next
-
-_str_ops:   ; xxx TOS
-            jmp next
-
-_flt_ops:   ; xxx TOS
-            jmp next
-
-_xx-sys-ops:; xxx TOS
-            jmp next
+; ------------------------------------------------------------------------------
+; SYS OPS
+; ------------------------------------------------------------------------------
+_sys_ops:   nextByte rcx
+            mov rax, [sys_ops+rcx*8]
+            jmp rax
 
 _inline:    ; xxx TOS
             jmp next
@@ -158,9 +173,6 @@ _immediate: ; xxx TOS
             jmp next
 
 _dot:       ; xxx TOS
-            jmp next
-
-_x3:        ; xxx TOS
             jmp next
 
 _itoa:      ; xxx TOS
@@ -199,14 +211,19 @@ _key:       ; xxx TOS
 _qkey:      ; xxx TOS
             jmp next
 
-_emit:      ; xxx TOS
+_emit:      dPOP rax
+            call semit
             jmp next
 
 _qtype:     ; xxx TOS
             jmp next
 
-_xx-str-ops:; xxx TOS
-            jmp next
+; ------------------------------------------------------------------------------
+; STRING OPS
+; ------------------------------------------------------------------------------
+_str_ops:   nextByte rcx
+            mov rax, [str_ops+rcx*8]
+            jmp rax
 
 _trunc:     ; xxx TOS
             jmp next
@@ -215,9 +232,6 @@ _lcase:     ; xxx TOS
             jmp next
 
 _ucase:     ; xxx TOS
-            jmp next
-
-_x3:        ; xxx TOS
             jmp next
 
 _strcpy:    ; xxx TOS
@@ -244,8 +258,12 @@ _ltrim:     ; xxx TOS
 _rtrim:     ; xxx TOS
             jmp next
 
-_flt-ops:   ; xxx TOS
-            jmp next
+; ------------------------------------------------------------------------------
+; FLOAT OPS
+; ------------------------------------------------------------------------------
+_flt_ops:   nextByte rcx
+            mov rax, [flt_ops+rcx*8]
+            jmp rax
 
 _fadd:      ; xxx TOS
             jmp next
@@ -254,9 +272,6 @@ _fsub:      ; xxx TOS
             jmp next
 
 _fmul:      ; xxx TOS
-            jmp next
-
-_x3:        ; xxx TOS
             jmp next
 
 _fdiv:      ; xxx TOS
