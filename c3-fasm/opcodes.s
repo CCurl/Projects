@@ -38,35 +38,46 @@ _jmpnz:     dPOP rax
             add PC, 8
             jmp next
 
-_store:     ; xxx TOS
+_store:     dPOP rsi
+            dPOP rax
+            mov [rsi], rax
             jmp next
 
-_cstore:    ; xxx TOS
+_cstore:    dPOP rsi
+            dPOP rax
+            mov [rsi], al
             jmp next
 
-_fetch:     ; xxx TOS
+_fetch:     mov TOS, qword [TOS]
             jmp next
 
-_cfetch:    ; xxx TOS
+_cfetch:    movzx TOS, byte [TOS]
             jmp next
 
-_dup:       ; xxx TOS
+_dup:       dPUSH TOS
             jmp next
 
-_swap:      ; xxx TOS
+_swap:      dPOP rax
+            dPOP rbx
+            dPUSH rax
+            dPUSH rbx
             jmp next
 
-_over:      ; xxx TOS
+_over:      dPOP rax
+            mov rbx, TOS
+            dPUSH rax
+            dPUSH rbx
             jmp next
 
-_drop:      ; xxx TOS
+_drop:      dPOP rax
             jmp next
 
 _add:       dPOP rax
             add TOS, rax
             jmp next
 
-_mult:      ; xxx TOS
+_mult:      dPOP rbx
+            imul TOS, rbx
             jmp next
 
 _slmod:     ; xxx TOS
@@ -76,55 +87,99 @@ _sub:       dPOP rax
             sub TOS, rax
             jmp next
 
-_inc:       ; xxx TOS
+_inc:       inc TOS
             jmp next
 
-_dec:       ; xxx TOS
+_dec:       dec TOS
             jmp next
 
-_lt:        ; xxx TOS
+_t:         mov TOS, 1
             jmp next
 
-_eq:        ; xxx TOS
+_f:         mov TOS, 0
             jmp next
 
-_gt:        ; xxx TOS
+_lt:        dPOP rax
+            cmp TOS, rax
+            jl _t
+            jmp _f
+
+_eq:        dPOP rax
+            cmp TOS, rax
+            je _t
+            jmp _f
+
+_gt:        dPOP rax
+            cmp TOS, rax
+            jg _t
+            jmp _f
+
+_eq0:       test TOS, TOS
+            jz _t
+            jmp _f
+
+_rto:       dPOP rax
+            rPUSH rax
             jmp next
 
-_eq0:       ; xxx TOS
+_rfetch:    dPUSH [RSP]
             jmp next
 
-_rto:       ; xxx TOS
+_rfrom:     rPOP rax
+            dPUSH rax
             jmp next
 
-_rfetch:    ; xxx TOS
+_do:        mov  rsi, [lsp]
+            add  rsi, 3
+            mov  [lsp], rsi
+            dPOP [rsi]              ; lstk[lsp] = Index
+            dPOP [rsi-8]            ; lstk[lsp-2] = Upper Bound
+            mov  [rsi-16], PC       ; lstk[lsp-2] = PC
+            jmp  next
+
+_unloop:    mov rsi, [lsp]
+            sub rsi, 24
+            cmp rsi, lstk
+            jge .1
+            mov rsi, lstk
+.1:         mov [lsp], rsi
             jmp next
 
-_rfrom:     ; xxx TOS
+_loop:      mov rsi, [lsp]
+            mov rax, [rsi]
+            inc rax
+            cmp rax, [rsi-8]
+            jge _unloop
+            mov [rsi], rax
+            mov PC, [rsi-16]
             jmp next
 
-_do:        ; xxx TOS
+_loop2:     mov rsi, [lsp]
+            mov rax, [rsi]
+            dec rax
+            cmp rax, [rsi-8]
+            jle _unloop
+            mov [rsi], rax
+            mov PC, [rsi-16]
             jmp next
 
-_loop:      ; xxx TOS
+_index:     mov rax, [lsp]
+            dPUSH rax
             jmp next
 
-_loop2:     ; xxx TOS
+_com:       not TOS
             jmp next
 
-_index:     ; xxx TOS
+_and:       dPOP rax
+            and TOS, rax
             jmp next
 
-_com:       ; xxx TOS
+_or:        dPOP rax
+            or TOS, rax
             jmp next
 
-_and:       ; xxx TOS
-            jmp next
-
-_or:        ; xxx TOS
-            jmp next
-
-_xor:       ; xxx TOS
+_xor:       dPOP rax
+            xor TOS, rax
             jmp next
 
 _type:      dPOP rdx        ; len

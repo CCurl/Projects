@@ -86,6 +86,8 @@ macro mEmit val { mSys 16 }
 ; ------------------------------------------------------------------------------
 cold:
         lea RSP, [rstk]           ; Start of return STACK
+        lea rax, [lstk]           ; Start of loop STACK
+        mov [lsp], rax
         lea rax, [buf2]           ; LAST: end of the code
         mov [last], rax
         lea PC, [code]            ; PC: start at beginning of the code
@@ -104,17 +106,34 @@ cold:
         mLit rax                  ; lit
         mLit1 5                   ; lit1 5 (len)
         CComma 37                 ; type
-        mLit1 'M'                 ; lit1 'M'
-        mLit1 5                   ; lit1 5
-        mSub                      ; sub
-        mEmit                     ; emit
-        mLit1 'A'                 ; lit1 'A'
-        mLit1 5                   ; lit1 5
+        mLit1 'R'                 ; lit1 'R'
+        mLit1 1                   ; lit1 1
         mAdd                      ; add
-        mEmit                     ; emit
+        mEmit                     ; emit 'S'
         mLit1 10                  ; lit1 '\n'
         mEmit                     ; emit
+        mov rax, 500000000
+        mLit rax
+        mLit1 0
+        CComma 29                 ; DO
+        CComma 30                 ; LOOP
+        mLit1 'F'                 ; lit1 'F'
+        mLit1 1                   ; lit1 1
+        mSub                      ; sub
+        mEmit                     ; emit 'E'
+        mLit1 10                  ; lit1 '\n'
+        mEmit
+        mLit1 '9'+1
+        mLit1 '0'
+        CComma 29                 ; DO
+        CComma 32                 ; (I)
+        CComma 10                 ; FETCH
+        mEmit
+        CComma 30                 ; LOOP
+        mEmit                     ; emit
 
+        mLit1 10                  ; lit1 '\n'
+        mEmit
         CComma 0                  ; bye
 
 ; ------------------------------------------------------------------------------
@@ -231,11 +250,11 @@ flt_ops:
     dq _fadd, _fsub, _fmul, _nop, _fdiv, _feq, _flt, _fgt                      ;  0 ->  7
     dq _f2i, _i2f, _fdot, _sqrt, _tanh                                         ;  8 -> 12
 
-
-; here: rq 1
 toIn: rq 1
 last: rq 1
 rstk: rq 64
+lstk: rq 64
+lsp:  rq 1
 wd:   rb 32
 tib:  rb 256
 code: rb CODE_SZ
