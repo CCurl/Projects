@@ -1,5 +1,5 @@
 _nop:       ; xxx TOS
-            jmp next
+            NEXT
 
 _stop:      xor rdi, rdi    ; exit code 0
             mov rax, 60     ; sys_exit
@@ -8,96 +8,96 @@ _stop:      xor rdi, rdi    ; exit code 0
 
 _lit1:      nextByte rax
             dPUSH rax
-            jmp next
+            NEXT
 
 _lit:       nextCell rax
             dPUSH rax
-            jmp next
+            NEXT
 
 _exit:      rPOP PC
-            jmp next
+            NEXT
 
 _call:      nextCell rax
             rPUSH PC
             mov PC, rax
-            jmp next
+            NEXT
 
 _jmp:       nextCell rax
             mov PC, rax
-            jmp next
+            NEXT
 
 _jmpz:      dPOP rax
             test rax, rax
             jz _jmp
             add PC, 8
-            jmp next
+            NEXT
 
 _jmpnz:     dPOP rax
             test rax, rax
             jnz _jmp
             add PC, 8
-            jmp next
+            NEXT
 
 _store:     dPOP rsi
             dPOP rax
             mov [rsi], rax
-            jmp next
+            NEXT
 
 _cstore:    dPOP rsi
             dPOP rax
             mov [rsi], al
-            jmp next
+            NEXT
 
 _fetch:     mov TOS, qword [TOS]
-            jmp next
+            NEXT
 
 _cfetch:    movzx TOS, byte [TOS]
-            jmp next
+            NEXT
 
 _dup:       dPUSH TOS
-            jmp next
+            NEXT
 
 _swap:      dPOP rax
             dPOP rbx
             dPUSH rax
             dPUSH rbx
-            jmp next
+            NEXT
 
 _over:      dPOP rax
             mov rbx, TOS
             dPUSH rax
             dPUSH rbx
-            jmp next
+            NEXT
 
 _drop:      dPOP rax
-            jmp next
+            NEXT
 
 _add:       dPOP rax
             add TOS, rax
-            jmp next
+            NEXT
 
 _mult:      dPOP rbx
             imul TOS, rbx
-            jmp next
+            NEXT
 
 _slmod:     ; xxx TOS
-            jmp next
+            NEXT
 
 _sub:       dPOP rax
             sub TOS, rax
-            jmp next
+            NEXT
 
 _inc:       inc TOS
-            jmp next
+            NEXT
 
 _dec:       dec TOS
-            jmp next
+            NEXT
 
 _t:         mov TOS, 1
-            jmp next
+            NEXT
 
 _f:         mov TOS, 0
-            jmp next
+            NEXT
 
 _lt:        dPOP rax
             cmp TOS, rax
@@ -120,17 +120,17 @@ _eq0:       test TOS, TOS
 
 _rto:       dPOP rax
             rPUSH rax
-            jmp next
+            NEXT
 
 _rfetch:    dPUSH [RSP]
-            jmp next
+            NEXT
 
 _rfrom:     rPOP rax
             dPUSH rax
-            jmp next
+            NEXT
 
 _do:        mov  rsi, [lsp]
-            add  rsi, 3
+            add  rsi, 24
             mov  [lsp], rsi
             dPOP [rsi]              ; lstk[lsp] = Index
             dPOP [rsi-8]            ; lstk[lsp-2] = Upper Bound
@@ -143,7 +143,7 @@ _unloop:    mov rsi, [lsp]
             jge .1
             mov rsi, lstk
 .1:         mov [lsp], rsi
-            jmp next
+            NEXT
 
 _loop:      mov rsi, [lsp]
             mov rax, [rsi]
@@ -152,7 +152,7 @@ _loop:      mov rsi, [lsp]
             jge _unloop
             mov [rsi], rax
             mov PC, [rsi-16]
-            jmp next
+            NEXT
 
 _loop2:     mov rsi, [lsp]
             mov rax, [rsi]
@@ -161,58 +161,60 @@ _loop2:     mov rsi, [lsp]
             jle _unloop
             mov [rsi], rax
             mov PC, [rsi-16]
-            jmp next
+            NEXT
 
 _index:     mov rax, [lsp]
             dPUSH rax
-            jmp next
+            NEXT
 
 _com:       not TOS
-            jmp next
+            NEXT
 
 _and:       dPOP rax
             and TOS, rax
-            jmp next
+            NEXT
 
 _or:        dPOP rax
             or TOS, rax
-            jmp next
+            NEXT
 
 _xor:       dPOP rax
             xor TOS, rax
-            jmp next
+            NEXT
 
 _type:      dPOP rdx        ; len
             dPOP rsi        ; string
             call stype
-            jmp next
+            NEXT
 
-_ztype:     ; xxx TOS
-            jmp next
+_ztype:     dPOP rsi        ; string
+            call strlen
+            call stype
+            NEXT
 
 _reg_i:     ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_d:     ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_r:     ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_rd:    ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_ri:    ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_s:     ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_new:   ; xxx TOS
-            jmp next
+            NEXT
 
 _reg_free:  ; xxx TOS
-            jmp next
+            NEXT
 
 ; ------------------------------------------------------------------------------
 ; SYS OPS
@@ -222,56 +224,69 @@ _sys_ops:   nextByte rcx
             jmp rax
 
 _inline:    ; xxx TOS
-            jmp next
+            NEXT
 
 _immediate: ; xxx TOS
-            jmp next
+            NEXT
 
 _dot:       ; xxx TOS
-            jmp next
+            NEXT
 
 _itoa:      ; xxx TOS
-            jmp next
+            NEXT
 
 _atoi:      ; xxx TOS
-            jmp next
+            NEXT
 
 _colondef:  ; xxx TOS
-            jmp next
+            NEXT
 
 _endword:   ; xxx TOS
-            jmp next
+            NEXT
 
 _create:    ; xxx TOS
-            jmp next
+            NEXT
 
 _find:      ; xxx TOS
-            jmp next
+            NEXT
 
-_word:      ; xxx TOS
-            jmp next
+_word:      call nextWord
+            dPUSH rsi
+            dPUSH rdx
+            NEXT
 
 _timer:     ; xxx TOS
-            jmp next
+            NEXT
 
-_ccomma:    ; xxx TOS
-            jmp next
+_ccomma:    dPOP rax
+            CComma al
+            NEXT
 
-_comma:     ; xxx TOS
-            jmp next
+_comma:     dPOP rax
+            Comma rax
+            NEXT
 
 _key:       ; xxx TOS
-            jmp next
+            NEXT
 
 _qkey:      ; xxx TOS
-            jmp next
+            NEXT
 
 _emit:      dPOP rax
             call semit
-            jmp next
+            NEXT
 
-_qtype:     ; xxx TOS
-            jmp next
+_qtype:     dPOP rsi
+            call strlen
+            call stype
+            NEXT
+
+_read:      dPOP rdx
+            dPOP rsi
+            call readLine
+            push rsi
+            push rax
+            NEXT
 
 ; ------------------------------------------------------------------------------
 ; STRING OPS
@@ -280,38 +295,41 @@ _str_ops:   nextByte rcx
             mov rax, [str_ops+rcx*8]
             jmp rax
 
-_trunc:     ; xxx TOS
-            jmp next
+_trunc:     dPOP rsi
+            mov [rsi], word 0
+            NEXT
 
 _lcase:     ; xxx TOS
-            jmp next
+            NEXT
 
 _ucase:     ; xxx TOS
-            jmp next
+            NEXT
 
 _strcpy:    ; xxx TOS
-            jmp next
+            NEXT
 
 _strcat:    ; xxx TOS
-            jmp next
+            NEXT
 
 _strcatc:   ; xxx TOS
-            jmp next
+            NEXT
 
-_strlen:    ; xxx TOS
-            jmp next
+_strlen:    dPOP rsi
+            call strlen
+            dPUSH rdx
+            NEXT
 
 _streq:     ; xxx TOS
-            jmp next
+            NEXT
 
 _streqi:    ; xxx TOS
-            jmp next
+            NEXT
 
 _ltrim:     ; xxx TOS
-            jmp next
+            NEXT
 
 _rtrim:     ; xxx TOS
-            jmp next
+            NEXT
 
 ; ------------------------------------------------------------------------------
 ; FLOAT OPS
@@ -321,37 +339,37 @@ _flt_ops:   nextByte rcx
             jmp rax
 
 _fadd:      ; xxx TOS
-            jmp next
+            NEXT
 
 _fsub:      ; xxx TOS
-            jmp next
+            NEXT
 
 _fmul:      ; xxx TOS
-            jmp next
+            NEXT
 
 _fdiv:      ; xxx TOS
-            jmp next
+            NEXT
 
 _feq:       ; xxx TOS
-            jmp next
+            NEXT
 
 _flt:       ; xxx TOS
-            jmp next
+            NEXT
 
 _fgt:       ; xxx TOS
-            jmp next
+            NEXT
 
 _f2i:       ; xxx TOS
-            jmp next
+            NEXT
 
 _i2f:       ; xxx TOS
-            jmp next
+            NEXT
 
 _fdot:      ; xxx TOS
-            jmp next
+            NEXT
 
 _sqrt:      ; xxx TOS
-            jmp next
+            NEXT
 
 _tanh:      ; xxx TOS
-            jmp next
+            NEXT

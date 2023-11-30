@@ -4,22 +4,32 @@ segment readable executable
 entry cold
 
 ; ------------------------------------------------------------------------------
-CODE_SZ equ 65536
-RSP     equ r13
-PC      equ r14
-TOS     equ r15
-HERE    equ rbp
+CODE_SZ    equ  64*1024
+VARS_SZ    equ 128*1024
+
+DSP        equ r12
+RSP        equ r13
+PC         equ r14
+TOS        equ r15
+HERE       equ rbp
+
+STDIN      equ 0
+STDOUT     equ 1
+SYS_READ   equ 0
+SYS_WRITE  equ 1
 
 ; ------------------------------------------------------------------------------
 macro dPUSH val {
-    push TOS
+    add DSP, 8
+    mov [DSP], TOS
     mov TOS, QWORD val
 }
 
 ; ------------------------------------------------------------------------------
 macro dPOP val {
     mov val, TOS
-    pop TOS
+    mov TOS, [DSP]
+    sub DSP, 8
 }
 
 ; ------------------------------------------------------------------------------
@@ -77,6 +87,7 @@ macro mSys val {
 }
 
 ; ------------------------------------------------------------------------------
+macro NEXT { ret }
 macro mAdd val { CComma 16 }
 macro mSub val { CComma 19 }
 macro mEmit val { mSys 16 }
@@ -85,26 +96,34 @@ macro mEmit val { mSys 16 }
 ; ------------------------------------------------------------------------------
 ; ------------------------------------------------------------------------------
 cold:
-        lea RSP, [rstk]           ; Start of return STACK
+        mov DSP, dstk             ; Start of data STACK
+        mov RSP, rstk             ; Start of return STACK
         lea rax, [lstk]           ; Start of loop STACK
         mov [lsp], rax
-        lea rax, [buf2]           ; LAST: end of the code
+        mov rax, buf2             ; LAST: end of the code
         mov [last], rax
-        lea PC, [code]            ; PC: start at beginning of the code
+        mov PC, code              ; PC: start at beginning of the code
         mov HERE, PC              ; HERE: start of code
 
-        ; Some overall testing ...
-        lea rsi, [hi]
-        mov [toIn], rsi
-        call nwTest
-        call nwTest
-        call nwTest
-        ; jmp bye
+        mov rsi, hi
+        call strlen
+        ; mov rdx, 6
+        call stype
 
-        ; The test Byte Code ...
-        lea rax, [c3]             ; "c3: "
+        jmp _repl; next ; bye
+
+; ------------------------------------------------------------------------------
+next:   nextByte rcx
+        mov rax, [c3_ops+rcx*8]
+        call rax
+        jmp next
+
+; ------------------------------------------------------------------------------
+opTest:
+        ; Some Byte Code for testing ...
+        mov rax, ok               ; " ok\n"
         mLit rax                  ; lit
-        mLit1 5                   ; lit1 5 (len)
+        mLit1 4                   ; lit1 4 (len)
         CComma 37                 ; type
         mLit1 'R'                 ; lit1 'R'
         mLit1 1                   ; lit1 1
@@ -112,7 +131,7 @@ cold:
         mEmit                     ; emit 'S'
         mLit1 10                  ; lit1 '\n'
         mEmit                     ; emit
-        mov rax, 500000000
+        mov rax, 250000000
         mLit rax
         mLit1 0
         CComma 29                 ; DO
@@ -135,17 +154,15 @@ cold:
         mLit1 10                  ; lit1 '\n'
         mEmit
         CComma 0                  ; bye
+        ret
 
 ; ------------------------------------------------------------------------------
-next:   nextByte rcx
-        mov rax, [c3_ops+rcx*8]
-        jmp rax
-
+; readLine: read 1 line into [RSI], size in RDX
 ; ------------------------------------------------------------------------------
-nwTest: call nextWord
-        call stype
-        mov al, ','
-        call semit
+readLine:
+        mov rax, SYS_READ
+        mov rdi, STDIN
+        syscall
         ret
 
 ; ------------------------------------------------------------------------------
@@ -181,8 +198,8 @@ addToDict:
         test dl, dl
         jz .r
         push HERE
-        mov rax, HERE
-        mov HERE, [last]
+        mov rax, HERE       ; For the XT
+        mov HERE, [last]    ; So we can use CComma and Comma
         sub HERE, 32
         mov [last], HERE
         Comma rax           ; XT
@@ -203,20 +220,54 @@ addToDict:
 ; C3 subroutines
 ; ------------------------------------------------------------------------------
 semit:                      ; The char to EMIT is in al
-        lea rsi, [buf2]
+        mov rsi, buf2
         mov [rsi], al
         mov rdx, 1          ; len=1
-        mov rdi, 1          ; stdout
-        mov rax, 1          ; sys_write
+
+; ------------------------------------------------------------------------------
+; The string is in RSI, length is in RDX
+; ------------------------------------------------------------------------------
+stype:
+        mov rdi, STDOUT
+        mov rax, SYS_WRITE
         syscall
         ret
 
 ; ------------------------------------------------------------------------------
-stype:                      ; The string is in RSI, the len is in RDX
-        mov rdi, 1          ; stdout
-        mov rax, 1          ; sys_write
-        syscall
+; The string is in RSI, put the length into RDX
+; ------------------------------------------------------------------------------
+strlen:     xor rdx, rdx
+.1:         cmp byte [rsi+rdx], 0
+            je .9
+            inc rdx
+            jmp .1
+.9:         ret
+
+; ------------------------------------------------------------------------------
+; The word is in RSI, length is in RDX
+; ------------------------------------------------------------------------------
+_parseWord:
+        ; TODO: fill this in!
+        call stype
+        mov al, '-'
+        call semit
         ret
+
+; ------------------------------------------------------------------------------
+_repl:
+        mov rsi, ok
+        mov rdx, 4
+        call stype
+        mov rsi, tib                ; Read line into TIB
+        mov [toIn], rsi
+        mov rdx, 256                ; TIB size
+        call readLine
+        mov [rsi+rax], word 0       ; NULL Terminate
+.1:     call nextWord               ; Parse line
+        test rdx, rdx
+        jz _repl                    ; End of line
+        call _parseWord
+        jmp .1
 
 ; ------------------------------------------------------------------------------
 ; The VM opcodes
@@ -226,8 +277,8 @@ include 'opcodes.s'
 ; ------------------------------------------------------------------------------
 segment readable writable
 
-hi:   db 'test 123', 10, 0
-c3:   db 'c3: ', 10, 0
+hi:   db 'hello.', 0
+ok:   db ' ok', 10, 0
 
 c3_ops:
     dq _stop, _lit1, _lit, _exit, _call, _jmp, _jmpz, _jmpnz, _store, _cstore  ;  0 ->  9
@@ -240,7 +291,7 @@ c3_ops:
 sys_ops:
     dq _inline, _immediate, _dot, _nop, _itoa, _atoi, _colondef, _endword      ;  0 ->  7
     dq _create, _find, _word, _timer, _ccomma, _comma, _key, _qkey             ;  8 -> 15
-    dq _emit, _qtype                                                           ; 16 -> 17
+    dq _emit, _qtype, _read                                                    ; 16 -> 18
 
 str_ops:
     dq _trunc, _lcase, _ucase, _nop, _strcpy, _strcat, _strcatc, _strlen       ;  0 ->  7
@@ -252,10 +303,12 @@ flt_ops:
 
 toIn: rq 1
 last: rq 1
+dstk: rq 64
 rstk: rq 64
 lstk: rq 64
 lsp:  rq 1
 wd:   rb 32
 tib:  rb 256
 code: rb CODE_SZ
+vars: rb VARS_SZ
 buf2: rb 16
