@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define btw(a,b,c) ((b<a) && (a<c))
-#define btwi(a,b,c) ((b<=a) && (a<=c))
-
-#define CODE_SZ   32767
-#define VARS_SZ   65536
-#define WC_SZ        99
-#define STK_SZ       64
+#define CODE_SZ       32767
+#define VARS_SZ       65536
+#define NPRIMS           32
+#define STK_SZ           64
+#define btwi(a,b,c)   ((b<=a) && (a<=c))
+#define comma(x)      code[here++]=(x)
 
 typedef unsigned short ushort;
 typedef unsigned char byte;
@@ -98,15 +97,17 @@ DE_T *findWord(const char *wd) {
 }
 
 void wordCode(ushort wc) {
-    int addr = (wc>>2);
-    if (wc & 0x01) { printf("-call-%d]",addr); }
-    else { printf("-jmp-%d]",addr); }
+    int addr = (wc>>1);
+    if (wc & 0x01) { printf("call-%d]",addr); rstk[++rsp].i=pc; pc=addr; }
+    else { printf("jmp-%d]",addr); pc=addr; }
 }
+
 void Exec(int start) {
+    printf("[Exec:%d]", start);
     pc = start;
-    while (btwi(pc,0,WC_SZ)) {
+    while (btwi(pc,0,CODE_SZ)) {
         wc = code[pc++];
-        printf("[wc-%d", wc);
+        printf("[wc-%d,", wc);
         if (wc<32) { q[wc](); }
         else { wordCode(wc); }
     }
@@ -116,10 +117,8 @@ int parseWord(char *w) {
     if (!w) { w = &wd[0]; }
     DE_T *de =  findWord(w);
     if (de) {
-        printf("-%s:%d-", de->nm, de->xt);
-        return 1;
+        comma(de->xt << 1); return 1;
     }
-    if (strEq(w,"bye")) { exit(0); }
     return 0;
 }
 
@@ -138,26 +137,27 @@ void REP() {
             return;
         }
     }
-    if (l==last) {
-        here=h;
-        Exec(h);
+    if ((l==last) && (h<here)) {
+        here=h; Exec(h);
     }
 }
+
 void Init(FILE *fp) {
     int t;
-    sp = rsp = here = state = 0;
+    sp = rsp = state = 0;
     base = 10;
+    here = NPRIMS;
     last = CODE_SZ;
-    for (t=0; t<WC_SZ; t++) { code[t]=0; }
+    for (t=0; t<CODE_SZ; t++) { code[t]=0; }
     if (fp) {
         while ((t=fgetc(fp))!=EOF) { if (31<t) { code[here++]=t-32; } }
         fclose(fp); Exec(0);
     }
-    addWord("test");
-    addWord("test2");
-    findWord("test");
-    findWord("no");
+    addWord("test"); comma(2); comma(33); comma(0);
+    addWord("test2"); comma(14); comma(66); comma(0);
+    addWord("bye"); comma(1);
 }
+
 int main(int argc, char *argv[]) {
     FILE *fp = NULL;
     if (argc>1) { fp=fopen(argv[1], "rb"); }
