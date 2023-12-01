@@ -7,6 +7,8 @@
 #define STK_SZ           64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define comma(x)      code[here++]=(x)
+#define call(x)       comma((x<<1)+1)
+#define jmp(x)        comma((x<<1)+0)
 
 typedef unsigned short ushort;
 typedef unsigned char byte;
@@ -18,38 +20,38 @@ static char tib[128];
 static unsigned short wc, code[CODE_SZ+1], u;
 static int here, last, state, base, sp, rsp, pc;
 
-void p00() { printf("-p]"); pc = -1; }
-void p01() { printf("-p]"); exit(0); }
-void p02() { printf("-p]"); }
-void p03() { printf("-p]"); }
-void p04() { printf("-p]"); }
-void p05() { printf("-p]"); }
-void p06() { printf("-p]"); }
-void p07() { printf("-p]"); }
-void p08() { printf("-p]"); }
-void p09() { printf("-p]"); }
-void p10() { printf("-p]"); }
-void p11() { printf("-p]"); }
-void p12() { printf("-p]"); }
-void p13() { printf("-p]"); }
-void p14() { printf("-p]"); }
-void p15() { printf("-p]"); }
-void p16() { printf("-p]"); }
-void p17() { printf("-p]"); }
-void p18() { printf("-p]"); }
-void p19() { printf("-p]"); }
-void p20() { printf("-p]"); }
-void p21() { printf("-p]"); }
-void p22() { printf("-p]"); }
-void p23() { printf("-p]"); }
-void p24() { printf("-p]"); }
-void p25() { printf("-p]"); }
-void p26() { printf("-p]"); }
-void p27() { printf("-p]"); }
-void p28() { printf("-p]"); }
-void p29() { printf("-p]"); }
-void p30() { printf("-p]"); }
-void p31() { printf("-p]"); }
+void p00() { pc = -1; }
+void p01() { }
+void p02() { }
+void p03() { if (rsp) { pc=rstk[rsp--].i; } else {pc=-1;} }
+void p04() { }
+void p05() { }
+void p06() { }
+void p07() { }
+void p08() { }
+void p09() { }
+void p10() { }
+void p11() { }
+void p12() { }
+void p13() { }
+void p14() { }
+void p15() { }
+void p16() { }
+void p17() { }
+void p18() { }
+void p19() { }
+void p20() { }
+void p21() { }
+void p22() { }
+void p23() { }
+void p24() { }
+void p25() { }
+void p26() { }
+void p27() { }
+void p28() { }
+void p29() { }
+void p30() { }
+void p31() { exit(0); }
 
 void (*q[127])() = {
     p00,p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,p11,p12,p13,p14,p15,
@@ -107,8 +109,8 @@ void Exec(int start) {
     pc = start;
     while (btwi(pc,0,CODE_SZ)) {
         wc = code[pc++];
-        printf("[wc-%d,", wc);
-        if (wc<32) { q[wc](); }
+        printf("[%d:wc-%d,", pc-1, wc);
+        if (wc<32) { printf("p]"); q[wc](); }
         else { wordCode(wc); }
     }
 }
@@ -116,9 +118,7 @@ void Exec(int start) {
 int parseWord(char *w) {
     if (!w) { w = &wd[0]; }
     DE_T *de =  findWord(w);
-    if (de) {
-        comma(de->xt << 1); return 1;
-    }
+    if (de) { call(de->xt); return 1; }
     return 0;
 }
 
@@ -138,7 +138,9 @@ void REP() {
         }
     }
     if ((l==last) && (h<here)) {
-        here=h; Exec(h);
+        comma(0);
+        here=h;
+        Exec(h);
     }
 }
 
@@ -153,9 +155,9 @@ void Init(FILE *fp) {
         while ((t=fgetc(fp))!=EOF) { if (31<t) { code[here++]=t-32; } }
         fclose(fp); Exec(0);
     }
-    addWord("test"); comma(2); comma(33); comma(0);
-    addWord("test2"); comma(14); comma(66); comma(0);
-    addWord("bye"); comma(1);
+    addWord("test"); comma(2); comma(3);
+    addWord("test2"); call(32); jmp(32);
+    addWord("bye"); comma(31);
 }
 
 int main(int argc, char *argv[]) {
