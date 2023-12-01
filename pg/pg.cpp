@@ -1,175 +1,167 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-#define BTW(x,l,h) ((l<=x)&&(x<=h))
+#define btw(a,b,c) ((b<a) && (a<c))
+#define btwi(a,b,c) ((b<=a) && (a<=c))
 
-typedef struct token_t {
-	int token;
-	char id[32];
-	char *str;
-} TOK_T;
+#define CODE_SZ   32767
+#define VARS_SZ   65536
+#define WC_SZ        99
+#define STK_SZ       64
 
-TOK_T tokStk[32];
-FILE *fp, *fpStk[32];
-char tib[132], *in;
-int fSP, tokSP, err;
+typedef unsigned short ushort;
+typedef unsigned char byte;
+typedef union { double f; long i; } SE_T;
+typedef struct { ushort xt; byte fl; byte ln; char nm[28]; } DE_T;
 
-char lCase(char c) { return BTW(c,'A','Z') ? c-32: c; }
+SE_T stk[STK_SZ], rstk[STK_SZ];
+static char tib[128];
+static unsigned short wc, code[CODE_SZ+1], u;
+static int here, last, state, base, sp, rsp, pc;
 
-int strLen(const char *x) {
-	int l=0;
-	while (*(x++)) ++l;
-	return l;
+void p00() { printf("-p]"); pc = -1; }
+void p01() { printf("-p]"); exit(0); }
+void p02() { printf("-p]"); }
+void p03() { printf("-p]"); }
+void p04() { printf("-p]"); }
+void p05() { printf("-p]"); }
+void p06() { printf("-p]"); }
+void p07() { printf("-p]"); }
+void p08() { printf("-p]"); }
+void p09() { printf("-p]"); }
+void p10() { printf("-p]"); }
+void p11() { printf("-p]"); }
+void p12() { printf("-p]"); }
+void p13() { printf("-p]"); }
+void p14() { printf("-p]"); }
+void p15() { printf("-p]"); }
+void p16() { printf("-p]"); }
+void p17() { printf("-p]"); }
+void p18() { printf("-p]"); }
+void p19() { printf("-p]"); }
+void p20() { printf("-p]"); }
+void p21() { printf("-p]"); }
+void p22() { printf("-p]"); }
+void p23() { printf("-p]"); }
+void p24() { printf("-p]"); }
+void p25() { printf("-p]"); }
+void p26() { printf("-p]"); }
+void p27() { printf("-p]"); }
+void p28() { printf("-p]"); }
+void p29() { printf("-p]"); }
+void p30() { printf("-p]"); }
+void p31() { printf("-p]"); }
+
+void (*q[127])() = {
+    p00,p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,p11,p12,p13,p14,p15,
+    p16,p17,p18,p19,p20,p21,p22,p23,p24,p25,p26,p27,p28,p29,p30,p31
+};
+
+char wd[32], *toIn;
+int nextWord() {
+    int l = 0;
+    while (*toIn && (*toIn<33)) { ++toIn; }
+    while (*toIn && (*toIn>32)) { wd[l++] = *(toIn++); }
+    wd[l] = 0;
+    return l;
 }
 
-int strEq(const char *x, const char *y) {
-	while (*x && *y && (*x == *y)) { x++; y++; }
-	return (*x|*y) ? 0 : 1;
+int strLen(const char *s) { int l=0; while (s[l]) { l++; } return l; }
+int strEq(const char *s, const char *d) {
+    while (*s == *d) { if (*s==0) { return 1; } s++; d++; }
+    return 0;
 }
 
-int strEqI(const char *x, const char *y) {
-	while (*x && *y && (lCase(*x) == lCase(*y))) { x++; y++; }
-	return (*x|*y) ? 0 : 1;
+
+DE_T *addWord(const char *wd) {
+    last -= sizeof(DE_T)/2;
+    int l = strLen(wd);
+    if (l>27) { l=27; }
+    DE_T *de=(DE_T*)&code[last];
+    de->xt = here;
+    de->fl = 0;
+    de->ln = l;
+    for (int i = 0; i < l; i++) { de->nm[i] = wd[i]; }
+    de->nm[l]=0;
+    return de;
 }
 
-char *rTrim(char *x) {
-	int l=strLen(x);
-	while (l && (x[l-1]<33)) { --l; x[l] = 0; }
-	return x;
+DE_T *findWord(const char *wd) {
+    DE_T *e=(DE_T*)&code[CODE_SZ-1];
+    DE_T *de = (DE_T*)&code[last];
+    while (de < e) {
+        if (strEq(de->nm, wd)) { return de; }
+        else { de++; }
+    } 
+
+    return (DE_T*)0;
 }
 
-char *lTrim(char *x) {
-	while (*x && (*x < 33)) { ++x; }
-	return x;
+void wordCode(ushort wc) {
+    int addr = (wc>>2);
+    if (wc & 0x01) { printf("-call-%d]",addr); }
+    else { printf("-jmp-%d]",addr); }
+}
+void Exec(int start) {
+    pc = start;
+    while (btwi(pc,0,WC_SZ)) {
+        wc = code[pc++];
+        printf("[wc-%d", wc);
+        if (wc<32) { q[wc](); }
+        else { wordCode(wc); }
+    }
 }
 
-char PK() { return *in; }
-
-char NC() {
-	while ( PK() && (PK() < 33) ) { ++in; }
-	if (PK() == 0) { return 0; }
-	return *(in++);
+int parseWord(char *w) {
+    if (!w) { w = &wd[0]; }
+    DE_T *de =  findWord(w);
+    if (de) {
+        printf("-%s:%d-", de->nm, de->xt);
+        return 1;
+    }
+    if (strEq(w,"bye")) { exit(0); }
+    return 0;
 }
 
-char *nextLine() {
-	tib[0] = 0;
-	while (fp && feof(fp)) {
-		fclose(fp);
-		fp = NULL;
-		if (0 < fSP) {
-			fp = fpStk[fSP--];
-			return nextLine();
-		}
-	}
-
-	if ((fp) && (fgets(tib, sizeof(tib), fp) == tib)) {
-		return rTrim(tib);
-	}
-	return 0;
+// REP - Read/Execute/Print (no Loop)
+void REP() {
+    int h=here, l=last;
+    printf("\ntxt: ");
+    fgets(tib, sizeof(tib), stdin);
+    toIn = &tib[0];
+    while (nextWord()) {
+        if (!parseWord(wd)) {
+            printf("-%s?-", wd);
+            here=h;
+            last=l;
+            state=0;
+            return;
+        }
+    }
+    if (l==last) {
+        here=h;
+        Exec(h);
+    }
 }
-
-enum { EOS = 1, EOB, ID,  };
-char idBuf[32];
-
-int getID(char c) {
-	int l = 0;
-	if (c) { idBuf[l++] = c; }
-	else { in = lTrim(in); }
-	while (PK()) {
-		c = lCase(PK());
-		if (BTW(c,'a','z') || BTW(c,'0','9') || (c=='_')) {
-			idBuf[l++] = NC();
-		} else {
-			break;
-		}
-	}
-	idBuf[l] = 0;
-	printf("-%d:%s-", l, idBuf);
-	return l;
+void Init(FILE *fp) {
+    int t;
+    sp = rsp = here = state = 0;
+    base = 10;
+    last = CODE_SZ;
+    for (t=0; t<WC_SZ; t++) { code[t]=0; }
+    if (fp) {
+        while ((t=fgetc(fp))!=EOF) { if (31<t) { code[here++]=t-32; } }
+        fclose(fp); Exec(0);
+    }
+    addWord("test");
+    addWord("test2");
+    findWord("test");
+    findWord("no");
 }
-
-int tokIdent() {
-	while (*in) {
-		++in;
-	}
-	return 0;
-}
-
-int doErr(const char *msg) {
-	printf("ERR: %s", msg);
-	++err;
-	return 0;
-}
-
-int doPragma() {
-	if (getID(0) == 0) { return doErr("invalid #pragma"); }
-	if (strEq(idBuf, "include")) {
-		if (getID(0) == 0) { return doErr("invalid #include"); }
-		printf("-include [%s]-", idBuf);
-	} else {
-		doErr("invalid #pragma!");
-	}
-	return 0;
-}
-
-int stkKW(int KW) {
-	printf("-%s,kw:%d-", idBuf, KW);
-	return KW;
-}
-
-int checkKW() {
-	if (strEq(idBuf,"begin")) return stkKW(1);
-	if (strEq(idBuf,"while")) return stkKW(2);
-	if (strEq(idBuf,"repeat")) return stkKW(3);
-	if (strEq(idBuf,"again")) return stkKW(4);
-	if (strEq(idBuf,"if")) return stkKW(5);
-	if (strEq(idBuf,"else")) return stkKW(6);
-	if (strEq(idBuf,"then")) return stkKW(7);
-	return 0;
-}
-
-int doID(char c) {
-	int l = getID(c);
-	if (checkKW()) { return 1; }
-	return 1;
-}
-
-int nextToken() {
-	in = lTrim(in);
-	char c = NC();
-	if (c == '#') { return doPragma(); }
-	if (BTW(c,'A','Z')) { return doID(c); }
-	if (BTW(c,'a','z')) { return doID(c); }
-	if (c == '_') { return doID(c); }
-	return 0;
-}
-
-void doGenerate() {
-	for (int i=1; 0<=tokSP; i++) {
-		TOK_T *t = &tokStk[i];
-		printf("%d: %d, [%s], %p", i, t->token, t->id, t->str );
-		if (t->str) { printf(", [%s]", t->str); }
-		printf("\n");
-	}
-	tokSP = 0;
-}
-
-void parseLine() {
-	in = nextLine();
-	printf("[%s]\n", in);
-	while (in && PK()) { nextToken(); }
-}
-
 int main(int argc, char *argv[]) {
-	for (int i = 1; i < argc; i++) {
-		printf("%d: [%s]", i, argv[i]);
-	}
-	fSP = tokSP = 0;
-	fp = NULL;
-	if (argc>1) {
-		fp = fopen(argv[1],"rt");
-	}
-	while (fp && (err<10)) {
-		parseLine();
-	}
-	return 0;
+    FILE *fp = NULL;
+    if (argc>1) { fp=fopen(argv[1], "rb"); }
+    Init(fp);
+    while (1) { REP(); }; // REPL
+    return 0;
 }
