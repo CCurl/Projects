@@ -1,10 +1,13 @@
 _nop:       ; xxx TOS
             NEXT
 
-_stop:      xor rdi, rdi    ; exit code 0
+_bye:      xor rdi, rdi    ; exit code 0
             mov rax, 60     ; sys_exit
             syscall
             ret
+
+_stop:      xor PC, PC
+            NEXT
 
 _lit1:      nextByte rax
             dPUSH rax
@@ -130,12 +133,12 @@ _rfrom:     rPOP rax
             NEXT
 
 _do:        mov  rsi, [lsp]
-            add  rsi, 24
+            add  rsi, CELL_SZ*3
             mov  [lsp], rsi
-            dPOP [rsi]              ; lstk[lsp] = Index
-            dPOP [rsi-8]            ; lstk[lsp-2] = Upper Bound
-            mov  [rsi-16], PC       ; lstk[lsp-2] = PC
-            jmp  next
+            dPOP [rsi]                  ; lstk[lsp] = Index
+            dPOP [rsi-CELL_SZ]          ; lstk[lsp-2] = Upper Bound
+            mov  [rsi-CELL_SZ*2], PC    ; lstk[lsp-2] = PC
+            NEXT
 
 _unloop:    mov rsi, [lsp]
             sub rsi, 24
@@ -148,19 +151,19 @@ _unloop:    mov rsi, [lsp]
 _loop:      mov rsi, [lsp]
             mov rax, [rsi]
             inc rax
-            cmp rax, [rsi-8]
+            cmp rax, [rsi-CELL_SZ]
             jge _unloop
             mov [rsi], rax
-            mov PC, [rsi-16]
+            mov PC, [rsi-CELL_SZ*2]
             NEXT
 
 _loop2:     mov rsi, [lsp]
             mov rax, [rsi]
             dec rax
-            cmp rax, [rsi-8]
+            cmp rax, [rsi-CELL_SZ]
             jle _unloop
             mov [rsi], rax
-            mov PC, [rsi-16]
+            mov PC, [rsi-CELL_SZ*2]
             NEXT
 
 _index:     mov rax, [lsp]
@@ -220,7 +223,7 @@ _reg_free:  ; xxx TOS
 ; SYS OPS
 ; ------------------------------------------------------------------------------
 _sys_ops:   nextByte rcx
-            mov rax, [sys_ops+rcx*8]
+            mov rax, [sys_ops+rcx*CELL_SZ]
             jmp rax
 
 _inline:    ; xxx TOS
@@ -292,7 +295,7 @@ _read:      dPOP rdx
 ; STRING OPS
 ; ------------------------------------------------------------------------------
 _str_ops:   nextByte rcx
-            mov rax, [str_ops+rcx*8]
+            mov rax, [str_ops+rcx*CELL_SZ]
             jmp rax
 
 _trunc:     dPOP rsi
@@ -335,7 +338,7 @@ _rtrim:     ; xxx TOS
 ; FLOAT OPS
 ; ------------------------------------------------------------------------------
 _flt_ops:   nextByte rcx
-            mov rax, [flt_ops+rcx*8]
+            mov rax, [flt_ops+rcx*CELL_SZ]
             jmp rax
 
 _fadd:      ; xxx TOS

@@ -4,8 +4,13 @@ segment readable executable
 entry cold
 
 ; ------------------------------------------------------------------------------
+CELL_SZ    equ 8
 CODE_SZ    equ  64*1024
 VARS_SZ    equ 128*1024
+DSTK_SZ    equ  64*CELL_SZ
+RSTK_SZ    equ  64*CELL_SZ
+LSTK_SZ    equ  30*CELL_SZ
+TIB_SZ     equ 256
 
 DSP        equ r12
 RSP        equ r13
@@ -20,7 +25,7 @@ SYS_WRITE  equ 1
 
 ; ------------------------------------------------------------------------------
 macro dPUSH val {
-    add DSP, 8
+    add DSP, CELL_SZ
     mov [DSP], TOS
     mov TOS, QWORD val
 }
@@ -29,19 +34,19 @@ macro dPUSH val {
 macro dPOP val {
     mov val, TOS
     mov TOS, [DSP]
-    sub DSP, 8
+    sub DSP, CELL_SZ
 }
 
 ; ------------------------------------------------------------------------------
 macro rPUSH val {
-    add RSP, 8
+    add RSP, CELL_SZ
     mov [RSP], qword val
 }
 
 ; ------------------------------------------------------------------------------
 macro rPOP val {
     mov val, [RSP]
-    sub RSP, 8
+    sub RSP, CELL_SZ
 }
 
 ; ------------------------------------------------------------------------------
@@ -53,7 +58,7 @@ macro CComma val {
 ; ------------------------------------------------------------------------------
 macro Comma val {
     mov [rbp], qword val
-    add rbp, 8
+    add rbp, CELL_SZ
 }
 
 ; ------------------------------------------------------------------------------
@@ -65,7 +70,7 @@ macro nextByte val {
 ; ------------------------------------------------------------------------------
 macro nextCell val {
     mov val, qword [PC]
-    add PC, 8
+    add PC, CELL_SZ
 }
 
 ; ------------------------------------------------------------------------------
@@ -102,21 +107,23 @@ cold:
         mov [lsp], rax
         mov rax, buf2             ; LAST: end of the code
         mov [last], rax
-        mov PC, code              ; PC: start at beginning of the code
-        mov HERE, PC              ; HERE: start of code
+        mov HERE, code            ; HERE: start of code
 
         mov rsi, hi
         call strlen
-        ; mov rdx, 6
         call stype
 
-        jmp _repl; next ; bye
+        jmp _repl
 
 ; ------------------------------------------------------------------------------
-next:   nextByte rcx
-        mov rax, [c3_ops+rcx*8]
-        call rax
-        jmp next
+run :   test PC, PC
+        jz .X
+        nextByte rcx
+        call qword [c3_ops+rcx*CELL_SZ]
+        ; mov rax, qword [c3_ops+rcx*CELL_SZ]
+        ; call rax
+        jmp run
+.X:     ret
 
 ; ------------------------------------------------------------------------------
 opTest:
@@ -142,6 +149,7 @@ opTest:
         mEmit                     ; emit 'E'
         mLit1 10                  ; lit1 '\n'
         mEmit
+
         mLit1 '9'+1
         mLit1 '0'
         CComma 29                 ; DO
@@ -149,10 +157,7 @@ opTest:
         CComma 10                 ; FETCH
         mEmit
         CComma 30                 ; LOOP
-        mEmit                     ; emit
 
-        mLit1 10                  ; lit1 '\n'
-        mEmit
         CComma 0                  ; bye
         ret
 
@@ -236,22 +241,75 @@ stype:
 ; ------------------------------------------------------------------------------
 ; The string is in RSI, put the length into RDX
 ; ------------------------------------------------------------------------------
-strlen:     xor rdx, rdx
-.1:         cmp byte [rsi+rdx], 0
-            je .9
-            inc rdx
-            jmp .1
-.9:         ret
+strlen: xor rdx, rdx
+.1:     cmp byte [rsi+rdx], 0
+        je .9
+        inc rdx
+        jmp .1
+.9:     ret
+
+; ------------------------------------------------------------------------------
+; The strings are in RSI and RDI, return va1 in RAX
+; ------------------------------------------------------------------------------
+strcmp: xor rdx, rdx
+.1:     mov al, byte [rsi+rdx]
+        cmp al, byte [rdi+rdx]
+        jne _r0
+        inc rdx
+        test al, al
+        jnz .1
+_r1:    mov rax, 1
+        ret
+_r0:    xor rax, rax
+        ret
+
+; ------------------------------------------------------------------------------
+_c3Test:
+        cmp HERE, code
+        jg .R
+        call opTest
+.R:     mov PC, code
+        call run
+        jmp _r0
+
+; ------------------------------------------------------------------------------
+doML:
+        mov rsi, mlx
+        call strlen
+        call stype
+        jmp _r0
+
+; ------------------------------------------------------------------------------
 
 ; ------------------------------------------------------------------------------
 ; The word is in RSI, length is in RDX
 ; ------------------------------------------------------------------------------
 _parseWord:
         ; TODO: fill this in!
+        mov rdi, gb             ; "bye"?
+        call strcmp
+        test rax, rax
+        jnz _bye
+
+        cmp byte [rsi], 'X'     ; Test?
+        je _c3Test
+
+        mov rdi, ml             ; "-ML-"?
+        call strcmp
+        test rax, rax
+        jnz doML
+
+.err:   push rsi
+        mov al, '-'
+        call semit
+        pop rsi
+        call strlen
         call stype
         mov al, '-'
         call semit
-        ret
+        mov al, '?'
+        call semit
+        jmp _r1
 
 ; ------------------------------------------------------------------------------
 _repl:
@@ -267,7 +325,9 @@ _repl:
         test rdx, rdx
         jz _repl                    ; End of line
         call _parseWord
-        jmp .1
+        test rax, rax
+        jz .1
+        jmp _repl
 
 ; ------------------------------------------------------------------------------
 ; The VM opcodes
@@ -278,6 +338,9 @@ include 'opcodes.s'
 segment readable writable
 
 hi:   db 'hello.', 0
+gb:   db 'bye', 0
+ml:   db '-ML-', 0
+mlx:  db '-MLX-', 0
 ok:   db ' ok', 10, 0
 
 c3_ops:
@@ -303,12 +366,12 @@ flt_ops:
 
 toIn: rq 1
 last: rq 1
-dstk: rq 64
-rstk: rq 64
-lstk: rq 64
+dstk: rq DSTK_SZ
+rstk: rq RSTK_SZ
+lstk: rq LSTK_SZ
 lsp:  rq 1
 wd:   rb 32
-tib:  rb 256
+tib:  rb TIB_SZ
 code: rb CODE_SZ
 vars: rb VARS_SZ
 buf2: rb 16
