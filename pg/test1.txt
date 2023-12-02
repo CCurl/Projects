@@ -1,0 +1,4 @@
+: cr 10 emit ;
+: bl 32 emit ;
+: NIP SWAP DROP ;
+10 for i . bl next

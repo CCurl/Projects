@@ -1,2 +1,0 @@
-#/bin/sh
-clang -m32 -O3 -o pg -D isPC pg.cpp
