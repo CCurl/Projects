@@ -87,6 +87,10 @@ DE_T *addWord(const char *wd) {
     return de;
 }
 
+void addPrim(const char *wd, ushort prim) {
+    addWord(wd)->xt = prim;
+}
+
 DE_T *findWord(const char *wd) {
     DE_T *e=(DE_T*)&code[CODE_SZ-1];
     DE_T *de = (DE_T*)&code[last];
@@ -118,23 +122,24 @@ void Exec(int start) {
 int parseWord(char *w) {
     if (!w) { w = &wd[0]; }
     DE_T *de =  findWord(w);
-    if (de) { call(de->xt); return 1; }
+    if (de) { 
+        if (de->xt < NPRIMS) comma(de->xt);
+        else call(de->xt);
+        return 1;
+     }
     return 0;
 }
 
-// REP - Read/Execute/Print (no Loop)
-void REP() {
+int parseLine(const char *ln) {
     int h=here, l=last;
-    printf("\ntxt: ");
-    fgets(tib, sizeof(tib), stdin);
-    toIn = &tib[0];
+    toIn = (char *)ln;
     while (nextWord()) {
         if (!parseWord(wd)) {
             printf("-%s?-", wd);
             here=h;
             last=l;
             state=0;
-            return;
+            return 0;
         }
     }
     if ((l==last) && (h<here)) {
@@ -142,6 +147,16 @@ void REP() {
         here=h;
         Exec(h);
     }
+    return 1;
+}
+
+// REP - Read/Execute/Print (no Loop)
+FILE *REP(FILE *fp) {
+    printf("\ntxt: ");
+    if (!fp) { fp = stdin; }
+    fgets(tib, sizeof(tib), fp);
+    parseLine(tib);
+    return fp;
 }
 
 void Init(FILE *fp) {
@@ -155,15 +170,18 @@ void Init(FILE *fp) {
         while ((t=fgetc(fp))!=EOF) { if (31<t) { code[here++]=t-32; } }
         fclose(fp); Exec(0);
     }
-    addWord("test"); comma(2); comma(3);
-    addWord("test2"); call(32); jmp(32);
-    addWord("bye"); comma(31);
+    addPrim("BYE", 31);
+    addPrim("EXIT", 3);
+    addPrim("DUP",  4);
+    addPrim("SWAP", 5);
+    addPrim("DROP", 6);
+    parseLine(": NIP SWAP DROP ;");
 }
 
 int main(int argc, char *argv[]) {
     FILE *fp = NULL;
     if (argc>1) { fp=fopen(argv[1], "rb"); }
     Init(fp);
-    while (1) { REP(); }; // REPL
+    while (1) { fp = REP(fp); }; // REPL
     return 0;
 }
