@@ -1,4 +1,7 @@
 : cr 10 emit ;
 : bl 32 emit ;
 : NIP SWAP DROP ;
-10 for i . bl next
+: T0 100 drop ;
+: elapsed timer swap - . ;
+: mil 1000 dup * * ;
+: bm timer swap for t0 next elapsed ;

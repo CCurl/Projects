@@ -1,15 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-#define CODE_SZ       32767
-#define VARS_SZ       65536
-#define DICT_SZ        8192
-#define NPRIMS           32
-#define STK_SZ           64
+#define CODE_SZ       0x7FFF
+#define VARS_SZ       0xFFFF
+#define DICT_SZ         8192
+#define LPRIM             31
+#define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define comma(x)      code[here++]=(x)
-#define call(x)       comma((x<<1)+1)
-#define jmp(x)        comma((x<<1)+0)
+#define call(x)       comma(x|0x8000)
+#define jmp(x)        comma(x&0x7FFF)
+#define NCASE         goto next; case
 
 #define TOS           stk[sp].i
 #define NOS           stk[sp-1].i
@@ -29,7 +31,7 @@ SE_T stk[STK_SZ], rstk[STK_SZ];
 DE_T dict[DICT_SZ];
 static int lstk[60], lsp;
 static char tib[128];
-static unsigned short wc, code[CODE_SZ+1], u;
+static ushort wc, code[CODE_SZ+1];
 static int here, last, state, base, sp, rsp, pc;
 
 DE_T *addWord(const char *wd);
@@ -37,47 +39,59 @@ DE_T *addWord(const char *wd);
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
     EMIT, DOT, JMPZ, ADD, SUB, MUL, DIV, P17, P18, P19,          // 10 -> 19
-    P20, P21, P22, P23, P24, P25, P26, P27, COLON, SEMI,         // 20 -> 29
+    TMR, P21, P22, P23, P24, P25, P26, P27, COLON, SEMI,         // 20 -> 29
     IMM, BYE                                                     // 30 -> 31
 };
 
-void p00() { pc = -1; }
-void p01() { PUSH(code[pc++]); }
-void p02() { long x=code[pc+1]; x=(x<<16)+code[pc]; PUSH(x); pc += 2; }
-void p03() { if (rsp) { pc=rstk[rsp--].i; } else { pc=-1; } }
-void p04() { long t=TOS; PUSH(t); }
-void p05() { long t=TOS, n=NOS; NOS=t; TOS=n;  }
-void p06() { sp -= sp ? 1 : 0; }
-void p07() { lsp += 3; L2=pc; L1=POP(); L0=0; }
-void p08() { PUSH(L0); }
-void p09() { if (++L0<L1) { pc=L2; } else { lsp-=3; } }
-void p10() { printf("%c", (char)POP()); }
-void p11() { printf("%ld", POP()); }
-void p12() { if (POP()==0) { pc=code[pc]; } else { ++pc; } }
-void p13() { long t=POP(); TOS+=t; }
-void p14() { long t=POP(); TOS-=t; }
-void p15() { long t=POP(); TOS*=t; }
-void p16() { long t=POP(); TOS/=t; }
-void p17() { }
-void p18() { }
-void p19() { }
-void p20() { }
-void p21() { }
-void p22() { }
-void p23() { }
-void p24() { }
-void p25() { }
-void p26() { }
-void p27() { }
-void p28() { addWord(0); state=1; }
-void p29() { comma(EXIT); state=0; }
-void p30() { dict[last-1].fl=1; }
-void p31() { printf("\n"); exit(0); }
+long fetch2(ushort *a) { return (*(a+1))<<16 | *(a); }
+void makeImm() { dict[last-1].fl=1; }
 
-void (*q[NPRIMS])() = {
-    p00,p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,p11,p12,p13,p14,p15,
-    p16,p17,p18,p19,p20,p21,p22,p23,p24,p25,p26,p27,p28,p29,p30,p31
-};
+void Exec(int start) {
+    pc = start;
+    // printf("-ex:%d-",pc);
+    next:
+    wc=code[pc++];
+    switch(wc) {
+        case   0: { return; }
+        NCASE  1: { PUSH(code[pc++]); }
+        NCASE  2: { PUSH(fetch2(&code[pc])); pc += 2; }
+        NCASE  3: { if (rsp) { pc=rstk[rsp--].i; } else { return; } }
+        NCASE  4: { long t=TOS; PUSH(t); }
+        NCASE  5: { long t=TOS, n=NOS; NOS=t; TOS=n;  }
+        NCASE  6: { sp -= sp ? 1 : 0; }
+        NCASE  7: { lsp += 3; L2=pc; L1=POP(); L0=0; }
+        NCASE  8: { PUSH(L0); }
+        NCASE  9: { if (++L0<L1) { pc=L2; } else { lsp-=3; } }
+        NCASE 10: { printf("%c", (char)POP()); }
+        NCASE 11: { printf("%ld", POP()); }
+        NCASE 12: { if (POP()==0) { pc=code[pc]; } else { ++pc; } }
+        NCASE 13: { long t=POP(); TOS+=t; }
+        NCASE 14: { long t=POP(); TOS-=t; }
+        NCASE 15: { long t=POP(); TOS*=t; }
+        NCASE 16: { long t=POP(); TOS/=t; }
+        NCASE 17: { }
+        NCASE 18: { }
+        NCASE 19: { }
+        NCASE 20: { PUSH(clock()); }
+        NCASE 21: { }
+        NCASE 22: { }
+        NCASE 23: { }
+        NCASE 24: { }
+        NCASE 25: { }
+        NCASE 26: { }
+        NCASE 27: { }
+        NCASE 28: { addWord(0); state=1; }
+        NCASE 29: { comma(EXIT); state=0; }
+        NCASE 30: { makeImm(); }
+        NCASE 31: { printf("\n"); exit(0); }
+            goto next;
+        default: {
+            if (wc & 0x8000) { rstk[++rsp].i=pc; }
+            pc = (wc & 0x7FFF );
+            goto next;
+        }
+    }
+}
 
 char wd[32], *toIn;
 int nextWord() {
@@ -102,7 +116,7 @@ DE_T *addWord(const char *w) {
     if (l==0) return (DE_T*)0;
     if (l>27) { l=27; }
     DE_T *de=(DE_T*)&dict[last++];
-    de->xt = here;
+    de->xt = here | 0x8000;
     de->fl = 0;
     de->ln = l;
     for (int i = 0; i < l; i++) { de->nm[i] = w[i]; }
@@ -120,19 +134,6 @@ DE_T *findWord(const char *w) {
     return (DE_T*)0;
 }
 
-void Exec(int start) {
-    pc = start;
-    while (btwi(pc,0,CODE_SZ)) {
-        wc = code[pc++];
-        if (wc<NPRIMS) { q[wc](); }
-        else {
-            int addr = (wc>>1);
-            if (wc & 0x01) { rstk[++rsp].i=pc; }
-            pc=addr;
-        }
-    }
-}
-
 long isNum(const char *w, int b) {
     long n = 0;
     b = b ? b : 10;
@@ -146,6 +147,7 @@ long isNum(const char *w, int b) {
 
 int parseWord(char *w) {
     if (!w) { w = &wd[0]; }
+    // printf("-pw:%s-",w);
 
     if (isNum(wd, base)) {
         long n = POP();
@@ -160,14 +162,13 @@ int parseWord(char *w) {
     DE_T *de = findWord(w);
     if (de) {
         if (de->fl == 1) {   // IMMEDIATE
-            if (de->xt < NPRIMS) { q[de->xt](); }
-            else {
-                code[here+10]=de->xt & 0x01;
-                code[here+11]=EXIT;
-                Exec(here+10);
-            }
+            int h = here+10;
+            code[h]=de->xt;
+            if (de->xt > LPRIM) { code[h] |= 0x8000; }
+            code[h+1]=EXIT;
+            Exec(h);
         } else {
-            if (de->xt < NPRIMS) { comma(de->xt); }
+            if (de->xt <= LPRIM) { comma(de->xt); }
             else { call(de->xt); }
         }
         return 1;
@@ -179,6 +180,7 @@ int parseWord(char *w) {
 int parseLine(const char *ln) {
     int h=here, l=last;
     toIn = (char *)ln;
+    // printf("-pl:%s-",ln);
     while (nextWord()) {
         if (!parseWord(wd)) {
             printf("-%s?-", wd);
@@ -217,7 +219,7 @@ void Init() {
     int t;
     sp = rsp = lsp = state = last = 0;
     base = 10;
-    here = NPRIMS;
+    here = 0;
     for (t=0; t<CODE_SZ; t++) { code[t]=0; }
     addPrim("BYE",  BYE);
     addPrim("EXIT", EXIT);
@@ -233,8 +235,9 @@ void Init() {
     addPrim("-",    SUB);
     addPrim("*",    MUL);
     addPrim("/",    DIV);
-    addPrim(":",    COLON); p30();
-    addPrim(";",    SEMI);  p30();
+    addPrim("TIMER",  TMR);
+    addPrim(":",    COLON); makeImm();
+    addPrim(";",    SEMI);  makeImm();
     addPrim("IMMEDIATE",  IMM);
 }
 
