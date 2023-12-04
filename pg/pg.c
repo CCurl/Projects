@@ -152,7 +152,7 @@ int parseWord(char *w) {
     if (isNum(wd, base)) {
         long n = POP();
         if (btwi(n,0,0x7fff)) {
-            comma(1); comma(n);
+            comma(1); comma((short)n);
         } else {
             comma(2); comma(n & 0xffff); comma(n >> 16);
         }
