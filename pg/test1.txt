@@ -4,4 +4,4 @@
 : T0 100 drop ;
 : elapsed timer swap - . ;
 : mil 1000 dup * * ;
-: bm timer swap for t0 next elapsed ;
+: bm timer swap for T0 next elapsed ;
