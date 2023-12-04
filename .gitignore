@@ -41,3 +41,5 @@ pg2/pg2
 tc/tc
 c3-fasm/c3
 tc/tiny-c.o
+pg/pg-32
+pg/pg-64
