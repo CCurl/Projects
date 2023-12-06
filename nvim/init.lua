@@ -1,6 +1,6 @@
 require('packer-config')
 require("mason-config")
-require("lsp_setup")
+require("lsp-config")
 -- require("lsp")
 require("telescope-config")
 
