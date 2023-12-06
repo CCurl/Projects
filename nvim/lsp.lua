@@ -1,3 +1,7 @@
+-- **********************************************
+-- Configure the LSP server support ...
+-- **********************************************
+
 -- Use LspAttach autocommand to only map the following keys
 -- after the language server attaches to the current buffer
 vim.api.nvim_create_autocmd('LspAttach', {
@@ -28,3 +32,4 @@ vim.api.nvim_create_autocmd('LspAttach', {
 			end, opts)
 	end,
 })
+
