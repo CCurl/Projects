@@ -108,6 +108,8 @@ cold:
         mov rax, buf2             ; LAST: end of the code
         mov [last], rax
         mov HERE, code            ; HERE: start of code
+        lea rax, [regs]           ; Start of registers
+		mov [regBase], rax
 
         mov rsi, hi
         call strlen
@@ -370,6 +372,8 @@ dstk: rq DSTK_SZ
 rstk: rq RSTK_SZ
 lstk: rq LSTK_SZ
 lsp:  rq 1
+regs: rq 100
+regBase: rq 1
 wd:   rb 32
 tib:  rb TIB_SZ
 code: rb CODE_SZ

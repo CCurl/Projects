@@ -1,7 +1,6 @@
-_nop:       ; xxx TOS
-            NEXT
+_nop:       NEXT
 
-_bye:      xor rdi, rdi    ; exit code 0
+_bye:       xor rdi, rdi    ; exit code 0
             mov rax, 60     ; sys_exit
             syscall
             ret
@@ -83,7 +82,7 @@ _mult:      dPOP rbx
             imul TOS, rbx
             NEXT
 
-_slmod:     ; xxx TOS
+_slmod:     ; TODO!
             NEXT
 
 _sub:       dPOP rax
@@ -195,28 +194,47 @@ _ztype:     dPOP rsi        ; string
             call stype
             NEXT
 
-_reg_i:     ; xxx TOS
+_reg_i:     nextByte rax    ; reg number
+			mov rdx, [regBase]
+			inc qword [rdx+rax*8]
             NEXT
 
-_reg_d:     ; xxx TOS
+_reg_d:     nextByte rax    ; reg number
+			mov rdx, [regBase]
+			dec qword [rdx+rax*8]
+			NEXT
+
+_reg_r:     nextByte rax    ; reg number
+			mov rdx, [regBase]
+			mov rbx, [rdx+rax*8]
+			dPUSH rbx
             NEXT
 
-_reg_r:     ; xxx TOS
+_reg_rd:    nextByte rax    ; reg number
+			mov rdx, [regBase]
+			mov rbx, [rdx+rax*8]
+			dPUSH rbx
+			dec qword [rdx+rax*8]
             NEXT
 
-_reg_rd:    ; xxx TOS
+_reg_ri:    nextByte rax    ; reg number
+			mov rdx, [regBase]
+			mov rbx, [rdx+rax*8]
+			dPUSH rbx
+			inc qword [rdx+rax*8]
             NEXT
 
-_reg_ri:    ; xxx TOS
+_reg_s:     nextByte rax    ; reg number
+			mov rdx, [regBase]
+			mov rbx, [rdx+rax*8]
+			dPOP rbx
+			mov [rdx+rax*8], rbx
             NEXT
 
-_reg_s:     ; xxx TOS
+_reg_new:   add qword [regBase], 80
             NEXT
 
-_reg_new:   ; xxx TOS
-            NEXT
-
-_reg_free:  ; xxx TOS
+_reg_free:  sub qword [regBase], 80
             NEXT
 
 ; ------------------------------------------------------------------------------
