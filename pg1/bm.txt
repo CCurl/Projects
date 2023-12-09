@@ -1,0 +1,5 @@
+: mil 1000 dup * * ;
+: T0 100 drop ;
+: bm for T0 next ;
+500 mil bm
+bye
