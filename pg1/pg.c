@@ -8,6 +8,7 @@
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define NCASE         goto next; case
 #define RCASE         return; case
+#define RETi0         if (w[1]==0) { return 0; } w++
 
 #define TOS           stk[sp]
 #define NOS           stk[sp-1]
@@ -36,12 +37,10 @@ DE_T dict[DICT_SZ];
 byte code[CODE_MAX+1];
 short sp, rsp, lsp, pc;
 
-DE_T *addWord(const char *wd);
-
 enum {
     STOP, LIT1, LIT2, LIT4, EXIT, DUP, SWAP, DROP, FOR, INDEX,   //  0 ->  9
     NEXT, EMIT, DOT, ADD, SUB, MUL, DIV, CALL, JMP, JMPZ,        // 10 -> 19
-    TMR, P21, P22, P23, P24, P25, P26, P27, COLON, SEMI,         // 20 -> 29
+    CLK, P21, P22, P23, P24, P25, P26, P27, COLON, SEMI,         // 20 -> 29
     IMM, BYE                                                     // 30 -> 31
 };
 
@@ -53,13 +52,14 @@ void store4(ushort a, cell val) { *(cell*)(&code[a]) = (cell)(val); }
 void comma1(byte x)  { code[HERE++]=x; }
 void comma2(short x) { store2(HERE, x); HERE+=2; }
 void comma4(cell x)  { store4(HERE, x); HERE+=sizeof(cell); }
+
+DE_T *addWord(const char *wd);
 void makeImm()  { dict[LAST-1].fl |= IS_IMM; }
 void makePrim(ushort x) {  dict[LAST-1].xt = x; dict[LAST-1].fl |= IS_PRIM; }
 
 void Exec(ushort start) {
     pc = start;
     cell t;
-    // printf("-ex:%d-",pc);
     next:
     switch(code[pc++]) {
         case  STOP:  return;
@@ -82,7 +82,7 @@ void Exec(ushort start) {
         NCASE CALL:  if (code[pc+2] != EXIT) { rstk[++rsp]=pc+2; }
         case  JMP:   pc=fetch2(pc);
         NCASE JMPZ:  if (POP()==0) { pc=fetch2(pc); } else { pc+=2; }
-        NCASE TMR:   PUSH(clock());
+        NCASE CLK:   PUSH(clock());
         NCASE P21:
         NCASE P22:
         NCASE P23:
@@ -140,31 +140,20 @@ DE_T *findWord(const char *w) {
     return (DE_T*)0;
 }
 
-#define is09(c)  btwi(c,'0','9')
-#define n09(c)   (c-'0')
-#define isAF(c)  btwi(c,'A','F')
-#define nAF(c)   (c-'A'+10)
-#define isHex(c) (is09(c) || isAF(c))
-#define nHex(c)  (is09(c) ? n09(c) : nAF(c))
-#define isBin(c) btwi(c,'0','1')
-#define nBin(c)  (c-'0')
-#define base2    (b==2)
-#define base10   (b==10)
-#define base16   (b==16)
-
 int isNum(const char *w, int b) {
     cell n=0, isNeg=0;
-    if ((w[0]==39) && (w[2]==39) && (w[3]==0)) { PUSH(w[1]); return 1; }
-    if (w[0]=='%') { b=2; ++w; }
-    if (w[0]=='#') { b=10; ++w; }
-    if (w[0]=='$') { b=16; ++w; }
-    if ((b==10) && (w[0]=='-')) { isNeg=1; ++w; }
+    if ((w[0]==39) && (w[2]==0)) { PUSH(w[1]); return 1; }
+    if (w[0]=='%') { b=2; RETi0; }
+    if (w[0]=='#') { b=10; RETi0; }
+    if (w[0]=='$') { b=16; RETi0; }
+    if ((b==10) && (w[0]=='-')) { isNeg=1; RETi0; }
     char c = *(w++);
     while (c) {
         n = (n*b);
-        if (base2 && isBin(c)) { n+=nBin(c); }
-        else if (base10 && is09(c)) { n+=n09(c); }
-        else if (base16 && isHex(c)) { n+=nHex(c); }
+        if ((b==2) && btwi(c,'0','1')) { n+=(c-'0'); }
+        else if ((b==16) && btwi(c,'A','F')) { n+=(c-'A'+10); }
+        else if ((b==16) && btwi(c,'a','f')) { n+=(c-'a'+10); }
+        else if ((b>9) && btwi(c,'0','9')) { n+=(c-'0'); }
         else return 0;
         c = *(w++);
     }
@@ -192,14 +181,14 @@ int parseWord(char *w) {
     DE_T *de = findWord(w);
     if (de) {
         if (de->fl & IS_IMM) {
-            int h = HERE+10;
+            int h = HERE+100;
             if (de->fl & IS_PRIM) {
                 code[h]=de->xt;
                 code[h+1]=EXIT;
             } else {
+                code[h] = CALL;
                 store2(h+1, de->xt);
                 code[h+3]=EXIT;
-                code[h] = CALL;
             }
             Exec(h);
         } else {
@@ -215,7 +204,6 @@ int parseWord(char *w) {
 int parseLine(const char *ln) {
     int h=HERE, l=LAST;
     toIn = (char *)ln;
-    // printf("-pl:%s-",ln);
     while (nextWord()) {
         if (!parseWord(wd)) {
             printf("-%s?-", wd);
@@ -260,7 +248,7 @@ void Init() {
     HERE = STATE = LAST = 0;
     BASE = 10;
     for (int t=0; t<=CODE_MAX; t++) { code[t]=0; }
-    addPrim("BYE",  BYE);
+    addPrim("xQ",   BYE);
     addPrim("EXIT", EXIT);
     addPrim("DUP",  DUP);
     addPrim("SWAP", SWAP);
@@ -274,7 +262,7 @@ void Init() {
     addPrim("-",    SUB);
     addPrim("*",    MUL);
     addPrim("/",    DIV);
-    addPrim("TIMER",  TMR);
+    addPrim("CLOCK",CLK);
     addPrim(":",    COLON); makeImm();
     addPrim(";",    SEMI);  makeImm();
     addPrim("IMMEDIATE",  IMM);
