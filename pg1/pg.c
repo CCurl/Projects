@@ -8,8 +8,7 @@
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define NCASE         goto next; case
 #define RCASE         return; case
-#define RETi0         if (w[1]==0) { return 0; } w++
-#define Make2(l,h)    (h<<8)|l
+#define RetIf0        if (w[1]==0) { return 0; } w++
 
 #define TOS           stk[sp]
 #define NOS           stk[sp-1]
@@ -19,14 +18,14 @@
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
 #define HERE          sys[HEREA]
+#define VHERE         sys[VHEREA]
 #define LAST          sys[LASTA]
 #define BASE          sys[BASEA]
 #define STATE         sys[STATEA]
 #define IS_IMM        0x01
-#define IS_PRIM       0x02
 #define IS_INLINE     0x04
 
-enum { HEREA=0, LASTA, BASEA, STATEA, U4, U5, U6, U7 };
+enum { HEREA=0, LASTA, BASEA, STATEA, VHEREA, U5, U6, U7 };
 
 typedef long cell;
 typedef unsigned short ushort;
@@ -40,9 +39,9 @@ byte code[CODE_MAX+1];
 short sp, rsp, lsp, pc;
 
 enum {
-    STOP, LIT1, LIT2, P03, LIT4, DUP, SWAP, DROP, FOR, INDEX,    //  0 ->  9
-    NEXT, ADD, SUB, MUL, DIV, CALL, JMP, JMPZ, LT, EQ,           // 10 -> 19
-    GT, P21, P22, P23, P24, P25, P26, P27, P28, P29,             // 20 -> 29
+    STOP, LIT1, LIT2, LIT4, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
+    ADD, SUB, MUL, DIV, CALL, JMP, JMPZ, LT, EQ, GT,             // 10 -> 19
+    P20, P21, P22, P23, P24, P25, P26, P27, P28, P29,            // 20 -> 29
     EXIT, SYSOP                                                  // 30 -> 31
 };
 enum {
@@ -77,7 +76,7 @@ void SysOp() {
         RCASE COLON: addWord(0); STATE=1;
         RCASE SEMI:  comma1(EXIT); STATE=0;
         RCASE IMM:   makeImm();
-        RCASE BYE:   printf("\n"); exit(0);
+        RCASE BYE:   exit(0);
 		return;
 	}
 }
@@ -90,7 +89,6 @@ void Exec(ushort start) {
         case  STOP:  return;
         NCASE LIT1:  PUSH((char)code[pc++]);
         NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += 2;
-        NCASE P03:
         NCASE LIT4:  PUSH(fetch4(&code[pc])); pc += sizeof(cell);
         NCASE DUP:   t=TOS; PUSH(t);
         NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
@@ -108,6 +106,7 @@ void Exec(ushort start) {
         NCASE LT:    t=POP(); TOS=(TOS<t)  ? 1 : 0;
         NCASE EQ:    t=POP(); TOS=(TOS==t) ? 1 : 0;
         NCASE GT:    t=POP(); TOS=(TOS>t)  ? 1 : 0;
+        NCASE P20:
         NCASE P21:
         NCASE P22:
         NCASE P23:
@@ -161,17 +160,16 @@ DE_T *findWord(const char *w) {
         DE_T *de = (DE_T*)&dict[e];
         if (strEqI(de->nm, w)) { return de; }
     } 
-
     return (DE_T*)0;
 }
 
 int isNum(const char *w, int b) {
     cell n=0, isNeg=0;
     if ((w[0]==39) && (w[2]==0)) { PUSH(w[1]); return 1; }
-    if (w[0]=='%') { b=2; RETi0; }
-    if (w[0]=='#') { b=10; RETi0; }
-    if (w[0]=='$') { b=16; RETi0; }
-    if ((b==10) && (w[0]=='-')) { isNeg=1; RETi0; }
+    if (w[0]=='%') { b=2; RetIf0; }
+    if (w[0]=='#') { b=10; RetIf0; }
+    if (w[0]=='$') { b=16; RetIf0; }
+    if ((b==10) && (w[0]=='-')) { isNeg=1; RetIf0; }
     char c = *(w++);
     while (c) {
         n = (n*b);
@@ -182,7 +180,7 @@ int isNum(const char *w, int b) {
         else return 0;
         c = *(w++);
     }
-    if (isNeg) { n = -n;; }
+    if (isNeg) { n = -n; }
     PUSH(n);
     return 1;
 }
