@@ -24,6 +24,7 @@
 #define STATE         sys[STATEA]
 #define IS_IMM        0x01
 #define IS_PRIM       0x02
+#define IS_INLINE     0x04
 
 enum { HEREA=0, LASTA, BASEA, STATEA, U4, U5, U6, U7 };
 
@@ -45,24 +46,31 @@ enum {
     EXIT, SYSOP                                                  // 30 -> 31
 };
 enum {
-    EMIT=1, DOT, CLK, COLON, SEMI, IMM, BYE                      // 30 -> 31
+    EMIT, DOT, CLK, COLON, SEMI, IMM, INL, BYE, S08, S09         //  0 ->  9
 };
 
-cell fetch2(ushort a) { return *(short*)(&code[a]); }
-cell fetch4(ushort a) { return *(cell*)(&code[a]); }
-void store2(ushort a, cell val) { *(short*)(&code[a]) = (short)(val); }
-void store4(ushort a, cell val) { *(cell*)(&code[a]) = (cell)(val); }
+cell fetch2(byte *a) { return *(short*)(a); }
+cell fetch4(byte *a) { return *(cell*)(a); }
+void store2(byte *a, cell val) { *(short*)(a) = (short)(val); }
+void store4(byte *a, cell val) { *(cell*)(a) = (cell)(val); }
 
 void comma1(byte x)  { code[HERE++]=x; }
-void comma2(short x) { store2(HERE, x); HERE+=2; }
-void comma4(cell x)  { store4(HERE, x); HERE+=sizeof(cell); }
+void comma2(short x) { store2(&code[HERE], x); HERE+=2; }
+void comma4(cell x)  { store4(&code[HERE], x); HERE+=sizeof(cell); }
 
 DE_T *addWord(const char *wd);
-void makeImm()  { dict[LAST-1].fl |= IS_IMM; }
-void makePrim(ushort x) {  dict[LAST-1].xt = x; dict[LAST-1].fl |= IS_PRIM; }
+void makeImm() { dict[LAST-1].fl |= IS_IMM; }
+void makeInl() { dict[LAST-1].fl |= IS_INLINE; }
+void makePrim(char *nm, byte x, char y) {
+	addWord(nm);
+	if (0 <= y) { comma1(LIT1); comma1(y); }
+	comma1(x);
+	comma1(EXIT);
+	dict[LAST-1].fl = IS_INLINE;
+}
 
 void SysOp() {
-    switch(code[pc++]) {
+    switch(POP()) {
         case EMIT:   printf("%c", (char)POP());
         RCASE DOT:   printf("%ld", (long)POP());
         RCASE CLK:   PUSH(clock());
@@ -81,9 +89,9 @@ void Exec(ushort start) {
     switch(code[pc++]) {
         case  STOP:  return;
         NCASE LIT1:  PUSH((char)code[pc++]);
-        NCASE LIT2:  PUSH(fetch2(pc)); pc += 2;
+        NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += 2;
         NCASE P03:
-        NCASE LIT4:  PUSH(fetch4(pc)); pc += sizeof(cell);
+        NCASE LIT4:  PUSH(fetch4(&code[pc])); pc += sizeof(cell);
         NCASE DUP:   t=TOS; PUSH(t);
         NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
         NCASE DROP:  if (0<sp) { sp--; } else { sp=0; }
@@ -95,8 +103,8 @@ void Exec(ushort start) {
         NCASE MUL:   t=POP(); TOS*=t;
         NCASE DIV:   t=POP(); TOS/=t;
         NCASE CALL:  if (code[pc+2] != EXIT) { rstk[++rsp]=pc+2; }
-        case  JMP:   pc=fetch2(pc);
-        NCASE JMPZ:  if (POP()==0) { pc=fetch2(pc); } else { pc+=2; }
+        case  JMP:   pc=fetch2(&code[pc]);
+        NCASE JMPZ:  if (POP()==0) { pc=fetch2(&code[pc]); } else { pc+=2; }
         NCASE LT:    t=POP(); TOS=(TOS<t)  ? 1 : 0;
         NCASE EQ:    t=POP(); TOS=(TOS==t) ? 1 : 0;
         NCASE GT:    t=POP(); TOS=(TOS>t)  ? 1 : 0;
@@ -198,26 +206,19 @@ int parseWord(char *w) {
     DE_T *de = findWord(w);
     if (de) {
         if (de->fl & IS_IMM) {
-            int h = HERE+100;
-            if (de->fl & IS_PRIM) {
-                code[h] = (de->xt & 0xff);
-                code[h+1]=EXIT;
-                if (de->xt > 0xFF) {
-                    code[h+1] = (de->xt >> 8);
-                    code[h+2] = EXIT;
-                }
-            } else {
-                code[h] = CALL;
-                store2(h+1, de->xt);
-                code[h+3]=EXIT;
-            }
-            Exec(h);
+			code[HERE+100] = CALL;
+			store2(&code[HERE+101], de->xt);
+			code[HERE+103] = EXIT;
+            Exec(HERE+100);
         } else {
-            if (de->fl & IS_PRIM) {
-                comma1(de->xt & 0xFF);
-                if (de->xt > 0xFF) { comma1(de->xt >> 8); }
-            }
-            else { comma1(CALL); comma2(de->xt); }
+            if (de->fl & IS_INLINE) {
+				int x = de->xt;
+                comma1(code[x++]);
+				while (code[x] != EXIT) { comma1(code[x++]); }
+			} else {
+				comma1(CALL);
+				comma2(de->xt);
+			}
         }
         return 1;
      }
@@ -262,39 +263,36 @@ FILE *REP(FILE *fp) {
     return NULL;
 }
 
-void addPrim(const char *wd, ushort prim) {
-    addWord(wd);
-    makePrim(prim);
-}
-
 void Init() {
     sp = rsp = lsp = 0;
     HERE = STATE = LAST = 0;
     BASE = 10;
     for (int t=0; t<=CODE_MAX; t++) { code[t]=0; }
-    addPrim("xQ",   Make2(SYSOP, BYE));
-    addPrim("EXIT", EXIT);
-    addPrim("DUP",  DUP);
-    addPrim("SWAP", SWAP);
-    addPrim("DROP", DROP);
-    addPrim("FOR",  FOR);
-    addPrim("I",    INDEX);
-    addPrim("NEXT", NEXT);
-    addPrim("EMIT", Make2(SYSOP, EMIT));
-    addPrim("(.)",  Make2(SYSOP, DOT));
-    addPrim("+",    ADD);
-    addPrim("-",    SUB);
-    addPrim("*",    MUL);
-    addPrim("/",    DIV);
-    addPrim("CLOCK",Make2(SYSOP, CLK));
-    addPrim("<",    LT);
-    addPrim("=",    EQ);
-    addPrim(">",    GT);
-    addPrim(":",    Make2(SYSOP, COLON)); makeImm();
-    addPrim(";",    Make2(SYSOP, SEMI));  makeImm();
-    addPrim("IMMEDIATE",  Make2(SYSOP, IMM));
-    parseLine(": . (.) : bl 32 emit ;");
-    parseLine(": cr 10 emit ;");
+    makePrim(":",    SYSOP, COLON); makeImm();
+    makePrim(";",    SYSOP, SEMI); makeImm();
+    makePrim("INLINE",  SYSOP, INL); makeImm();
+    makePrim("IMMEDIATE",  SYSOP, IMM); makeImm();
+    makePrim("xQ",   SYSOP, BYE);
+    makePrim("EXIT", EXIT, -1);
+    makePrim("DUP",  DUP, -1);
+    makePrim("SWAP", SWAP, -1);
+    makePrim("DROP", DROP, -1);
+    makePrim("FOR",  FOR, -1);
+    makePrim("I",    INDEX, -1);
+    makePrim("NEXT", NEXT, -1);
+    makePrim("EMIT", SYSOP, EMIT);
+    makePrim("(.)",  SYSOP, DOT);
+    makePrim("+",    ADD, -1);
+    makePrim("-",    SUB, -1);
+    makePrim("*",    MUL, -1);
+    makePrim("/",    DIV, -1);
+    makePrim("CLOCK", SYSOP, CLK);
+    makePrim("<",    LT, -1);
+    makePrim("=",    EQ, -1);
+    makePrim(">",    GT, -1);
+    parseLine(": space 32 emit ; inline");
+    parseLine(": cr 10 emit ; inline");
+    parseLine(": . (.) space ; inline");
 }
 
 int main(int argc, char *argv[]) {
