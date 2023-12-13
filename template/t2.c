@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <time.h>
 
-#define NEXT goto next
+#define NEXT   goto next
+#define NCASE  NEXT; case
+#define RCASE  return; case
 #define PS(x)  stk[++sp]=(x)
 #define PP     stk[sp--]
 #define S0     stk[sp]
@@ -21,13 +23,22 @@
 #define BTW(a,b,c) ((b<=a)&&(a<=c))
 
 char u, *pc;
-long stk[32], rstk[32], lstk[30], sp, rsp, lsp, t;
+long stk[64], rstk[64], lstk[30], sp, rsp, lsp, t;
+
+void ext() {
+    switch(*(pc++)) {
+		case '1':
+		RCASE '2':
+			return;
+		default: return;
+	}
+}
 
 void run(const char *x) {
     pc = (char *)x;
     next:
     u = *(pc++);
-
+	// printf("-%d(%c)-\n", u, u);
     switch(u) {
     NCASE ' ':
     NCASE '!': printf("%c",u);
@@ -45,11 +56,10 @@ void run(const char *x) {
     NCASE '-': S1-=S0; D1;
     NCASE '.': printf(" %ld",PP);
     NCASE '/': S1/=S0; D1;
-    NCASE '0': NCASE '1': NCASE '2': NCASE '3': 
-    NCASE '4': NCASE '5': NCASE '6': NCASE '7': 
-    NCASE '8': NCASE '9': PS(u-'0');
+    NCASE '0': case '1': case '2': case '3': 
+    case '4': case '5': case '6': case '7': 
+    case '8': case '9': PS(u-'0');
         while (BTW(*pc,'0','9')) { S0=(S0*10)+(*(pc++)-'0'); }
-       
     NCASE ':': printf("%c",u);
     NCASE ';': printf("%c",u);
     NCASE '<': S1=(S1<S0)?-1:0;  D1;
@@ -85,8 +95,7 @@ void run(const char *x) {
     NCASE 'Z': printf("%c",u);
     NCASE '[': lsp+=3; L0=PP; L1=PP; L2=(long)pc;
     NCASE '\\': if (0<sp) sp--;
-    NCASE ']': if (++L0<L1) { pc=(char *)L2; }
-        else { lsp-=3; }
+    NCASE ']': if (++L0<L1) { pc=(char *)L2; } else { lsp-=3; }
     NCASE '^': printf("%c",u);
     NCASE '_': printf("%c",u);
     NCASE '`': printf("%c",u);
@@ -113,7 +122,7 @@ void run(const char *x) {
     NCASE 'u': printf("%c",u);
     NCASE 'v': printf("%c",u);
     NCASE 'w': printf("%c",u);
-    NCASE 'x': printf("%c",u);
+    NCASE 'x': ext();
     NCASE 'y': printf("%c",u);
     NCASE 'z': printf("%c",u);
     NCASE '{': lsp+=3; L2=(long)pc;
