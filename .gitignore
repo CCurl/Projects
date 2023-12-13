@@ -44,3 +44,7 @@ tc/tiny-c.o
 pg/pg-32
 pg/pg-64
 pg1/pg
+pg/pg32
+pg/pg64
+template/t1
+template/t2

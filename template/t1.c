@@ -8,7 +8,7 @@ static char *y;
 static int cb, h, sb, s, rb, r, p, u, t;
 /*   */ void X() { printf("[%d]",u); p=0; }
 /*   */ void N() { }
-/* ! */ void f33() { printf("[!]",u); }
+/* ! */ void f33() { printf("[!]"); }
 /* " */ void f34() { printf("[%c]",u); }
 /* # */ void f35() { printf("[%c]",u); }
 /* $ */ void f36() { printf("[%c]",u); }
@@ -111,7 +111,7 @@ void (*q[127])()={X,X,X,X,X,X,X,X,X,X,N,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
 void I() { s=sb=4; r=rb=64; h=cb=32000; for (t=0; t<(SZ/4); t++) st.i[t]=0; }
 void R(int x) { s=(s<sb)?(sb-1):s; r=rb; p=x; while (p) { u=st.b[p++]; q[u](); } }
 void L() { printf("\ncmd: "); y=&st.b[h]; fgets(y, 128, stdin); R(h); }
-void main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     I();
     if (argc>1) { FILE *fp=fopen(argv[1], "rb"); 
         if (fp) {
@@ -119,4 +119,5 @@ void main(int argc, char *argv[]) {
             fclose(fp); R(cb);
         }
     } while (1) { L(); };
+	return 0;
 }

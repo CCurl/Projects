@@ -1,5 +1,5 @@
-app := pg
-app32 := pg
+app := pg64
+app32 := pg32
 
 CXX := clang
 CXXFLAGS := -m32 -O3 -D IS_LINUX

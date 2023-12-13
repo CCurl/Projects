@@ -21,10 +21,10 @@
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
 
-
+typedef long cell;
 typedef unsigned short ushort;
 typedef unsigned char byte;
-typedef union { double f; long i; } SE_T;
+typedef union { double f; cell i; } SE_T;
 typedef struct { ushort xt; byte fl; byte ln; char nm[28]; } DE_T;
 
 SE_T stk[STK_SZ], rstk[STK_SZ];
@@ -38,42 +38,43 @@ DE_T *addWord(const char *wd);
 
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
-    EMIT, DOT, JMPZ, ADD, SUB, MUL, DIV, P17, P18, P19,          // 10 -> 19
-    TMR, P21, P22, P23, P24, P25, P26, P27, COLON, SEMI,         // 20 -> 29
+    EMIT, DOT, JMPZ, ADD, SUB, MUL, DIV, LT, EQ, GT,             // 10 -> 19
+    TMR, IF, P22, P23, P24, P25, P26, P27, COLON, SEMI,          // 20 -> 29
     IMM, BYE                                                     // 30 -> 31
 };
 
-long fetch2(ushort *a) { return (*(a+1))<<16 | *(a); }
+cell fetch2(ushort *a) { return *(cell*)(a); }
 void makeImm() { dict[last-1].fl=1; }
 
 void Exec(int start) {
-    pc = start;
+    cell t;
+	pc = start;
     // printf("-ex:%d-",pc);
     next:
     wc=code[pc++];
     switch(wc) {
-        case   0: { return; }
-        NCASE  1: { PUSH(code[pc++]); }
-        NCASE  2: { PUSH(fetch2(&code[pc])); pc += 2; }
-        NCASE  3: { if (rsp) { pc=rstk[rsp--].i; } else { return; } }
-        NCASE  4: { long t=TOS; PUSH(t); }
-        NCASE  5: { long t=TOS, n=NOS; NOS=t; TOS=n;  }
-        NCASE  6: { sp -= sp ? 1 : 0; }
+        case  STOP: { return; }
+        NCASE LIT1: { PUSH(code[pc++]); }
+        NCASE LIT2: { PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2; }
+        NCASE EXIT: { if (rsp) { pc=rstk[rsp--].i; } else { return; } }
+        NCASE  4: { cell t=TOS; PUSH(t); }
+        NCASE  5: { cell t=TOS, n=NOS; NOS=t; TOS=n;  }
+        NCASE  6: if (0<sp) --sp;
         NCASE  7: { lsp += 3; L2=pc; L1=POP(); L0=0; }
         NCASE  8: { PUSH(L0); }
         NCASE  9: { if (++L0<L1) { pc=L2; } else { lsp-=3; } }
         NCASE 10: { printf("%c", (char)POP()); }
-        NCASE 11: { printf("%ld", POP()); }
-        NCASE 12: { if (POP()==0) { pc=code[pc]; } else { ++pc; } }
-        NCASE 13: { long t=POP(); TOS+=t; }
-        NCASE 14: { long t=POP(); TOS-=t; }
-        NCASE 15: { long t=POP(); TOS*=t; }
-        NCASE 16: { long t=POP(); TOS/=t; }
-        NCASE 17: { }
-        NCASE 18: { }
-        NCASE 19: { }
+        NCASE 11: { printf("%zd", (size_t)POP()); }
+        NCASE JMPZ: { if (POP()==0) { pc=code[pc]; } else { ++pc; } }
+        NCASE 13: { cell t=POP(); TOS+=t; }
+        NCASE 14: { cell t=POP(); TOS-=t; }
+        NCASE 15: { cell t=POP(); TOS*=t; }
+        NCASE 16: { cell t=POP(); TOS/=t; }
+        NCASE LT: t = POP(); TOS = (TOS < t);
+        NCASE EQ: t = POP(); TOS = (TOS == t);
+        NCASE GT: t = POP(); TOS = (TOS > t);
         NCASE 20: { PUSH(clock()); }
-        NCASE 21: { }
+        NCASE 21: comma(JMPZ); t=here+2; comma(t); comma(EXIT);
         NCASE 22: { }
         NCASE 23: { }
         NCASE 24: { }
@@ -235,9 +236,13 @@ void Init() {
     addPrim("-",    SUB);
     addPrim("*",    MUL);
     addPrim("/",    DIV);
+    addPrim("<",    LT);
+    addPrim("=",    EQ);
+    addPrim(">",    GT);
     addPrim("TIMER",  TMR);
     addPrim(":",    COLON); makeImm();
     addPrim(";",    SEMI);  makeImm();
+    addPrim("IF",   IF);  makeImm();
     addPrim("IMMEDIATE",  IMM);
 }
 
