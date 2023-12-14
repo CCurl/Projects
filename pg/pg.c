@@ -87,9 +87,8 @@ void Exec(int start) {
         NCASE SEMI:  comma(EXIT); state = 0;
         NCASE IMM:   makeImm();
         NCASE FET:   TOS = code[TOS];
-        NCASE STO:   code[TOS] = NOS; sp-=2; if (sp<0) sp=0;
+        NCASE STO:   code[TOS] = (short)NOS; sp-=2; if (sp<0) sp=0;
         NCASE BYE:   exit(0);
-            goto next;
         default: {
             if (wc & 0x8000) { rstk[++rsp].i = pc; }
             pc = (wc & 0x7FFF );
@@ -250,6 +249,7 @@ void baseSys() {
     addPrim("THEN",  THEN);  makeImm();
     addPrim("IMMEDIATE",  IMM);
     parseLine(": . (.) : space 32 emit ;");
+    parseLine(": HERE 0 @ ; : LAST 1 @ ; : BASE 2 @ ; : STATE 3 @ ;");
 }
 
 void Init() {
