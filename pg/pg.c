@@ -47,44 +47,44 @@ cell fetch2(ushort *a) { return *(cell*)(a); }
 void makeImm() { dict[last-1].fl=1; }
 
 void Exec(int start) {
-    cell t;
+    cell t, n;
 	pc = start;
     // printf("-ex:%d-",pc);
     next:
-    wc=code[pc++];
+    wc = code[pc++];
     switch(wc) {
-        case  STOP: { return; }
-        NCASE LIT1: { PUSH(code[pc++]); }
-        NCASE LIT2: { PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2; }
-        NCASE EXIT: { if (rsp) { pc=rstk[rsp--].i; } else { return; } }
-        NCASE  4: { cell t=TOS; PUSH(t); }
-        NCASE  5: { cell t=TOS, n=NOS; NOS=t; TOS=n;  }
-        NCASE  6: if (0<sp) --sp;
-        NCASE  7: { lsp += 3; L2=pc; L1=POP(); L0=0; }
-        NCASE  8: { PUSH(L0); }
-        NCASE  9: { if (++L0<L1) { pc=L2; } else { lsp-=3; } }
-        NCASE 10: { printf("%c", (char)POP()); }
-        NCASE 11: { printf("%zd", (size_t)POP()); }
-        NCASE JMPZ: { if (POP()==0) { pc=code[pc]; } else { ++pc; } }
-        NCASE 13: { cell t=POP(); TOS+=t; }
-        NCASE 14: { cell t=POP(); TOS-=t; }
-        NCASE 15: { cell t=POP(); TOS*=t; }
-        NCASE 16: { cell t=POP(); TOS/=t; }
-        NCASE LT: t = POP(); TOS = (TOS < t);
-        NCASE EQ: t = POP(); TOS = (TOS == t);
-        NCASE GT: t = POP(); TOS = (TOS > t);
-        NCASE 20: { PUSH(clock()); }
-        NCASE 21: comma(JMPZ); t=here+2; comma(t); comma(EXIT);
-        NCASE 22: { }
-        NCASE 23: { }
-        NCASE 24: { }
-        NCASE 25: { }
-        NCASE 26: { }
-        NCASE 27: { }
-        NCASE 28: { addWord(0); state=1; }
-        NCASE 29: { comma(EXIT); state=0; }
-        NCASE 30: { makeImm(); }
-        NCASE 31: { printf("\n"); exit(0); }
+        case  STOP: return;
+        NCASE LIT1: PUSH(code[pc++]);
+        NCASE LIT2: PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
+        NCASE EXIT: if (rsp) { pc=rstk[rsp--].i; } else { return; }
+        NCASE DUP:  t = TOS; PUSH(t);
+        NCASE SWAP: t = TOS, n = NOS; NOS = t; TOS = n;
+        NCASE DROP: if (0<sp) --sp;
+        NCASE FOR:  lsp += 3; L2=pc; L1=POP(); L0=0;
+        NCASE INDEX:  PUSH(L0);
+        NCASE NEXT: if (++L0<L1) { pc=L2; } else { lsp-=3; }
+        NCASE EMIT: printf("%c", (char)POP());
+        NCASE DOT:  printf("%zd", (size_t)POP());
+        NCASE JMPZ: if (POP()==0) { pc=code[pc]; } else { ++pc; }
+        NCASE ADD:  t=POP(); TOS+=t;
+        NCASE SUB:  t=POP(); TOS-=t;
+        NCASE MUL:  t=POP(); TOS*=t;
+        NCASE DIV:  t=POP(); TOS/=t;
+        NCASE LT:   t = POP(); TOS = (TOS < t);
+        NCASE EQ:   t = POP(); TOS = (TOS == t);
+        NCASE GT:   t = POP(); TOS = (TOS > t);
+        NCASE TMR:  PUSH(clock());
+        NCASE IF:   comma(JMPZ); t=here+2; comma((short)t); comma(EXIT);
+        NCASE 22:
+        NCASE 23:
+        NCASE 24:
+        NCASE 25:
+        NCASE 26:
+        NCASE 27:
+        NCASE 28: addWord(0); state=1;
+        NCASE 29: comma(EXIT); state=0;
+        NCASE 30: makeImm();
+        NCASE 31: exit(0);
             goto next;
         default: {
             if (wc & 0x8000) { rstk[++rsp].i=pc; }
