@@ -1,5 +1,4 @@
 : cr 10 emit ;
-: bl 32 emit ;
 : NIP SWAP DROP ;
 : elapsed clock swap - . ;
 : mil 1000 dup * * ;
