@@ -11,6 +11,10 @@
 #define comma(x)      code[here++]=(x)
 #define NCASE         goto next; case
 
+#define here          code[0]
+#define last          code[1]
+#define base          code[2]
+#define state         code[3]
 #define TOS           stk[sp].i
 #define NOS           stk[sp-1].i
 #define PUSH(x)       stk[++sp].i=(x)
@@ -30,13 +34,13 @@ DE_T dict[DICT_SZ];
 static int lstk[60], lsp;
 static char tib[128];
 static ushort wc, code[CODE_SZ+1];
-static int here, last, state, base, sp, rsp, pc;
+static int sp, rsp, pc;
 
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
     AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,                // 10 -> 19
     CLK, IF, THEN, JMP, JMPZ, JMPNZ, EMIT, DOT, COLON, SEMI,     // 20 -> 29
-    IMM, BYE                                                     // 30 -> 31
+    IMM, FET, STO, BYE                                           // 30 -> 33
 };
 
 DE_T *addWord(const char *wd);
@@ -82,6 +86,8 @@ void Exec(int start) {
         NCASE COLON: addWord(0); state = 1;
         NCASE SEMI:  comma(EXIT); state = 0;
         NCASE IMM:   makeImm();
+        NCASE FET:   TOS = code[TOS];
+        NCASE STO:   code[TOS] = NOS; sp-=2; if (sp<0) sp=0;
         NCASE BYE:   exit(0);
             goto next;
         default: {
@@ -235,6 +241,8 @@ void baseSys() {
     addPrim("<",     LT);
     addPrim("=",     EQ);
     addPrim(">",     GT);
+    addPrim("@",     FET);
+    addPrim("!",     STO);
     addPrim("CLOCK", CLK);
     addPrim(":",     COLON); makeImm();
     addPrim(";",     SEMI);  makeImm();
@@ -245,11 +253,10 @@ void baseSys() {
 }
 
 void Init() {
-    int t;
+    for (int t=0; t<CODE_SZ; t++) { code[t]=0; }
     sp = rsp = lsp = state = last = 0;
     base = 10;
-    here = 0;
-    for (t=0; t<CODE_SZ; t++) { code[t]=0; }
+    here = 16;
     baseSys();
 }
 
