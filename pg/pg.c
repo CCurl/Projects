@@ -5,12 +5,10 @@
 #define CODE_SZ       0x7FFF
 #define VARS_SZ       0xFFFF
 #define DICT_SZ         8192
-#define LPRIM             31
+#define LPRIM            BYE
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define comma(x)      code[here++]=(x)
-#define call(x)       comma(x|0x8000)
-#define jmp(x)        comma(x&0x7FFF)
 #define NCASE         goto next; case
 
 #define TOS           stk[sp].i
@@ -34,17 +32,17 @@ static char tib[128];
 static ushort wc, code[CODE_SZ+1];
 static int here, last, state, base, sp, rsp, pc;
 
-DE_T *addWord(const char *wd);
-
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
-    EMIT, DOT, JMPZ, ADD, SUB, MUL, DIV, LT, EQ, GT,             // 10 -> 19
-    TMR, IF, P22, P23, P24, P25, P26, P27, COLON, SEMI,          // 20 -> 29
+    AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,                // 10 -> 19
+    CLK, IF, THEN, JMP, JMPZ, JMPNZ, EMIT, DOT, COLON, SEMI,     // 20 -> 29
     IMM, BYE                                                     // 30 -> 31
 };
 
+DE_T *addWord(const char *wd);
 cell fetch2(ushort *a) { return *(cell*)(a); }
 void makeImm() { dict[last-1].fl=1; }
+void addPrim(const char *wd, ushort prim) { addWord(wd)->xt = prim; }
 
 void Exec(int start) {
     cell t, n;
@@ -53,41 +51,41 @@ void Exec(int start) {
     next:
     wc = code[pc++];
     switch(wc) {
-        case  STOP: return;
-        NCASE LIT1: PUSH(code[pc++]);
-        NCASE LIT2: PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
-        NCASE EXIT: if (rsp) { pc=rstk[rsp--].i; } else { return; }
-        NCASE DUP:  t = TOS; PUSH(t);
-        NCASE SWAP: t = TOS, n = NOS; NOS = t; TOS = n;
-        NCASE DROP: if (0<sp) --sp;
-        NCASE FOR:  lsp += 3; L2=pc; L1=POP(); L0=0;
-        NCASE INDEX:  PUSH(L0);
-        NCASE NEXT: if (++L0<L1) { pc=L2; } else { lsp-=3; }
-        NCASE EMIT: printf("%c", (char)POP());
-        NCASE DOT:  printf("%zd", (size_t)POP());
-        NCASE JMPZ: if (POP()==0) { pc=code[pc]; } else { ++pc; }
-        NCASE ADD:  t=POP(); TOS+=t;
-        NCASE SUB:  t=POP(); TOS-=t;
-        NCASE MUL:  t=POP(); TOS*=t;
-        NCASE DIV:  t=POP(); TOS/=t;
-        NCASE LT:   t = POP(); TOS = (TOS < t);
-        NCASE EQ:   t = POP(); TOS = (TOS == t);
-        NCASE GT:   t = POP(); TOS = (TOS > t);
-        NCASE TMR:  PUSH(clock());
-        NCASE IF:   comma(JMPZ); t=here+2; comma((short)t); comma(EXIT);
-        NCASE 22:
-        NCASE 23:
-        NCASE 24:
-        NCASE 25:
-        NCASE 26:
-        NCASE 27:
-        NCASE 28: addWord(0); state=1;
-        NCASE 29: comma(EXIT); state=0;
-        NCASE 30: makeImm();
-        NCASE 31: exit(0);
+        case  STOP:  return;
+        NCASE LIT1:  PUSH(code[pc++]);
+        NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
+        NCASE EXIT:  if (rsp) { pc = rstk[rsp--].i; } else { return; }
+        NCASE DUP:   t = TOS; PUSH(t);
+        NCASE SWAP:  t = TOS, n = NOS; NOS = t; TOS = n;
+        NCASE DROP:  if (0 < sp) --sp;
+        NCASE FOR:   lsp += 3; L2 = pc; L1=POP(); L0=0;
+        NCASE INDEX: PUSH(L0);
+        NCASE NEXT:  if (++L0<L1) { pc = L2; } else { lsp -= 3; }
+        NCASE AND:   t = POP(); TOS &= t;
+        NCASE OR:    t = POP(); TOS |= t;
+        NCASE XOR:   t = POP(); TOS ^= t;
+        NCASE ADD:   t = POP(); TOS += t;
+        NCASE SUB:   t = POP(); TOS -= t;
+        NCASE MUL:   t = POP(); TOS *= t;
+        NCASE DIV:   t = POP(); TOS /= t;
+        NCASE LT:    t = POP(); TOS = (TOS < t);
+        NCASE EQ:    t = POP(); TOS = (TOS == t);
+        NCASE GT:    t = POP(); TOS = (TOS > t);
+        NCASE CLK:   PUSH(clock());
+        NCASE IF:    comma(JMPZ); PUSH(here); comma(0);
+        NCASE THEN:  code[POP()] = here;
+        NCASE JMP:   pc=code[pc];
+        NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
+        NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
+        NCASE EMIT:  printf("%c", (char)POP());
+        NCASE DOT:   printf("%zd", (size_t)POP());
+        NCASE COLON: addWord(0); state = 1;
+        NCASE SEMI:  comma(EXIT); state = 0;
+        NCASE IMM:   makeImm();
+        NCASE BYE:   exit(0);
             goto next;
         default: {
-            if (wc & 0x8000) { rstk[++rsp].i=pc; }
+            if (wc & 0x8000) { rstk[++rsp].i = pc; }
             pc = (wc & 0x7FFF );
             goto next;
         }
@@ -127,10 +125,11 @@ DE_T *addWord(const char *w) {
 
 DE_T *findWord(const char *w) {
     if (!w) { nextWord(); w=wd; }
+    int l = strLen(w);
     for (int e=last-1; 0<=e; e-- ) {
         DE_T *de = (DE_T*)&dict[e];
-        if (strEqI(de->nm, w)) { return de; }
-    } 
+        if ((l==de->ln) && strEqI(de->nm, w)) { return de; }
+    }
 
     return (DE_T*)0;
 }
@@ -152,10 +151,10 @@ int parseWord(char *w) {
 
     if (isNum(wd, base)) {
         long n = POP();
-        if (btwi(n,0,0x7fff)) {
-            comma(1); comma((short)n);
+        if (btwi(n, 0, 0x7fff)) {
+            comma(LIT1); comma((short)n);
         } else {
-            comma(2); comma(n & 0xffff); comma(n >> 16);
+            comma(LIT2); comma(n & 0xffff); comma(n >> 16);
         }
         return 1;
     }
@@ -165,12 +164,15 @@ int parseWord(char *w) {
         if (de->fl == 1) {   // IMMEDIATE
             int h = here+10;
             code[h]=de->xt;
-            if (de->xt > LPRIM) { code[h] |= 0x8000; }
-            code[h+1]=EXIT;
+            if (LPRIM < de->xt) { code[h] |= 0x8000; }
+            code[h+1] = EXIT;
             Exec(h);
         } else {
-            if (de->xt <= LPRIM) { comma(de->xt); }
-            else { call(de->xt); }
+            if (de->xt <= LPRIM) {
+                if ((de->xt == EXIT) && (LPRIM < code[here])) {
+                    code[here] &= 0x07ff;
+                } else { comma(de->xt); }
+            } else { comma(de->xt | 0x8000); }
         }
         return 1;
      }
@@ -179,7 +181,7 @@ int parseWord(char *w) {
 }
 
 int parseLine(const char *ln) {
-    int h=here, l=last;
+    int h=here, l=last, s=state;
     toIn = (char *)ln;
     // printf("-pl:%s-",ln);
     while (nextWord()) {
@@ -191,7 +193,7 @@ int parseLine(const char *ln) {
             return 0;
         }
     }
-    if ((l==last) && (h<here) && (state==0)) {
+    if ((l==last) && (h<here) && (state==0) && (s==0)) {
         comma(0);
         here=h;
         Exec(h);
@@ -202,7 +204,7 @@ int parseLine(const char *ln) {
 // REP - Read/Execute/Print (no Loop)
 FILE *REP(FILE *fp) {
     if (!fp) { fp = stdin; }
-    if (fp == stdin) { printf(" ok\n"); }
+    if ((fp == stdin) && (state==0)) { printf(" ok\n"); }
     if (fgets(tib, sizeof(tib), fp) == tib) {
         parseLine(tib);
         return fp;
@@ -212,8 +214,34 @@ FILE *REP(FILE *fp) {
     return NULL;
 }
 
-void addPrim(const char *wd, ushort prim) {
-    addWord(wd)->xt = prim;
+void baseSys() {
+    addPrim("BYE",   BYE);
+    addPrim("EXIT",  EXIT);
+    addPrim("DUP",   DUP);
+    addPrim("SWAP",  SWAP);
+    addPrim("DROP",  DROP);
+    addPrim("FOR",   FOR);
+    addPrim("I",     INDEX);
+    addPrim("NEXT",  NEXT);
+    addPrim("AND",   AND);
+    addPrim("OR",    OR);
+    addPrim("XOR",   XOR);
+    addPrim("EMIT",  EMIT);
+    addPrim("(.)",   DOT);
+    addPrim("+",     ADD);
+    addPrim("-",     SUB);
+    addPrim("*",     MUL);
+    addPrim("/",     DIV);
+    addPrim("<",     LT);
+    addPrim("=",     EQ);
+    addPrim(">",     GT);
+    addPrim("CLOCK", CLK);
+    addPrim(":",     COLON); makeImm();
+    addPrim(";",     SEMI);  makeImm();
+    addPrim("IF",    IF);    makeImm();
+    addPrim("THEN",  THEN);  makeImm();
+    addPrim("IMMEDIATE",  IMM);
+    parseLine(": . (.) : space 32 emit ;");
 }
 
 void Init() {
@@ -222,28 +250,7 @@ void Init() {
     base = 10;
     here = 0;
     for (t=0; t<CODE_SZ; t++) { code[t]=0; }
-    addPrim("BYE",  BYE);
-    addPrim("EXIT", EXIT);
-    addPrim("DUP",  DUP);
-    addPrim("SWAP", SWAP);
-    addPrim("DROP", DROP);
-    addPrim("FOR",  FOR);
-    addPrim("I",    INDEX);
-    addPrim("NEXT", NEXT);
-    addPrim("EMIT", EMIT);
-    addPrim(".",    DOT);
-    addPrim("+",    ADD);
-    addPrim("-",    SUB);
-    addPrim("*",    MUL);
-    addPrim("/",    DIV);
-    addPrim("<",    LT);
-    addPrim("=",    EQ);
-    addPrim(">",    GT);
-    addPrim("TIMER",  TMR);
-    addPrim(":",    COLON); makeImm();
-    addPrim(";",    SEMI);  makeImm();
-    addPrim("IF",   IF);  makeImm();
-    addPrim("IMMEDIATE",  IMM);
+    baseSys();
 }
 
 int main(int argc, char *argv[]) {

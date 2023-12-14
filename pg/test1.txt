@@ -1,8 +1,11 @@
 : cr 10 emit ;
 : bl 32 emit ;
 : NIP SWAP DROP ;
-: T0 100 drop ;
-: elapsed timer swap - . ;
+: elapsed clock swap - . ;
 : mil 1000 dup * * ;
-: bm1 timer swap for next elapsed ;
-: bm2 timer swap for T0 next elapsed ;
+: T0 100 drop ;
+: fib dup 2 < if exit then dup 1 - fib swap 2 - fib + ;
+: bm1 clock swap for next elapsed ;
+: bm2 clock swap for T0 next elapsed ;
+: bm3 clock swap fib . elapsed ;
+: go 500 mil bm1 cr 500 mil bm2 cr 40 bm3 cr ;
