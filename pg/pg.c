@@ -11,6 +11,7 @@
 #define comma(x)      code[here++]=(x)
 #define NCASE         goto next; case
 #define CheckSP       if (sp<0) sp=0
+#define RetIf0        if (*(++w)==0) return 0
 
 #define here          code[0]
 #define last          code[1]
@@ -39,7 +40,7 @@ static ushort wc, code[CODE_SZ+1];
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
     AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,                // 10 -> 19
-    CLK, OVER, P22, JMP, JMPZ, JMPNZ, EMIT, DOT, COLON, SEMI,    // 20 -> 29
+    CLK, OVER, WDS, JMP, JMPZ, JMPNZ, EMIT, DOT, COLON, SEMI,    // 20 -> 29
     IMM, FET, STO, BYE                                           // 30 -> 33
 };
 
@@ -47,6 +48,14 @@ DE_T *addWord(const char *wd);
 cell fetch2(ushort *a) { return *(cell*)(a); }
 void makeImm() { dict[last-1].fl=1; }
 void addPrim(const char *wd, ushort prim) { addWord(wd)->xt = prim; }
+
+void words() {
+    int n=0, t=0;
+    for (int e=last-1; 0<=e; e--) {
+        DE_T *de = (DE_T*)&dict[e];
+        printf("%s\t", de->nm); ++n; if (n%10==0) printf("\n");
+    }
+}
 
 void Exec(int start) {
     cell t;
@@ -76,7 +85,7 @@ void Exec(int start) {
     NCASE GT:    t = POP(); TOS = (TOS > t);
     NCASE CLK:   PUSH(clock());
     NCASE OVER : t = NOS; PUSH(t);
-    NCASE P22:   
+    NCASE WDS:   words();
     NCASE JMP:   pc=code[pc];
     NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
     NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
@@ -130,7 +139,7 @@ DE_T *addWord(const char *w) {
 DE_T *findWord(const char *w) {
     if (!w) { nextWord(); w=wd; }
     int l = strLen(w);
-    for (int e=last-1; 0<=e; e-- ) {
+    for (int e=last-1; 0<=e; e--) {
         DE_T *de = (DE_T*)&dict[e];
         if ((l==de->ln) && strEqI(de->nm, w)) { return de; }
     }
@@ -138,13 +147,24 @@ DE_T *findWord(const char *w) {
     return (DE_T*)0;
 }
 
-long isNum(const char *w, int b) {
-    long n = 0;
-    b = b ? b : 10;
-    while (btwi(*w,'0','9')) {
-        n = (n*b) + *(w++)-'0';
+int isNum(const char *w, int b) {
+    cell n=0, isNeg=0;
+    if ((w[0]==39) && (w[2]==0)) { PUSH(w[1]); return 1; }
+    if (w[0]=='%') { b=2; RetIf0; }
+    if (w[0]=='#') { b=10; RetIf0; }
+    if (w[0]=='$') { b=16; RetIf0; }
+    if ((b==10) && (w[0]=='-')) { isNeg=1; RetIf0; }
+    char c = *(w++);
+    while (c) {
+        n = (n*b);
+        if ((b==2) && btwi(c,'0','1')) { n+=(c-'0'); }
+        else if ((b==16) && btwi(c,'A','F')) { n+=(c-'A'+10); }
+        else if ((b==16) && btwi(c,'a','f')) { n+=(c-'a'+10); }
+        else if ((b>9) && btwi(c,'0','9')) { n+=(c-'0'); }
+        else return 0;
+        c = *(w++);
     }
-    if (*w) { return 0; }
+    if (isNeg) { n = -n; }
     PUSH(n);
     return 1;
 }
@@ -220,6 +240,7 @@ FILE *REP(FILE *fp) {
 
 void baseSys() {
     addPrim("BYE",   BYE);
+    addPrim("WORDS", WDS);
     addPrim("EXIT",  EXIT);
     addPrim("DUP",   DUP);
     addPrim("SWAP",  SWAP);
@@ -247,7 +268,7 @@ void baseSys() {
     addPrim(";",     SEMI);  makeImm();
     addPrim("IMMEDIATE",  IMM);  makeImm();
     parseLine(": . (.) : space 32 emit ;");
-    parseLine(": HERE 0 @ ; : LAST 1 @ ; : BASE 2 @ ; : STATE 3 @ ;");
+    parseLine(": HERE 0 @ ; : LAST 1 @ ; : BASE 2 ; : STATE 3 ;");
     parseLine(": 1+ 1 + ;");
     parseLine(": , HERE ! HERE 1+ 0 ! ;");
     parseLine(": JMPZ, 24 , ;");

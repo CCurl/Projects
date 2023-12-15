@@ -3,6 +3,7 @@
 : elapsed clock swap - . ;
 : mil 1000 dup * * ;
 : T0 100 drop ;
+: timer clock ;
 : fib dup 2 < if exit then dup 1 - fib swap 2 - fib + ;
 : bm1 clock swap for next elapsed ;
 : bm2 clock swap for T0 next elapsed ;

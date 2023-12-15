@@ -1,8 +1,9 @@
-app := pg64
+app := pg
 app32 := pg32
 
 CXX := clang
-CXXFLAGS := -m32 -O3 -D IS_LINUX
+CXXFLAGS := -m64 -O3 -D IS_LINUX
+C32FLAGS := -m32 -O3 -D IS_LINUX
 
 srcfiles := $(shell find . -name "*.c")
 incfiles := $(shell find . -name "*.h")
@@ -15,17 +16,14 @@ $(app): $(srcfiles) $(incfiles)
 	ls -l $(app)
 
 $(app32): $(srcfiles) $(incfiles)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(app32) $(srcfiles) $(LDLIBS)
+	$(CXX) $(C32FLAGS) $(LDFLAGS) -o $(app32) $(srcfiles) $(LDLIBS)
 	ls -l $(app32)
 
 clean:
 	rm -f $(app) $(app32)
 
-test1: $(app)
+test: $(app)
 	./$(app) test1.txt
-
-test2: $(app)
-	cat test2.txt | ./$(app)
 
 bin: $(app)
 	cp -u -p $(app) ~/.local/bin/
