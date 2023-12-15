@@ -92,7 +92,8 @@ void Exec(int start) {
     NCASE EMIT:  printf("%c", (char)POP());
     NCASE DOT:   printf("%zd", (size_t)POP()); CheckSP;
     NCASE COLON: addWord(0); state = 1;
-    NCASE SEMI:  comma(EXIT); state = 0;
+    NCASE SEMI:  if (LPRIM<code[here-1]) { code[here-1] &= 0x07FF; }
+                 else { comma(EXIT); } state = 0;
     NCASE IMM:   makeImm();
     NCASE FET:   TOS = code[TOS];
     NCASE STO:   code[TOS] = (short)NOS; sp-=2; CheckSP;
@@ -188,15 +189,10 @@ int parseWord(char *w) {
         if (de->fl == 1) {   // IMMEDIATE
             int h = here+100;
             code[h]=de->xt;
-            if (LPRIM < de->xt) { code[h] |= 0x8000; }
             code[h+1] = EXIT;
             Exec(h);
         } else {
-            if (de->xt <= LPRIM) {
-                if ((de->xt == EXIT) && (LPRIM < code[here])) {
-                    code[here] &= 0x07ff;
-                } else { comma(de->xt); }
-            } else { comma(de->xt | 0x8000); }
+            comma(de->xt);
         }
         return 1;
      }
@@ -286,7 +282,7 @@ void Init() {
     for (int t=0; t<CODE_SZ; t++) { code[t]=0; }
     sp = rsp = lsp = state = last = 0;
     base = 10;
-    here = 8;
+    here = LPRIM+1;
     baseSys();
 }
 
