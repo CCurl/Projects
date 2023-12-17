@@ -39,10 +39,14 @@ static char tib[128];
 static ushort wc, code[CODE_SZ+1];
 
 enum {
-    STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,   //  0 ->  9
-    AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,                // 10 -> 19
-    CLK, OVER, WDS, JMP, JMPZ, JMPNZ, EMIT, DOT, COLON, SEMI,    // 20 -> 29
-    IMM, FET, STO, SYS                                           // 30 -> 33
+    STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,  //  0 ->  9
+    AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,               // 10 -> 19
+    CLK, OVER, JMP, JMPZ, JMPNZ, EMIT, DOT, FET, STO, P29,      // 20 -> 29
+    P30, SYS                                                    // 30 -> 31
+};
+
+enum {
+    BYE, COLON, SEMI, IMM, IF, THEN, COMMA, WDS     //  0 ->  7
 };
 
 DE_T *addWord(const char *wd);
@@ -61,12 +65,16 @@ void words() {
 void execSys() {
     // printf("-sys:%d-",(int)TOS);
     switch (POP()) {
-        case  0: exit(0);
-        RCASE 1: addWord(0); state=1;
-        RCASE 2: if (LPRIM<code[here-1]) { code[here-1] &= 0x07FF; }
-                 else { comma(EXIT); }
-                 state = 0;
-        RCASE 3: makeImm();
+        case  BYE:   exit(0);
+        RCASE COLON: addWord(0); state=1;
+        RCASE SEMI:  if (LPRIM<code[here-1]) { code[here-1] &= 0x07FF; }
+                     else { comma(EXIT); }
+                     state = 0;
+        RCASE IMM:   makeImm();
+        RCASE IF:    comma(JMPZ); PUSH(here); comma(0);
+        RCASE THEN:  code[POP()] = here;
+        RCASE COMMA: comma((ushort)POP());
+        RCASE WDS:   words();
     }
 }
 
@@ -81,8 +89,8 @@ void Exec(int start) {
     NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
     NCASE EXIT:  if (rsp) { pc = rstk[rsp--].i; } else { return; }
     NCASE DUP:   t=TOS; PUSH(t);
-    NCASE SWAP : t=TOS; TOS=NOS; NOS=t;
-    NCASE DROP : --sp; CheckSP;
+    NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
+    NCASE DROP:  --sp; CheckSP;
     NCASE FOR:   lsp+=3; L2=pc; L1=POP(); L0=0;
     NCASE INDEX: PUSH(L0);
     NCASE NEXT:  if (++L0<L1) { pc=L2; } else { lsp-=3; } if (lsp<0) lsp=0;
@@ -98,18 +106,15 @@ void Exec(int start) {
     NCASE GT:    t = POP(); TOS = (TOS > t);
     NCASE CLK:   PUSH(clock());
     NCASE OVER : t = NOS; PUSH(t);
-    NCASE WDS:   words();
     NCASE JMP:   pc=code[pc];
     NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
     NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
     NCASE EMIT:  printf("%c", (char)POP());
     NCASE DOT:   printf("%zd", (size_t)POP()); CheckSP;
-    NCASE COLON: // addWord(0); state = 1;
-    NCASE SEMI:  //if (LPRIM<code[here-1]) { code[here-1] &= 0x07FF; }
-                 //else { comma(EXIT); } state = 0;
-    NCASE IMM:   // makeImm();
     NCASE FET:   TOS = code[TOS];
     NCASE STO:   code[TOS] = (short)NOS; sp-=2; CheckSP;
+    NCASE P29:
+    NCASE P30:
     NCASE SYS:   execSys();
     default: {
             if (wc & 0x8000) { rstk[++rsp].i = pc; }
@@ -254,13 +259,16 @@ void addSysOp(const char *nm, int isImm, int sysOp) {
 }
 
 void baseSys() {
-    addSysOp("BYE", 0, 0);
-    addSysOp(":",   1, 1);
-    addSysOp(";",   1, 2);
-    addSysOp("IMMEDIATE", 1, 3);
+    addSysOp("BYE",  0, BYE);
+    addSysOp(":",    1, COLON);
+    addSysOp(";",    1, SEMI);
+    addSysOp("IMMEDIATE", 1, IMM);
+    addSysOp("IF",    1, IF);
+    addSysOp("THEN",  1, THEN);
+    addSysOp(",",     0, COMMA);
+    addSysOp("WORDS", 0, WDS);
 
     addPrim("SYS",   SYS);
-    addPrim("WORDS", WDS);
     addPrim("EXIT",  EXIT);
     addPrim("DUP",   DUP);
     addPrim("SWAP",  SWAP);
@@ -291,7 +299,7 @@ void baseSys() {
     parseLine(": . (.) : space 32 emit ;");
     parseLine(": HERE 0 @ ; : LAST 1 @ ; : BASE 2 ; : STATE 3 ;");
     parseLine(": 1+ 1 + ;");
-    parseLine(": , HERE ! HERE 1+ 0 ! ;");
+    //parseLine(": , HERE ! HERE 1+ 0 ! ;");
     parseLine(": JMP, 23 , ;");
     parseLine(": JMPZ, 24 , ;");
     parseLine(": JMPNZ, 25 , ;");
@@ -299,8 +307,8 @@ void baseSys() {
     parseLine(": AGAIN JMP, , ; IMMEDIATE");
     parseLine(": WHILE JMPNZ, , ; IMMEDIATE");
     parseLine(": UNTIL JMPZ, , ; IMMEDIATE");
-    parseLine(": IF JMPZ, HERE 0 , ; IMMEDIATE");
-    parseLine(": THEN HERE SWAP ! ; IMMEDIATE");
+    //parseLine(": IF JMPZ, HERE 0 , ; IMMEDIATE");
+    //parseLine(": THEN HERE SWAP ! ; IMMEDIATE");
     parseLine(": .c here for i @ . next ;");
     parseLine(": .d for i over + @ . next drop ;");
 }
