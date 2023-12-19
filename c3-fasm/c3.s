@@ -57,7 +57,7 @@ macro CComma val {
 
 ; ------------------------------------------------------------------------------
 macro Comma val {
-    mov [rbp], qword val
+    mov qword  ptr rbp, val
     add rbp, CELL_SZ
 }
 
@@ -140,8 +140,11 @@ opTest:
         mEmit                     ; emit 'S'
         mLit1 10                  ; lit1 '\n'
         mEmit                     ; emit
-        mov rax, 250000000
-        mLit rax
+        mLit 500
+        mLit 1000
+        CComma 12                 ; DUP
+        CComma 17                 ; *
+        CComma 17                 ; *
         mLit1 0
         CComma 29                 ; DO
         CComma 30                 ; LOOP
@@ -250,12 +253,24 @@ strlen: xor rdx, rdx
         jmp .1
 .9:     ret
 
+lower:  cmp al, 'A'
+        jl .9
+        cmp al, 'Z'
+        jg .9
+        add al, 32
+.9:     ret
+
 ; ------------------------------------------------------------------------------
-; The strings are in RSI and RDI, return va1 in RAX
+; The strings are in RSI and RDI
+; Return: IF strings are equal RAX=1,  ELSE RAX=0
 ; ------------------------------------------------------------------------------
-strcmp: xor rdx, rdx
+strcmpi: xor rdx, rdx
 .1:     mov al, byte [rsi+rdx]
-        cmp al, byte [rdi+rdx]
+        call lower
+        mov ah, al
+        mov al, byte [rdi+rdx]
+        call lower
+        cmp al, ah
         jne _r0
         inc rdx
         test al, al
@@ -264,6 +279,21 @@ _r1:    mov rax, 1
         ret
 _r0:    xor rax, rax
         ret
+
+; ------------------------------------------------------------------------------
+; The strings are in RSI and RDI
+; Return: IF strings are equal RAX=1,  ELSE RAX=0
+; ------------------------------------------------------------------------------
+strcmp: xor rdx, rdx
+.1:     mov al, byte [rsi+rdx]
+        mov ah, al
+        mov al, byte [rdi+rdx]
+        cmp al, ah
+        jne _r0
+        inc rdx
+        test al, al
+        jnz .1
+        jmp _r1
 
 ; ------------------------------------------------------------------------------
 _c3Test:
@@ -275,11 +305,47 @@ _c3Test:
         jmp _r0
 
 ; ------------------------------------------------------------------------------
+; The word is "-ML-". Handle it.
+; ------------------------------------------------------------------------------
 doML:
+        ; TODO: fill this in
         mov rsi, mlx
         call strlen
         call stype
         jmp _r0
+
+; ------------------------------------------------------------------------------
+; The char is in AL
+; Return: IF AL in ['0'..'9'], AL=(AL-'0'), ELSE AH=1
+; ------------------------------------------------------------------------------
+is09:   mov ah, 1
+        cmp al, '0'
+        jl .x
+        cmp al, '9'
+        jg .x
+        sub al, '0'
+        dec ah
+.x:     ret
+
+; ------------------------------------------------------------------------------
+; The word is in RSI, length is in RDX
+; Return: IF number, RAX=1 and number in TOS, ELSE RAX=0
+; ------------------------------------------------------------------------------
+isNum:
+		dPUSH 0
+		xor rax, rax
+.1:		lodsb
+		test al, al
+		jz _r1
+		call is09
+		test ah, ah
+		jnz .f
+		imul TOS, 10
+		add TOS, rax
+		jmp .1
+.f:		dPOP rax
+		xor rax, rax
+		ret
 
 ; ------------------------------------------------------------------------------
 
@@ -289,14 +355,26 @@ doML:
 _parseWord:
         ; TODO: fill this in!
         mov rdi, gb             ; "bye"?
-        call strcmp
+        call strcmpi
         test rax, rax
         jnz _bye
 
-        cmp byte [rsi], 'X'     ; Test?
+		push rsi               ; Number?
+		push rdx
+		call isNum
+		pop rdx
+		pop rsi
+		test rax, rax
+		jz .1
+		CComma 4				; LIT4
+		dPOP rax
+		Comma rax
+		jmp _r0
+
+.1:     cmp byte [rsi], 'X'     ; Test?
         je _c3Test
 
-        mov rdi, ml             ; "-ML-"?
+.2:     mov rdi, ml             ; "-ML-"?
         call strcmp
         test rax, rax
         jnz doML
@@ -344,6 +422,7 @@ gb:   db 'bye', 0
 ml:   db '-ML-', 0
 mlx:  db '-MLX-', 0
 ok:   db ' ok', 10, 0
+yy:   db ' -YY-', 10, 0
 
 c3_ops:
     dq _stop, _lit1, _lit, _exit, _call, _jmp, _jmpz, _jmpnz, _store, _cstore  ;  0 ->  9

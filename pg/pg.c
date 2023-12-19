@@ -46,10 +46,11 @@ enum {
 };
 
 enum {
-    BYE, COLON, SEMI, IMM, IF, THEN, COMMA, WDS     //  0 ->  7
+    BYE, COLON, SEMI, IMM, IF, THEN, COMMA, WDS, S08, S09       //  0 ->  8
 };
 
 DE_T *addWord(const char *wd);
+void store2(ushort *a, cell val) { *(cell*)(a) = val; }
 cell fetch2(ushort *a) { return *(cell*)(a); }
 void makeImm() { dict[last-1].fl=1; }
 void addPrim(const char *wd, ushort prim) { addWord(wd)->xt = prim; }
@@ -58,7 +59,8 @@ void words() {
     int n=0, t=0;
     for (int e=last-1; 0<=e; e--) {
         DE_T *de = (DE_T*)&dict[e];
-        printf("%s(%d,%d)\t", de->nm, (int)de->xt&0x7FF, (int)de->fl); ++n; if (n%10==0) printf("\n");
+        printf("%s(%d/%d)\t", de->nm, (int)de->xt, (int)de->xt&0x7FF);
+        ++n; if (n%5==0) printf("\n");
     }
 }
 
@@ -75,6 +77,8 @@ void execSys() {
         RCASE THEN:  code[POP()] = here;
         RCASE COMMA: comma((ushort)POP());
         RCASE WDS:   words();
+        RCASE S08:   PUSH(clock());
+        RCASE S09:   PUSH(999);
     }
 }
 
@@ -110,7 +114,7 @@ void Exec(int start) {
     NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
     NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
     NCASE EMIT:  printf("%c", (char)POP());
-    NCASE DOT:   printf("%zd", (size_t)POP()); CheckSP;
+    NCASE DOT:   printf("%ld", POP()); CheckSP;
     NCASE FET:   TOS = code[TOS];
     NCASE STO:   code[TOS] = (short)NOS; sp-=2; CheckSP;
     NCASE P29:
@@ -198,7 +202,7 @@ int parseWord(char *w) {
         if (btwi(n, 0, 0x7fff)) {
             comma(LIT1); comma((short)n);
         } else {
-            comma(LIT2); comma(n & 0xffff); comma(n >> 16);
+            comma(LIT2); store2(&code[here], n); here += sizeof(cell)/2;
         }
         return 1;
     }
@@ -259,14 +263,20 @@ void addSysOp(const char *nm, int isImm, int sysOp) {
 }
 
 void baseSys() {
-    addSysOp("BYE",  0, BYE);
-    addSysOp(":",    1, COLON);
-    addSysOp(";",    1, SEMI);
+    addSysOp("BYE",   0, BYE);
+    addSysOp(":",     1, COLON);
+    addSysOp(";",     1, SEMI);
     addSysOp("IMMEDIATE", 1, IMM);
     addSysOp("IF",    1, IF);
     addSysOp("THEN",  1, THEN);
     addSysOp(",",     0, COMMA);
     addSysOp("WORDS", 0, WDS);
+
+    //addSysOp("TIMER", 0, S08);
+    addSysOp("CLOCK", 0, S08);
+
+    addPrim("TIMER", CLK);
+    // addPrim("CLOCK", CLK);
 
     addPrim("SYS",   SYS);
     addPrim("EXIT",  EXIT);
@@ -291,15 +301,9 @@ void baseSys() {
     addPrim(">",     GT);
     addPrim("@",     FET);
     addPrim("!",     STO);
-    addPrim("CLOCK", CLK);
-    // addPrim(":",     COLON); makeImm();
-    // addPrim(";",     SEMI);  makeImm();
-    // addPrim("IMMEDIATE",  IMM);  makeImm();
-    // parseLine(": BYE 2 SYS ;");
-    parseLine(": . (.) : space 32 emit ;");
+    parseLine(": space 32 emit ; : . (.) space ;");
     parseLine(": HERE 0 @ ; : LAST 1 @ ; : BASE 2 ; : STATE 3 ;");
     parseLine(": 1+ 1 + ;");
-    //parseLine(": , HERE ! HERE 1+ 0 ! ;");
     parseLine(": JMP, 23 , ;");
     parseLine(": JMPZ, 24 , ;");
     parseLine(": JMPNZ, 25 , ;");
@@ -307,10 +311,8 @@ void baseSys() {
     parseLine(": AGAIN JMP, , ; IMMEDIATE");
     parseLine(": WHILE JMPNZ, , ; IMMEDIATE");
     parseLine(": UNTIL JMPZ, , ; IMMEDIATE");
-    //parseLine(": IF JMPZ, HERE 0 , ; IMMEDIATE");
-    //parseLine(": THEN HERE SWAP ! ; IMMEDIATE");
-    parseLine(": .c here for i @ . next ;");
     parseLine(": .d for i over + @ . next drop ;");
+    parseLine(": .c 0 here .d ;");
 }
 
 void Init() {
