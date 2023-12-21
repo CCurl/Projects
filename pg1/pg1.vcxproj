@@ -24,7 +24,7 @@
     <ProjectGuid>{bdd1c19e-3eec-4ddf-ad67-406628bacccf}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>pg</ProjectName>
+    <ProjectName>pg1</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -147,7 +147,7 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pg.c" />
+    <ClCompile Include="pg1.c" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="test1.txt" />
