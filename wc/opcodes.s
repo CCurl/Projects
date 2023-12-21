@@ -80,7 +80,12 @@ _mult:      dPOP rbx
             imul TOS, rbx
             NEXT
 
-_slmod:     ; TODO!
+_slmod:     dPOP rbx
+            dPOP rax
+            xor rdx, rdx
+            idiv rbx
+            dPUSH rdx
+            dPUSH rax
             NEXT
 
 _sub:       dPOP rax
@@ -235,20 +240,23 @@ _reg_free:  sub qword [regBase], 10*CELL_SZ
 ; ------------------------------------------------------------------------------
 ; SYS OPS
 ; ------------------------------------------------------------------------------
-_sys_ops:   nextCell rcx
-            mov rax, [sys_ops+rcx*CELL_SZ]
-            jmp rax
-
+_sys_ops:    ; xxx TOS
 _inline:    ; xxx TOS
             NEXT
 
 _immediate: ; xxx TOS
             NEXT
 
-_dot:       ; xxx TOS
+_dot:       dPOP rax
+            mov rbx, [base]
+            call iToA
+            jmp stype
             NEXT
 
-_itoa:      ; xxx TOS
+_itoa:      mov rax, TOS
+            mov rbx, [base]
+            call iToA
+            mov TOS, rax
             NEXT
 
 _atoi:      ; xxx TOS

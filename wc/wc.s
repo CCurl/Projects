@@ -24,6 +24,14 @@ STDOUT     equ 1
 SYS_READ   equ 0
 SYS_WRITE  equ 1
 
+; Dictionary entry
+; [xt:CELL_SZ][flags:1][len:1][name:NAME_SZ][null:1]
+XT_OFF     equ 0
+FLG_OFF    equ CELL_SZ
+LEN_OFF    equ FLG_OFF+1
+NAME_OFF   equ LEN_OFF+1
+NAME_SZ    equ 21
+
 ; ------------------------------------------------------------------------------
 macro dPUSH val {
     add DSP, CELL_SZ
@@ -92,18 +100,29 @@ cold:
         mov RSP, rstk             ; Start of return STACK
         lea rax, [lstk]           ; Start of loop STACK
         mov [lsp], rax
-        mov rax, dEnd             ; LAST
+        mov rax, dStart           ; LAST
+        sub rax, 32
         mov [last], rax
         mov rax, wcStart
-        mov [here], rax           ; HERE: start of code
+        mov [here], rax           ; HERE: start of word-code
         lea rax, [regs]           ; Start of registers
-		mov [regBase], rax
+        mov [regBase], rax
+        mov qword ptr base, 10
 
         mov rsi, hi
         call strlen
         call stype
 
+        call init
+
         jmp _repl
+
+; ------------------------------------------------------------------------------
+init:   mov   esi, strDot
+        call  addToDict
+        Comma _dot
+        Comma _exit
+        ret
 
 ; ------------------------------------------------------------------------------
 prim:   call rax
@@ -144,11 +163,11 @@ wcTest:
         Comma _emit
         mEmit 10
 
-        mLit '0'-1
-        mLit '9'
+        mLit -1
+        mLit  9
         Comma _do
         Comma _index
-        Comma _emit
+        Comma _dot
         Comma _loop2
 
         Comma _stop
@@ -192,14 +211,15 @@ nextWord: cld
 
 ; ------------------------------------------------------------------------------
 ; Dict Entry: 32 bytes ... [xt:8] [flags:1] [len:1] [name:21] [null:1]
-; Word is in RSI, len is in RDX (DL)
+; Word is in RSI
 ; ------------------------------------------------------------------------------
 addToDict:
+        call strlen
         test dl, dl
         jz .r
         mov rax, [here]     ; For the XT
         mov r9, [last]
-        sub r9, 32
+        add r9, 32
         mov [last], r9
         mov [r9], rax       ; XT
         add r9, CELL_SZ
@@ -218,8 +238,77 @@ addToDict:
 .r:     ret
 
 ; ------------------------------------------------------------------------------
+; Find in dictionary
+; In: Name in RSI
+; Out: RAX=(addr of entry), 0 if not found
+; ------------------------------------------------------------------------------
+findInDict:
+        push rsi
+        call strlen
+        call stype
+        pop rsi
+        mov rbx, [last]
+.1:     cmp rbx, dStart      ; End of list?
+        jl .nf
+        mov rdi, rbx
+        add rdi, NAME_OFF
+        push rbx
+        push rsi
+        push rdi
+        mov rsi, rdi
+        call strlen
+        call stype
+        pop rdi
+        pop rsi
+        pop rbx
+        call strcmpi
+        jnc .2               ; Carry Clear = not-found
+        mov rax, rbx
+        ret
+.2:     sub rbx, 32
+        jmp .1
+.nf:    xor rax, rax
+        ret
+; ------------------------------------------------------------------------------
 ; C3 subroutines
 ; ------------------------------------------------------------------------------
+; input:        ; rax: the number to print - destroyed
+;               : rbx: base
+; output:       ; rsi: the start of the string
+;               ; rdx: the length of the string
+iToA:   xor     rcx, rcx        ; output length
+        test    rbx, rbx        ; Set base to 10 if 0
+        jnz     .0
+        mov     rbx, 10
+.0:     mov     rsi, buf2+63    ; output string start
+        mov     BYTE [rsi], 0
+        push    0               ; isNegative flag
+        cmp     rbx, 10         ; base 10 only
+        jne     .1
+        bt      rax, 63
+        jnc     .1
+        inc     BYTE [rsp]
+        neg     rax
+.1:     mov     rdx, 0          ; loop starts here
+        div     rbx             ; RDX <- remainder, RAX <- quotient
+        add     dl, '0'
+        cmp     dl, '9'
+        jle     .2
+        add     dl, 7           ; Make it HEX
+.2:     dec     esi
+        mov     BYTE [esi], dl
+        inc     rcx
+        test    rax, rax        ; Stop when RAX=0
+        jnz     .1
+        pop     rax
+        test    rax, rax
+        jz      .x
+        dec     esi
+        mov     BYTE [rsi], '-'
+        inc     rcx
+.x:     mov     rdx, rcx
+        ret
+
 semit:                      ; The char to EMIT is in al
         mov rsi, buf2
         mov [rsi], al
@@ -246,6 +335,9 @@ strlen: xor rdx, rdx
         jmp .1
 .9:     ret
 
+; ------------------------------------------------------------------------------
+; Make AL lower-case if it is UPPER-CASE
+; ------------------------------------------------------------------------------
 lower:  cmp al, 'A'
         jl .9
         cmp al, 'Z'
@@ -255,7 +347,7 @@ lower:  cmp al, 'A'
 
 ; ------------------------------------------------------------------------------
 ; The strings are in RSI and RDI
-; Return: IF strings are equal RAX=1,  ELSE RAX=0
+; Return: IF strings are equal Carry=1,  ELSE Carry=0
 ; ------------------------------------------------------------------------------
 strcmpi: xor rdx, rdx
 .1:     mov al, byte [rsi+rdx]
@@ -268,25 +360,25 @@ strcmpi: xor rdx, rdx
         inc rdx
         test al, al
         jnz .1
-_r1:    mov rax, 1
+_stc:   stc
         ret
-_r0:    xor rax, rax
+_clc:   clc
         ret
 
 ; ------------------------------------------------------------------------------
 ; The strings are in RSI and RDI
-; Return: IF strings are equal RAX=1,  ELSE RAX=0
+; Return: IF strings are equal Carry=1,  ELSE Carry=0
 ; ------------------------------------------------------------------------------
 strcmp: xor rdx, rdx
 .1:     mov al, byte [rsi+rdx]
         mov ah, al
         mov al, byte [rdi+rdx]
         cmp al, ah
-        jne _r0
+        jne _clc
         inc rdx
         test al, al
         jnz .1
-        jmp _r1
+        jmp _stc
 
 ; ------------------------------------------------------------------------------
 _c3Test:
@@ -296,7 +388,8 @@ _c3Test:
         call wcTest
 .R:     mov PC, wcStart
         call run
-        jmp _r0
+_r0:    xor rax, rax
+        ret
 
 ; ------------------------------------------------------------------------------
 ; The word is "-ML-". Handle it.
@@ -310,16 +403,20 @@ doML:
 
 ; ------------------------------------------------------------------------------
 ; The char is in AL
-; Return: IF AL in ['0'..'9'], AL=(AL-'0'), ELSE AH=1
+; Return: IF AL in ['0'..'9'], Carry=1, else Carry=0
 ; ------------------------------------------------------------------------------
-is09:   mov ah, 1
-        cmp al, '0'
-        jl .x
+is09:   cmp al, '0'
+        jl .n
         cmp al, '9'
-        jg .x
+        jg .n
         sub al, '0'
-        dec ah
-.x:     ret
+        stc                 ; It is between '0' and '9'
+        ret
+.n:     clc                 ; Not between '0' and '9'
+        ret
+
+_r1:    mov rax, 1
+        ret
 
 ; ------------------------------------------------------------------------------
 ; The word is in RSI, length is in RDX
@@ -331,17 +428,14 @@ isNum:
 .1:		lodsb
 		test al, al
 		jz _r1
-		call is09
-		test ah, ah
-		jnz .f
+  		call is09
+		jnc .no
 		imul TOS, 10
 		add TOS, rax
 		jmp .1
-.f:		dPOP rax
+.no:    dPOP rax
 		xor rax, rax
 		ret
-
-; ------------------------------------------------------------------------------
 
 ; ------------------------------------------------------------------------------
 ; The word is in RSI, length is in RDX
@@ -350,8 +444,7 @@ _parseWord:
         ; TODO: fill this in!
         mov rdi, gb             ; "bye"?
         call strcmpi
-        test rax, rax
-        jnz _bye
+        jc _bye
 
 		push rsi               ; Number?
 		push rdx
@@ -362,15 +455,24 @@ _parseWord:
 		jz .1
 		dPOP rax
 		mLit rax
-		jmp _r0
+        xor rax, rax
+        ret
 
 .1:     cmp byte [rsi], 'X'     ; Test?
         je _c3Test
 
-.2:     mov rdi, ml             ; "-ML-"?
-        call strcmp
+.2:     call findInDict
         test rax, rax
-        jnz doML
+		jz .err
+		push rax
+        mov esi, yy
+        call strlen
+        call stype
+        pop rax
+        mov rbx, 16
+        call iToA
+        call stype
+        jmp _r0
 
 .err:   push rsi
         mov al, '-'
@@ -420,6 +522,9 @@ ml:   db '-ML-', 0
 mlx:  db '-MLX-', 0
 ok:   db ' ok', 10, 0
 yy:   db '-YY-', 10, 0
+ff:   db '-ff-', 10, 0
+
+strDot: db '.', 0
 
 c3_ops:
     dq _stop, _lit, _exit, _call, _jmp, _jmpz, _jmpnz, _store, _cstore  ;  0 ->  9
@@ -445,6 +550,7 @@ flt_ops:
 toIn: rq 1
 last: rq 1
 here: rq 1
+base: rq 1
 dstk: rq DSTK_SZ
 rstk: rq RSTK_SZ
 lstk: rq LSTK_SZ
@@ -453,7 +559,7 @@ regs: rq 100
 regBase: rq 1
 wd:   rb 32
 tib:  rb TIB_SZ
-buf2: rb 16
+buf2: rb 64
 
 wcStart: rq CODE_SZ
 vStart:  rb VARS_SZ
