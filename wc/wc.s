@@ -85,7 +85,8 @@ macro mLit val {
 }
 
 ; ------------------------------------------------------------------------------
-macro NEXT { ret }
+;macro NEXT { ret }
+macro NEXT { jmp runJ }
 
 macro mEmit val {
         mLit val
@@ -108,6 +109,7 @@ cold:
         lea rax, [regs]           ; Start of registers
         mov [regBase], rax
         mov qword ptr base, 10
+        mov qword ptr state, 0
 
         mov rsi, hi
         call strlen
@@ -126,21 +128,33 @@ init:   mov   esi, strDot
 
 ; ------------------------------------------------------------------------------
 prim:   call rax
-run:    nextCell rax
-        cmp rax, wcStart
+runC:   nextCell rax
+        cmp rax, primEnd
         jl prim
-.wc:    btr rax, 1          ; It's a "word-code" ...
+        btr rax, 1          ; Must be a "word-code" ...
         jnc .1              ; Bit #1 ON means JMP
         rPUSH PC            ; Bit #1 OFF means CALL
 .1:     mov PC, rax
-        jmp run
+        jmp runC
+
+; ------------------------------------------------------------------------------
+runJ:   nextCell rax
+        cmp rax, primEnd
+        jg .wc
+        jmp rax
+.wc:    btr rax, 1          ; Must be a "word-code" ...
+        jnc .1              ; Bit #1 ON means JMP
+        rPUSH PC            ; Bit #1 OFF means CALL
+.1:     mov PC, rax
+        jmp runJ
 
 ; ------------------------------------------------------------------------------
 wcTest:
+        mov PC, [here]
+        push PC
         ; Some WordCode for testing ...
         mLit yy
-        mLit 5
-        Comma _type
+        Comma _qtype
 
         mLit 'R'
         mLit 1
@@ -171,6 +185,9 @@ wcTest:
         Comma _loop2
 
         Comma _stop
+        call runJ
+        pop PC
+        mov [here], PC
         ret
 
 ; ------------------------------------------------------------------------------
@@ -217,57 +234,44 @@ addToDict:
         call strlen
         test dl, dl
         jz .r
-        mov rax, [here]     ; For the XT
+        push qword [here]      ; For the XT
         mov r9, [last]
         add r9, 32
         mov [last], r9
-        mov [r9], rax       ; XT
+        pop qword ptr r9       ; XT
         add r9, CELL_SZ
-        mov [r9], byte 0    ; Flags
+        mov byte ptr r9, 0     ; Flags
         inc r9
-        cmp dl, 21          ; Check len
-        jle .l
-        mov dl, 21          ; trunc to 21
-.l:     mov [r9], dl        ; Len
-.s:     lodsb               ; Name
-        mov [r9], byte al
+        cmp dl, 21             ; Check len
+        jle .len
+        mov dl, 21             ; trunc to 21
+.len:   mov byte ptr r9, dl    ; Len
+        inc r9
+.nm:    lodsb                  ; Name
+        mov byte ptr r9, al
         inc r9
         dec dl
-        jnz .s
-        mov [r9], byte 0    ; NULL
+        jnz .nm
+        mov byte ptr r9, 0     ; NULL
 .r:     ret
 
 ; ------------------------------------------------------------------------------
 ; Find in dictionary
 ; In: Name in RSI
-; Out: RAX=(addr of entry), 0 if not found
+; Out: RBX=(addr of entry), 0 if not found
 ; ------------------------------------------------------------------------------
 findInDict:
-        push rsi
-        call strlen
-        call stype
-        pop rsi
         mov rbx, [last]
 .1:     cmp rbx, dStart      ; End of list?
         jl .nf
         mov rdi, rbx
         add rdi, NAME_OFF
-        push rbx
-        push rsi
-        push rdi
-        mov rsi, rdi
-        call strlen
-        call stype
-        pop rdi
-        pop rsi
-        pop rbx
         call strcmpi
-        jnc .2               ; Carry Clear = not-found
-        mov rax, rbx
+        jnc .2               ; Carry Clear = not equal
         ret
 .2:     sub rbx, 32
         jmp .1
-.nf:    xor rax, rax
+.nf:    xor rbx, rbx
         ret
 ; ------------------------------------------------------------------------------
 ; C3 subroutines
@@ -309,10 +313,10 @@ iToA:   xor     rcx, rcx        ; output length
 .x:     mov     rdx, rcx
         ret
 
-semit:                      ; The char to EMIT is in al
+semit:                         ; The char to EMIT is in al
         mov rsi, buf2
         mov [rsi], al
-        mov rdx, 1          ; len=1
+        mov rdx, 1             ; len=1
 
 ; ------------------------------------------------------------------------------
 ; The string is in RSI, length is in RDX
@@ -356,7 +360,7 @@ strcmpi: xor rdx, rdx
         mov al, byte [rdi+rdx]
         call lower
         cmp al, ah
-        jne _r0
+        jne _clc
         inc rdx
         test al, al
         jnz .1
@@ -381,27 +385,6 @@ strcmp: xor rdx, rdx
         jmp _stc
 
 ; ------------------------------------------------------------------------------
-_c3Test:
-        mov r9, [here]
-        cmp r9, wcStart
-        jg .R
-        call wcTest
-.R:     mov PC, wcStart
-        call run
-_r0:    xor rax, rax
-        ret
-
-; ------------------------------------------------------------------------------
-; The word is "-ML-". Handle it.
-; ------------------------------------------------------------------------------
-doML:
-        ; TODO: fill this in
-        mov rsi, mlx
-        call strlen
-        call stype
-        jmp _r0
-
-; ------------------------------------------------------------------------------
 ; The char is in AL
 ; Return: IF AL in ['0'..'9'], Carry=1, else Carry=0
 ; ------------------------------------------------------------------------------
@@ -410,7 +393,7 @@ is09:   cmp al, '0'
         cmp al, '9'
         jg .n
         sub al, '0'
-        stc                 ; It is between '0' and '9'
+        stc                 ; AL is between '0' and '9'
         ret
 .n:     clc                 ; Not between '0' and '9'
         ret
@@ -423,56 +406,56 @@ _r1:    mov rax, 1
 ; Return: IF number, RAX=1 and number in TOS, ELSE RAX=0
 ; ------------------------------------------------------------------------------
 isNum:
-		dPUSH 0
-		xor rax, rax
-.1:		lodsb
-		test al, al
-		jz _r1
-  		call is09
-		jnc .no
-		imul TOS, 10
-		add TOS, rax
-		jmp .1
+        dPUSH 0
+        xor rax, rax
+.1:     lodsb
+        test al, al
+        jz _r1
+        call is09
+        jnc .no
+        imul TOS, 10
+        add TOS, rax
+        jmp .1
 .no:    dPOP rax
-		xor rax, rax
-		ret
+        xor rax, rax
+        ret
 
 ; ------------------------------------------------------------------------------
 ; The word is in RSI, length is in RDX
 ; ------------------------------------------------------------------------------
 _parseWord:
-        ; TODO: fill this in!
         mov rdi, gb             ; "bye"?
         call strcmpi
         jc _bye
 
-		push rsi               ; Number?
-		push rdx
-		call isNum
-		pop rdx
-		pop rsi
-		test rax, rax
-		jz .1
-		dPOP rax
-		mLit rax
-        xor rax, rax
+        cmp byte [rsi], 'X'     ; Test?
+        jne .num
+        call wcTest
+        jmp .r0
+
+.num:   push rsi               ; Number?
+        push rdx
+        call isNum
+        pop rdx
+        pop rsi
+        test rax, rax
+        jz .wd
+        cmp qword ptr state, 0
+        je .r0
+        dPOP rax
+        mLit rax
+.r0:    xor rax, rax
         ret
 
-.1:     cmp byte [rsi], 'X'     ; Test?
-        je _c3Test
-
-.2:     call findInDict
-        test rax, rax
-		jz .err
-		push rax
-        mov esi, yy
-        call strlen
-        call stype
-        pop rax
-        mov rbx, 16
-        call iToA
-        call stype
-        jmp _r0
+.wd:    call findInDict
+        test rbx, rbx
+        jz .err
+        ;mov rax, rbx
+        ;mov rbx, 16
+        ;call iToA
+        ;call stype
+        call _dot
+        jmp .r0
 
 .err:   push rsi
         mov al, '-'
@@ -491,17 +474,20 @@ _repl:
         mov rsi, ok
         mov rdx, 4
         call stype
-        mov rsi, tib                ; Read line into TIB
+        cmp DSP, dstk               ; Chesk stack underflow
+        jge .0
+        mov DSP, dstk
+.0:     mov rsi, tib                ; Read line into TIB
         mov [toIn], rsi
-        mov rdx, 256                ; TIB size
+        mov rdx, 256                ; Buffer size
         call readLine
         mov [rsi+rax], word 0       ; NULL Terminate
-.1:     call nextWord               ; Parse line
-        test rdx, rdx
-        jz _repl                    ; End of line
-        call _parseWord
+.lp:    call nextWord               ; Parse line
+        test rdx, rdx               ; RDX=0 means end of line
+        jz _repl
+        call _parseWord             ; Will return RAX=0 if no error
         test rax, rax
-        jz .1
+        jz .lp
         jmp _repl
 
 ; ------------------------------------------------------------------------------
@@ -513,7 +499,6 @@ primEnd:
 
 ; ------------------------------------------------------------------------------
 segment readable writable
-
 
 
 hi:   db 'hello.', 0
@@ -547,21 +532,22 @@ flt_ops:
     dq _fadd, _fsub, _fmul, _nop, _fdiv, _feq, _flt, _fgt                      ;  0 ->  7
     dq _f2i, _i2f, _fdot, _sqrt, _tanh                                         ;  8 -> 12
 
-toIn: rq 1
-last: rq 1
-here: rq 1
-base: rq 1
-dstk: rq DSTK_SZ
-rstk: rq RSTK_SZ
-lstk: rq LSTK_SZ
-lsp:  rq 1
-regs: rq 100
-regBase: rq 1
-wd:   rb 32
-tib:  rb TIB_SZ
-buf2: rb 64
+toIn:      rq 1
+last:      rq 1
+here:      rq 1
+base:      rq 1
+state:     rq 1
+dstk:      rq DSTK_SZ
+rstk:      rq RSTK_SZ
+lstk:      rq LSTK_SZ
+lsp:       rq 1
+regs:      rq 100
+regBase:   rq 1
+wd:        rb 32
+tib:       rb TIB_SZ
+buf2:      rb 64
 
-wcStart: rq CODE_SZ
-vStart:  rb VARS_SZ
-dStart:  rb DICT_SZ
+wcStart:   rq CODE_SZ
+vStart:    rb VARS_SZ
+dStart:    rb DICT_SZ
 dEnd:

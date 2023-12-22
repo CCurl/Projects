@@ -5,7 +5,7 @@ _bye:       xor rdi, rdi    ; exit code 0
             syscall
             ret
 
-_stop:      pop rax
+_stop:      ; pop rax
             ret
             ;PC, PC
             ;NEXT
@@ -184,6 +184,7 @@ _xor:       dPOP rax
             xor TOS, rax
             NEXT
 
+; ( a n-- )
 _type:      dPOP rdx        ; len
             dPOP rsi        ; string
             call stype
@@ -247,19 +248,24 @@ _inline:    ; xxx TOS
 _immediate: ; xxx TOS
             NEXT
 
+; ( n-- )
 _dot:       dPOP rax
             mov rbx, [base]
             call iToA
-            jmp stype
+            call stype
             NEXT
 
+; ( n -- a )
 _itoa:      mov rax, TOS
             mov rbx, [base]
             call iToA
-            mov TOS, rax
+            mov TOS, rsi
             NEXT
 
-_atoi:      ; xxx TOS
+; ( a -- n 1 | 0 )
+_atoi:      dPOP rsi
+            call isNum
+            dPUSH rax
             NEXT
 
 _colondef:  ; xxx TOS
@@ -271,9 +277,14 @@ _endword:   ; xxx TOS
 _create:    ; xxx TOS
             NEXT
 
-_find:      ; xxx TOS
+;( a1 n-- a2 | 0 )
+_find:      dPOP rdx
+            dPOP rsi
+            call findInDict
+            dPUSH rbx
             NEXT
 
+;( -- a n )
 _word:      call nextWord
             dPUSH rsi
             dPUSH rdx
@@ -300,11 +311,13 @@ _emit:      dPOP rax
             call semit
             NEXT
 
+; ( a-- )
 _qtype:     dPOP rsi
             call strlen
             call stype
             NEXT
 
+; ( a1 n1--a2 n2 )
 _read:      dPOP rdx
             dPOP rsi
             call readLine
