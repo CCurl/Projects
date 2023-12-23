@@ -4,33 +4,33 @@ segment readable executable
 entry cold
 
 ; ------------------------------------------------------------------------------
-CELL_SZ    equ 8
-CODE_SZ    equ  64*1024
-VARS_SZ    equ 128*1024
-DICT_SZ    equ   8*1024
-DSTK_SZ    equ  64*CELL_SZ
-RSTK_SZ    equ  64*CELL_SZ
-LSTK_SZ    equ  30*CELL_SZ
-TIB_SZ     equ 256
+CELL_SZ    =   8
+CODE_SZ    =  64*1024
+VARS_SZ    = 128*1024
+DICT_SZ    =  32*1024          ; 1024 entries
+DSTK_SZ    =  64*CELL_SZ
+RSTK_SZ    =  64*CELL_SZ
+LSTK_SZ    =  30*CELL_SZ
+TIB_SZ     = 256
 
 ; INDEX    equ r11
 DSP        equ r12
-RSP        equ r13
+RSPTR      equ r13
 PC         equ r14
 TOS        equ r15
 
-STDIN      equ 0
-STDOUT     equ 1
-SYS_READ   equ 0
-SYS_WRITE  equ 1
+STDIN      = 0
+STDOUT     = 1
+SYS_READ   = 0
+SYS_WRITE  = 1
 
 ; Dictionary entry
 ; [xt:CELL_SZ][flags:1][len:1][name:NAME_SZ][null:1]
-XT_OFF     equ 0
-FLG_OFF    equ CELL_SZ
-LEN_OFF    equ FLG_OFF+1
-NAME_OFF   equ LEN_OFF+1
-NAME_SZ    equ 21
+XT_OFF     = 0
+FLG_OFF    = CELL_SZ
+LEN_OFF    = FLG_OFF+1
+NAME_OFF   = LEN_OFF+1
+NAME_SZ    = 21
 
 ; ------------------------------------------------------------------------------
 macro dPUSH val {
@@ -48,14 +48,14 @@ macro dPOP val {
 
 ; ------------------------------------------------------------------------------
 macro rPUSH val {
-    add RSP, CELL_SZ
-    mov [RSP], qword val
+    add RSPTR, CELL_SZ
+    mov [RSPTR], qword val
 }
 
 ; ------------------------------------------------------------------------------
 macro rPOP val {
-    mov val, [RSP]
-    sub RSP, CELL_SZ
+    mov val, [RSPTR]
+    sub RSPTR, CELL_SZ
 }
 
 ; ------------------------------------------------------------------------------
@@ -98,14 +98,14 @@ macro mEmit val {
 ; ------------------------------------------------------------------------------
 cold:
         mov DSP, dstk             ; Start of data STACK
-        mov RSP, rstk             ; Start of return STACK
+        mov RSPTR, rstk           ; Start of return STACK
         lea rax, [lstk]           ; Start of loop STACK
         mov [lsp], rax
-        mov rax, dStart           ; LAST
-        sub rax, 32
-        mov [last], rax
-        mov rax, wcStart
-        mov [here], rax           ; HERE: start of word-code
+        mov qword ptr last, lastA
+        ;mov rax, lastA           ; LAST
+        ;mov [last], rax
+        mov qword ptr here, hereA
+        ;mov [here], rax          ; HERE: start of word-code
         lea rax, [regs]           ; Start of registers
         mov [regBase], rax
         mov qword ptr base, 10
@@ -115,16 +115,7 @@ cold:
         call strlen
         call stype
 
-        call init
-
         jmp _repl
-
-; ------------------------------------------------------------------------------
-init:   mov   esi, strDot
-        call  addToDict
-        Comma _dot
-        Comma _exit
-        ret
 
 ; ------------------------------------------------------------------------------
 prim:   call rax
@@ -132,28 +123,31 @@ runC:   nextCell rax
         cmp rax, primEnd
         jl prim
         btr rax, 1          ; Must be a "word-code" ...
-        jnc .1              ; Bit #1 ON means JMP
+        jc .1               ; Bit #1 ON means JMP
         rPUSH PC            ; Bit #1 OFF means CALL
 .1:     mov PC, rax
         jmp runC
 
 ; ------------------------------------------------------------------------------
 runJ:   nextCell rax
-        cmp rax, primEnd
-        jg .wc
+        cmp rax, wcStart
+        jge .wc
+        ;test rax, rax
+        ;jz .x
         jmp rax
 .wc:    btr rax, 1          ; Must be a "word-code" ...
-        jnc .1              ; Bit #1 ON means JMP
+        jc .1               ; Bit #1 ON means JMP
         rPUSH PC            ; Bit #1 OFF means CALL
 .1:     mov PC, rax
         jmp runJ
+.x:     ret
 
 ; ------------------------------------------------------------------------------
 wcTest:
         mov PC, [here]
         push PC
         ; Some WordCode for testing ...
-        mLit yy
+        mLit hi
         Comma _qtype
 
         mLit 'R'
@@ -242,9 +236,9 @@ addToDict:
         add r9, CELL_SZ
         mov byte ptr r9, 0     ; Flags
         inc r9
-        cmp dl, 21             ; Check len
+        cmp dl, NAME_SZ        ; Check len
         jle .len
-        mov dl, 21             ; trunc to 21
+        mov dl, NAME_SZ        ; trunc to 21
 .len:   mov byte ptr r9, dl    ; Len
         inc r9
 .nm:    lodsb                  ; Name
@@ -266,6 +260,17 @@ findInDict:
         jl .nf
         mov rdi, rbx
         add rdi, NAME_OFF
+        ;push rbx
+        ;push rdi
+        ;push rsi
+        ;mov rsi, rdi
+        ;call strlen
+        ;call stype
+        ;mov al, 32
+        ;call semit
+        ;pop rsi
+        ;pop rdi
+        ;pop rbx
         call strcmpi
         jnc .2               ; Carry Clear = not equal
         ret
@@ -273,6 +278,7 @@ findInDict:
         jmp .1
 .nf:    xor rbx, rbx
         ret
+
 ; ------------------------------------------------------------------------------
 ; C3 subroutines
 ; ------------------------------------------------------------------------------
@@ -424,10 +430,6 @@ isNum:
 ; The word is in RSI, length is in RDX
 ; ------------------------------------------------------------------------------
 _parseWord:
-        mov rdi, gb             ; "bye"?
-        call strcmpi
-        jc _bye
-
         cmp byte [rsi], 'X'     ; Test?
         jne .num
         call wcTest
@@ -450,11 +452,9 @@ _parseWord:
 .wd:    call findInDict
         test rbx, rbx
         jz .err
-        ;mov rax, rbx
-        ;mov rbx, 16
-        ;call iToA
-        ;call stype
-        call _dot
+        mov PC, [rbx]
+        nextCell rax
+        call rax
         jmp .r0
 
 .err:   push rsi
@@ -474,7 +474,7 @@ _repl:
         mov rsi, ok
         mov rdx, 4
         call stype
-        cmp DSP, dstk               ; Chesk stack underflow
+        cmp DSP, dstk               ; Check stack underflow
         jge .0
         mov DSP, dstk
 .0:     mov rsi, tib                ; Read line into TIB
@@ -500,38 +500,42 @@ primEnd:
 ; ------------------------------------------------------------------------------
 segment readable writable
 
+macro DICT_E xt, fl, ln, nm {
+      S=$
+    dq xt
+    db fl
+    db ln
+    db nm, 0
+      E=$
+    db 32-(E-S) dup (0)
+}
 
 hi:   db 'hello.', 0
-gb:   db 'bye', 0
-ml:   db '-ML-', 0
-mlx:  db '-MLX-', 0
 ok:   db ' ok', 10, 0
-yy:   db '-YY-', 10, 0
-ff:   db '-ff-', 10, 0
 
-strDot: db '.', 0
+buf1:      db 64 dup (0)
 
-c3_ops:
-    dq _stop, _lit, _exit, _call, _jmp, _jmpz, _jmpnz, _store, _cstore  ;  0 ->  9
-    dq _fetch, _cfetch, _dup, _swap, _over, _drop, _add, _mult, _slmod, _sub   ; 10 -> 19
-    dq _inc, _dec, _lt, _eq, _gt, _eq0, _rto, _rfetch, _rfrom, _do             ; 20 -> 29
-    dq _loop, _loop2, _index, _com, _and, _or, _xor, _type, _ztype, _reg_i     ; 30 -> 39
-    dq _reg_d, _reg_r, _reg_rd, _reg_ri, _reg_s, _reg_new, _reg_free           ; 40 -> 46
-    dq _sys_ops, _str_ops, _flt_ops                                            ; 47 -> 49
+align 8
+dStart:    DICT_E xtDot,  0, 1, '.'
+           DICT_E xtBye,  0, 3, 'bye'
+           DICT_E xtAdd,  0, 1, '+'
+           DICT_E xtSub,  0, 1, '-'
+           DICT_E _mult,  0, 1, '*'
+           DICT_E _slmod, 0, 4, '/mod'
+           DICT_E xtEmit, 0, 4, 'emit'
+lastA:     DICT_E _qtype, 0, 5, 'qtype'
+           rb DICT_SZ
 
-sys_ops:
-    dq _inline, _immediate, _dot, _nop, _itoa, _atoi, _colondef, _endword      ;  0 ->  7
-    dq _create, _find, _word, _timer, _ccomma, _comma, _key, _qkey             ;  8 -> 15
-    dq _emit, _qtype, _read                                                    ; 16 -> 18
+align 8
+wcStart:
+xtDot:     dq _dot, _lit, 32, _emit, _exit
+xtBye:     dq _bye, _exit
+xtAdd:     dq _add, _exit
+xtSub:     dq _sub, _exit
+xtEmit:    dq _emit, _exit
+hereA:     rq CODE_SZ
 
-str_ops:
-    dq _trunc, _lcase, _ucase, _nop, _strcpy, _strcat, _strcatc, _strlen       ;  0 ->  7
-    dq _streq, _streqi, _ltrim, _rtrim                                         ;  8 -> 11
-
-flt_ops:
-    dq _fadd, _fsub, _fmul, _nop, _fdiv, _feq, _flt, _fgt                      ;  0 ->  7
-    dq _f2i, _i2f, _fdot, _sqrt, _tanh                                         ;  8 -> 12
-
+vStart:    rb VARS_SZ
 toIn:      rq 1
 last:      rq 1
 here:      rq 1
@@ -546,8 +550,3 @@ regBase:   rq 1
 wd:        rb 32
 tib:       rb TIB_SZ
 buf2:      rb 64
-
-wcStart:   rq CODE_SZ
-vStart:    rb VARS_SZ
-dStart:    rb DICT_SZ
-dEnd:

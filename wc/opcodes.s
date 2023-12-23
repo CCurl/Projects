@@ -7,14 +7,17 @@ _bye:       xor rdi, rdi    ; exit code 0
 
 _stop:      ; pop rax
             ret
-            ;PC, PC
             ;NEXT
 
 _lit:       nextCell rax
             dPUSH rax
             NEXT
 
-_exit:      rPOP PC
+_exit:      cmp RSPTR, rstk
+            jg .1
+            mov RSPTR, rstk
+            ret
+.1:         rPOP PC
             NEXT
 
 _call:      nextCell rax
@@ -127,7 +130,7 @@ _rto:       dPOP rax
             rPUSH rax
             NEXT
 
-_rfetch:    dPUSH [RSP]
+_rfetch:    dPUSH [RSPTR]
             NEXT
 
 _rfrom:     rPOP rax
@@ -328,10 +331,6 @@ _read:      dPOP rdx
 ; ------------------------------------------------------------------------------
 ; STRING OPS
 ; ------------------------------------------------------------------------------
-_str_ops:   nextCell rcx
-            mov rax, [str_ops+rcx*CELL_SZ]
-            jmp rax
-
 _trunc:     dPOP rsi
             mov [rsi], word 0
             NEXT
@@ -371,10 +370,6 @@ _rtrim:     ; xxx TOS
 ; ------------------------------------------------------------------------------
 ; FLOAT OPS
 ; ------------------------------------------------------------------------------
-_flt_ops:   nextCell rcx
-            mov rax, [flt_ops+rcx*CELL_SZ]
-            jmp rax
-
 _fadd:      ; xxx TOS
             NEXT
 
