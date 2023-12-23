@@ -1,5 +1,15 @@
 format ELF64 executable 3
 
+; Linux ABI:
+;     Volatile registers: RAX, RCX, RDX, R8, R9, R10, R11, RSI, RDI
+;     Non-volatile registers: RBX, RSP, RBP, R12, R13, R14, R15
+
+; Windows ABI:
+;     Volatile registers: RAX, RCX, RDX, R8, R9, R10, R11
+;     Non-volatile registers: RBX, RBP, RSP, R12, R13, R14, R15, RDI, RSI
+
+
+
 segment readable executable
 entry cold
 
