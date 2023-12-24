@@ -41,14 +41,14 @@ _jmpnz:     dPOP rax
             add PC, CELL_SZ
             NEXT
 
-_store:     dPOP rsi
+_store:     dPOP rdx
             dPOP rax
-            mov [rsi], rax
+            mov  [rdx], rax
             NEXT
 
-_cstore:    dPOP rsi
+_cstore:    dPOP rdx
             dPOP rax
-            mov [rsi], al
+            mov  [rdx], al
             NEXT
 
 _fetch:     mov TOS, qword [TOS]
@@ -60,14 +60,14 @@ _cfetch:    movzx TOS, byte [TOS]
 _dup:       dPUSH TOS
             NEXT
 
-_swap:      dPOP rax
-            dPOP rbx
+_swap:      dPOP  rax
+            dPOP  rbx
             dPUSH rax
             dPUSH rbx
             NEXT
 
-_over:      dPOP rax
-            mov rbx, TOS
+_over:      dPOP  rax
+            mov   rbx, TOS
             dPUSH rax
             dPUSH rbx
             NEXT
@@ -76,19 +76,19 @@ _drop:      dPOP rax
             NEXT
 
 _add:       dPOP rax
-            add TOS, rax
+            add  TOS, rax
             NEXT
 
 _mult:      dPOP rbx
             imul TOS, rbx
             NEXT
 
-_slmod:     dPOP rbx
-            dPOP rax
-            xor rdx, rdx
-            idiv rbx
-            dPUSH rdx
-            dPUSH rax
+_slmod:     dPOP  rbx
+            dPOP  rax
+            xor   rdx, rdx
+            idiv  rbx
+            dPUSH rdx              ; MOD
+            dPUSH rax              ; QUOTIENT
             NEXT
 
 _sub:       dPOP rax
@@ -137,36 +137,30 @@ _rfrom:     rPOP rax
             dPUSH rax
             NEXT
 
-_do:        mov  r9, [lsp]
-            add  r9, CELL_SZ*3
-            mov  [lsp], r9
-            mov  [r9-CELL_SZ*2], r11    ; Save Current Index to lstk[lsp-2]
+_do:        add  LSP, CELL_SZ*3
+            mov  [LSP-CELL_SZ*2], r11   ; Save Current Index to lstk[lsp-2]
             dPOP r11                    ; r11 = Index
-            dPOP [r9]                   ; lstk[lsp] = Upper Bound
-            mov [r9-CELL_SZ], PC        ; lstk[lsp-1] = PC
+            dPOP [LSP]                  ; lstk[lsp] = Upper Bound
+            mov [LSP-CELL_SZ], PC       ; lstk[lsp-1] = PC
             NEXT
 
-_unloop:    mov r9, [lsp]
-            mov r11, [r9-CELL_SZ*2]     ; Restore saved index
-            sub r9, CELL_SZ*3
-            cmp r9, lstk
+_unloop:    mov r11, [LSP-CELL_SZ*2]    ; Restore saved index
+            sub LSP, CELL_SZ*3
+            cmp LSP, lstk
             jge .1
-            mov r9, lstk
-.1:         mov [lsp], r9
-            NEXT
+            mov LSP, lstk
+.1:         NEXT
 
-_loop:      mov r9, [lsp]
-            inc r11
-            cmp r11, [r9]
+_loop:      inc r11
+            cmp r11, [LSP]
             jge _unloop
-            mov PC, [r9-CELL_SZ]
+            mov PC, [LSP-CELL_SZ]
             NEXT
 
-_loop2:     mov r9, [lsp]
-            dec r11
-            cmp r11, [r9]
+_loop2:     dec r11
+            cmp r11, [LSP]
             jle _unloop
-            mov PC, [r9-CELL_SZ]
+            mov PC, [LSP-CELL_SZ]
             NEXT
 
 _index:     dPUSH r11
@@ -199,40 +193,40 @@ _ztype:     dPOP rsi        ; string
             NEXT
 
 _reg_i:     nextCell rax    ; reg number
-			mov rdx, [regBase]
-			inc qword [rdx+rax*8]
+            mov rdx, [regBase]
+            inc qword [rdx+rax*8]
             NEXT
 
 _reg_d:     nextCell rax    ; reg number
-			mov rdx, [regBase]
-			dec qword [rdx+rax*8]
-			NEXT
+            mov rdx, [regBase]
+            dec qword [rdx+rax*8]
+            NEXT
 
 _reg_r:     nextCell rax    ; reg number
-			mov rdx, [regBase]
-			mov rbx, [rdx+rax*8]
-			dPUSH rbx
+            mov rdx, [regBase]
+            mov rbx, [rdx+rax*8]
+            dPUSH rbx
             NEXT
 
 _reg_rd:    nextCell rax    ; reg number
-			mov rdx, [regBase]
-			mov rbx, [rdx+rax*8]
-			dPUSH rbx
-			dec qword [rdx+rax*8]
+            mov rdx, [regBase]
+            mov rbx, [rdx+rax*8]
+            dPUSH rbx
+            dec qword [rdx+rax*8]
             NEXT
 
 _reg_ri:    nextCell rax    ; reg number
-			mov rdx, [regBase]
-			mov rbx, [rdx+rax*8]
-			dPUSH rbx
-			inc qword [rdx+rax*8]
+            mov rdx, [regBase]
+            mov rbx, [rdx+rax*8]
+            dPUSH rbx
+            inc qword [rdx+rax*8]
             NEXT
 
 _reg_s:     nextCell rax    ; reg number
-			mov rdx, [regBase]
-			mov rbx, [rdx+rax*8]
-			dPOP rbx
-			mov [rdx+rax*8], rbx
+            mov rdx, [regBase]
+            mov rbx, [rdx+rax*8]
+            dPOP rbx
+            mov [rdx+rax*8], rbx
             NEXT
 
 _reg_new:   add qword [regBase], 10*CELL_SZ
@@ -244,11 +238,10 @@ _reg_free:  sub qword [regBase], 10*CELL_SZ
 ; ------------------------------------------------------------------------------
 ; SYS OPS
 ; ------------------------------------------------------------------------------
-_sys_ops:    ; xxx TOS
-_inline:    ; xxx TOS
+_inline:    call makeInl
             NEXT
 
-_immediate: ; xxx TOS
+_immediate: call makeImm
             NEXT
 
 ; ( n-- )
@@ -271,13 +264,17 @@ _atoi:      dPOP rsi
             dPUSH rax
             NEXT
 
-_colondef:  ; xxx TOS
+_colon:     call nextWord
+            call addToDict
+            or   byte [state], 0x01
             NEXT
 
-_endword:   ; xxx TOS
+_semi:      Comma _exit
+            and   byte [state], 0xFE
             NEXT
 
-_create:    ; xxx TOS
+_create:    call nextWord
+            call addToDict
             NEXT
 
 ;( a1 n-- a2 | 0 )

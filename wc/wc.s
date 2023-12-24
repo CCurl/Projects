@@ -24,6 +24,7 @@ LSTK_SZ    =  30*CELL_SZ
 TIB_SZ     = 256
 
 ; INDEX    equ r11
+LSP        equ r10
 DSP        equ r12
 RSPTR      equ r13
 PC         equ r14
@@ -33,6 +34,11 @@ STDIN      = 0
 STDOUT     = 1
 SYS_READ   = 0
 SYS_WRITE  = 1
+
+BIT_JUMP   = 0x01
+BIT_IMM    = 0x01
+BIT_INLINE = 0x02
+BIT_PRIM   = 0x04
 
 ; Dictionary entry
 ; [xt:CELL_SZ][flags:1][len:1][name:NAME_SZ][null:1]
@@ -70,15 +76,15 @@ macro rPOP val {
 
 ; ------------------------------------------------------------------------------
 macro CComma val {
-    mov r10, [here]
-    mov [r10], byte val
+    mov r8, [here]
+    mov [r8], byte val
     inc qword [here]
 }
 
 ; ------------------------------------------------------------------------------
 macro Comma val {
-    mov r10, [here]
-    mov qword ptr r10, val
+    mov r8, [here]
+    mov qword ptr r8, val
     add qword ptr here, CELL_SZ
 }
 
@@ -109,13 +115,9 @@ macro mEmit val {
 cold:
         mov DSP, dstk             ; Start of data STACK
         mov RSPTR, rstk           ; Start of return STACK
-        lea rax, [lstk]           ; Start of loop STACK
-        mov [lsp], rax
+        mov LSP, lstk             ; Start of loop STACK
         mov qword ptr last, lastA
-        ;mov rax, lastA           ; LAST
-        ;mov [last], rax
         mov qword ptr here, hereA
-        ;mov [here], rax          ; HERE: start of word-code
         lea rax, [regs]           ; Start of registers
         mov [regBase], rax
         mov qword ptr base, 10
@@ -132,9 +134,9 @@ prim:   call rax
 runC:   nextCell rax
         cmp rax, primEnd
         jl prim
-        btr rax, 1          ; Must be a "word-code" ...
-        jc .1               ; Bit #1 ON means JMP
-        rPUSH PC            ; Bit #1 OFF means CALL
+        btr rax, BIT_JUMP   ; Must be a "word-code" ...
+        jc .1               ; Bit ON means JMP
+        rPUSH PC            ; Bit OFF means CALL
 .1:     mov PC, rax
         jmp runC
 
@@ -142,8 +144,6 @@ runC:   nextCell rax
 runJ:   nextCell rax
         cmp rax, wcStart
         jge .wc
-        ;test rax, rax
-        ;jz .x
         jmp rax
 .wc:    btr rax, 1          ; Must be a "word-code" ...
         jc .1               ; Bit #1 ON means JMP
@@ -200,9 +200,11 @@ wcTest:
 readLine:
         mov rax, SYS_READ
         mov rdi, STDIN
+        push LSP
         push r11
         syscall
         pop r11
+        pop LSP
         ret
 
 ; ------------------------------------------------------------------------------
@@ -290,6 +292,24 @@ findInDict:
         ret
 
 ; ------------------------------------------------------------------------------
+makeImm:   mov rax, [last]
+           add rax, FLG_OFF
+           or  byte [rax], BIT_IMM
+           ret
+
+; ------------------------------------------------------------------------------
+makeInl:   mov rax, [last]
+           add rax, FLG_OFF
+           or  byte [rax], BIT_INLINE
+           ret
+
+; ------------------------------------------------------------------------------
+makePrim:  mov rax, [last]
+           add rax, FLG_OFF
+           or  byte [rax], BIT_PRIM
+           ret
+
+; ------------------------------------------------------------------------------
 ; C3 subroutines
 ; ------------------------------------------------------------------------------
 ; input:        ; rax: the number to print - destroyed
@@ -305,7 +325,7 @@ iToA:   xor     rcx, rcx        ; output length
         push    0               ; isNegative flag
         cmp     rbx, 10         ; base 10 only
         jne     .1
-        bt      rax, 63
+        bt      rax, CELL_SZ*8-1
         jnc     .1
         inc     BYTE [rsp]
         neg     rax
@@ -340,9 +360,11 @@ semit:                         ; The char to EMIT is in al
 stype:
         mov rdi, STDOUT
         mov rax, SYS_WRITE
+        push LSP
         push r11
         syscall
         pop r11
+        pop LSP
         ret
 
 ; ------------------------------------------------------------------------------
@@ -452,8 +474,6 @@ _parseWord:
         pop rsi
         test rax, rax
         jz .wd
-        cmp qword ptr state, 0
-        je .r0
         dPOP rax
         mLit rax
 .r0:    xor rax, rax
@@ -461,10 +481,27 @@ _parseWord:
 
 .wd:    call findInDict
         test rbx, rbx
-        jz .err
-        mov PC, [rbx]
-        nextCell rax
-        call rax
+        jz   .err
+
+        mov   rax, [rbx]             ; The XT
+        mov   dx, [rbx+FLG_OFF]
+        bt    dx, BIT_IMM
+        jc    .imm
+        bt    dx, BIT_INLINE
+        jc    .inl
+        Comma rax
+        jmp   .r0
+
+.imm:   cmp  rax, wcStart
+        jge  .imm1
+        btr  rax, BIT_JUMP
+.imm1:  mov  [buf1], rax
+        mov  qword ptr buf1+CELL_SZ, _exit
+        mov  PC, buf1
+        call runJ
+        jmp  .r0
+
+.inl:   Comma rax      ; TODO: Fill this in
         jmp .r0
 
 .err:   push rsi
@@ -481,7 +518,8 @@ _parseWord:
 
 ; ------------------------------------------------------------------------------
 _repl:
-        mov rsi, ok
+        push qword [here]
+.s:     mov rsi, ok
         mov rdx, 4
         call stype
         cmp DSP, dstk               ; Check stack underflow
@@ -494,10 +532,16 @@ _repl:
         mov [rsi+rax], word 0       ; NULL Terminate
 .lp:    call nextWord               ; Parse line
         test rdx, rdx               ; RDX=0 means end of line
-        jz _repl
+        jz .eol
         call _parseWord             ; Will return RAX=0 if no error
         test rax, rax
         jz .lp
+        pop qword [here]
+        jmp _repl
+.eol:   Comma _exit
+        pop PC
+        mov [here], PC
+        call runJ
         jmp _repl
 
 ; ------------------------------------------------------------------------------
@@ -526,23 +570,24 @@ ok:   db ' ok', 10, 0
 buf1:      db 64 dup (0)
 
 align 8
-dStart:    DICT_E xtDot,  0, 1, '.'
-           DICT_E xtBye,  0, 3, 'bye'
-           DICT_E xtAdd,  0, 1, '+'
-           DICT_E xtSub,  0, 1, '-'
-           DICT_E _mult,  0, 1, '*'
-           DICT_E _slmod, 0, 4, '/mod'
-           DICT_E xtEmit, 0, 4, 'emit'
-lastA:     DICT_E _qtype, 0, 5, 'qtype'
+dStart:    DICT_E _dot,   BIT_PRIM, 1, '.'
+           DICT_E _bye,   BIT_PRIM, 3, 'bye'
+           DICT_E _add,   BIT_PRIM, 1, '+'
+           DICT_E _sub,   BIT_PRIM, 1, '-'
+           DICT_E _mult,  BIT_PRIM, 1, '*'
+           DICT_E _slmod, BIT_PRIM, 4, '/mod'
+           DICT_E _emit,  BIT_PRIM, 4, 'emit'
+           DICT_E _do,    BIT_PRIM, 2, 'do'
+           DICT_E _index, BIT_PRIM, 1, 'i'
+           DICT_E _loop,  BIT_PRIM, 4, 'loop'
+           DICT_E _loop2, BIT_PRIM, 5, '-loop'
+           DICT_E _colon, BIT_IMM,  1, ':'
+           DICT_E _semi,  BIT_IMM,  1, ';'
+lastA:     DICT_E _qtype, BIT_PRIM, 5, 'qtype'
            rb DICT_SZ
 
 align 8
 wcStart:
-xtDot:     dq _dot, _lit, 32, _emit, _exit
-xtBye:     dq _bye, _exit
-xtAdd:     dq _add, _exit
-xtSub:     dq _sub, _exit
-xtEmit:    dq _emit, _exit
 hereA:     rq CODE_SZ
 
 vStart:    rb VARS_SZ
