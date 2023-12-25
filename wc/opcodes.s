@@ -137,30 +137,36 @@ _rfrom:     rPOP rax
             dPUSH rax
             NEXT
 
-_do:        add  LSP, CELL_SZ*3
-            mov  [LSP-CELL_SZ*2], r11   ; Save Current Index to lstk[lsp-2]
-            dPOP r11                    ; r11 = Index
-            dPOP [LSP]                  ; lstk[lsp] = Upper Bound
-            mov [LSP-CELL_SZ], PC       ; lstk[lsp-1] = PC
+_do:        mov  r9, [lsp]
+            mov  [r9+CELL_SZ], r11     ; Save Current Index
+            add  r9, CELL_SZ*3
+            mov  [lsp], r9
+            dPOP r11                   ; r11 = Index
+            dPOP [r9]                  ; lstk[lsp] = Upper Bound
+            mov [r9-CELL_SZ], PC       ; lstk[lsp-1] = PC
             NEXT
 
-_unloop:    mov r11, [LSP-CELL_SZ*2]    ; Restore saved index
-            sub LSP, CELL_SZ*3
-            cmp LSP, lstk
+_unloop:    mov r9, [lsp]
+            sub r9, CELL_SZ*3
+            cmp r9, lstk
             jge .1
-            mov LSP, lstk
-.1:         NEXT
-
-_loop:      inc r11
-            cmp r11, [LSP]
-            jge _unloop
-            mov PC, [LSP-CELL_SZ]
+            mov r9, lstk
+.1:         mov  [lsp], r9
+            mov r11, [r9+CELL_SZ]      ; Restore saved index
             NEXT
 
-_loop2:     dec r11
-            cmp r11, [LSP]
+_loop:      mov r9, [lsp]
+            inc r11
+            cmp r11, [r9]
+            jge _unloop
+            mov PC, [r9-CELL_SZ]
+            NEXT
+
+_loop2:     mov r9, [lsp]
+            dec r11
+            cmp r11, [r9]
             jle _unloop
-            mov PC, [LSP-CELL_SZ]
+            mov PC, [r9-CELL_SZ]
             NEXT
 
 _index:     dPUSH r11
@@ -266,11 +272,11 @@ _atoi:      dPOP rsi
 
 _colon:     call nextWord
             call addToDict
-            or   byte [state], 0x01
+            mov  byte [state], 0x01
             NEXT
 
 _semi:      Comma _exit
-            and   byte [state], 0xFE
+            mov   byte [state], 0x00
             NEXT
 
 _create:    call nextWord

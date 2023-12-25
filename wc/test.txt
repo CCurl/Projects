@@ -1,0 +1,5 @@
+: lp1 do i . 32 emit loop ;
+: lp2 do i . 32 emit 9 6 lp1 i . 32 emit loop ;
+30 20 lp2
+10 emit
+bye

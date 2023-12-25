@@ -24,7 +24,7 @@ LSTK_SZ    =  30*CELL_SZ
 TIB_SZ     = 256
 
 ; INDEX    equ r11
-LSP        equ r10
+; LSP        equ r9
 DSP        equ r12
 RSPTR      equ r13
 PC         equ r14
@@ -110,12 +110,26 @@ macro mEmit val {
 }
 
 ; ------------------------------------------------------------------------------
+macro mtype addr {
+        push rsi
+        push rdi
+        push rbx
+        mov rsi, addr
+        call strlen
+        call stype
+        pop rbx
+        pop rdi
+        pop rsi
+}
+
+; ------------------------------------------------------------------------------
 ; ------------------------------------------------------------------------------
 ; ------------------------------------------------------------------------------
 cold:
         mov DSP, dstk             ; Start of data STACK
         mov RSPTR, rstk           ; Start of return STACK
-        mov LSP, lstk             ; Start of loop STACK
+        mov rax, lstk             ; Start of loop STACK
+        mov [lsp], rax            ; Start of loop STACK
         mov qword ptr last, lastA
         mov qword ptr here, hereA
         lea rax, [regs]           ; Start of registers
@@ -145,12 +159,11 @@ runJ:   nextCell rax
         cmp rax, wcStart
         jge .wc
         jmp rax
-.wc:    btr rax, 1          ; Must be a "word-code" ...
-        jc .1               ; Bit #1 ON means JMP
-        rPUSH PC            ; Bit #1 OFF means CALL
+.wc:    btr rax, BIT_JUMP   ; Must be a "word-code" ...
+        jc .1               ; Bit ON means JMP
+        rPUSH PC            ; Bit OFF means CALL
 .1:     mov PC, rax
         jmp runJ
-.x:     ret
 
 ; ------------------------------------------------------------------------------
 wcTest:
@@ -200,11 +213,11 @@ wcTest:
 readLine:
         mov rax, SYS_READ
         mov rdi, STDIN
-        push LSP
+        ;push LSP
         push r11
         syscall
         pop r11
-        pop LSP
+        ;pop LSP
         ret
 
 ; ------------------------------------------------------------------------------
@@ -240,11 +253,11 @@ addToDict:
         call strlen
         test dl, dl
         jz .r
-        push qword [here]      ; For the XT
         mov r9, [last]
         add r9, 32
         mov [last], r9
-        pop qword ptr r9       ; XT
+        mov rax, [here]        ; XT
+        mov [r9], rax
         add r9, CELL_SZ
         mov byte ptr r9, 0     ; Flags
         inc r9
@@ -272,17 +285,7 @@ findInDict:
         jl .nf
         mov rdi, rbx
         add rdi, NAME_OFF
-        ;push rbx
-        ;push rdi
-        ;push rsi
-        ;mov rsi, rdi
-        ;call strlen
-        ;call stype
-        ;mov al, 32
-        ;call semit
-        ;pop rsi
-        ;pop rdi
-        ;pop rbx
+        ; mtype rdi
         call strcmpi
         jnc .2               ; Carry Clear = not equal
         ret
@@ -360,11 +363,11 @@ semit:                         ; The char to EMIT is in al
 stype:
         mov rdi, STDOUT
         mov rax, SYS_WRITE
-        push LSP
+        ;push LSP
         push r11
         syscall
         pop r11
-        pop LSP
+        ;pop LSP
         ret
 
 ; ------------------------------------------------------------------------------
@@ -482,26 +485,32 @@ _parseWord:
 .wd:    call findInDict
         test rbx, rbx
         jz   .err
-
-        mov   rax, [rbx]             ; The XT
-        mov   dx, [rbx+FLG_OFF]
-        bt    dx, BIT_IMM
-        jc    .imm
-        bt    dx, BIT_INLINE
-        jc    .inl
-        Comma rax
+        mov   rdx, [rbx]             ; The XT
+        mov   al, [rbx+FLG_OFF]      ; The flags
+        test  al, BIT_IMM
+        jnz   .imm
+        test  al, BIT_INLINE
+        jnz   .inl
+        Comma rdx
         jmp   .r0
 
-.imm:   cmp  rax, wcStart
-        jge  .imm1
-        btr  rax, BIT_JUMP
-.imm1:  mov  [buf1], rax
-        mov  qword ptr buf1+CELL_SZ, _exit
-        mov  PC, buf1
+.imm:   ; mtype isImm
+        cmp  rdx, primEnd
+        jl  .imm1
+        btr  rdx, BIT_JUMP
+.imm1:  mov  PC, buf1
+        mov  [PC], rdx
+        mov rdx, _exit
+        mov  [PC+CELL_SZ], rdx
+        ; mtype hi
+        ;mov rax, [PC]
+        ;mov rbx, 16
+        ;call iToA
+        ;call stype
         call runJ
         jmp  .r0
 
-.inl:   Comma rax      ; TODO: Fill this in
+.inl:   Comma rdx      ; TODO: Fill this in
         jmp .r0
 
 .err:   push rsi
@@ -518,7 +527,10 @@ _parseWord:
 
 ; ------------------------------------------------------------------------------
 _repl:
-        push qword [here]
+        mov rax, [here]
+        mov [here1], rax
+        mov rax, [last]
+        mov [last1], rax
 .s:     mov rsi, ok
         mov rdx, 4
         call stype
@@ -527,7 +539,7 @@ _repl:
         mov DSP, dstk
 .0:     mov rsi, tib                ; Read line into TIB
         mov [toIn], rsi
-        mov rdx, 256                ; Buffer size
+        mov rdx, TIB_SZ             ; Buffer size
         call readLine
         mov [rsi+rax], word 0       ; NULL Terminate
 .lp:    call nextWord               ; Parse line
@@ -538,9 +550,15 @@ _repl:
         jz .lp
         pop qword [here]
         jmp _repl
-.eol:   Comma _exit
-        pop PC
-        mov [here], PC
+.eol:   mov rax, [last]             ; If LAST changed, do nothing
+        cmp rax, [last1]
+        jne _repl
+        mov rax, [here1]            ; If HERE didn't change nothing to execute
+        cmp rax, [here]
+        je _repl
+        Comma _exit
+        mov [here1], rax
+        mov PC, rax
         call runJ
         jmp _repl
 
@@ -564,10 +582,10 @@ macro DICT_E xt, fl, ln, nm {
     db 32-(E-S) dup (0)
 }
 
-hi:   db 'hello.', 0
-ok:   db ' ok', 10, 0
-
-buf1:      db 64 dup (0)
+hi:    db 'hello.', 0
+ok:    db ' ok', 10, 0
+isImm: db ' -imm-', 0
+buf1:  db 64 dup (0)
 
 align 8
 dStart:    DICT_E _dot,   BIT_PRIM, 1, '.'
@@ -583,16 +601,21 @@ dStart:    DICT_E _dot,   BIT_PRIM, 1, '.'
            DICT_E _loop2, BIT_PRIM, 5, '-loop'
            DICT_E _colon, BIT_IMM,  1, ':'
            DICT_E _semi,  BIT_IMM,  1, ';'
+           DICT_E _dup,   BIT_PRIM, 3, 'dup'
+           DICT_E _swap,  BIT_PRIM, 4, 'swap'
 lastA:     DICT_E _qtype, BIT_PRIM, 5, 'qtype'
            rb DICT_SZ
 
 align 8
+buf2:      rb 64
 wcStart:
 hereA:     rq CODE_SZ
 
 vStart:    rb VARS_SZ
 toIn:      rq 1
 last:      rq 1
+last1:     rq 1
+here1:     rq 1
 here:      rq 1
 base:      rq 1
 state:     rq 1
@@ -604,4 +627,3 @@ regs:      rq 100
 regBase:   rq 1
 wd:        rb 32
 tib:       rb TIB_SZ
-buf2:      rb 64
