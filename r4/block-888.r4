@@ -1,0 +1,34 @@
+; The Mandelbrot Set
+
+; Registers:
+; A: temp 1
+; B: temp 2
+; C: temp 3
+; D: temp 4
+; K: threshold
+; J: calc counter
+; M: max number of calcs
+; S: scaling factor
+; T: total count of calcs
+; X: X pos
+; Y: Y pos
+
+; Functions:
+: HD: Header
+; MC: mandelbrot calc
+; LP: loop for 1 char
+; WK: Do the work
+; XL: loop for X axis
+; YL: loop for Y axis
+; MB: main, loop for Y axis
+
+1 bL
+:HD N"The Mandelbrot Set";
+:MC iT rA#*rS/sC rB#*rS/sD rCrD+rK>(rSp;)rArB*100/rY+sB rCrD-rX+sAiJ;
+:LP 0sA 0sB 0sJ 0 rS[cMC];
+:WK cLP rJ 40+ #126>(\32),;
+:XL 490_ sX 1 95[  cWK rX  8+ sX];
+:YL 340_ sY 1 35[N cXL rY 20+ sY];
+:MB cH 0sT xT cYL xT$- N rT." calculations, " . " ms";
+:RR 888bL;
+200 &S 1000000 &K cMB

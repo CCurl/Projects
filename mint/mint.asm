@@ -94,17 +94,17 @@ rpop:   push    eax
         ret
 
 ; ******************************************************************************
-mNEXT:  cmp     [dDepth], 1
-        jge     nxtOK
-        mov     [dDepth], 0
-        mov     STKP, dStack
-nxtOK:  cmp     esi, [HERE1]
-        jge     s0
+mNEXT:  ;cmp     [dDepth], 1
+        ;jge     nxtOK
+        ;mov     [dDepth], 0
+        ;mov     STKP, dStack
+nxtOK:  ;cmp     esi, [HERE1]
+        ;jge     s0
         lodsb
-        cmp     al, 126
-        jg      s0
-        movzx   edx, al
-        mov     ebx, [jmpTable+edx*4]
+        and      eax, 0x7f
+        ;jg      s0
+        ;movzx   edx, al
+        mov     ebx, [jmpTable+eax*4]
         jmp     ebx
 
 ; ******************************************************************************
@@ -144,7 +144,7 @@ i2aX:   ret
 
 ; ******************************************************************************
 regAddr: movzx   edx, al
-        sub edx, 'a'
+        sub     edx, 'a'
         shl     edx, 2
         add     edx, regs
         ret
@@ -270,8 +270,9 @@ doFor:  m_pop   ebx
         cmp     ebx, 0
         je      fSkip
         push    esi
-        mov     al, 'i'
-        call    setReg
+        ;mov     al, 'i'
+        ;call    setReg
+		mov     [reg+32], ebx
         jmp     mNEXT
 
 fSkip:  lodsb
@@ -279,15 +280,14 @@ fSkip:  lodsb
         jne     fSkip
 
 ; ******************************************************************************
-doNext: mov     al, 'i'
-        call    getReg
-        dec     ebx
-        call    setReg
-        cmp     ebx, 0
-        jz      nxtX
+doNext: mov     eax, [reg+32]
+        dec     eax
+        test    eax, eax
+        jz      .out
+		mov     [reg+32], eax
         mov     esi, [esp]
         jmp     mNEXT
-nxtX:   pop     eax
+.out:   pop     eax
         jmp     mNEXT
 
 ; ******************************************************************************
