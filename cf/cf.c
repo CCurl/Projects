@@ -8,28 +8,28 @@ int qKey() { return _kbhit(); }
 #include "linux.inc"
 #endif
 
-char *pc, *toIn, mode;
+char *pc, *in, mode;
 byte user[USER_SZ];
-CELL stk[STK_SZ+1];
-byte *rstk[STK_SZ+1];
-CELL lstk[STK_SZ+1];
+CELL stk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1];
 CELL regs[100];
-char sp = 0, rsp = 0, lsp = 0, rb = 0;
+int sp = 0, rsp = 0, lsp = 0, rb = 0;
 byte *here;
 DICT_T *last;
+CELL TOS;
+FILE* input_fp = 0;
 
-#define TOS     stk[sp]
-#define NOS     stk[sp-1]
-#define L0      lstk[lsp]
-#define L1      lstk[lsp-1]
-#define L2      lstk[lsp-2]
-#define NEXT    goto Next
+#define NOS         stk[sp]
+#define L0          lstk[lsp]
+#define L1          lstk[lsp-1]
+#define L2          lstk[lsp-2]
+#define NEXT        goto Next
+#define BTW(x,l,h)  ((l<=x)&&(x<=h))
 
-void push(CELL x) { stk[++sp] = x; }
-CELL pop() { return stk[sp--]; }
+void push(CELL x) { sp=(sp+1)&STK_SZ; stk[sp]=TOS; TOS=x; }
+CELL pop() { CELL x=TOS; TOS=stk[sp]; sp=(sp-1)&STK_SZ; return x; }
 
-void rpush(byte *v) { rstk[++rsp] = v; }
-byte *rpop() { return (0 < rsp) ? rstk[rsp--] : 0; }
+void rpush(CELL v) { rsp=(rsp+1)&STK_SZ; rstk[++rsp]=v; }
+CELL rpop() { CELL x=rstk[rsp]; rsp=(rsp-1)&STK_SZ; return x; }
 
 void printString(const char *s) { printf("%s", s); }
 void printChar(char c) { printf("%c", c); }
@@ -46,33 +46,32 @@ void printStringF(const char* fmt, ...) {
 }
 
 #ifdef NEEDS_ALIGN
-#define WFO(l) (user[l+1]*256 | user[l])        // WordFromOffset
-#define WFA(l) ((*(l+1)*256) | (*l))            // WordFromAddress
+    #define WFO(l) (user[l+1]*256 | user[l])        // WordFromOffset
+    #define WFA(l) ((*(l+1)*256) | (*l))            // WordFromAddress
 
-void WSA(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
-void WSO(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
+    void WSA(byte* l, ushort v) { *(l+1)=v/256; *l=v%256; }
+    void WSO(ushort l, ushort v) { user[l+1]=v/256; user[l]=v%256; }
 
-CELL LFO(ushort l) {
-    CELL x = user[l++];
-    x += (user[l++]<<8);
-    x += (user[l++]<<8);
-    x += (user[l]<<8);
-    return x;
-}
+    CELL LFO(ushort l) {
+        CELL x = user[l++];
+        x += (user[l++]<<8);
+        x += (user[l++]<<8);
+        x += (user[l]<<8);
+        return x;
+    }
 
-void LSO(ushort l, CELL v) {
-    user[l++]=(v%0xff); v=v>>8;
-    user[l++]=(v%0xff); v=v>>8;
-    user[l++]=(v%0xff); v=v>>8;
-    user[l] = (v%0xff);
-}
+    void LSO(ushort l, CELL v) {
+        user[l++]=(v%0xff); v=v>>8;
+        user[l++]=(v%0xff); v=v>>8;
+        user[l++]=(v%0xff); v=v>>8;
+        user[l] = (v%0xff);
+    }
 #else
-#define CF(a)     *(CELL*)(a)               // CellFetch
-#define CS(a, v)  *(CELL*)(a) = v           // CellSet
-#define BF(a)     *(byte*)(a)               // ByteFetch
-#define BS(a, v)  *(byte*)(a) = (byte)v     // ByteSet
-#define AFA(a)    *(byte**)(a)              // AddressFromAddress
-
+    #define CF(a)     *(CELL*)(a)               // CellFetch
+    #define CS(a, v)  *(CELL*)(a) = v           // CellSet
+    #define BF(a)     *(byte*)(a)               // ByteFetch
+    #define BS(a, v)  *(byte*)(a) = (byte)v     // ByteSet
+    #define AFA(a)    *(byte**)(a)              // AddressFromAddress
 #endif
 
 void CCOMMA(CELL x) { *(here++)=(byte)(x); }
@@ -119,9 +118,9 @@ Next:
     case '4': push(CF(pc)); pc += CELL_SZ;                          NEXT;
     case 'e': printChar(pop());                                     NEXT;
     case ',': COMMA(pop());                                         NEXT;
-    case '^': if (*(pc+CELL_SZ)!=';') { rpush(pc+CELL_SZ); }    // fall-thru
+    case '^': if (*(pc+CELL_SZ)!=';') { rpush((CELL)(pc+CELL_SZ)); }    // fall-thru
     case 'j': pc=AFA(pc);                                           NEXT;
-    case ';': pc=rpop(); if (!pc) { rsp=0; return; };               NEXT;
+    case ';': pc=(char*)rpop(); if (!pc) { rsp=0; return; };        NEXT;
     case 'Q': if (pop()) { pc=AFA(pc); } else { pc+=CELL_SZ; }      NEXT;
     case 'q': if (pop()==0) { pc=AFA(pc); } else { pc+=CELL_SZ; }   NEXT;
     case 'b': t1=*(pc++); if (t1=='!') { BS(TOS,NOS); sp-=2; }
@@ -142,19 +141,11 @@ Next:
     }
 }
 
-char isWS(char c) { return betw(c,1,32) ? 1 : 0; }
-char peekChar() { return *toIn; }
-char nextChar() { return *(toIn) ? *(toIn++) : 0; }
-
-int getWord(char* buf) {
-    char* b = buf;
+int getWord(char *buf) {
     int l = 0;
-    while (isWS(peekChar())) { nextChar(); }
-    while (' ' < peekChar()) {
-        *(b++) = nextChar();
-        l++;
-    }
-    *b = 0;
+    while (*in && (*in < 33)) { ++in; }
+    while (*in && (*in > 32)) { buf[l++] = *(in++); }
+    buf[l] = 0;
     return l;
 }
 
@@ -180,10 +171,6 @@ int isNum(const char* wd) {
     return 1;
 }
 
-void doAsm(const char* wd) {
-    while (*wd) { CCOMMA(*(wd++)); }
-}
-
 void doDefine(const char* wd) {
     // printStringF("-def:%s-", wd);
     --last;
@@ -193,83 +180,79 @@ void doDefine(const char* wd) {
 }
 
 // find (cp--[dp 1]|0)
-void doFind(const char* wd) {
+int doFind(const char* wd) {
     // printStringF("-find:%s-", wd);
-    push(0);
     int l = strlen(wd);
     DICT_T *dp = last;
     while (dp < (DICT_T*)&user[USER_SZ]) {
         if ((l==dp->l) && (strcmp(dp->name, wd) == 0)) {
-            TOS = (CELL)dp;
-            push(1);
-            break;
+            push((CELL)dp);
+            return 1;
         }
         ++dp;
     }
+    return 0;
 }
 
-void doCompile(const char* wd) {
+int doCompile(const char* wd) {
     // printStringF("-com:%s-", wd);
     if (isNum(wd)) {
-        CELL x = pop();
         CCOMMA('4');
-        COMMA(x);
-        return;
+        COMMA(pop());
+        return 1;
     }
-    doFind(wd);
-    if (pop()) {
+    if (doFind(wd)) {
         DICT_T* dp = (DICT_T*)pop();
         CCOMMA('^');
         COMMA((CELL)dp->xt);
-        return;
+        return 1;
     }
-    while (*wd) { CCOMMA(*(wd++)); }
+    ERR("-"); ERR(wd); ERR("?-");
+    return 0;
 }
 
-void doInterpret(const char* wd) {
+int doInterpret(const char* wd) {
     // printStringF("-interp:%s-", wd);
-    if (isNum(wd)) { return; }
-    doFind(wd);
-    if (pop()) {
-        DICT_T* dp = (DICT_T*)pop();
-        run(dp->xt);
-        return;
-    }
-    if (strcmp(wd,"edit")==0) {
-        doEditor(pop());
-        doOuter(theBlock);
-        return;
-    }
     byte *cp = here;
-    while (*wd) { *(cp++) = *(wd++); }
-    *cp = ';';
-    run(here);
+    if (isNum(wd)) {
+        CCOMMA('4');
+        COMMA(pop());
+        return 1;
+    }
+    if (doFind(wd)) {
+        DICT_T* dp = (DICT_T*)pop();
+        CCOMMA('^');
+        COMMA((CELL)dp->xt);
+        CCOMMA(';');
+        here = cp;
+        run(here);
+        return 1;
+    }
+    ERR("-"); ERR(wd); ERR("?-");
+    return 0;
 }
 
-int setMode(char c) {
-    if (c==COMMENT) { mode=c; return 1; }
-    if (c==COMPILE) { mode=c; return 1; }
-    if (c==DEFINE) { mode=c; return 1; }
-    if (c==INTERP) { mode=c; return 1; }
-    if (c==ASM) { mode=c; return 1; }
+int strEq(const char *x, const char *y) { return strcmp(x, y) == 0; }
+
+int setMode(char *wd) {
+    if (strEq(wd, "(")) { mode=COMMENT; return 1; }
+    if (strEq(wd, ":")) { mode=DEFINE; return 1; }
+    if (strEq(wd, "::")) { mode=COMPILE; return 1; }
+    if (strEq(wd, "_")) { mode=INTERP; return 1; }
     return 0;
 }
 
 void doOuter(char* cp) {
     char buf[32];
-    toIn = cp;
+    in = cp;
     while (1) {
-        while (isWS(peekChar())) { nextChar(); }
-        char c = peekChar();
-        if (!c) { return; }
-        if (setMode(c)) { nextChar(); }
         if (getWord(buf) == 0) { return; }
+        if (setMode(buf)) { continue; }
         switch (mode) {
         case COMMENT:                                   break;
         case DEFINE:  doDefine(buf);                    break;
-        case COMPILE: doCompile(buf);                   break;
-        case ASM:     doAsm(buf);                       break;
-        case INTERP:  doInterpret(buf);                 break;
+        case COMPILE: if (!doCompile(buf)) return;      break;
+        case INTERP:  if (!doInterpret(buf)) return;    break;
         default: break;
         }
     }
@@ -302,26 +285,24 @@ void initVM() {
 }
 
 int loop() {
-    char buf[96];
-    sp = (sp<1) ? 0 : sp;
-    mode = INTERP;
-    printf(" ok\r\n");
-    fgets(buf, 96, stdin);
-    if (strcmp(rTrim(buf), "edit") == 0) {
-        if (sp==0) { push(0); }
-        doEditor(pop());
-        initVM();
-        doOuter(theBlock);
-    } else if (strcmp(buf, "bye") == 0) {
-        return 0;
-    } else {
+    FILE* fp = input_fp;
+    char buf[128];
+    if (fp == 0) { fp = stdin; }
+    if (fp == stdin) printf(" ok\r\n");
+    if (fgets(buf, 128, fp) == buf) {
+        if (strcmp(rTrim(buf), "bye") == 0) { return 0; }
         doOuter(buf);
+        return 1;
     }
+    if (input_fp == stdin) { return 0; }
+    fclose(input_fp);
+    input_fp = 0;
     return 1;
 }
 
 int main(int argc, char **argv) {
     initVM();
+    input_fp = fopen("block-000.cf","rt");
     while (loop()) {}
     return 1;
 }

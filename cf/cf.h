@@ -35,13 +35,12 @@ typedef struct {
 #define CYAN     6
 #define WHITE    7
 
-#define COMMENT  '('
-#define COMPILE  '^'
-#define DEFINE   ':'
-#define INTERP   '_'
-#define ASM      '~'
+#define COMMENT  YELLOW
+#define COMPILE  BLUE
+#define DEFINE   RED
+#define INTERP   WHITE
 
-#define STK_SZ     15
+#define STK_SZ     0x1f
 #define USER_SZ    1024*1024
 #define CELL_SZ    sizeof(CELL)
 #define DICT_SZ    sizeof(DICT_T)
