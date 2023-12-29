@@ -1,18 +1,15 @@
 app64 := wc
 
-CXX := clang
-CXXFLAGS32 := -m32 -O2 
-CXXFLAGS64 := -m64 -O3 
-
-srcfiles := $(shell find . -name "*.c")
-incfiles := $(shell find . -name "*.h")
+COMP := fasm
+srcfiles := wc.s           # $(shell find . -name "*.c")
+incfiles := opcodes.s      # $(shell find . -name "*.h")
 LDLIBS   := -lm
 
 all: $(app64)
 
-$(app64): wc.s opcodes.s
-	fasm wc.s
-	chmod +x wc
+$(app64): $(srcfiles)
+	$(COMP) $(srcfiles)
+	chmod +x $(app64)
 	ls -l $(app64)
 
 force: clean $(app64)
