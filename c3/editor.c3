@@ -27,24 +27,24 @@ variable cmd 32 allot
 variable msg 32 allot
 variable clip-board line-len allot
 
-variable (scr-top)   : scr-top (scr-top) @ ;   : >scr-top (scr-top) ! ;    0 >scr-top
-variable (scr-h)     : scr-h   (scr-h)   @ ;   : >scr-h   (scr-h)   ! ;   45 >scr-h
-variable (scr-w)     : scr-w   (scr-w)   @ ;   : >scr-w   (scr-w)   ! ;  100 >scr-w
-variable (row)       : row     (row)     @ ;   : >row     (row)     ! ;
-variable (col)       : col     (col)     @ ;   : >col     (col)     ! ;   : col++ (col) ++ ;
-variable (mode)      : mode    (mode)    @ ;   : >mode    (mode)    ! ;
-variable (#lines)    : #lines  (#lines)  @ ;   : >#lines  (#lines)  ! ;
-variable (#bytes)    : #bytes  (#bytes)  @ ;   : >#bytes  (#bytes)  ! ;
+val scr-top   (val) T0    : >scr-top  T0 ! ;    0 >scr-top
+val scr-h     (val) T0    : >scr-h    T0 ! ;   45 >scr-h
+val scr-w     (val) T0    : >scr-w    T0 ! ;  100 >scr-w
+val row       (val) T0    : >row      T0 ! ;
+val col       (val) T0    : >col      T0 ! ;   : col++ col 1+ >col ;
+val mode      (val) T0    : >mode     T0 ! ;
+val #lines    (val) T0    : >#lines   T0 ! ;
+val #bytes    (val) T0    : >#bytes   T0 ! ;
 
 : line-addr  ( n--a ) 0 max max-lines min line-len * buf + ;
 
 : laptop 32 >scr-h ;
-: pc     47 >scr-h ;
+: pc     49 >scr-h ;
 
-variable (rfr)
-: refresh? (rfr) @ ;
-: refresh   1 (rfr) ! ;
-: refreshed 0 (rfr) ! ;
+variable T0
+: refresh?    T0 @ ;
+: refresh   1 T0 ! ;
+: refreshed 0 T0 ! ;
 
 : clr-buf    ( -- )     buf buf-sz 0 fill 0 >#lines ;
 : clr-line   ( a-- )    line-len 0 fill ;
@@ -57,48 +57,49 @@ variable (rfr)
 : >msg       ( s-- )    msg swap s-cpy ;
 : clr-msg    ( -- )     msg S-TRUNC ;
 : .mode      ( -- )
-	mode md-command = IF ':' EMIT      THEN 
-	mode md-insert  = IF ." -INSERT-"  THEN
-	mode md-replace = IF ." -REPLACE-" THEN ;
-
+    mode md-command = IF ':' EMIT      THEN 
+    mode md-insert  = IF ." -INSERT-"  THEN
+    mode md-replace = IF ." -REPLACE-" THEN ;
 : show-footer ( -- )
     ->cmd CR ." cb: [" clip-board 6 type ." ...], "
     fn QTYPE space msg QTYPE clr-eol ;
 
 : ?refresh ( -- )
-    refresh? NOT IF EXIT THEN
-	cur-off 1 1 ->xy
-	scr-h 0 DO
+    scr-top 0 < if 0 >scr-top then
+    row 0 < if 0 >row then
+    refresh? 0= IF EXIT THEN
+    cur-off 1 1 ->xy
+    scr-h 0 DO
         scr-top I + line-addr ?DUP IF QTYPE THEN clr-eol CR
-	LOOP
-	show-footer .s cur-on ->cur refreshed ;
+    LOOP
+    show-footer .s cur-on ->cur refreshed ;
 
 : read-file ( fn-- )
-	fn s-scpy   0 >#lines   0 >#bytes
+    fn s-scpy   0 >#lines   0 >#bytes
     clr-buf     clr-msg     refresh
-    fn fopen-rt >R R@ NOT IF
+    fn fopen-rt >R R@ 0= IF
         R> DROP " -file not found-" >msg EXIT
-	THEN
-	BEGIN
-		#lines line-addr R@ fgets 0= WHILE
-		#lines line-addr S-LEN 1+ #bytes + >#bytes
-		#lines 1+ >#lines
-	REPEAT
-	R> FCLOSE
-	msg #bytes s-catn  msg "  bytes." S-CAT ;
+    THEN
+    BEGIN
+        #lines line-addr R@ fgets 0= WHILE
+        #lines line-addr S-LEN 1+ #bytes + >#bytes
+        #lines 1+ >#lines
+    REPEAT
+    R> FCLOSE
+    msg #bytes s-catn  msg "  bytes." S-CAT ;
 
 : write-file ( fn-- )
-    fopen-wb ?DUP NOT IF " -write fail-" >msg EXIT THEN
+    fopen-wb ?DUP 0= IF " -write fail-" >msg EXIT THEN
     DUP ->file
-	#lines 0 DO I line-addr ?DUP IF QTYPE 10 EMIT THEN LOOP
-	FCLOSE ->stdout
+    #lines 0 DO I line-addr ?DUP IF QTYPE 10 EMIT THEN LOOP
+    FCLOSE ->stdout
     " -saved-" >msg ;
 
 : end-col ( line#--col )
     +REGS  line-addr s1 0 s2
     BEGIN
-		r1 r2 + C@ 0= IF r2 -REGS EXIT THEN i2
-	AGAIN ;
+        r1 r2 + C@ 0= IF r2 -REGS EXIT THEN i2
+    AGAIN ;
 
 : line-end ( a1--a2 ) BEGIN DUP C@ 0= IF EXIT THEN 1+ AGAIN ;
 
@@ -107,19 +108,21 @@ variable (rfr)
     r1 line-len + s2    \ dst
     buf-end r2 -  s3    \ sz
     r1 r2 r3 cmove>  -REGS
-    cur-line clr-line ;
+    cur-line clr-line
+    #lines 1+ >#lines ;
 
 : delete-line ( -- ) +REGS
-	clr-clip clip-board cur-line S-CPY
+    clr-clip clip-board cur-line S-CPY
     cur-line       s2    \ dst
     r2 line-len +  s1    \ src
     buf-end r1 -   s3    \ sz
-    r1 r2 r3 cmove  -REGS ;
+    r1 r2 r3 cmove  -REGS
+    #lines 1- >#lines ;
 
 : left   col 1-   0      max >col   ->cur ;
 : right  col 1+   scr-w  min >col   ->cur ;
-: up-n   row swap -   0      max   >row   ->cur ;
-: down-n row swap +   scr-h  min   >row   ->cur ;
+: up-n   row swap -   0        max   >row   ->cur ;
+: down-n row swap +   scr-h 1- min   >row   ->cur ;
 : up     1 up-n ;
 : down   1 down-n ;
 : home   0 >col           ->cur ;
@@ -128,18 +131,18 @@ variable (rfr)
 : delete-1 ( -- ) 
     +REGS pos s1 cur-line line-end s2
     BEGIN
-		r1 r2 < WHILE
-		r1 1+ C@ r1+ C!
+        r1 r2 < WHILE
+        r1 1+ C@ r1+ C!
     REPEAT
-	0 r1 C! -REGS ;
+    0 r1 C! -REGS ;
 
 : insert-1 ( -- )
     +REGS pos s1 cur-line line-end s2
     begin
-		r2 r1 > while
-		r2 1- C@ r2- C!
+        r2 r1 > while
+        r2 1- C@ r2- C!
     repeat
-	BL r2 C! -REGS ;
+    BL r2 C! -REGS ;
 
 : cmd-clr   ->cmd clr-eol ;
 : repl-md   md-replace >mode cmd-clr  .mode ->cur ;
@@ -147,20 +150,24 @@ variable (rfr)
 : cmd-md    md-command >mode cmd-clr  ':' emit ;
 : norm-md   md-normal  >mode cmd-clr  ->cur ;
 
-: replace-ch ( ch-- )  pos c!   col++   refresh ;
+: visible?   ( ch--ch 1 | 0) dup 32 126 BTW IF 1 ELSE DROP 0 THEN ;
+: replace-ch ( ch-- )  visible? IF pos c! col++ refresh THEN ;
 : insert-ch  ( ch-- )  insert-1   replace-ch ;
 : delete-ch  ( -- )    delete-1   refresh ;
+: del-line   ( -- ) delete-line refresh ;
 : ins-line-a ( -- ) insert-line refresh ;
 : ins-line-b ( -- ) row 1+ >row insert-line refresh ;
-: del-line ( -- ) delete-line refresh ;
 : yank ( -- ) clr-clip clip-board cur-line S-CPY refresh ;
 : put-line ( -- )
     cur-line clr-line
     cur-line clip-board S-CPY refresh ;
-: pg-up scr-top 6 +       >scr-top 6 up-n    refresh ;
-: pg-dn scr-top 6 - 0 max >scr-top 6 down-n  refresh ;
-: scr-up scr-top 1+       >scr-top up    refresh ;
-: scr-dn scr-top 1- 0 max >scr-top down  refresh ;
+: ssz scr-h 2/ ;
+: pg-up scr-top ssz + >scr-top ssz up-n    refresh ;
+: pg-dn scr-top ssz - >scr-top ssz down-n  refresh ;
+: scr-up scr-top 1+   >scr-top up          refresh ;
+: scr-dn scr-top 1-   >scr-top down        refresh ;
+: tab-r col 8 + >col refresh ;
+: go-top 0 DUP >row >scr-top refresh ;
 
 : command-ch ( -- )    r1 emit md-normal >mode
     'L' r1 = IF fn read-file  EXIT THEN
@@ -182,13 +189,14 @@ variable (rfr)
     r1  21 =      IF pg-dn         EXIT THEN
     r1   5 =      IF scr-up        EXIT THEN
     r1  25 =      IF scr-dn        EXIT THEN
-    r1 'k' =      IF up            EXIT THEN
+    r1   9 =      IF tab-r         EXIT THEN
     r1 'k' =      IF up            EXIT THEN
     r1 'j' =      IF down          EXIT THEN
     r1 'h' =      IF left          EXIT THEN
     r1 'l' =      IF right         EXIT THEN
     r1 '_' =      IF home          EXIT THEN
     r1 '$' =      IF end           EXIT THEN
+    r1 'g' =      IF go-top        EXIT THEN
     r1 'x' =      IF delete-ch     EXIT THEN
     r1 'o' =      IF ins-line-b    EXIT THEN
     r1 'O' =      IF ins-line-a    EXIT THEN
@@ -215,8 +223,8 @@ variable (rfr)
     refresh ;
 
 : edit ( -- )
-	init cls
+    init cls
     next-word DROP read-file
     edit-loop ;
-
-laptop edit editor.c3
+    
+pc edit editor.c3
