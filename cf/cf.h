@@ -18,13 +18,14 @@
 #include <termios.h>
 #endif
 
-typedef int CELL;
+typedef long CELL;
 typedef unsigned char byte;
 
 typedef struct {
     byte *xt;
+    byte f;
     byte l;
-    char name[31];
+    char name[30];
 } DICT_T;
 
 #define RED      1
@@ -39,6 +40,7 @@ typedef struct {
 #define COMPILE  BLUE
 #define DEFINE   RED
 #define INTERP   WHITE
+#define MLMODE   CYAN
 
 #define STK_SZ     0x1f
 #define USER_SZ    1024*1024
