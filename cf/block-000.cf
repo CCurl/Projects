@@ -6,6 +6,9 @@
 ( Words ... )
 :  here   (here) @ ;
 :  last   (last) @ ;
-:I mil    1000 dup * * ;
-:  el     clock swap - . ;
-:  bm     clock swap 0 do loop el ;
+:  if 6 c, here 0 , ;
+:  then here swap ! ;
+:I mil 1000 dup * * ;
+:  el  clock swap - . ;
+:  bm  clock swap 0 do loop el ;
+:  tt 'N' SWAP [ if ] drop 'Y' [ then ] emit ;

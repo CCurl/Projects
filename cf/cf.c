@@ -175,6 +175,8 @@ void initVM() {
     parseF(m1i, ";", EXIT);
     parseF(m1i, "@", FETCH);
     parseF(m1i, "C@", CFETCH);
+    parseF(m1i, "!", STORE);
+    parseF(m1i, "C!", CSTORE);
     parseF(m1i, "+", ADD);
     parseF(m1i, "-", SUB);
     parseF(m1i, "*", MULT);
@@ -187,6 +189,8 @@ void initVM() {
     parseF(m2i, "(.)", SYS_OPS, DOT);
     parseF(m2i, "EMIT", SYS_OPS, EMIT);
     parseF(m2i, "CLOCK", SYS_OPS, TIMER);
+    parseF(m2i, ",", SYS_OPS, COMMA);
+    parseF(m2i, "c,", SYS_OPS, CCOMMA);
 
     parseF(c1i, "cell", CELL_SZ);
     parseF(c1n, "(here)",(cell_t)&here);
