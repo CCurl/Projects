@@ -115,13 +115,13 @@ int doML(char *wd) {
 cell_t lastState;
 int setMode(char *wd) {
     if ((state==COMMENT) && !strEq(wd, ")")) { return 1; }
-    if (strEq(wd, ":"))  { doDefine(0);  strCpy(wd, "]"); }
+    if (strEq(wd, ":"))  { state=COMPILE; doDefine(0);  return 1; }
+    if (strEq(wd, ":I")) { state=COMPILE; doDefine(0); last->f=2; return 1; }
+    if (strEq(wd, ":M")) { state=MLMODE;  doDefine(0); last->f=2; return 1; }
+    if (strEq(wd, "["))  { state=INTERP;  return 1; }
+    if (strEq(wd, "]"))  { state=COMPILE; return 1; }
     if (strEq(wd, "("))  { lastState=state; state=COMMENT; return 1; }
     if (strEq(wd, ")"))  { state=lastState; return 1; }
-    if (strEq(wd, "]")) { state=COMPILE; return 1; }
-    if (strEq(wd, ":i")) { state=INTERP;  return 1; }
-    if (strEq(wd, ":M")) { state=MLMODE;  return 1; }
-    if (strEq(wd, ":I")) { last->f=2;    return 1; }  // Mark INLINE
     return 0;
 }
 
@@ -167,9 +167,10 @@ void parseF(char *fmt, ...) {
 void initVM() {
     vmInit();
     state = INTERP;
-    char *lit = ": %s #%ld ;";
-    char *m1i = ": %s :M #%ld 3 :I";
-    char *m2i = ": %s :M #%ld #%ld 3 :I";
+    char *c1i = ":I %s #%ld ;";
+    char *c1n = ": %s #%ld ;";
+    char *m1i = ":M %s #%ld 3";
+    char *m2i = ":M %s #%ld #%ld 3";
 
     parseF(m1i, ";", EXIT);
     parseF(m1i, "@", FETCH);
@@ -187,13 +188,13 @@ void initVM() {
     parseF(m2i, "EMIT", SYS_OPS, EMIT);
     parseF(m2i, "CLOCK", SYS_OPS, TIMER);
 
-    parseF(lit, "cell", CELL_SZ);
-    parseF(lit, "(here)",(cell_t)&here);
-    parseF(lit, "(last)",(cell_t)&last);
-    parseF(lit, "vars",(cell_t)&vars[0]);
-    parseF(lit, "vars-end",(cell_t)&vars[VARS_SZ]);
-    doOuter(": NIP SWAP DROP ; :I");
-    doOuter(": / /MOD NIP ; :I");
+    parseF(c1i, "cell", CELL_SZ);
+    parseF(c1n, "(here)",(cell_t)&here);
+    parseF(c1n, "(last)",(cell_t)&last);
+    parseF(c1n, "vars",(cell_t)&vars[0]);
+    parseF(c1n, "vars-end",(cell_t)&vars[VARS_SZ]);
+    doOuter(":I NIP SWAP DROP ;");
+    doOuter(":I / /MOD NIP ;");
 }
 
 int loop() {

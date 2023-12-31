@@ -1,11 +1,11 @@
 ( Primitives )
-: bl     32 ;   :I
-: .      (.)  ( no EXIT here!! ) :I
-: space  bl emit ;   :I
+:I  bl     32 ;
+:I  .      (.)  ( no EXIT here!! )
+:I  space  bl emit ;
 ( : spaces 0 do space loop ; )
 ( Words ... )
-: here   (here) @ ;
-: last   (last) @ ;
-: mil    1000 dup * * ; :I
-: el     clock swap - . ;
-: bm     clock swap 0 do loop el ;
+:  here   (here) @ ;
+:  last   (last) @ ;
+:I mil    1000 dup * * ;
+:  el     clock swap - . ;
+:  bm     clock swap 0 do loop el ;
