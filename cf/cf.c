@@ -285,7 +285,7 @@ void doOuter(char* cp) {
         BCASE DEFINE:  doDefine(buf);
         BCASE COMPILE: if (!doCompile(buf)) return;
         BCASE INTERP:  if (!doInterpret(buf)) return;
-		BCASE MLMODE:  if (!doML(buf)) return;
+        BCASE MLMODE:  if (!doML(buf)) return;
         break; default: ERR("-mode?-"); break;
         }
     }
