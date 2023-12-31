@@ -1,24 +1,11 @@
 ( Primitives )
-: ;     :I :M ;;
-: .     :I :M .;
-: bl    :I :C 32 ;
-: spc   :I :C bl ( no ret )
-: emit  :I :M e;
-: +     :I :M +;
-: -     :I :M -;
-: *     :I :M *;
-: /     :I :M /;
-: swap  :I :M $;
-: over  :I :M %;
-: dup   :I :M #;
-: @     :I :M @4;
-: c@    :I :M @1;
-: clock :I :M t;
-: do    :I :M [;
-: loop  :I :M ];
+: bl     :I :C 32 ;
+: .      :I :C (.) ( no ret! )
+: space  :I :C bl emit ;
+: spaces :C 0 do space emit loop ;
 ( Words ... )
-: here  :C (here) @ ;
-: last  :C (last) @ ;
-: mil   :C 1000 dup * * ;
-: el    :C clock swap - . ;
-: bm    :C clock swap 0 do loop el ;
+: here   :C (here) @ ;
+: last   :C (last) @ ;
+: mil    :C 1000 dup * * ;
+: el     :C clock swap - . ;
+: bm     :C clock swap 0 do loop el ;

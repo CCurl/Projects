@@ -8,6 +8,7 @@
 #define COMMAND       1
 #define INSERT        2
 #define REPLACE       3
+#define CELL cell_t
 
 enum { curLEFT = 200, curRIGHT, curUP, curDOWN, curHOME, curPGUP, curPGDN, curEND, delCH };
 
@@ -39,7 +40,7 @@ void NormLO() {
 
 char edChar(int l, int o) {
     char c = 0;
-    if (betw(l,0,NUM_LINES) && betw(o,0,LLEN)) {
+    if (BTW(l,0,NUM_LINES) && BTW(o,0,LLEN)) {
         c = edLines[l][o];
     }
     return c ? c : ' ';
@@ -246,31 +247,8 @@ void insertChar(char c, int refresh) {
     }
 }
 
-void doType(int isInsert) {
-    CursorOff();
-    while (1) {
-        char c = key();
-        if (c == 27) { return; }
-        int isBS = ((c == 127) || (c == 8));
-        if (isBS) {
-            if (off) {
-                --off;
-                if (isInsert) { deleteChar(); }
-                else { SETC(' '); }
-            }
-        } else {
-            if (isInsert) { insertChar(' ', 0); }
-            if (betw(c, 8, 31)) { c = ' '; }
-            edSetCh(c);
-        }
-        showLine(line);
-        showCursor();
-        isDirty = 1;
-    }
-}
-
 void insertMode() { edMode = INSERT; }
-int isCursorMove(int c) { return ((c==9) || betw(c,curLEFT,curEND)) ? 1 : 0; }
+int isCursorMove(int c) { return ((c==9) || BTW(c,curLEFT,curEND)) ? 1 : 0; }
 
 int doInsertReplace(char c) {
     if (edMode == INSERT) { insertChar(c, 1); }
@@ -303,11 +281,11 @@ int moveCursor(int c) {
 int processEditorChar(int c) {
     if (c==27) { edMode = COMMAND; return 1; }
     if (isCursorMove(c)) { return moveCursor(c); }
-    if (betw(edMode,INSERT,REPLACE) && betw(c,32,126)) {
+    if (BTW(edMode,INSERT,REPLACE) && BTW(c,32,126)) {
         return doInsertReplace((char)c);
     }
     if (c==13) { return doCR(); }
-    if (!betw(c,32,126)) { return 1; }
+    if (!BTW(c,32,126)) { return 1; }
     printChar(c);
     edMode = COMMAND;
     switch (c) {

@@ -1,2 +1,2 @@
 #/bin/sh
-clang -O3 -m64 -o cf -D LINUX  editor.c cf.c
+clang -O3 -m64 -o cf -D LINUX  editor.c cf.c vm.c

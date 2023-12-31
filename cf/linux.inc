@@ -1,6 +1,10 @@
 // Support for Linux
 
 #define isPC
+#include <termios.h>
+#include <unistd.h>
+#include <sys/time.h>
+
 void ttyMode(int mode) {
     static struct termios origt, rawt;
     static int curMode = -1;

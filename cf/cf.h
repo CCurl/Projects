@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
+#include "vm.h"
 
 #ifdef _MSC_VER
 #include <conio.h>
@@ -17,16 +18,6 @@
 #include <unistd.h>
 #include <termios.h>
 #endif
-
-typedef long CELL;
-typedef unsigned char byte;
-
-typedef struct {
-    byte *xt;
-    byte f;
-    byte l;
-    char name[30];
-} DICT_T;
 
 #define RED      1
 #define GREEN    2
@@ -42,12 +33,12 @@ typedef struct {
 #define INTERP   WHITE
 #define MLMODE   CYAN
 
-#define STK_SZ     0x1f
-#define USER_SZ    1024*1024
-#define CELL_SZ    sizeof(CELL)
-#define DICT_SZ    sizeof(DICT_T)
+//#define STK_SZ     0x1f
+//#define USER_SZ    1024*1024
+//#define CELL_SZ    sizeof(CELL)
+//#define DICT_SZ    sizeof(DICT_T)
 
-#define betw(x, y, z) ((y <= x) && (x <= z))
+//#define betw(x, y, z) ((y <= x) && (x <= z))
 
 extern char theBlock[];
 
@@ -60,7 +51,7 @@ extern int key();
 extern void printString(const char* s);
 extern void printStringF(const char* fmt, ...);
 extern void printChar(char c);
-extern void doEditor(CELL);
+extern void doEditor(cell_t);
 extern void doOuter(char *);
 
 #endif 
