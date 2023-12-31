@@ -18,7 +18,7 @@ enum { curLEFT = 200, curRIGHT, curUP, curDOWN, curHOME, curPGUP, curPGDN, curEN
 #define MAX_CUR     (BLOCK_SZ-1)
 #define SETC(c)     edLines[line][off]=c
 char theBlock[BLOCK_SZ];
-CELL line, off, blkNum, edMode;
+int line, off, blkNum, edMode;
 int isDirty = 0;
 const char* msg = NULL;
 char edLines[NUM_LINES][LLEN];
@@ -310,7 +310,7 @@ int processEditorChar(int c) {
 void doEditor(CELL blk) {
     line = 0;
     off = 0;
-    blkNum = blk;
+    blkNum = (int)blk;
     edMode = COMMAND;
     if (0 <= blkNum) { edRdBlk(); }
     blkNum = (0 <= blkNum) ? blkNum : 0;
