@@ -18,7 +18,7 @@ enum { curLEFT = 200, curRIGHT, curUP, curDOWN, curHOME, curPGUP, curPGDN, curEN
 #define MAX_CUR     (BLOCK_SZ-1)
 #define SETC(c)     edLines[line][off]=c
 char theBlock[BLOCK_SZ];
-int line, off, blkNum, edMode;
+CELL line, off, blkNum, edMode;
 int isDirty = 0;
 const char* msg = NULL;
 char edLines[NUM_LINES][LLEN];

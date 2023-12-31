@@ -112,10 +112,13 @@ int doML(char *wd) {
 	return 0;
 }
 
+cell_t lastState;
 int setMode(char *wd) {
-    if (strEq(wd, ":"))  { state=DEFINE;  return 1; }
-    if (strEq(wd, "("))  { state=COMMENT; return 1; }
-    if (strEq(wd, ":C")) { state=COMPILE; return 1; }
+    if ((state==COMMENT) && !strEq(wd, ")")) { return 1; }
+    if (strEq(wd, ":"))  { doDefine(0);  strCpy(wd, "]"); }
+    if (strEq(wd, "("))  { lastState=state; state=COMMENT; return 1; }
+    if (strEq(wd, ")"))  { state=lastState; return 1; }
+    if (strEq(wd, "]")) { state=COMPILE; return 1; }
     if (strEq(wd, ":i")) { state=INTERP;  return 1; }
     if (strEq(wd, ":M")) { state=MLMODE;  return 1; }
     if (strEq(wd, ":I")) { last->f=2;    return 1; }  // Mark INLINE
@@ -164,9 +167,9 @@ void parseF(char *fmt, ...) {
 void initVM() {
     vmInit();
     state = INTERP;
-    char *lit = ": %s :C #%ld ;";
-    char *m1i = ": %s :I :M #%ld 3";
-    char *m2i = ": %s :I :M #%ld #%ld 3";
+    char *lit = ": %s #%ld ;";
+    char *m1i = ": %s :M #%ld 3 :I";
+    char *m2i = ": %s :M #%ld #%ld 3 :I";
 
     parseF(m1i, ";", EXIT);
     parseF(m1i, "@", FETCH);
@@ -189,8 +192,8 @@ void initVM() {
     parseF(lit, "(last)",(cell_t)&last);
     parseF(lit, "vars",(cell_t)&vars[0]);
     parseF(lit, "vars-end",(cell_t)&vars[VARS_SZ]);
-    doOuter(": NIP :I :C SWAP DROP ;");
-    doOuter(": / :C /MOD NIP ;");
+    doOuter(": NIP SWAP DROP ; :I");
+    doOuter(": / /MOD NIP ; :I");
 }
 
 int loop() {

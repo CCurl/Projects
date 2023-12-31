@@ -20,9 +20,15 @@
 #endif
 
 typedef uint8_t  byte;
+#ifdef _M64_
 typedef int64_t  cell_t;
 typedef uint64_t ucell_t;
 typedef double   flt_t;
+#else
+typedef int32_t  cell_t;
+typedef uint32_t ucell_t;
+typedef float    flt_t;
+#endif
 
 typedef union { cell_t i; flt_t f; char *c; } se_t;
 typedef struct { cell_t sp; se_t stk[STK_SZ+1]; } stk_t;
