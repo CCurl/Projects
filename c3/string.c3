@@ -8,6 +8,23 @@
 : s-scpy  ( s d-- )   SWAP S-CPY ;
 : s-scat  ( s d-- )   SWAP S-CAT ;
 
+\ Compare the beginning N chars of the strings
+: s-eq-n ( S D N--F ) +REGS s3 s2 s1
+        r3 0 DO
+            r1+ C@ r2+ C@ <> IF -REGS UNLOOP 0 EXIT THEN
+        LOOP
+    -REGS 1 ;
+
+: find ( lookFor in -- addr|0 ) 
+    +regs s2 s1
+    r1 S-LEN s3
+    begin
+        r2 C@ 0= IF -REGS 0 EXIT THEN
+        r1 r2 r3 s-eq-n
+        IF r2 -REGS EXIT THEN
+        i2
+     again ;
+
 \ Words for Counted strings
 : sc-len ( str--len ) C@ ; INLINE
 

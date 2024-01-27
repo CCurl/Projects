@@ -2,9 +2,9 @@
 // NOTE: copy git-author and au.bat and top to that folder first
 // EXAMPLE:
 //    cd \Code\CRS_Tests\forge_tests\SIA\AuditExpert
-//    copy \code\c4\git-author.c4 .
-//    copy \code\c4\git-author.bat .
-//    copy \code\c4\top.c4 .
+//    copy \code\mine\projects\c4\git-author.c4 .
+//    copy \code\mine\projects\c4\git-author.bat .
+//    copy \code\mine\projects\c4\top.c4 .
 //    git ls-tree -r --name-only HEAD | rg .py | c4 .\git-author.c4 > out.csv
 
 : vhere   ( --a )  (vhere) @ vb + ;
