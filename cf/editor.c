@@ -10,8 +10,6 @@
 #define REPLACE       3
 #define CELL cell_t
 
-enum { curLEFT = 200, curRIGHT, curUP, curDOWN, curHOME, curPGUP, curPGDN, curEND, delCH };
-
 #define LLEN       100
 #define NUM_LINES   20
 #define BLOCK_SZ    (NUM_LINES)*(LLEN)
@@ -19,7 +17,7 @@ enum { curLEFT = 200, curRIGHT, curUP, curDOWN, curHOME, curPGUP, curPGDN, curEN
 #define SETC(c)     edLines[line][off]=c
 char theBlock[BLOCK_SZ];
 int line, off, blkNum, edMode;
-int isDirty = 0;
+int isDirty = 0, currentColor=WHITE;
 const char* msg = NULL;
 char edLines[NUM_LINES][LLEN];
 
@@ -38,19 +36,28 @@ void NormLO() {
     if (LLEN <= off) { off = (LLEN-1); }
 }
 
+char edCh(int l, int o) {
+    char c = 0;
+    if (BTW(l,0,NUM_LINES) && BTW(o,0,LLEN)) {
+        c = edLines[l][o];
+    }
+    if (BTW(c,RED,WHITE)) { Color(c,0); currentColor=c; }
+    return c>31 ? c : ' ';
+}
+
 char edChar(int l, int o) {
     char c = 0;
     if (BTW(l,0,NUM_LINES) && BTW(o,0,LLEN)) {
         c = edLines[l][o];
     }
-    return c ? c : ' ';
+    return BTW(c,32,126) ? c : ' ';
 }
 
 void showLine(int l) {
     // CursorOff();
     GotoXY(1, l + 1);
     for (int o = 0; o < LLEN; o++) {
-        printChar(edChar(l, o));
+        printChar(edCh(l, o));
     }
     // CursorOn();
 }
@@ -60,7 +67,7 @@ void showCursor() {
     GotoXY(off + 1, line + 1);
     Color(0, 47);
     printChar(c ? c : 'X');
-    //Color(WHITE, 0);
+    Color(currentColor, 0);
 }
 
 void mv(int l, int o) {
@@ -72,9 +79,9 @@ void mv(int l, int o) {
     showCursor();
 }
 
-void edSetCh(char c) {
+void edSetCh(char c, int move) {
     SETC(c);
-    mv(0, 1);
+    if (move) { mv(0, 1); }
     isDirty = 1;
 }
 
@@ -82,41 +89,6 @@ int edGetChar() {
     CursorOn();
     int c = key();
     CursorOff();
-    // in PuTTY, cursor keys are <esc>, '[', [A..D]
-    // other keys are <esc>, '[', [1..6] , '~'
-    if (c == 27) {
-        c = key();
-        if (c == '[') {
-            c = key();
-            if (c == 'A') { return curUP; } // up
-            if (c == 'B') { return curDOWN; } // down
-            if (c == 'C') { return curRIGHT; } // right
-            if (c == 'D') { return curLEFT; } // left
-            if (c == '1') { if (key() == '~') { return curHOME; } } // home
-            if (c == '4') { if (key() == '~') { return curEND; } } // end
-            if (c == '5') { if (key() == '~') { return curPGUP; } } // top (pgup)
-            if (c == '6') { if (key() == '~') { return curPGDN; } } // last (pgdn)
-            if (c == '3') { if (key() == '~') { return delCH; } } // del
-        }
-        return c;
-    }
-    else {
-        // in Windows, cursor keys are 224, [HPMK]
-        // other keys are 224, [GOIQS]
-        if (c == 224) {
-            c = key();
-            if (c == 'H') { return curUP; } // up
-            if (c == 'P') { return curDOWN; } // down
-            if (c == 'M') { return curRIGHT; } // right
-            if (c == 'K') { return curLEFT; } // left
-            if (c == 'G') { return curHOME; } // home
-            if (c == 'O') { return curEND; } // end
-            if (c == 'I') { return curPGUP; } // pgup
-            if (c == 'Q') { return curPGDN; } // pgdn
-            if (c == 'S') { return delCH; } // del
-            return c;
-        }
-    }
     return c;
 }
 
@@ -156,7 +128,7 @@ void toLines() {
             if (NUM_LINES <= (++y)) { return; }
             x=0; continue;
         }
-        if ((x < LLEN) && (31 < ch)) { edLines[y][x++] = (char)ch; }
+        if ((x < LLEN) && (ch!=13)) { edLines[y][x++] = (char)ch; }
     }
 }
 
@@ -167,8 +139,8 @@ void edRdBlk() {
     msg = "-noFile-";
     FILE* fp = fopen(buf, "rb");
     if (fp) {
-        fread(theBlock, 1, BLOCK_SZ, fp);
-        msg = "-loaded-";
+        int n = fread(theBlock, 1, BLOCK_SZ, fp);
+        msg = "-loaded-"; printStringF("(%d chars)", n);
         fclose(fp);
     }
     toLines();
@@ -217,7 +189,6 @@ void showEditor() {
     CursorOff();
     Color(WHITE, 0);
     msg = NULL;
-    int color = PURPLE;
     for (int i = 0; i < NUM_LINES; i++) {
         showLine(i);
     }
@@ -235,74 +206,78 @@ void deleteChar() {
     showCursor();
 }
 
-void insertChar(char c, int refresh) {
+void insertChar(char c, int force, int refresh) {
+    if ((c<32) && (force==0)) { return; }
     for (int o = LLEN-1; o > off; o--) {
         edLines[line][o] = edLines[line][o - 1];
     }
     SETC(c);
     isDirty = 1;
+    mv(0,1);
     if (refresh) {
         showLine(line);
         showCursor();
     }
 }
 
-void insertMode() { edMode = INSERT; }
-int isCursorMove(int c) { return ((c==9) || BTW(c,curLEFT,curEND)) ? 1 : 0; }
+void replaceChar(char c, int force, int refresh) {
+    if ((c<32) && (force==0)) { return; }
+    SETC(c);
+    isDirty = 1;
+    mv(0,1);
+    if (refresh) {
+        showLine(line);
+        showCursor();
+    }
+}
 
 int doInsertReplace(char c) {
-    if (edMode == INSERT) { insertChar(c, 1); }
-    else { edSetCh(c); }
+    if (edMode == INSERT) { insertChar(c, 0, 1); }
+    else { replaceChar(c, 0, 1); }
     return 1;
 }
 
-int doCR() {
-    if (edMode != INSERT) { mv(1,-999); return 1; }
-    // TODO: insert a blank line
-    mv(1,-999);
-    return 1;
-}
-
-int moveCursor(int c) {
-    switch (c) {
-        case 9:        mv(0,8);         break;
-        case curLEFT:  mv(0,-1);        break;
-        case curRIGHT: mv(0,1);         break;
-        case curUP:    mv(-1,0);        break;
-        case curDOWN:  mv(1,0);         break;
-        case curHOME:  mv(0,-off);      break;
-        case curEND:   mv(0,99);        break;
-        case curPGUP:  mv(-99,-99);     break;
-        case curPGDN:  mv(99,99);       break;
+int doCTL(int c) {
+    if (c==9) { mv(0,8); }
+    else if (c==13) { mv(1,-999); showCursor(); }
+    else if (BTW(c,RED,WHITE)) {
+        if (edChar(line, off)==' ') { replaceChar(c, 1, 0); }
+        else { insertChar(c, 1, 0); }
+        mv(0,-1);
+        showLine(line);
     }
     return 1;
 }
 
 int processEditorChar(int c) {
     if (c==27) { edMode = COMMAND; return 1; }
-    if (isCursorMove(c)) { return moveCursor(c); }
     if (BTW(edMode,INSERT,REPLACE) && BTW(c,32,126)) {
         return doInsertReplace((char)c);
     }
-    if (c==13) { return doCR(); }
+    if (c<32) { return doCTL(c); }
     if (!BTW(c,32,126)) { return 1; }
     printChar(c);
     edMode = COMMAND;
     switch (c) {
-    case 'Q': toBlock(); return 0;              break;
-    case 'i': edMode=INSERT;                    break;
-    case 'r': edMode=REPLACE;                   break;
-    case 'x': deleteChar();                     break;
-    case 'L': edRdBlk();                        break;
-    case 'W': edSvBlk();                        break;
-    case '+': if (isDirty) { edSvBlk(); }
+    case  'Q': toBlock(); return 0;
+    BCASE 'a': mv(0,-1);
+    BCASE 'd': mv(0,1);
+    BCASE 's': mv(1,0);
+    BCASE 'w': mv(-1,0);
+    BCASE 'q': mv(0,-off);
+    BCASE 'e': mv(0,99);
+    BCASE 'i': edMode=INSERT;
+    BCASE 'r': replaceChar(edGetChar(),0,1);
+    BCASE 'R': edMode=REPLACE;
+    BCASE 'x': deleteChar();
+    BCASE 'L': edRdBlk();
+    BCASE 'W': edSvBlk();
+    BCASE '+': if (isDirty) { edSvBlk(); }
             ++blkNum;
             edRdBlk();
-            break;
-    case '-': if (isDirty) { edSvBlk(); }
+    BCASE '-': if (isDirty) { edSvBlk(); }
             blkNum -= (blkNum) ? 1 : 0;
             edRdBlk();
-            break;
     }
     return 1;
 }
@@ -319,7 +294,9 @@ void doEditor(CELL blk) {
     showFooter();
     while (processEditorChar(edGetChar())) {
         NormLO();
+        currentColor = WHITE;
         Color(WHITE, 0);
+        showCursor();
         showFooter();
     }
     CursorOn();

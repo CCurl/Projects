@@ -21,31 +21,23 @@
 
 #define RED      1
 #define GREEN    2
-#define YELLOW   3
+#define ORANGE   3
 #define BLUE     4
 #define PURPLE   5
 #define CYAN     6
 #define WHITE    7
 
-#define COMMENT  YELLOW
-#define COMPILE  BLUE
 #define DEFINE   RED
-#define INTERP   WHITE
+#define INLINE   ORANGE
+#define COMPILE  BLUE
+#define COMMENT  GREEN
 #define MLMODE   CYAN
-
-//#define STK_SZ     0x1f
-//#define USER_SZ    1024*1024
-//#define CELL_SZ    sizeof(CELL)
-//#define DICT_SZ    sizeof(DICT_T)
-
-//#define betw(x, y, z) ((y <= x) && (x <= z))
+#define INTERP   WHITE
 
 extern char theBlock[];
 
 extern void GotoXY(int, int);
 extern void Color(int, int);
-//extern void push(CELL);
-//extern CELL pop();
 extern int qKey();
 extern int key();
 extern void printString(const char* s);
@@ -54,4 +46,4 @@ extern void printChar(char c);
 extern void doEditor(cell_t);
 extern void doOuter(char *);
 
-#endif 
+#endif
