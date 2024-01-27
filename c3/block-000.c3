@@ -21,13 +21,14 @@
 : ?DUP  DUP IF DUP THEN ;
 : +! DUP >R @ + R> ! ; INLINE
 : 2+ 1+ 1+ ; INLINE
+: -EXIT 46 c, (EXIT) c, ; IMMEDIATE    \ 46 is -REGS
 
 : T3  \ ( --zstring end )
     +regs   VHERE DUP s8 s9   >IN  @ 1+ s5
     BEGIN r5+ C@ s1
         r1 IF r5 >IN  ! THEN
         r1 0= r1 '"' = OR IF
-            0 r8+ C!   r9 r8 -regs   EXIT
+            0 r8+ C!   r9 r8 -EXIT
         THEN r1   r8+ C!
     AGAIN ;
 : "  T3 STATE @ 0= IF DROP EXIT THEN
