@@ -1,7 +1,6 @@
 require('packer-config')
 require("mason-config")
 require("lsp-config")
--- require("lsp")
 require("telescope-config")
 
 vim.cmd [[colorscheme koehler]]
