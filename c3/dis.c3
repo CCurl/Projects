@@ -6,24 +6,24 @@ here s7
 variable (jt) 256 cells allot
 : >jt ( a n-- ) cells (jt) + ! ;
 : jt@ ( n--a )  cells (jt) + @ ;
-: jtx ( n-- )   jt@ ?dup if exec else ." (data)" then ;
+: jtx ( n-- )   jt@ ?dup if execute else ." (data)" then ;
 
 : lp '(' emit ; inline
 : rp ')' emit ; inline
-: .p dup lp <# # #S #> #P rp space ;
-: find-xt ( xt--a ) +regs s2 last s1 mem-end s3
+: .p dup lp (.) rp space ;
+: find-xt ( xt--a ) +regs s2 last s1 code-end s3
 	begin r1 r3 < while
-		r1 @ r2 = if r1 -regs exit then
+		r1 @ r2 = if r1 -exit then
 		r1 word-sz + s1
 	repeat 0 -regs ;
-: .word-xt ( xt-- ) find-xt ?dup if cell + 1+ ."  ; " count type then ;
+: .word-xt ( xt-- ) find-xt ?dup if cell+ 2+ ."  ; " qtype then ;
 : .xt dup . .word-xt ;
-: +CELL r9 CELL + s9 ;
+: +CELL r9 CELL+ s9 ;
 : .NB r9+ c@ (.) ;
 : .NC r9 @ . +CELL ;
 
 :noname ." LIT1 "  .NB ;             1 >jt
-:noname ." LIT4 "  .NC ;             2 >jt
+:noname ." LIT "   .NC ;             2 >jt
 :noname ." RET" ;                    3 >jt
 :noname ." CALL "  r9 @ .xt +CELL ;  4 >jt
 :noname ." JMP "   .NC ;             5 >jt
@@ -58,32 +58,48 @@ variable (jt) 256 cells allot
 :noname ." AND" ;       34 >jt
 :noname ." OR" ;        35 >jt
 :noname ." XOR" ;       36 >jt
-:noname ." EMIT" ;      37 >jt
-:noname ." TIMER" ;     38 >jt
-:noname ." KEY" ;       39 >jt
-:noname ." QKEY" ;      40 >jt
-:noname ." TYPE" ;      41 >jt
-:noname ." TYPEZ" ;     42 >jt
-:noname ." DEFWORD" ;   43 >jt
-:noname ." ENDWORD" ;   44 >jt
-:noname ." CREATE"  ;   45 >jt
-:noname ." FIND"    ;   46 >jt
-:noname ." NEXTWORD" ;  47 >jt
-:noname ." INCREG " .NB ; 48 >jt
-:noname ." DECREG " .NB ; 49 >jt
-:noname ." REG "    .NB ; 50 >jt
-:noname ." REGDEC " .NB ; 51 >jt
-:noname ." REGINC " .NB ; 52 >jt
-:noname ." SET "    .NB ; 53 >jt
-:noname ." REGSADD"  ;    54 >jt
-:noname ." REGSDEL"  ;    55 >jt
-:noname ." INLINE" ;      56 >jt
-:noname ." IMMEDIATE" ;   57 >jt
-:noname ." SYSTEM" ;      59 >jt
-:noname ." FOPEN" ;       60 >jt
-:noname ." FCLOSE" ;      61 >jt
-:noname ." FREAD" ;       62 >jt
-:noname ." FWRITE" ;      63 >jt
+:noname ." TYPE" ;      37 >jt
+:noname ." TYPEZ" ;     38 >jt
+:noname ." INCREG " .NB ; 39 >jt
+:noname ." DECREG " .NB ; 40 >jt
+:noname ." REG "    .NB ; 41 >jt
+:noname ." REGDEC " .NB ; 42 >jt
+:noname ." REGINC " .NB ; 43 >jt
+:noname ." SET "    .NB ; 44 >jt
+:noname ." +REGS"  ;      45 >jt
+:noname ." -REGS"  ;      46 >jt
+
+:noname r9+ c@ .p s0
+	r0  0 = IF ."  INLINE" EXIT THEN
+	r0  1 = IF ."  IMMEDIATE" EXIT THEN
+	r0  2 = IF ."  (.)" EXIT THEN
+	\ r0 3 = IF ." 3" EXIT THEN
+	r0  4 = IF ."  ITOA" EXIT THEN
+	r0  5 = IF ."  ATOI" EXIT THEN
+	r0  6 = IF ."  COLON" EXIT THEN
+	r0  7 = IF ."  SEMICOLON" EXIT THEN
+	r0  8 = IF ."  CREATE" EXIT THEN
+	r0  9 = IF ."  FIND-WORD" EXIT THEN
+	r0 10 = IF ."  NEXT-WORD" EXIT THEN
+	r0 11 = IF ."  TIMER" EXIT THEN
+	r0 12 = IF ."  CCOMMA" EXIT THEN
+	r0 13 = IF ."  COMMA" EXIT THEN
+	r0 14 = IF ."  KEY" EXIT THEN
+	r0 15 = IF ."  ?KEY" EXIT THEN
+	r0 16 = IF ."  EMIT" EXIT THEN
+	r0 17 = IF ."  QTYPE" EXIT THEN
+	; 47 >jt
+\ :noname ." INLINE" ;      56 >jt
+\ :noname ." IMMEDIATE" ;   57 >jt
+\ :noname ." SYSTEM" ;      59 >jt
+\ :noname ." FOPEN" ;       60 >jt
+\ :noname ." FCLOSE" ;      61 >jt
+\ :noname ." FREAD" ;       62 >jt
+\ :noname ." FWRITE" ;      63 >jt
+\ :noname ." EMIT" ;      37 >jt
+\ :noname ." TIMER" ;     38 >jt
+\ :noname ." KEY" ;       39 >jt
+\ :noname ." QKEY" ;      40 >jt
 
 : dis-1 ( -r9- -- ) cr r9+ dup . dup c@ .p jtx .word-xt ;
 : dis-range ( t f-- ) s9 s1 begin r9 r1 < while dis-1 repeat ;
@@ -94,5 +110,5 @@ variable (jt) 256 cells allot
 	if word-sz - @ s8 then
 	r8 r7 -regs dis-range ;
 
-: rl s" dis.c3" (load) ;
-: ed s" nvim dis.c3" system ;
+: rl " dis.c3" (load) ;
+: ed " nvim dis.c3" system ;
