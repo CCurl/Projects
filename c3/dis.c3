@@ -1,12 +1,13 @@
 \ see.c3 - Be able to see the definition of a word
 
-forget
-here s7
+marker forget
 
 variable (jt) 256 cells allot
 : >jt ( a n-- ) cells (jt) + ! ;
 : jt@ ( n--a )  cells (jt) + @ ;
 : jtx ( n-- )   jt@ ?dup if execute else ." (data)" then ;
+: jt-init 256 0 do 0 i >jt loop ;
+jt-init
 
 : lp '(' emit ; inline
 : rp ')' emit ; inline
