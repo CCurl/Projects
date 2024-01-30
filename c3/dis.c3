@@ -17,11 +17,13 @@ jt-init
 		r1 @ r2 = if r1 -exit then
 		r1 word-sz + s1
 	repeat 0 -regs ;
-: .word-xt ( xt-- ) find-xt ?dup if cell+ 2+ ."  ; " qtype then ;
-: .xt dup . .word-xt ;
+: .word-xt ( xt-- ) find-xt ?dup if ."  ; " cell+ 2+ qtype then ;
+: .H ." $%x " ;
+: .W $FFFFF AND .H ;
+: .xt dup .W .word-xt ;
 : +CELL r9 CELL+ s9 ;
 : .NB r9+ c@ (.) ;
-: .NC r9 @ . +CELL ;
+: .NC r9 @ .W +CELL ;
 
 :noname ." LIT1 "  .NB ;             1 >jt
 :noname ." LIT "   .NC ;             2 >jt
@@ -74,7 +76,7 @@ jt-init
 	r0  0 = IF ."  INLINE" EXIT THEN
 	r0  1 = IF ."  IMMEDIATE" EXIT THEN
 	r0  2 = IF ."  (.)" EXIT THEN
-	\ r0 3 = IF ." 3" EXIT THEN
+  \ r0  3 = IF ." 3" EXIT THEN
 	r0  4 = IF ."  ITOA" EXIT THEN
 	r0  5 = IF ."  ATOI" EXIT THEN
 	r0  6 = IF ."  COLON" EXIT THEN
@@ -90,19 +92,51 @@ jt-init
 	r0 16 = IF ."  EMIT" EXIT THEN
 	r0 17 = IF ."  QTYPE" EXIT THEN
 	; 47 >jt
-\ :noname ." INLINE" ;      56 >jt
-\ :noname ." IMMEDIATE" ;   57 >jt
-\ :noname ." SYSTEM" ;      59 >jt
-\ :noname ." FOPEN" ;       60 >jt
-\ :noname ." FCLOSE" ;      61 >jt
-\ :noname ." FREAD" ;       62 >jt
-\ :noname ." FWRITE" ;      63 >jt
-\ :noname ." EMIT" ;      37 >jt
-\ :noname ." TIMER" ;     38 >jt
-\ :noname ." KEY" ;       39 >jt
-\ :noname ." QKEY" ;      40 >jt
 
-: dis-1 ( -r9- -- ) cr r9+ dup . dup c@ .p jtx .word-xt ;
+:noname r9+ c@ .p s0
+	r0  0 = IF ."  S-TRUNC" EXIT THEN
+	r0  1 = IF ."  LCASE" EXIT THEN
+	r0  2 = IF ."  UCASE" EXIT THEN
+  \ r0  3 = IF ." 3" EXIT THEN
+	r0  4 = IF ."  S-CPY" EXIT THEN
+	r0  5 = IF ."  S-CAT" EXIT THEN
+	r0  6 = IF ."  S-CATC" EXIT THEN
+	r0  7 = IF ."  S-LEN" EXIT THEN
+	r0  8 = IF ."  S-EQ" EXIT THEN
+	r0  9 = IF ."  S-EQI" EXIT THEN
+	r0 10 = IF ."  S-EQN" EXIT THEN
+	r0 11 = IF ."  S-LTRIM" EXIT THEN
+	r0 12 = IF ."  S-RTRIM" EXIT THEN
+	r0 13 = IF ."  S-FINDC" EXIT THEN
+    ; 48 >jt
+
+:noname r9+ c@ .p s0
+	r0  0 = IF ."  F+" EXIT THEN
+	r0  1 = IF ."  F-" EXIT THEN
+	r0  2 = IF ."  F*" EXIT THEN
+  \ r0  3 = IF ." 3" EXIT THEN
+	r0  4 = IF ."  F/" EXIT THEN
+	r0  5 = IF ."  F=" EXIT THEN
+	r0  6 = IF ."  F<" EXIT THEN
+	r0  7 = IF ."  F>" EXIT THEN
+	r0  8 = IF ."  F>I" EXIT THEN
+	r0  9 = IF ."  I>F" EXIT THEN
+	r0 10 = IF ."  F." EXIT THEN
+	r0 11 = IF ."  F-SQRT" EXIT THEN
+	r0 12 = IF ."  F-TANH" EXIT THEN
+	; 49 >jt
+
+:noname ." SYSTEM" ;     100 >jt
+:noname ." FOPEN" ;      101 >jt
+:noname ." FCLOSE" ;     102 >jt
+:noname ." FREAD" ;      103 >jt
+:noname ." FWRITE" ;     104 >jt
+:noname ." FLOAD" ;      105 >jt
+:noname ." BLOAD" ;      106 >jt
+:noname ." EDIT-BLK" ;   107 >jt
+:noname ." EDIT-FILE" ;  108 >jt
+
+: dis-1 ( -r9- -- ) cr r9+ dup .W dup c@ .p jtx .word-xt ;
 : dis-range ( t f-- ) s9 s1 begin r9 r1 < while dis-1 repeat ;
 
 : dis ( -- ) ' 0= if ." -nf-" exit then
