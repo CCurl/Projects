@@ -1,4 +1,5 @@
 : \ 0 >IN  @ ! ; IMMEDIATE
+: \* 0 >IN  @ ! ; IMMEDIATE
 : [ 0 state ! ; IMMEDIATE
 : ] 1 state ! ;
 
@@ -69,7 +70,7 @@
 : DOES>  R> (JMP) C, , ;
 : CONSTANT  CREATE HERE CELL - ! (EXIT) C, ;
 : VARIABLE  CREATE 0 V, (EXIT) C, ;
-\ usage: val line   >val >line ... 23 >line
+\* usage: val line   >val >line ... 23 >line
 : val    CREATE 0 V, (FETCH) C, (EXIT) C, ;
 : >val   VHERE CELL - CONSTANT (STORE) HERE 1- C! (EXIT) C, ;
 : (val)  VHERE CELL - CONSTANT ;

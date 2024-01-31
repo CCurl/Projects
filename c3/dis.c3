@@ -1,6 +1,6 @@
 \ see.c3 - Be able to see the definition of a word
 
-marker forget
+marker
 
 variable (jt) 256 cells allot
 : >jt ( a n-- ) cells (jt) + ! ;
@@ -145,5 +145,5 @@ jt-init
 	if word-sz - @ s8 then
 	r8 r7 -regs dis-range ;
 
-: rl " dis.c3" (load) ;
+: rl forget " dis.c3" (load) ;
 : ed " nvim dis.c3" system ;
