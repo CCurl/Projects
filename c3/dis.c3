@@ -56,7 +56,7 @@ jt-init
 :noname ." DO";         29 >jt
 :noname ." LOOP" ;      30 >jt
 :noname ." LOOP2" ;     31 >jt
-:noname ." ADDRI" ;     32 >jt
+:noname ." ADDR-I" ;    32 >jt
 :noname ." COM" ;       33 >jt
 :noname ." AND" ;       34 >jt
 :noname ." OR" ;        35 >jt
@@ -68,7 +68,7 @@ jt-init
 :noname ." REG "    .NB ; 41 >jt
 :noname ." REGDEC " .NB ; 42 >jt
 :noname ." REGINC " .NB ; 43 >jt
-:noname ." SET "    .NB ; 44 >jt
+:noname ." REGSET " .NB ; 44 >jt
 :noname ." +REGS"  ;      45 >jt
 :noname ." -REGS"  ;      46 >jt
 

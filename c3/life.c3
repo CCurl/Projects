@@ -2,21 +2,15 @@
 
 ' b++ loaded?
 
-load random.c3
-load screen.c3
+load-f random.c3
+load-f screen.c3
 
-variable T0
-variable T1
-
-: rows   T0 @ ; : rows!  T0 ! ; 
-: cols   T1 @ ; : cols!  T1 ! ;
+val rows  >val rows!
+val cols  >val cols!
 : pop-sz rows 2 + cols 2 + * ;
 
-variable T0
-variable T1
-
-: s-rows   T0 @ ; : s-rows!  T0 ! ; 
-: s-cols   T1 @ ; : s-cols!  T1 ! ;
+val s-rows   >val s-rows!
+val s-cols   >val s-cols!
 
 100 rows! 300 cols!
 variable pop pop-sz allot
