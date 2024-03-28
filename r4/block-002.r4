@@ -10,15 +10,15 @@ rVH s8 rSZ cALLOT
 rVH s9 rSZ cALLOT
 rVH sL rC 1+ cALLOT
 
-:RGRID r9s7 0 rSZ[5 xR r7 C! i7];
-:SU rC*# r8+s6 r9+s7 i7;
-:AL #2=(\r6C@;) 3=(1;) 0;
-:SROW rLs5 1 rC[r7C@ cAL #r6C! 10*32+ r5C! 0r7C! i7i6i5];
-:SHOW 1 1 cGXY 1 rR[I cSU cSROW 0r5C! rL"%s%n"];
+:SETUP rC*# r8+s6 r9+s7 i7;
+:ALIVE #2=(\r6C@;) 3=(1;) 0;
+:SHOWROW rLs5 1 rC[r7C@ cALIVE #r6C! 10*32+ r5C! 0r7C! i7i6i5];
+:SHOW 1 1 cGXY 1 rR[I cSETUP cSHOWROW 0r5C! rL"%s%n"];
 :X r4 C@ P r4 C! i4;
-:WC rCs2 r7r2-Ds4 cXcXcX\ r7Ds4 cXi4cX\ r7r2+Ds4 cXcXcX\;
-:W1 1 rC[r6 C@(cWC) i6 i7];
-:WORK 1 rR[I cSU cW1];
+:WORKCELL rCs2 r7r2-Ds4 cXcXcX\ r7Ds4 cXi4cX\ r7r2+Ds4 cXcXcX\;
+:WORKROW 1 rC[r6 C@(cWORKCELL) i6 i7];
+:WORK 1 rR[I cSETUP cWORKROW];
 :ONEGEN cSHOW cWORK; 0(50xW;)
-:LIFE cCOF cRGRID 1{\cONEGEN K?~}K@\ cCON;
+:RANDGRID r9s7 0 rSZ[5 xR r7 C! i7];
+:LIFE cCOF cRANDGRID 1{\cONEGEN K?~}K@\ cCON;
 :RR 2 bL;:ED 2 bE;
