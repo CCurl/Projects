@@ -1,6 +1,5 @@
 0(Screen Stuff)
 :CSI 27,"[";
-
 0(GXY (x y--); GotoXY)
 :GXY cCSI.";"."H";
 
@@ -19,11 +18,5 @@
 0(CLU (--): More colors, uglier)
 :CLU 90 98[N I s1 100 108[r1 I cSTC " ("r1.";"I.") "] cCLC];
 
-0(COF (--): Cursor off)
-:COF cCSI"?25l";
-
-0(CON (--): Cursor on)
-:CON cCSI"?25h";
-
-0(DMO (--): A little demo of using these)
-:DMO 0sT cCLS cCOF rX 0=(150sX) rY 0=(35sY)1{\iT 8xR 30+ 40 cSTC rX xR 1+ rY xR 1+ cGXY "*" K? 0=} K@ \ cCLC cCON;
+:CURSORON  cCSI"?25h";
+:CURSOROFF cCSI"?25l";
