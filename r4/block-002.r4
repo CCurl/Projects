@@ -1,46 +1,24 @@
-0(definitions, addresses and sizes)
-0(also some general subroutines)
+; Conway's game of life
 
-xIAU 10000+1000/1000* sBS   0(Brain start address)
-           rBS  1000+ sWS   0(World start address)
-           rWS 50000+ sCS   0(Critters start address)
+1 bL
+10 bL
 
-                   8 sNCN   0(Number of Connections)
-                 100 sNCR   0(Number of Critters)
-         rNCN rNCR * sCSZ   0(Critter Size)
+; rR #rows, rC #cols
+35 sR 140 sC rR rC * sSZ
 
-                  120 sWX   0(World X)
-                   35 sWY   0(World Y)
+; r8 the grid, r9, the backup grid
+rVH s8 rSZ cALLOT
+rVH s9 rSZ cALLOT
 
-0(reg CR: current critter)
-
-:-RWT (--n): a random weight between -400 and +400-;
-:RWT 800 xR 400-;
-
-:-TNH (n--t): an approximation of TANH(x), n: x*100-;
-:TNH 0cMAX 83*100/ 99cMIN;
-
-:-SCR (n--): Set Critter - n: [1..rNCR])-;
-:SCR 1-rCSZ*rCS+sCR;
-
-:-CXY (--x y), SXY (x y--) - Critter X/Y-;
-:CXY rCR C@ rCR 1+ C@;
-:SXY rCR 1+ C! rCR C!;
-
-:-CCL (--f b), SCL (f--) - Critter Color-;
-:CCL rCR 2+ C@ 40;
-:SCL rCR 2+ C!;
-
-:-DCR (--): Dump Critter-;
-:DCR cCXY$"(x:"$.",y:".")";
-
-
-:-RCR(--): Randomize Critter-;
-:-RCA(--): Randomize Critters All-;
-:RCR rWX xR 1+ rWY xR 1+ cSXY 8xR 31+ cSCL;
-:RCA 1 rNCR[rI cSCR cRCR];
-
-:-PCR(--): Paint Critter-;
-:-PCA (--): Paint Critters All-;
-:PCR cCCL cSTC cCXY cGXY "*";
-:PCA cCOF 1 rNCR[rI cSCR cPCR]cCLC cCON;
+:RANDGRID r9s7 0 rSZ[200 xR 70 < #(9+) r7 C! i7];
+:SU rC*#r8+s6r9+s7; 
+:AL r7 C@ s1 r1 2=(r6C@;) r1 3=(10;) 0;
+:SL 32s0 0 rC[r7 C@ cAL, r6! 0r7 C! i7i6];
+:SHOW 1 1 cGXY 0 rR[I cSU cSL N];
+:WC cAL;
+:WL 0s0 0 rC[r6 C@ cWC r7C! i6i7];
+:WORK 0 rR[I cSU cWL];
+:ONEGEN cWORK cSHOW;
+:LIFE cCOF cRANDGRID 1{\cONEGEN K?~}K@\ cCON;
+:RL 2 bL;
+:ED 2 bE;
