@@ -11,13 +11,13 @@ rVH s8 rSZ cALLOT
 rVH s9 rSZ cALLOT
 
 :RANDGRID r9s7 0 rSZ[200 xR 70 < #(9+) r7 C! i7];
-:SU rC*#r8+s6r9+s7; 
-:AL r7 C@ s1 r1 2=(r6C@;) r1 3=(10;) 0;
-:SL 32s0 0 rC[r7 C@ cAL, r6! 0r7 C! i7i6];
-:SHOW 1 1 cGXY 0 rR[I cSU cSL N];
-:WC cAL;
-:WL 0s0 0 rC[r6 C@ cWC r7C! i6i7];
-:WORK 0 rR[I cSU cWL];
+:SU rC*# r8+s6 r9+s7; 
+:AL #2=(\r6C@;) 3=(1;) 0;
+:SROW 32s0 10s4 0 rC[r7C@ cAL #r6C! 10*32+, i7i6];
+:SHOW 1 1 cGXY 0 rR[I cSU cSROW N];
+:WC ;
+:WROW 0s0 0 rC[0r7C! r6C@(cWC)i6i7];
+:WORK 0 rR[I cSU cWROW];
 :ONEGEN cWORK cSHOW;
 :LIFE cCOF cRANDGRID 1{\cONEGEN K?~}K@\ cCON;
 :RL 2 bL;
