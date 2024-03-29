@@ -1,22 +1,20 @@
 0(Screen Stuff)
-:CSI 27,"[";
-0(GXY (x y--); GotoXY)
-:GXY cCSI.";"."H";
 
-0(CLS (--): Clear Screen)
-:CLS cCSI"2J"1#cGXY;
+:GXY "%e[%d;%dH";    0(GXY (x y--); GotoXY)
+:CLS "%e[2J"1#cGXY;  0(CLS (--): Clear Screen)
 
-0(STC (fg bg--): Set Color)
-:STC cCSI.";"."m";
+:STC "%e[%d;%dm";    0(STC (fg bg--): Set Color)
+:FGC 40 cSTC;        0(FGC (fg--): Foreground color)
+:CLC 37 cFGC;        0(CLC (--): Clear Color)
 
-0(CLC (--): Clear Color)
-:CLC 37 40cSTC;
+:CURSORON  "%e[?25h";
+:CURSOROFF "%e[?25l";
 
-0(CLL (--): To list the colors )
-:CLL 30 38[N I s1 40 48[r1 I cSTC " ("r1.";"I.") "] cCLC];
-
+0(CLL (--): Color list)
 0(CLU (--): More colors, uglier)
-:CLU 90 98[N I s1 100 108[r1 I cSTC " ("r1.";"I.") "] cCLC];
+:CLL 30 38[N  40  48[J I cSTC " ("J.";"I.") "] cCLC];
+:CLU 90 98[N 100 108[J I cSTC " ("J.";"I.") "] cCLC];
 
-:CURSORON  cCSI"?25h";
-:CURSOROFF cCSI"?25l";
+:CDLY 0 1000000[];
+:CDMO cCLS 0sT 1{\iT 8xR 30+ cFGC rX xR 1+ rY xR 1+ cGXY "*" cCDLY K? ~}K@\;
+:COLORDEMO cCURSOROFF rX ~(150sX) rY ~(35sY) cCDMO cCLC cCURSORON rX rY cGXY;
