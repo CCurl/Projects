@@ -1,6 +1,6 @@
 10sN                     // N = NewLine
 tS                       // Time into reg S
-150sA 1000sB *ABA *ABA   // Set reg A to 200 million
+500sA 1000sB *ABA *ABA   // Set reg A to 500 million
 :Lbl1
 :Test1 :Test2
 rA 0 [ +ABC ]            // Do the loop C=A+b
