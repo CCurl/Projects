@@ -2,18 +2,28 @@
 
 ' COUNT loaded?
 
-\ Just some temp addresses
+\ Some temp buffers
 : pad1 VHERE  256 + ;
 : pad2 pad1   256 + ;
 : pad3 pad2   256 + ;
 
 \ Words for NULL-Terminated strings
-: S-CATN  ( str num -- )  ITOA S-CAT  ; INLINE
-: S-SCATN ( num str -- )  SWAP S-CATN ; INLINE
-: S-SCPY  ( src dst -- )  SWAP S-CPY  ; INLINE
-: S-SCAT  ( src dst -- )  SWAP S-CAT  ; INLINE
+: S-CATN  ( str num -- )  ITOA S-CAT   ; INLINE
+: S-SCATN ( num str -- )  SWAP S-CATN  ; INLINE
+: S-SCPY  ( src dst -- )  SWAP S-CPY   ; INLINE
+: S-SCAT  ( src dst -- )  SWAP S-CAT   ; INLINE
+: S-SCATC ( ch dst -- )   SWAP S-CATC  ; INLINE
+: S-END   ( str -- end )  DUP  S-LEN + ; INLINE
 
-\ S-FIND ( LF STR -- ADDR|0 ) looks for string LF in string at STR
+: S-CPYLEN ( DST SRC LEN -- ) \ Copy LEN bytes from SRC to DST
+    +regs s3 s2 s1
+    r3 0 DO  r2 C@  ?DUP  IF r1+ C! i2 THEN  LOOP
+    0 r1 C!  -regs ;
+
+: S-CATLEN ( DST SRC LEN -- ) \ Concat LEN bytes from SRC to DST
+    >R >R  S-END  R> R>  S-CPYLEN ;
+
+\ S-FIND ( LF STR -- ADDR|0 ) Look for string LF in STR
 \   ADDR: 0 if not found, else address in STR
 : S-FIND +regs s2 s1
     r1 C@ s6  r1 S-LEN s3
