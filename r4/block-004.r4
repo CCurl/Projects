@@ -1,0 +1,8 @@
+; Work stuff
+
+1bL
+:PAD rVH 100+;
+:LG  cPAD `lazygit`\xs;
+:DEV cPAD `ccc dev`\xs;
+:NV  cPAD `nvim .`\xs;
+:ED  4 bE;:RR 4bL;
