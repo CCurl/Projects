@@ -55,7 +55,7 @@ var hyp (var) (hyp) : >hyp (hyp) ! ;
 
 : sqr dup * ; inline
 
-\ The Babylon square root algorithm
+\ The Babylon integer square root algorithm
 : T0 ( n--sqrt ) dup 4 / begin >r dup r@ / r@ + 2 / dup r> - 0= until nip ;
 : sqrt ( n--0|sqrt ) dup 0 > if T0 else drop 0 then ;
 
