@@ -311,8 +311,6 @@ void baseSys() {
     parseLine(": cr 13 emit 10 emit ;");
     parseLine(": s  8 @ ; : >s  8 ! ; : s+ s dup 1+ >s ;");
     parseLine(": d 16 @ ; : >d 16 ! ; : d+ d dup 1+ >d ;");
-
-    parseLine(": dump for i over + @w . next drop ;");
 }
 
 void Init() {
