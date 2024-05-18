@@ -11,13 +11,13 @@
 #define comma(x)      code[here++]=(x)
 #define NCASE         goto next; case
 #define RCASE         return; case
-#define CheckSP       if (sp<0) sp=0
 #define RetIf0        if (*(++w)==0) return 0
 
 #define here          code[0]
 #define last          code[1]
-#define base          code[2]
-#define state         code[3]
+#define vhere         code[2]
+#define base          code[3]
+#define state         code[4]
 #define TOS           stk[sp].i
 #define NOS           stk[sp-1].i
 #define PUSH(x)       push(x)
@@ -38,17 +38,14 @@ static ushort sp, rsp, lsp;
 cell lstk[60];
 static char tib[128];
 static ushort pc, wc, code[CODE_SZ+1];
+char vars[VARS_SZ];
 
 enum {
-    STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,  //  0 ->  9
-    AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,               // 10 -> 19
-    CLK, OVER, JMP, JMPZ, JMPNZ, EMIT, DOT, FETW, FET, STOW,    // 20 -> 29
-    STO, SYS,                                                   // 30 -> 31
-    COLON, SEMI, IMM, IF, THEN, COMMA, WDS,       //  0 ->  7
+    STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,
+    AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,              
+    CLK, OVER, JMP, JMPZ, JMPNZ, EMIT, DOT, FETW, FET, STOW, STO,
+    COLON, SEMI, IMM, IF, THEN, COMMA, WDS,
     BYE
-};
-
-enum {
 };
 
 DE_T *addWord(const char *wd);
@@ -63,8 +60,8 @@ void words() {
     for (int e=last-1; 0<=e; e--) {
         DE_T *de = (DE_T*)&dict[e];
         printf("%s\t", de->nm);
-        //if (LASTPRIM < de->xt) printf("(%04X)\t", de->xt);
-        //else  printf("(%02X)\t", de->xt);
+        if (LASTPRIM < de->xt) printf("(%04X)\t", de->xt & 0x7FFF);
+        else  printf("(%02X)\t", de->xt);
         ++n; if (n%8==0) printf("\n");
     }
 }
@@ -81,7 +78,7 @@ void Exec(int start) {
         NCASE EXIT:  if (0<rsp) { pc = (ushort)rstk[rsp--].i; } else { return; }
         NCASE DUP:   t=TOS; PUSH(t);
         NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
-        NCASE DROP:  --sp; CheckSP;
+        NCASE DROP:  pop();
         NCASE FOR:   lsp+=3; L2=pc; L1=POP(); L0=0;
         NCASE INDEX: PUSH(L0);
         NCASE NEXT:  if (++L0<L1) { pc=(ushort)L2; } else { lsp-=3; } if (lsp<0) lsp=0;
@@ -101,12 +98,11 @@ void Exec(int start) {
         NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
         NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
         NCASE EMIT:  printf("%c", (char)POP());
-        NCASE DOT:   printf("%ld", POP()); CheckSP;
+        NCASE DOT:   printf("%ld", POP());
         NCASE FETW:  TOS = code[TOS];
         NCASE FET:   TOS = fetch2(&code[TOS]);
-        NCASE STOW:  code[TOS] = (short)NOS; sp-=2; CheckSP;
+        NCASE STOW:  t=POP(); n=POP(); code[t] = (short)n;
         NCASE STO:   t=POP(); n=POP(); store2(&code[t], n);
-        NCASE SYS:   // execSys();
         NCASE COLON: addWord(0); state = 1;
         NCASE SEMI : if (LASTPRIM < code[here - 1]) { code[here - 1] &= 0x07FF; } // Tail-call
             else { comma(EXIT); }
@@ -295,9 +291,10 @@ void baseSys() {
     addPrim("WORDS", WDS);
     addPrim("BYE",   BYE);
 
-    parseLine(": space 32 emit ; : . (.) space ;");
-    parseLine(": HERE 0 @W ; : LAST 1 @W ; : BASE 2 ; : STATE 3 ;");
-    parseLine(": 1+ 1 + ;");
+    parseLine(": (HERE)  0 ; : HERE  (HERE)  @W ;");
+    parseLine(": (LAST)  1 ; : LAST  (LAST)  @W ;");
+    parseLine(": (VHERE) 2 ; : VHERE (VHERE) @W ;");
+    parseLine(": BASE    3 ; : STATE 4 ;");
     parseLine(": JMP, 22 , ;");
     parseLine(": JMPZ, 23 , ;");
     parseLine(": JMPNZ, 24 , ;");
@@ -305,9 +302,13 @@ void baseSys() {
     parseLine(": AGAIN JMP, , ; IMMEDIATE");
     parseLine(": WHILE JMPNZ, , ; IMMEDIATE");
     parseLine(": UNTIL JMPZ, , ; IMMEDIATE");
-    parseLine(": .d for i over + @ . next drop ;");
+    parseLine(": 1+ 1 + ;");
     parseLine(": space 32 emit ; : . (.) space ;");
-    parseLine(": a 10 @ ; : >a 10 ! ; : a+ a dup 1+ >a ;");
+    parseLine(": cr 13 emit 10 emit ;");
+    parseLine(": s  8 @ ; : >s  8 ! ; : s+ s dup 1+ >s ;");
+    parseLine(": d 16 @ ; : >d 16 ! ; : d+ d dup 1+ >d ;");
+
+    parseLine(": dump for i over + @w . next drop ;");
 }
 
 void Init() {
