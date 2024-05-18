@@ -1,4 +1,5 @@
 : NIP SWAP DROP ;
+: .code HERE FOR I (.) ': EMIT SPACE I @C . CR NEXT ;
 : elapsed timer swap - . ;
 : mil 1000 dup * * ;
 : T0 100 drop ;

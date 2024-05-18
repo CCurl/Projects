@@ -38,12 +38,12 @@ static ushort sp, rsp, lsp;
 cell lstk[60];
 static char tib[128];
 static ushort pc, wc, code[CODE_SZ+1];
-char vars[VARS_SZ];
+byte vars[VARS_SZ];
 
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,
     AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,              
-    CLK, OVER, JMP, JMPZ, JMPNZ, EMIT, DOT, FETW, FET, STOW, STO,
+    CLK, OVER, JMP, JMPZ, JMPNZ, EMIT, DOT, FET, CFET, FETC, STO, CSTO, STOC,
     COLON, SEMI, IMM, IF, THEN, COMMA, WDS,
     BYE
 };
@@ -51,8 +51,8 @@ enum {
 DE_T *addWord(const char *wd);
 void push(cell x) { stk[++sp].i = x; }
 cell pop() { return (0<sp) ? stk[sp--].i : 0; }
-void store2(ushort *a, cell val) { *(cell*)(a) = val; }
-cell fetch2(ushort *a) { return *(cell*)(a); }
+void store2(byte *a, cell val) { *(cell*)(a) = val; }
+cell fetch2(byte *a) { return *(cell*)(a); }
 void makeImm() { dict[last-1].fl=1; }
 
 void words() {
@@ -74,7 +74,7 @@ void Exec(int start) {
     switch(wc) {
         case  STOP:  return;
         NCASE LIT1:  PUSH(code[pc++]);
-        NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
+        NCASE LIT2:  PUSH(fetch2((byte*)&code[pc])); pc += sizeof(cell)/2;
         NCASE EXIT:  if (0<rsp) { pc = (ushort)rstk[rsp--].i; } else { return; }
         NCASE DUP:   t=TOS; PUSH(t);
         NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
@@ -99,10 +99,12 @@ void Exec(int start) {
         NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
         NCASE EMIT:  printf("%c", (char)POP());
         NCASE DOT:   printf("%ld", POP());
-        NCASE FETW:  TOS = code[TOS];
-        NCASE FET:   TOS = fetch2(&code[TOS]);
-        NCASE STOW:  t=POP(); n=POP(); code[t] = (short)n;
-        NCASE STO:   t=POP(); n=POP(); store2(&code[t], n);
+        NCASE FET:   TOS = fetch2(&vars[TOS]);
+        NCASE CFET:  TOS = vars[TOS];
+        NCASE FETC:  TOS = code[TOS];
+        NCASE STO:   t=POP(); n=POP(); store2(&vars[t], n);
+        NCASE CSTO:  t=POP(); n=POP(); vars[t]=n;
+        NCASE STOC:  t=POP(); n=POP(); code[t] = (short)n;
         NCASE COLON: addWord(0); state = 1;
         NCASE SEMI : if (LASTPRIM < code[here - 1]) { code[here - 1] &= 0x07FF; } // Tail-call
             else { comma(EXIT); }
@@ -195,7 +197,7 @@ int parseWord(char *w) {
         if (btwi(n, 0, 0x7fff)) {
             comma(LIT1); comma((short)n);
         } else {
-            comma(LIT2); store2(&code[here], n); here += sizeof(cell)/2;
+            comma(LIT2); store2((byte*)&code[here], n); here += sizeof(cell)/2;
         }
         return 1;
     }
@@ -278,10 +280,12 @@ void baseSys() {
     addPrim("=",     EQ);
     addPrim(">",     GT);
     addPrim("TIMER", CLK);
-    addPrim("@W",    FETW);
+    addPrim("@C",    FETC);
     addPrim("@",     FET);
-    addPrim("!W",    STOW);
+    addPrim("C@",    CFET);
+    addPrim("!C",    STOC);
     addPrim("!",     STO);
+    addPrim("C!",    CSTO);
     addPrim(":",     COLON)->fl = 1;
     addPrim(";",     SEMI)->fl = 1;
     addPrim("IMMEDIATE", IMM)->fl = 1;
@@ -291,9 +295,9 @@ void baseSys() {
     addPrim("WORDS", WDS);
     addPrim("BYE",   BYE);
 
-    parseLine(": (HERE)  0 ; : HERE  (HERE)  @W ;");
-    parseLine(": (LAST)  1 ; : LAST  (LAST)  @W ;");
-    parseLine(": (VHERE) 2 ; : VHERE (VHERE) @W ;");
+    parseLine(": (HERE)  0 ; : HERE  (HERE)  @C ;");
+    parseLine(": (LAST)  1 ; : LAST  (LAST)  @C ;");
+    parseLine(": (VHERE) 2 ; : VHERE (VHERE) @C ;");
     parseLine(": BASE    3 ; : STATE 4 ;");
     parseLine(": JMP, 22 , ;");
     parseLine(": JMPZ, 23 , ;");
