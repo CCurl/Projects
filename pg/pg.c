@@ -140,6 +140,24 @@ int strEqI(const char *s, const char *d) {
     return 0;
 }
 
+DE_T *addWord2(const char *w) {
+    int l = strLen(w);
+    int sz = 2 + 4 + l;
+    while (sz&3) { ++sz; }
+    DE_T *dp = ();
+}
+
+DE_T *findWord2(const char *w) {
+    if (!w) { nextWord(); w=wd; }
+    int l = strLen(w);
+    for (int e=last-1; 0<=e; e--) {
+        DE_T *de = (DE_T*)&dict[e];
+        if ((l==de->ln) && strEqI(de->nm, w)) { return de; }
+    }
+
+    return (DE_T*)0;
+}
+
 DE_T *addWord(const char *w) {
     if (!w) { nextWord(); w=wd; }
     int l = strLen(w);
