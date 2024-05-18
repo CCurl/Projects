@@ -5,7 +5,7 @@
 #define CODE_SZ       0x7FFF
 #define VARS_SZ       0xFFFF
 #define DICT_SZ         8192
-#define LPRIM            SYS
+#define LASTPRIM         SYS
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define comma(x)      code[here++]=(x)
@@ -20,8 +20,8 @@
 #define state         code[3]
 #define TOS           stk[sp].i
 #define NOS           stk[sp-1].i
-#define PUSH(x)       stk[++sp].i=(x)
-#define POP()         stk[sp--].i
+#define PUSH(x)       push(x)
+#define POP()         pop()
 #define L0            lstk[lsp]
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
@@ -34,7 +34,8 @@ typedef struct { ushort xt; byte fl; byte ln; char nm[28]; } DE_T;
 
 SE_T stk[STK_SZ], rstk[STK_SZ];
 DE_T dict[DICT_SZ];
-static int pc, sp, rsp, lsp, lstk[60];
+static short pc, sp, rsp, lsp;
+cell lstk[60];
 static char tib[128];
 static ushort wc, code[CODE_SZ+1];
 
@@ -49,6 +50,8 @@ enum {
     BYE, COLON, SEMI, IMM, IF, THEN, COMMA, WDS, S08, S09       //  0 ->  8
 };
 
+void push(cell x) { stk[++sp].i = x; }
+cell pop() { return (0<sp) ? stk[sp--].i : 0; }
 DE_T *addWord(const char *wd);
 void store2(ushort *a, cell val) { *(cell*)(a) = val; }
 cell fetch2(ushort *a) { return *(cell*)(a); }
@@ -59,8 +62,10 @@ void words() {
     int n=0, t=0;
     for (int e=last-1; 0<=e; e--) {
         DE_T *de = (DE_T*)&dict[e];
-        printf("%s(%d/%d)\t", de->nm, (int)de->xt, (int)de->xt&0x7FF);
-        ++n; if (n%5==0) printf("\n");
+        printf("%s\t", de->nm);
+        //if (LASTPRIM < de->xt) printf("(%04X)\t", de->xt);
+        //else  printf("(%02X)\t", de->xt);
+        ++n; if (n%8==0) printf("\n");
     }
 }
 
@@ -69,7 +74,7 @@ void execSys() {
     switch (POP()) {
         case  BYE:   exit(0);
         RCASE COLON: addWord(0); state=1;
-        RCASE SEMI:  if (LPRIM<code[here-1]) { code[here-1] &= 0x07FF; }
+        RCASE SEMI:  if (LASTPRIM<code[here-1]) { code[here-1] &= 0x07FF; } // Tail-call
                      else { comma(EXIT); }
                      state = 0;
         RCASE IMM:   makeImm();
@@ -87,44 +92,45 @@ void Exec(int start) {
 	pc = start;
     next:
     wc = code[pc++];
+    if (LASTPRIM < wc) {
+        if (wc & 0x8000) { rstk[++rsp].i = pc; }
+        pc = (wc & 0x7FFF);
+        goto next;
+    }
     switch(wc) {
-    case  STOP:  return;
-    NCASE LIT1:  PUSH(code[pc++]);
-    NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
-    NCASE EXIT:  if (rsp) { pc = rstk[rsp--].i; } else { return; }
-    NCASE DUP:   t=TOS; PUSH(t);
-    NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
-    NCASE DROP:  --sp; CheckSP;
-    NCASE FOR:   lsp+=3; L2=pc; L1=POP(); L0=0;
-    NCASE INDEX: PUSH(L0);
-    NCASE NEXT:  if (++L0<L1) { pc=L2; } else { lsp-=3; } if (lsp<0) lsp=0;
-    NCASE AND:   t = POP(); TOS &= t;
-    NCASE OR:    t = POP(); TOS |= t;
-    NCASE XOR:   t = POP(); TOS ^= t;
-    NCASE ADD:   t = POP(); TOS += t;
-    NCASE SUB:   t = POP(); TOS -= t;
-    NCASE MUL:   t = POP(); TOS *= t;
-    NCASE DIV:   t = POP(); TOS /= t;
-    NCASE LT:    t = POP(); TOS = (TOS < t);
-    NCASE EQ:    t = POP(); TOS = (TOS == t);
-    NCASE GT:    t = POP(); TOS = (TOS > t);
-    NCASE CLK:   PUSH(clock());
-    NCASE OVER : t = NOS; PUSH(t);
-    NCASE JMP:   pc=code[pc];
-    NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
-    NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
-    NCASE EMIT:  printf("%c", (char)POP());
-    NCASE DOT:   printf("%ld", POP()); CheckSP;
-    NCASE FET:   TOS = code[TOS];
-    NCASE STO:   code[TOS] = (short)NOS; sp-=2; CheckSP;
-    NCASE P29:
-    NCASE P30:
-    NCASE SYS:   execSys();
-    default: {
-            if (wc & 0x8000) { rstk[++rsp].i = pc; }
-            pc = (wc & 0x7FFF );
-            goto next;
-        }
+        case  STOP:  return;
+        NCASE LIT1:  PUSH(code[pc++]);
+        NCASE LIT2:  PUSH(fetch2(&code[pc])); pc += sizeof(cell)/2;
+        NCASE EXIT:  if (rsp) { pc = rstk[rsp--].i; } else { return; }
+        NCASE DUP:   t=TOS; PUSH(t);
+        NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
+        NCASE DROP:  --sp; CheckSP;
+        NCASE FOR:   lsp+=3; L2=pc; L1=POP(); L0=0;
+        NCASE INDEX: PUSH(L0);
+        NCASE NEXT:  if (++L0<L1) { pc=L2; } else { lsp-=3; } if (lsp<0) lsp=0;
+        NCASE AND:   t = POP(); TOS &= t;
+        NCASE OR:    t = POP(); TOS |= t;
+        NCASE XOR:   t = POP(); TOS ^= t;
+        NCASE ADD:   t = POP(); TOS += t;
+        NCASE SUB:   t = POP(); TOS -= t;
+        NCASE MUL:   t = POP(); TOS *= t;
+        NCASE DIV:   t = POP(); TOS /= t;
+        NCASE LT:    t = POP(); TOS = (TOS < t);
+        NCASE EQ:    t = POP(); TOS = (TOS == t);
+        NCASE GT:    t = POP(); TOS = (TOS > t);
+        NCASE CLK:   PUSH(clock());
+        NCASE OVER : t = NOS; PUSH(t);
+        NCASE JMP:   pc=code[pc];
+        NCASE JMPZ:  if (POP()==0) { pc=code[pc]; } else { ++pc; }
+        NCASE JMPNZ: if (POP()) { pc=code[pc]; } else { ++pc; }
+        NCASE EMIT:  printf("%c", (char)POP());
+        NCASE DOT:   printf("%ld", POP()); CheckSP;
+        NCASE FET:   TOS = code[TOS];
+        NCASE STO:   code[TOS] = (short)NOS; sp-=2; CheckSP;
+        NCASE P29:
+        NCASE P30:
+        NCASE SYS:   execSys();
+        goto next;
     }
 }
 
@@ -211,7 +217,7 @@ int parseWord(char *w) {
     if (de) {
         if (de->fl == 1) {   // IMMEDIATE
             int h = here+100;
-            code[h]=de->xt;
+            code[h]   = de->xt;
             code[h+1] = EXIT;
             Exec(h);
         } else {
@@ -319,7 +325,7 @@ void Init() {
     for (int t=0; t<CODE_SZ; t++) { code[t]=0; }
     sp = rsp = lsp = state = last = 0;
     base = 10;
-    here = LPRIM+1;
+    here = LASTPRIM+1;
     baseSys();
 }
 
