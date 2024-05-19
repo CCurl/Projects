@@ -5,7 +5,7 @@
 
 #define CODE_SZ       0x7FFF
 #define VARS_SZ       0xFFFF
-#define DICT_SZ        65536
+#define DICT_SZ        65535
 #define LASTPRIM         BYE
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
@@ -40,7 +40,7 @@ typedef union { double f; cell i; } SE_T;
 typedef struct { ushort xt; byte fl, lex, ln; char nm[32]; } DE_T;
 
 SE_T stk[STK_SZ], rstk[STK_SZ];
-byte dict[DICT_SZ];
+byte dict[DICT_SZ+1];
 byte vars[VARS_SZ];
 static ushort sp, rsp, lsp;
 cell lstk[60];
@@ -152,7 +152,8 @@ void strCpy(char *d, const char *s) {
     *(d) = 0;
 }
 
-DE_T *addWord2(const char *w) {
+DE_T *addWord(const char *w) {
+    printf("-wd-add:%s-\n", w);
     int ln = strLen(w);
     int sz = ln + 6;
     while (sz&3) { ++sz; }
@@ -163,14 +164,17 @@ DE_T *addWord2(const char *w) {
     dp->lex = 0;
     dp->ln = ln;
     strCpy(dp->nm, w);
+    printf("-wd:%s,%d (%d)-\n", dp->nm, here, dp->xt);
+    return dp;
 }
 
-DE_T *findWord2(const char *w) {
+DE_T *findWord(const char *w) {
     if (!w) { nextWord(); w=wd; }
     int wdLen = strLen(w);
     int lw = last;
-    DE_T *dp = (DE_T*)&dict[lw];
-    while (dp < &dict[DICT_SZ]) {
+    while (lw < DICT_SZ) {
+        DE_T *dp = (DE_T*)&dict[lw];
+        printf("-fw:%s,(%s)-", w, dp->nm);
         if ((wdLen==dp->ln) && strEqI(dp->nm, w)) { return dp; }
         lw += dp->ln + 6;
     }
@@ -178,7 +182,7 @@ DE_T *findWord2(const char *w) {
     return (DE_T*)0;
 }
 
-DE_T *addWord(const char *w) {
+DE_T *addWord2(const char *w) {
     if (!w) { nextWord(); w=wd; }
     int l = strLen(w);
     if (l==0) return (DE_T*)0;
@@ -189,11 +193,10 @@ DE_T *addWord(const char *w) {
     de->ln = l;
     for (int i = 0; i < l; i++) { de->nm[i] = w[i]; }
     de->nm[l]=0;
-    // printf("-wd:%s,%d (%d)-", de->nm, here, de->xt);
     return de;
 }
 
-DE_T *findWord(const char *w) {
+DE_T *findWord2(const char *w) {
     if (!w) { nextWord(); w=wd; }
     int l = strLen(w);
     for (int e=last-1; 0<=e; e--) {
@@ -347,8 +350,8 @@ void baseSys() {
     parseLine(": 1+ 1 + ;");
     parseLine(": space 32 emit ; : . (.) space ;");
     parseLine(": cr 13 emit 10 emit ;");
-    parseLine(": s  8 @ ; : >s  8 ! ; : s+ s dup 1+ >s ;");
-    parseLine(": d 16 @ ; : >d 16 ! ; : d+ d dup 1+ >d ;");
+    parseLine(": s  8 @C ; : >s  8 !C ; : s+ s dup 1+ >s ;");
+    parseLine(": d  9 @C ; : >d  9 !C ; : d+ d dup 1+ >d ;");
 }
 
 void Init() {
