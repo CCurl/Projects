@@ -1,5 +1,5 @@
 : NIP SWAP DROP ;
-: .code HERE FOR I (.) ': EMIT SPACE I @C . CR NEXT ;
+: .code HERE FOR I (.) ':' EMIT SPACE I @C . CR NEXT ;
 : elapsed timer swap - . ;
 : mil 1000 dup * * ;
 : T0 100 drop ;
@@ -9,4 +9,3 @@
 : bm3 timer swap fib . elapsed ;
 : go  500 mil bm1 cr  250 mil bm2 cr  35 bm3 cr ;
 go
-bye

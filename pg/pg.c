@@ -5,7 +5,7 @@
 
 #define CODE_SZ       0x7FFF
 #define VARS_SZ       0xFFFF
-#define DICT_SZ        65535
+#define DICT_SZ       0x7FFF
 #define LASTPRIM         BYE
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
@@ -19,6 +19,7 @@
 #define vhere         code[2]
 #define base          code[3]
 #define state         code[4]
+#define lex           code[5]
 #define TOS           stk[sp].i
 #define NOS           stk[sp-1].i
 #define PUSH(x)       push(x)
@@ -28,16 +29,18 @@
 #define L2            lstk[lsp-2]
 
 #if __LONG_MAX__ > __INT32_MAX__
-#define CELL_SZ 8
+#define CELL_SZ   8
+#define FLT_T     double
 #else
-#define CELL_SZ 4
+#define CELL_SZ   4
+#define FLT_T     float
 #endif
 
 typedef long cell;
 typedef unsigned short ushort;
 typedef unsigned char byte;
-typedef union { double f; cell i; } SE_T;
-typedef struct { ushort xt; byte fl, lex, ln; char nm[32]; } DE_T;
+typedef union { FLT_T f; cell i; } SE_T;
+typedef struct { ushort nxt, xt; byte fl, lx, ln; char nm[32]; } DE_T;
 
 SE_T stk[STK_SZ], rstk[STK_SZ];
 byte dict[DICT_SZ+1];
@@ -63,14 +66,15 @@ cell fetch2(byte *a) { return *(cell*)(a); }
 void makeImm() { DE_T *dp = (DE_T*)&dict[last]; dp->fl=1; }
 
 void words() {
-    DE_T *dp = (DE_T*)&dict[last];
-    int n=0, t=0;
-    for (int e=last-1; 0<=e; e--) {
-        DE_T *de = (DE_T*)&dict[e];
+    int cw = last;
+    int n=0;
+    while (cw < DICT_SZ) {
+        DE_T *de = (DE_T*)&dict[cw];
         printf("%s ", de->nm);
-        if (LASTPRIM < de->xt) printf("(%04X)\t", de->xt & 0x7FFF);
-        else  printf("(%02X)\t", de->xt);
+        if (LASTPRIM < de->xt) printf("(%d)\t", de->xt & 0x7FFF);
+        else  printf("(%d:%d)\t", de->xt, de->fl);
         ++n; if (n%8==0) printf("\n");
+        cw = de->nxt;
     }
 }
 
@@ -89,7 +93,7 @@ void Exec(int start) {
         NCASE DROP:  pop();
         NCASE FOR:   lsp+=3; L2=pc; L1=POP(); L0=0;
         NCASE INDEX: PUSH(L0);
-        NCASE NEXT:  if (++L0<L1) { pc=(ushort)L2; } else { lsp-=3; } if (lsp<0) lsp=0;
+        NCASE NEXT:  if (++L0<L1) { pc=(ushort)L2; } else { lsp-=3; if (lsp<0) lsp=0; }
         NCASE AND:   t = POP(); TOS &= t;
         NCASE OR:    t = POP(); TOS |= t;
         NCASE XOR:   t = POP(); TOS ^= t;
@@ -153,67 +157,45 @@ void strCpy(char *d, const char *s) {
 }
 
 DE_T *addWord(const char *w) {
-    printf("-wd-add:%s-\n", w);
+    if (!w) { nextWord(); w=wd; }
     int ln = strLen(w);
-    int sz = ln + 6;
+    int sz = ln + 8;
     while (sz&3) { ++sz; }
-    last -= sz;
-    DE_T *dp = (DE_T*)&dict[last];
-    dp->xt = here;
+    ushort newLast = last - sz;
+    DE_T *dp = (DE_T*)&dict[newLast];
+    dp->nxt = last;
+    dp->xt = here | 0x8000;
     dp->fl = 0;
-    dp->lex = 0;
+    dp->lx = lex;
     dp->ln = ln;
     strCpy(dp->nm, w);
-    printf("-wd:%s,%d (%d)-\n", dp->nm, here, dp->xt);
+    last = newLast;
+    // printf("\n-add:%d,[%s],%d (%d)-", last, dp->nm, here, dp->xt&0x7FFF);
     return dp;
 }
 
 DE_T *findWord(const char *w) {
     if (!w) { nextWord(); w=wd; }
+    // printf("\n-fw:(%s)-", w);
     int wdLen = strLen(w);
-    int lw = last;
-    while (lw < DICT_SZ) {
-        DE_T *dp = (DE_T*)&dict[lw];
-        printf("-fw:%s,(%s)-", w, dp->nm);
-        if ((wdLen==dp->ln) && strEqI(dp->nm, w)) { return dp; }
-        lw += dp->ln + 6;
+    int cw = last;
+    while (cw < DICT_SZ) {
+        DE_T *dp = (DE_T*)&dict[cw];
+        // printf("-%d,(%s)-", cw, dp->nm);
+        if (strEqI(dp->nm, w)) { return dp; }
+        cw = dp->nxt;
     }
-
-    return (DE_T*)0;
-}
-
-DE_T *addWord2(const char *w) {
-    if (!w) { nextWord(); w=wd; }
-    int l = strLen(w);
-    if (l==0) return (DE_T*)0;
-    if (l>27) { l=27; }
-    DE_T *de=(DE_T*)&dict[last++];
-    de->xt = here | 0x8000;
-    de->fl = 0;
-    de->ln = l;
-    for (int i = 0; i < l; i++) { de->nm[i] = w[i]; }
-    de->nm[l]=0;
-    return de;
-}
-
-DE_T *findWord2(const char *w) {
-    if (!w) { nextWord(); w=wd; }
-    int l = strLen(w);
-    for (int e=last-1; 0<=e; e--) {
-        DE_T *de = (DE_T*)&dict[e];
-        if ((l==de->ln) && strEqI(de->nm, w)) { return de; }
-    }
-
     return (DE_T*)0;
 }
 
 int isNum(const char *w, int b) {
     cell n=0, isNeg=0;
-    if ((w[0]==39) && (w[2]==0)) { PUSH(w[1]); return 1; }
-    if (w[0]=='%') { b=2; RetIf0; }
-    if (w[0]=='#') { b=10; RetIf0; }
-    if (w[0]=='$') { b=16; RetIf0; }
-    if ((b==10) && (w[0]=='-')) { isNeg=1; RetIf0; }
+    if ((w[0]==39) && (w[2]==39) && (w[3]==0)) { PUSH(w[1]); return 1; }
+    if (w[0]=='%') { b= 2; ++w; }
+    if (w[0]=='#') { b=10; ++w; }
+    if (w[0]=='$') { b=16; ++w; }
+    if ((b==10) && (w[0]=='-')) { isNeg=1; ++w; }
+    if (w[0]==0) { return 0; }
     char c = *(w++);
     while (c) {
         n = (n*b);
