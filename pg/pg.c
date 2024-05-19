@@ -5,7 +5,7 @@
 
 #define CODE_SZ       0x7FFF
 #define VARS_SZ       0xFFFF
-#define DICT_SZ       0x7FFF
+#define DICT_SZ       0xFFF0
 #define LASTPRIM         BYE
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
@@ -55,7 +55,7 @@ enum {
     AND, OR, XOR, ADD, SUB, MUL, DIV, LT, EQ, GT,              
     CLK, OVER, JMP, JMPZ, JMPNZ, EMIT, DOT, FET, CFET, FETC, STO, CSTO, STOC,
     COLON, SEMI, IMM, IF, THEN, COMMA, WDS,
-    BYE
+    CREATE, BYE
 };
 
 DE_T *addWord(const char *wd);
@@ -126,6 +126,7 @@ void Exec(int start) {
         NCASE THEN : code[POP()] = here;
         NCASE COMMA : comma((ushort)POP());
         NCASE WDS : words();
+        NCASE CREATE: { byte *b=(byte*)addWord(0); PUSH(b-dict); }
         NCASE BYE:   exit(0);
         default:
             if (LASTPRIM < wc) {
@@ -316,8 +317,11 @@ void baseSys() {
     addPrim("THEN",  THEN)->fl = 1;
     addPrim(",",     COMMA);
     addPrim("WORDS", WDS);
+    addPrim("CREATE", CREATE)->fl = 1;
     addPrim("BYE",   BYE);
 
+    addWord("CELL");
+    comma(LIT1); comma(CELL_SZ); comma(EXIT);
     parseLine(": (HERE)  0 ; : HERE  (HERE)  @C ;");
     parseLine(": (LAST)  1 ; : LAST  (LAST)  @C ;");
     parseLine(": (VHERE) 2 ; : VHERE (VHERE) @C ;");
