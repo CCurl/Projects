@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <time.h>
 
 #define CODE_SZ       0x7FFF
 #define VARS_SZ       0xFFFF
-#define DICT_SZ         8192
+#define DICT_SZ        65536
 #define LASTPRIM         BYE
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
@@ -26,19 +27,25 @@
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
 
+#if __LONG_MAX__ > __INT32_MAX__
+#define CELL_SZ 8
+#else
+#define CELL_SZ 4
+#endif
+
 typedef long cell;
 typedef unsigned short ushort;
 typedef unsigned char byte;
 typedef union { double f; cell i; } SE_T;
-typedef struct { ushort xt; byte fl; byte ln; char nm[28]; } DE_T;
+typedef struct { ushort xt; byte fl, lex, ln; char nm[32]; } DE_T;
 
 SE_T stk[STK_SZ], rstk[STK_SZ];
-DE_T dict[DICT_SZ];
+byte dict[DICT_SZ];
+byte vars[VARS_SZ];
 static ushort sp, rsp, lsp;
 cell lstk[60];
 static char tib[128];
 static ushort pc, wc, code[CODE_SZ+1];
-byte vars[VARS_SZ];
 
 enum {
     STOP, LIT1, LIT2, EXIT, DUP, SWAP, DROP, FOR, INDEX, NEXT,
@@ -53,13 +60,14 @@ void push(cell x) { stk[++sp].i = x; }
 cell pop() { return (0<sp) ? stk[sp--].i : 0; }
 void store2(byte *a, cell val) { *(cell*)(a) = val; }
 cell fetch2(byte *a) { return *(cell*)(a); }
-void makeImm() { dict[last-1].fl=1; }
+void makeImm() { DE_T *dp = (DE_T*)&dict[last]; dp->fl=1; }
 
 void words() {
+    DE_T *dp = (DE_T*)&dict[last];
     int n=0, t=0;
     for (int e=last-1; 0<=e; e--) {
         DE_T *de = (DE_T*)&dict[e];
-        printf("%s\t", de->nm);
+        printf("%s ", de->nm);
         if (LASTPRIM < de->xt) printf("(%04X)\t", de->xt & 0x7FFF);
         else  printf("(%02X)\t", de->xt);
         ++n; if (n%8==0) printf("\n");
@@ -139,20 +147,32 @@ int strEqI(const char *s, const char *d) {
     while (lower(*s) == lower(*d)) { if (*s==0) { return 1; } s++; d++; }
     return 0;
 }
+void strCpy(char *d, const char *s) {
+    while (*s) { *(d++) = *(s++); }
+    *(d) = 0;
+}
 
 DE_T *addWord2(const char *w) {
-    int l = strLen(w);
-    int sz = 2 + 4 + l;
+    int ln = strLen(w);
+    int sz = ln + 6;
     while (sz&3) { ++sz; }
-    DE_T *dp = ();
+    last -= sz;
+    DE_T *dp = (DE_T*)&dict[last];
+    dp->xt = here;
+    dp->fl = 0;
+    dp->lex = 0;
+    dp->ln = ln;
+    strCpy(dp->nm, w);
 }
 
 DE_T *findWord2(const char *w) {
     if (!w) { nextWord(); w=wd; }
-    int l = strLen(w);
-    for (int e=last-1; 0<=e; e--) {
-        DE_T *de = (DE_T*)&dict[e];
-        if ((l==de->ln) && strEqI(de->nm, w)) { return de; }
+    int wdLen = strLen(w);
+    int lw = last;
+    DE_T *dp = (DE_T*)&dict[lw];
+    while (dp < &dict[DICT_SZ]) {
+        if ((wdLen==dp->ln) && strEqI(dp->nm, w)) { return dp; }
+        lw += dp->ln + 6;
     }
 
     return (DE_T*)0;
@@ -333,7 +353,8 @@ void baseSys() {
 
 void Init() {
     for (int t=0; t<CODE_SZ; t++) { code[t]=0; }
-    sp = rsp = lsp = state = last = 0;
+    sp = rsp = lsp = state = 0;
+    last = DICT_SZ;
     base = 10;
     here = LASTPRIM+1;
     baseSys();
