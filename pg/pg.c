@@ -313,8 +313,8 @@ void baseSys() {
     addPrim(":",     COLON)->fl = 1;
     addPrim(";",     SEMI)->fl = 1;
     addPrim("IMMEDIATE", IMM)->fl = 1;
-    addPrim("IF",    IF)->fl = 1;
-    addPrim("THEN",  THEN)->fl = 1;
+    //addPrim("IF",    IF)->fl = 1;
+    //addPrim("THEN",  THEN)->fl = 1;
     addPrim(",",     COMMA);
     addPrim("WORDS", WDS);
     addPrim("CREATE", CREATE)->fl = 1;
@@ -333,6 +333,8 @@ void baseSys() {
     parseLine(": AGAIN JMP, , ; IMMEDIATE");
     parseLine(": WHILE JMPNZ, , ; IMMEDIATE");
     parseLine(": UNTIL JMPZ, , ; IMMEDIATE");
+    parseLine(": IF JMPZ, HERE 0 , ; IMMEDIATE");
+    parseLine(": THEN HERE SWAP !C ; IMMEDIATE");
     parseLine(": 1+ 1 + ;");
     parseLine(": space 32 emit ; : . (.) space ;");
     parseLine(": cr 13 emit 10 emit ;");
