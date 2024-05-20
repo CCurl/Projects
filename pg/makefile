@@ -23,7 +23,7 @@ clean:
 	rm -f $(app) $(app32)
 
 test: $(app)
-	./$(app) test1.txt
+	./$(app) test.wc
 
 bin: $(app)
 	cp -u -p $(app) ~/.local/bin/
