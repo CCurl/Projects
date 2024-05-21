@@ -210,6 +210,7 @@ int findPrevXT(int xt) {
 void doSee() {
     DE_T* dp = findWord(0);
     if (!dp) { printf("-nf:%s-", wd); return; }
+    if (dp->xt < LASTPRIM) { printf("%s is a primitive (%d).\n", wd, dp->xt); return; }
     char desc[64];
     int stop = findPrevXT(dp->xt)-1;
     printf("; %s (%04lx to %04x)\n", dp->nm, dp->xt, stop);

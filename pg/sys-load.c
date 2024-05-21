@@ -22,7 +22,6 @@ void sys_load() {
     parseLine(": UNTIL JMPZ, , ; IMMEDIATE");
     parseLine(": IF JMPZ, HERE 0 , ; IMMEDIATE");
     parseLine(": THEN HERE SWAP !C ; IMMEDIATE");
-    parseLine(": 1+ 1 + ;");
     parseLine(": SPACE 32 EMIT ; : . (.) SPACE ;");
     parseLine(": CR 13 EMIT 10 EMIT ; : TAB 9 EMIT ;");
     parseLine(": >XT     W@ ;");
