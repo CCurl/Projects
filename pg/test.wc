@@ -4,6 +4,9 @@ here
 here swap do i @C . loop cr
 0 test-if 1 test-if
 
+cr 10 begin dup . 1- dup      while drop
+cr  0 begin dup . 1+ dup 10 = until drop
+
 : .code HERE 0 do I (.) ':' EMIT SPACE I @C . CR loop ;
 : elapsed timer swap - . ;
 : mil 1000 dup * * ;
