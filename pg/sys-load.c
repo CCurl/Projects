@@ -32,6 +32,9 @@ void sys_load() {
     parseLine(": >NAME   5 + ;");
     parseLine(": TYPE 0 DO DUP C@ EMIT 1+ LOOP DROP ;");
     parseLine(": COUNT DUP 1 + SWAP C@ ;");
-    parseLine(": WORDS LAST DICT-ADDR BEGIN DUP >NAME COUNT TYPE TAB DUP >SIZE + DUP DICT-SZ DICT-ADDR < WHILE DROP ;");
-    parseLine("CELL ALLOT");
-}
+    parseLine(": WORDS 0 +a LAST DICT-ADDR BEGIN");
+    parseLine("    DUP >NAME COUNT TYPE TAB");
+    parseLine("    A 1+ >A  A 8 > IF CR 0 >A THEN");
+    parseLine("    DUP >SIZE + DUP DICT-SZ DICT-ADDR <");
+    parseLine("  WHILE -a DROP ;");
+} 

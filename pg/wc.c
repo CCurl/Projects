@@ -54,19 +54,65 @@ static char tib[128];
 static ushort pc, wc, code[CODE_SZ+1];
 
 enum {
-    STOP, LIT1, LIT2, EXIT,
-    DUP, SWAP, DROP, OVER,
-    FET, CFET, WFET, STO, CSTO, WSTO,
-    AND, OR, XOR,
-    ADD, SUB, MUL, DIV, INC, DEC,
-    LT, EQ, GT,              
+    STOP, LIT1, LIT2,
     JMP, JMPZ, JMPNZ,
-    EMIT, DOT,
-    DO, INDEX, LOOP,
-    TOR, RAT, RFROM,
-    COLON, SEMI, IMM, COMMA, CREATE, WDS,
-    ANEW, ASET, AGET, AFREE,
-    CLK, BYE
+    IMM, COMMA, CREATE, WDS,
+};
+
+typedef struct { const char *name; short op; short imm; } PRIM_T;
+
+#define PRIMS \
+    X(EXIT,   "EXIT",  0) \
+    X(DUP,    "DUP",   0) \
+    X(SWAP,   "SWAP",  0) \
+    X(DROP,   "DROP",  0) \
+    X(OVER,   "OVER",  0) \
+    X(FET,    "@",     0) \
+    X(CFET,   "C@",    0) \
+    X(WFET,   "W@",    0) \
+    X(STO,    "!",     0) \
+    X(CSTO,   "C!",    0) \
+    X(WSTO,   "W!",    0) \
+    X(ADD,    "+",     0) \
+    X(SUB,    "-",     0) \
+    X(MUL,    "*",     0) \
+    X(DIV,    "/",     0) \
+    X(INC,    "1+",    0) \
+    X(DEC,    "1-",    0) \
+    X(LT,     "<",     0) \
+    X(EQ,     "=",     0) \
+    X(GT,     ">",     0) \
+    X(AND,    "AND",   0) \
+    X(OR,     "OR",    0) \
+    X(XOR,    "XOR",   0) \
+    X(DO,     "DO",    0) \
+    X(INDEX,  "I",     0) \
+    X(LOOP,   "LOOP",  0) \
+    X(ANEW,   "+A",    0) \
+    X(AGET,   "A",     0) \
+    X(ASET,   ">A",    0) \
+    X(AFREE,  "-A",    0) \
+    X(TOR,    ">R",    0) \
+    X(RAT,    "R@",    0) \
+    X(RFROM,  "R>",    0) \
+    X(EMIT,   "EMIT",  0) \
+    X(DOT,    "(.)",   0) \
+    X(COLON,  ":",     1) \
+    X(SEMI,   ";",     1) \
+    X(BYE,    "BYE",   0)
+
+#define X(op, name, imm) op,
+enum _PRIM  {
+    CLK = WDS+1,
+    PRIMS
+};
+
+#undef X
+#define X(op, name, imm) { name, op, imm },
+
+PRIM_T prims[] = {
+    PRIMS
+    {0, 0, 0 }
 };
 
 // +A >A A 1+ >A -A
@@ -86,6 +132,14 @@ cell fetchWord(cell a) { return *(ushort*)(a); }
 void commaCell(cell n) {
     storeCell((cell)&code[here], n);
     here += sizeof(cell)/2;
+}
+
+void loadPrims() {
+    for (int i = 0; prims[i].name; i++) {
+        DE_T *w = addWord(prims[i].name);
+        w->xt = prims[i].op;
+        w->fl = prims[i].imm;
+    }
 }
 
 void words() {
@@ -314,49 +368,12 @@ void parseF(const char* fmt, ...) {
 }
 
 void baseSys() {
-    addPrim("EXIT",  EXIT);
-    addPrim("DUP",   DUP);
-    addPrim("SWAP",  SWAP);
-    addPrim("OVER",  OVER);
-    addPrim("DROP",  DROP);
-    addPrim("DO",    DO);
-    addPrim("I",     INDEX);
-    addPrim("LOOP",  LOOP);
-    addPrim("AND",   AND);
-    addPrim("OR",    OR);
-    addPrim("XOR",   XOR);
-    addPrim(">R",    TOR);
-    addPrim("R@",    RAT);
-    addPrim("R>",    RFROM);
-    addPrim("EMIT",  EMIT);
-    addPrim("(.)",   DOT);
-    addPrim("+",     ADD);
-    addPrim("-",     SUB);
-    addPrim("*",     MUL);
-    addPrim("/",     DIV);
-    addPrim("1+",    INC);
-    addPrim("1-",    DEC);
-    addPrim("<",     LT);
-    addPrim("=",     EQ);
-    addPrim(">",     GT);
     addPrim("TIMER", CLK);
-    addPrim("@",     FET);
-    addPrim("C@",    CFET);
-    addPrim("W@",    WFET);
-    addPrim("!",     STO);
-    addPrim("C!",    CSTO);
-    addPrim("W!",    WSTO);
-    addPrim(":",     COLON)->fl = 1;
-    addPrim(";",     SEMI)->fl = 1;
     addPrim("IMMEDIATE", IMM)->fl = 1;
     addPrim(",",     COMMA);
     addPrim("WORDS-DBG", WDS);
     addPrim("CREATE", CREATE);
-    addPrim("+A", ANEW);
-    addPrim("A", AGET);
-    addPrim(">A", ASET);
-    addPrim("-A", AFREE);
-    addPrim("BYE",   BYE);
+    loadPrims();
 
     parseF(addrFmt, "CODE", &code[0]);
     parseF(addrFmt, "VARS", &vars[0]);
@@ -400,23 +417,3 @@ int main(int argc, char *argv[]) {
     while (1) { fp = REP(fp); }; // REPL
     return 0;
 }
-/*
-typedef struct { const char *name; short op; short imm; } PRIM_T;
-
-// Words that directly map to VM operations
-PRIM_T prims[] = {
-    { "+a", ANEW, 0 }, { "a", AGET, 0 }, { ">a", ASET, 0 }, { "-a", AFREE, 0 },
-    {0, 0, 0 }
-};
-    PRIM_T *x = prims;
-    for (int i = 0; prims[i].op; i++) {
-        if (strEqI(prims[i].name, wd)) { vml = prims[i].op; }
-    }
-    while (x->name) {
-        DE_T *w = addWord(x->name);
-        w->xt = x->op;
-        if (x->imm) { w->flg = 1; }
-        ++x;
-    }
-
-*/

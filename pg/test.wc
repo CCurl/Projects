@@ -15,4 +15,5 @@ here swap do i @C . loop cr
 : bm3 timer swap 0 do T1 loop elapsed ;
 : bm4 timer swap fib . elapsed ;
 : go  cr 500 mil bm1 cr  100 mil bm2 cr  100 mil bm3 cr  35 bm4 cr ;
-go
+go cr
+words
