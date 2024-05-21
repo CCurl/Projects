@@ -50,10 +50,10 @@ byte vars[VARS_SZ];
 cell aStk[STK_SZ];
 ushort sp, rsp, lsp, aSp;
 cell lstk[60], rstk[STK_SZ];
-char tib[128];
+char tib[128], wd[32], * toIn;
 ushort pc, wc, code[CODE_SZ+1];
 
-typedef struct { const char *name; short op; short imm; } PRIM_T;
+typedef struct { const char *name; short op; byte imm; } PRIM_T;
 
 #define PRIMS \
     X(EXIT,   "EXIT",    0) \
@@ -97,6 +97,7 @@ typedef struct { const char *name; short op; short imm; } PRIM_T;
     X(CREATE, "CREATE",  0) \
     X(COMMA,  ",",       0) \
     X(CLK,    "TIMER",   0) \
+    X(SEE,    "SEE",     1) \
     X(BYE,    "BYE",     0)
 
 #define X(op, name, imm) op,
@@ -115,8 +116,6 @@ PRIM_T prims[] = {
     {0, 0, 0 }
 };
 
-DE_T *addWord(const char *wd);
-
 void sys_load();
 void push(cell x) { stk[++sp].i = x; }
 cell pop() { return (0<sp) ? stk[sp--].i : 0; }
@@ -127,10 +126,107 @@ void storeCell(cell a, cell val) { *(cell*)(a) = val; }
 void storeWord(cell a, cell val) { *(ushort*)(a) = (ushort)val; }
 cell fetchCell(cell a) { return *(cell*)(a); }
 cell fetchWord(cell a) { return *(ushort*)(a); }
+int lower(char c) { return btwi(c, 'A', 'Z') ? c + 32 : c; }
+int strLen(const char* s) { int l = 0; while (s[l]) { l++; } return l; }
+
+int strEqI(const char* s, const char* d) {
+    while (lower(*s) == lower(*d)) { if (*s == 0) { return 1; } s++; d++; }
+    return 0;
+}
+
+void strCpy(char* d, const char* s) {
+    while (*s) { *(d++) = *(s++); }
+    *(d) = 0;
+}
 
 void commaCell(cell n) {
     storeCell((cell)&code[here], n);
-    here += sizeof(cell)/2;
+    here += sizeof(cell) / 2;
+}
+
+int nextWord() {
+    int l = 0;
+    while (btwi(*toIn, 1, 32)) { ++toIn; }
+    while (btwi(*toIn, 33, 126)) { wd[l++] = *(toIn++); }
+    wd[l] = 0;
+    return l;
+}
+
+DE_T* addWord(const char* w) {
+    if (!w) { nextWord(); w = wd; }
+    int ln = strLen(w);
+    int sz = ln + 7;
+    if (sz & 1) { ++sz; }
+    ushort newLast = last - sz;
+    DE_T* dp = (DE_T*)&dict[newLast];
+    dp->sz = sz;
+    dp->xt = here;
+    dp->fl = 0;
+    dp->lx = (byte)lex;
+    dp->ln = ln;
+    strCpy(dp->nm, w);
+    last = newLast;
+    // printf("\n-add:%d,[%s],%d (%d)-", last, dp->nm, here, dp->xt);
+    return dp;
+}
+
+DE_T* findWord(const char* w) {
+    if (!w) { nextWord(); w = wd; }
+    // printf("\n-fw:(%s)-", w);
+    int len = strLen(w);
+    int cw = last;
+    while (cw < DICT_SZ) {
+        DE_T* dp = (DE_T*)&dict[cw];
+        // printf("-%d,(%s)-", cw, dp->nm);
+        if ((len == dp->ln) && strEqI(dp->nm, w)) { return dp; }
+        cw += dp->sz;
+    }
+    return (DE_T*)0;
+}
+
+int findXT(int xt) {
+    int cw = last;
+    while (cw < DICT_SZ) {
+        DE_T* dp = (DE_T*)&dict[cw];
+        // printf("-%d,(%s)-", cw, dp->nm);
+        if (dp->xt == xt) { return cw; }
+        cw += dp->sz;
+    }
+    return 0;
+}
+
+int findPrevXT(int xt) {
+    int prevXT = 0;
+    int cw = last;
+    while (cw < DICT_SZ) {
+        DE_T* dp = (DE_T*)&dict[cw];
+        if (dp->xt == xt) { return prevXT; }
+        prevXT = dp->xt;
+        cw += dp->sz;
+    }
+    return here;
+}
+
+void doSee() {
+    DE_T* dp = findWord(0);
+    if (!dp) { printf("-nf:%s-", wd); return; }
+    char desc[64];
+    int stop = findPrevXT(dp->xt)-1;
+    printf("; %s (%04lx to %04x)\n", dp->nm, dp->xt, stop);
+    int i = dp->xt;
+    while (i <= stop) {
+        int op = code[i++];
+        cell tgt = code[i];
+        printf("%04lx: %04lx", i-1, op);
+        if (op == LIT1)  { sprintf(desc, "LIT1 %d (%X)", tgt, tgt); i++; }
+        else if (op == LIT2) { cell x = fetchCell((cell)&code[i]); sprintf(desc, "LIT2 %d (%lX)", x, x); i += CELL_SZ/2; }
+        else if (op == JMP)   { sprintf(desc, "JMP %04lx", tgt);   i++; }
+        else if (op == JMPZ)  { sprintf(desc, "JMPZ %04lx", tgt);  i++; }
+        else if (op == JMPNZ) { sprintf(desc, "JMPNZ %04lx", tgt); i++; }
+        else if (op <= LASTPRIM) { tgt = findXT(op); sprintf(desc, "%s", ((DE_T*)&dict[(ushort)tgt])->nm); }
+        else if (LASTPRIM < op)  { tgt = findXT(op); sprintf(desc, "%s", ((DE_T*)&dict[(ushort)tgt])->nm); }
+        printf(" ; %s\n",desc);
+    }
 }
 
 void Exec(int start) {
@@ -141,7 +237,7 @@ void Exec(int start) {
     switch(wc) {
         case  STOP:   return;
         NCASE LIT1:   push(code[pc++]);
-        NCASE LIT2:   push(fetchCell((cell)&code[pc])); pc += sizeof(cell)/2;
+        NCASE LIT2:   push(fetchCell((cell)&code[pc])); pc += CELL_SZ/2;
         NCASE EXIT:   if (0<rsp) { pc = (ushort)rpop(); } else { return; }
         NCASE DUP:    t=TOS; push(t);
         NCASE SWAP:   t=TOS; TOS=NOS; NOS=t;
@@ -185,63 +281,12 @@ void Exec(int start) {
         NCASE ANEW:   aStk[++aSp] = pop();
         NCASE ASET:   aStk[aSp] = pop();
         NCASE AGET:   push(aStk[aSp]);
-        NCASE AFREE:  if (0<aSp) --aSp;
+        NCASE AFREE : if (0 < aSp) --aSp;
+        NCASE SEE:    doSee();
         NCASE BYE:    exit(0);
         default:      if (code[pc] != EXIT) { rpush(pc); } pc = wc;
             goto next;
     }
-}
-
-char wd[32], *toIn;
-int nextWord() {
-    int l = 0;
-    while (btwi(*toIn,1,32)) { ++toIn; }
-    while (btwi(*toIn,33,126)) { wd[l++] = *(toIn++); }
-    wd[l] = 0;
-    return l;
-}
-
-int lower(char c) { return btwi(c,'A','Z') ? c+32 : c; }
-int strLen(const char *s) { int l=0; while (s[l]) { l++; } return l; }
-int strEqI(const char *s, const char *d) {
-    while (lower(*s) == lower(*d)) { if (*s==0) { return 1; } s++; d++; }
-    return 0;
-}
-void strCpy(char *d, const char *s) {
-    while (*s) { *(d++) = *(s++); }
-    *(d) = 0;
-}
-
-DE_T *addWord(const char *w) {
-    if (!w) { nextWord(); w=wd; }
-    int ln = strLen(w);
-    int sz = ln + 7;
-    if (sz&1) { ++sz; }
-    ushort newLast = last - sz;
-    DE_T *dp = (DE_T*)&dict[newLast];
-    dp->sz = sz;
-    dp->xt = here;
-    dp->fl = 0;
-    dp->lx = (byte)lex;
-    dp->ln = ln;
-    strCpy(dp->nm, w);
-    last = newLast;
-    // printf("\n-add:%d,[%s],%d (%d)-", last, dp->nm, here, dp->xt);
-    return dp;
-}
-
-DE_T *findWord(const char *w) {
-    if (!w) { nextWord(); w=wd; }
-    // printf("\n-fw:(%s)-", w);
-    int len = strLen(w);
-    int cw = last;
-    while (cw < DICT_SZ) {
-        DE_T *dp = (DE_T*)&dict[cw];
-        // printf("-%d,(%s)-", cw, dp->nm);
-        if ((len==dp->ln) && strEqI(dp->nm, w)) { return dp; }
-        cw += dp->sz;
-    }
-    return (DE_T*)0;
 }
 
 int isNum(const char *w, int b) {

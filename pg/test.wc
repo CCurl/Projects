@@ -17,6 +17,6 @@ cr  0 begin dup . 1+ dup 10 = until drop
 : bm2 timer swap 0 do T0 loop elapsed ;
 : bm3 timer swap 0 do T1 loop elapsed ;
 : bm4 timer swap fib . elapsed ;
-: go  cr 500 mil bm1 cr  100 mil bm2 cr  100 mil bm3 cr  35 bm4 cr ;
+: go  cr 500 mil bm1 cr  100 mil bm2 cr  10 mil bm3 cr  25 bm4 cr ;
 go cr
 words
