@@ -31,10 +31,11 @@ void sys_load() {
     parseLine(": >LEX    4 + C@ ;");
     parseLine(": >NAME   5 + ;");
     parseLine(": TYPE 0 DO DUP C@ EMIT 1+ LOOP DROP ;");
-    parseLine(": COUNT DUP 1 + SWAP C@ ;");
-    parseLine(": WORDS 0 +a LAST DICT-ADDR BEGIN");
+    parseLine(": COUNT DUP 1+ SWAP C@ ;");
+    parseLine(": A+ A DUP 1+ >A ;");
+    parseLine(": WORDS 0 +A LAST DICT-ADDR BEGIN");
     parseLine("    DUP >NAME COUNT TYPE TAB");
-    parseLine("    A 1+ >A  A 8 > IF CR 0 >A THEN");
+    parseLine("    A+ 8 > IF CR 0 >A THEN");
     parseLine("    DUP >SIZE + DUP DICT-SZ DICT-ADDR <");
-    parseLine("  WHILE -a DROP ;");
+    parseLine("  WHILE -A DROP ;");
 } 

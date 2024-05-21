@@ -48,62 +48,61 @@ SE_T stk[STK_SZ];
 byte dict[DICT_SZ+1];
 byte vars[VARS_SZ];
 cell aStk[STK_SZ];
-static ushort sp, rsp, lsp, aSp;
+ushort sp, rsp, lsp, aSp;
 cell lstk[60], rstk[STK_SZ];
-static char tib[128];
-static ushort pc, wc, code[CODE_SZ+1];
-
-enum {
-    STOP, LIT1, LIT2,
-    JMP, JMPZ, JMPNZ,
-    IMM, COMMA, CREATE, WDS,
-};
+char tib[128];
+ushort pc, wc, code[CODE_SZ+1];
 
 typedef struct { const char *name; short op; short imm; } PRIM_T;
 
 #define PRIMS \
-    X(EXIT,   "EXIT",  0) \
-    X(DUP,    "DUP",   0) \
-    X(SWAP,   "SWAP",  0) \
-    X(DROP,   "DROP",  0) \
-    X(OVER,   "OVER",  0) \
-    X(FET,    "@",     0) \
-    X(CFET,   "C@",    0) \
-    X(WFET,   "W@",    0) \
-    X(STO,    "!",     0) \
-    X(CSTO,   "C!",    0) \
-    X(WSTO,   "W!",    0) \
-    X(ADD,    "+",     0) \
-    X(SUB,    "-",     0) \
-    X(MUL,    "*",     0) \
-    X(DIV,    "/",     0) \
-    X(INC,    "1+",    0) \
-    X(DEC,    "1-",    0) \
-    X(LT,     "<",     0) \
-    X(EQ,     "=",     0) \
-    X(GT,     ">",     0) \
-    X(AND,    "AND",   0) \
-    X(OR,     "OR",    0) \
-    X(XOR,    "XOR",   0) \
-    X(DO,     "DO",    0) \
-    X(INDEX,  "I",     0) \
-    X(LOOP,   "LOOP",  0) \
-    X(ANEW,   "+A",    0) \
-    X(AGET,   "A",     0) \
-    X(ASET,   ">A",    0) \
-    X(AFREE,  "-A",    0) \
-    X(TOR,    ">R",    0) \
-    X(RAT,    "R@",    0) \
-    X(RFROM,  "R>",    0) \
-    X(EMIT,   "EMIT",  0) \
-    X(DOT,    "(.)",   0) \
-    X(COLON,  ":",     1) \
-    X(SEMI,   ";",     1) \
-    X(BYE,    "BYE",   0)
+    X(EXIT,   "EXIT",    0) \
+    X(DUP,    "DUP",     0) \
+    X(SWAP,   "SWAP",    0) \
+    X(DROP,   "DROP",    0) \
+    X(OVER,   "OVER",    0) \
+    X(FET,    "@",       0) \
+    X(CFET,   "C@",      0) \
+    X(WFET,   "W@",      0) \
+    X(STO,    "!",       0) \
+    X(CSTO,   "C!",      0) \
+    X(WSTO,   "W!",      0) \
+    X(ADD,    "+",       0) \
+    X(SUB,    "-",       0) \
+    X(MUL,    "*",       0) \
+    X(DIV,    "/",       0) \
+    X(INC,    "1+",      0) \
+    X(DEC,    "1-",      0) \
+    X(LT,     "<",       0) \
+    X(EQ,     "=",       0) \
+    X(GT,     ">",       0) \
+    X(AND,    "AND",     0) \
+    X(OR,     "OR",      0) \
+    X(XOR,    "XOR",     0) \
+    X(DO,     "DO",      0) \
+    X(INDEX,  "I",       0) \
+    X(LOOP,   "LOOP",    0) \
+    X(ANEW,   "+A",      0) \
+    X(AGET,   "A",       0) \
+    X(ASET,   ">A",      0) \
+    X(AFREE,  "-A",      0) \
+    X(TOR,    ">R",      0) \
+    X(RAT,    "R@",      0) \
+    X(RFROM,  "R>",      0) \
+    X(EMIT,   "EMIT",    0) \
+    X(DOT,    "(.)",     0) \
+    X(COLON,  ":",       1) \
+    X(SEMI,   ";",       1) \
+    X(IMM,  "IMMEDIATE", 1) \
+    X(CREATE, "CREATE",  0) \
+    X(COMMA,  ",",       0) \
+    X(CLK,    "TIMER",   0) \
+    X(BYE,    "BYE",     0)
 
 #define X(op, name, imm) op,
 enum _PRIM  {
-    CLK = WDS+1,
+    STOP, LIT1, LIT2,
+    JMP, JMPZ, JMPNZ,
     PRIMS
 };
 
@@ -134,27 +133,6 @@ void commaCell(cell n) {
     here += sizeof(cell)/2;
 }
 
-void loadPrims() {
-    for (int i = 0; prims[i].name; i++) {
-        DE_T *w = addWord(prims[i].name);
-        w->xt = prims[i].op;
-        w->fl = prims[i].imm;
-    }
-}
-
-void words() {
-    int cw = last;
-    int n=0;
-    while (cw < DICT_SZ) {
-        DE_T *de = (DE_T*)&dict[cw];
-        printf("%s ", de->nm);
-        if (LASTPRIM < de->xt) printf("(%d)\t", de->xt & 0x7FFF);
-        else  printf("(%d:%d)\t", de->xt, de->fl);
-        ++n; if (n%8==0) printf("\n");
-        cw += de->sz;
-    }
-}
-
 void Exec(int start) {
     cell t, n;
     pc = start;
@@ -169,7 +147,7 @@ void Exec(int start) {
         NCASE SWAP:  t=TOS; TOS=NOS; NOS=t;
         NCASE DROP:  pop();
         NCASE OVER : t = NOS; push(t);
-        NCASE DO:   lsp+=3; L2=pc; L0=pop(); L1=pop();
+        NCASE DO:    lsp+=3; L2=pc; L0=pop(); L1=pop();
         NCASE INDEX: push(L0);
         NCASE LOOP:  if (++L0<L1) { pc=(ushort)L2; } else { lsp-=3; if (lsp<0) lsp=0; }
         NCASE AND:   t = pop(); TOS &= t;
@@ -200,17 +178,16 @@ void Exec(int start) {
         NCASE RAT:   push(RTOS);
         NCASE RFROM: push(rpop());
         NCASE COLON: addWord(0); state = 1;
-        NCASE SEMI : t = 1;
+        NCASE SEMI:  t = 1;
             if (code[here-3]==LIT2) { t=0; }
             else if (code[here-2]==LIT1) { t=0; }
             else if (btwi(code[here-2],JMP,JMPNZ)) { t=0; }
             if (t && (LASTPRIM < code[here-1])) { code[here-1] &= 0x07FF; } // Tail-call
             else { comma(EXIT); }
             state = 0;
-        NCASE IMM : makeImm();
-        NCASE COMMA : comma((ushort)pop());
-        NCASE CREATE: { byte *b=(byte*)addWord(0); push(b-dict); }
-        NCASE WDS : words();
+        NCASE IMM:    makeImm();
+        NCASE COMMA:  comma((ushort)pop());
+        NCASE CREATE: addWord(0); push(here);
         NCASE ANEW: aStk[++aSp]=pop();
         NCASE ASET: aStk[aSp] = pop();
         NCASE AGET: push(aStk[aSp]);
@@ -368,23 +345,22 @@ void parseF(const char* fmt, ...) {
 }
 
 void baseSys() {
-    addPrim("TIMER", CLK);
-    addPrim("IMMEDIATE", IMM)->fl = 1;
-    addPrim(",",     COMMA);
-    addPrim("WORDS-DBG", WDS);
-    addPrim("CREATE", CREATE);
-    loadPrims();
+    for (int i = 0; prims[i].name; i++) {
+        DE_T *w = addWord(prims[i].name);
+        w->xt = prims[i].op;
+        w->fl = prims[i].imm;
+    }
 
+    parseF(": JMP,    #%d , ;", JMP);
+    parseF(": JMPZ,   #%d , ;", JMPZ);
+    parseF(": JMPNZ,  #%d , ;", JMPNZ);
     parseF(addrFmt, "CODE", &code[0]);
     parseF(addrFmt, "VARS", &vars[0]);
     parseF(addrFmt, "DICT", &dict[0]);
-    parseF(": CELL #%d ;", CELL_SZ);
     parseF(": CODE-SZ #%d ;", CODE_SZ);
     parseF(": VARS-SZ #%d ;", VARS_SZ);
     parseF(": DICT-SZ #%d ;", DICT_SZ);
-    parseF(": JMP,   #%d , ;", JMP);
-    parseF(": JMPZ,  #%d , ;", JMPZ);
-    parseF(": JMPNZ, #%d , ;", JMPNZ);
+    parseF(": CELL    #%d ;", CELL_SZ);
     sys_load();
 }
 
