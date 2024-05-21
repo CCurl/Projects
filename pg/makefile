@@ -1,5 +1,5 @@
-app := wc
-app32 := wc32
+app := cw
+app32 := cw-32
 
 CXX := clang
 CXXFLAGS := -m64 -O3 -D IS_LINUX
@@ -26,4 +26,4 @@ test: $(app)
 	./$(app) test.wc
 
 bin: $(app)
-	cp -u -p $(app) ~/.local/bin/
+	cp -u -p $(app) ~/bin/
