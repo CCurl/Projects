@@ -196,7 +196,7 @@ int findXT(int xt) {
 }
 
 int findPrevXT(int xt) {
-    int prevXT = 0;
+    int prevXT = here;
     int cw = last;
     while (cw < DICT_SZ) {
         DE_T* dp = (DE_T*)&dict[cw];
@@ -213,17 +213,17 @@ void doSee() {
     if (dp->xt < LASTPRIM) { printf("%s is a primitive (%d).\n", wd, dp->xt); return; }
     char desc[64];
     int stop = findPrevXT(dp->xt)-1;
-    printf("; %s (%04lx to %04x)\n", dp->nm, dp->xt, stop);
+    printf("; %s (%04lX to %04X)\n", dp->nm, dp->xt, stop);
     int i = dp->xt;
     while (i <= stop) {
         int op = code[i++];
         cell tgt = code[i];
-        printf("%04lx: %04lx", i-1, op);
+        printf("%04lX: %04lX", i-1, op);
         if (op == LIT1)  { sprintf(desc, "LIT1 %d (%X)", tgt, tgt); i++; }
         else if (op == LIT2) { cell x = fetchCell((cell)&code[i]); sprintf(desc, "LIT2 %d (%lX)", x, x); i += CELL_SZ/2; }
-        else if (op == JMP)   { sprintf(desc, "JMP %04lx", tgt);   i++; }
-        else if (op == JMPZ)  { sprintf(desc, "JMPZ %04lx", tgt);  i++; }
-        else if (op == JMPNZ) { sprintf(desc, "JMPNZ %04lx", tgt); i++; }
+        else if (op == JMP)   { sprintf(desc, "JMP %04lX", tgt);   i++; }
+        else if (op == JMPZ)  { sprintf(desc, "JMPZ %04lX", tgt);  i++; }
+        else if (op == JMPNZ) { sprintf(desc, "JMPNZ %04lX", tgt); i++; }
         else if (op <= LASTPRIM) { tgt = findXT(op); sprintf(desc, "%s", ((DE_T*)&dict[(ushort)tgt])->nm); }
         else if (LASTPRIM < op)  { tgt = findXT(op); sprintf(desc, "%s", ((DE_T*)&dict[(ushort)tgt])->nm); }
         printf(" ; %s\n",desc);
@@ -385,6 +385,7 @@ void baseSys() {
     parseF(addrFmt, "CODE", &code[0]);
     parseF(addrFmt, "VARS", &vars[0]);
     parseF(addrFmt, "DICT", &dict[0]);
+    parseF(addrFmt, ">IN",  &toIn);
     parseF(": CODE-SZ #%d ;", CODE_SZ);
     parseF(": VARS-SZ #%d ;", VARS_SZ);
     parseF(": DICT-SZ #%d ;", DICT_SZ);
