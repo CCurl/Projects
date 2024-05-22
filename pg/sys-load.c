@@ -37,11 +37,13 @@ void sys_load() {
 : >FLAGS  3 + C@ ; \
 : >LEX    4 + C@ ; \
 : >NAME   5 + ; \
-: TYPE 0 DO DUP C@ EMIT 1 + LOOP DROP ; \
+: TYPE 0 DO DUP C@ EMIT 1+ LOOP DROP ; \
 : COUNT DUP 1+ SWAP C@ ; \
 : A+ A DUP 1+ >A ; \
-: NIP SWAP DROP ; : TUCK SWAP OVER ; \
-: +! TUCK + SWAP ! ; \
+: NIP SWAP DROP ; \
+: TUCK SWAP OVER ; \
+: ?DUP DUP IF DUP THEN ; \
+: +! TUCK @ + SWAP ! ; \
 : WORDS 0 +A LAST DICT-ADDR BEGIN \
     DUP >NAME COUNT TYPE TAB \
     A+ 8 > IF CR 0 >A THEN \

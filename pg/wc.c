@@ -210,23 +210,25 @@ int findPrevXT(int xt) {
 void doSee() {
     DE_T* dp = findWord(0);
     if (!dp) { printf("-nf:%s-", wd); return; }
-    if (dp->xt < LASTPRIM) { printf("%s is a primitive (%d).\n", wd, dp->xt); return; }
-    char desc[64];
+    if (dp->xt < LASTPRIM) { printf("%s is a primitive (%hX).\n", wd, dp->xt); return; }
+    cell x = (cell)dp-(cell)dict;
     int stop = findPrevXT(dp->xt)-1;
-    printf("; %s (%04lX to %04X)\n", dp->nm, dp->xt, stop);
+    printf("\n%04lX: %s (%04hX to %04X)", x, dp->nm, dp->xt, stop);
     int i = dp->xt;
     while (i <= stop) {
         int op = code[i++];
-        cell tgt = code[i];
-        printf("%04lX: %04lX", i-1, op);
-        if (op == LIT1)  { sprintf(desc, "LIT1 %d (%X)", tgt, tgt); i++; }
-        else if (op == LIT2) { cell x = fetchCell((cell)&code[i]); sprintf(desc, "LIT2 %d (%lX)", x, x); i += CELL_SZ/2; }
-        else if (op == JMP)   { sprintf(desc, "JMP %04lX", tgt);   i++; }
-        else if (op == JMPZ)  { sprintf(desc, "JMPZ %04lX", tgt);  i++; }
-        else if (op == JMPNZ) { sprintf(desc, "JMPNZ %04lX", tgt); i++; }
-        else if (op <= LASTPRIM) { tgt = findXT(op); sprintf(desc, "%s", ((DE_T*)&dict[(ushort)tgt])->nm); }
-        else if (LASTPRIM < op)  { tgt = findXT(op); sprintf(desc, "%s", ((DE_T*)&dict[(ushort)tgt])->nm); }
-        printf(" ; %s\n",desc);
+        cell x = code[i];
+        printf("\n%04X: %04X\t", i-1, op);
+        if (op == LIT1)  { printf("LIT1 %ld (%lX)", x, x); i++; }
+        else if (op == LIT2) {
+            x = fetchCell((cell)&code[i]);
+            printf("LIT2 %ld (%lX)", x, x);
+            i += CELL_SZ/2;
+        }
+        else if (op == JMP)   { printf("JMP %04lX", x);  i++; }
+        else if (op == JMPZ)  { printf("JMPZ %04lX", x);  i++; }
+        else if (op == JMPNZ) { printf("JMPNZ %04lX", x); i++; }
+        else { x = findXT(op); printf("%s", ((DE_T*)&dict[(ushort)x])->nm); }
     }
 }
 
