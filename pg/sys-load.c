@@ -37,8 +37,6 @@ void sys_load() {
 : >FLAGS  3 + C@ ; \
 : >LEX    4 + C@ ; \
 : >NAME   5 + ; \
-: TYPE 0 DO DUP C@ EMIT 1+ LOOP DROP ; \
-: COUNT DUP 1+ SWAP C@ ; \
 : A+ A DUP 1+ >A ; \
 : NIP SWAP DROP ; \
 : TUCK SWAP OVER ; \

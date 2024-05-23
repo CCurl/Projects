@@ -98,6 +98,10 @@ typedef struct { const char *name; short op; byte imm; } PRIM_T;
     X(COMMA,  ",",       0) \
     X(CLK,    "TIMER",   0) \
     X(SEE,    "SEE",     1) \
+    X(COUNT,  "COUNT",   0) \
+    X(TYPE,   "TYPE",    0) \
+    X(QUOTE,  "\"",      1) \
+    X(DOTQT,  ".\"",     1) \
     X(BYE,    "BYE",     0)
 
 #define X(op, name, imm) op,
@@ -232,6 +236,23 @@ void doSee() {
     }
 }
 
+void quote() {
+    comma(LIT2);
+    commaCell((cell)&vars[vhere]);
+    ushort start = vhere;
+    vars[vhere++] = 0;
+    if (*toIn) { ++toIn; }
+    while (*toIn) {
+        if (*toIn == '"') { ++toIn; break; }
+        vars[vhere++] = *(toIn++);
+        ++vars[start];
+    }
+}
+
+void dotQuote() {
+    quote(); comma(COUNT); comma(TYPE);
+}
+
 void Exec(int start) {
     cell t, n;
     pc = start;
@@ -284,8 +305,12 @@ void Exec(int start) {
         NCASE ANEW:   aStk[++aSp] = pop();
         NCASE ASET:   aStk[aSp] = pop();
         NCASE AGET:   push(aStk[aSp]);
-        NCASE AFREE : if (0 < aSp) --aSp;
+        NCASE AFREE:  if (0 < aSp) --aSp;
         NCASE SEE:    doSee();
+        NCASE COUNT:  t=pop(); push(t+1); push(*(byte *)t);
+        NCASE TYPE:   t=pop(); n=pop(); for (int i = 0; i<t; i++) printf("%c", ((char *)n)[i]);
+        NCASE QUOTE:  quote();
+        NCASE DOTQT:  quote(); comma(COUNT); comma(TYPE);
         NCASE BYE:    exit(0);
         default:      if (code[pc] != EXIT) { rpush(pc); } pc = wc;
             goto next;
@@ -345,13 +370,14 @@ int parseWord(char *w) {
 }
 
 int parseLine(const char *ln) {
-    int h=here, l=last, s=state;
+    int h=here, l=last, s=state, vh = vhere;
     toIn = (char *)ln;
     // printf("-pl:%s-",ln);
     while (nextWord()) {
         if (!parseWord(wd)) {
             printf("-%s?-", wd);
             here=h;
+            vhere=vh;
             last=l;
             state=0;
             return 0;
@@ -360,6 +386,7 @@ int parseLine(const char *ln) {
     if ((l==last) && (h<here) && (state==0) && (s==0)) {
         comma(0);
         here=h;
+        vhere=vh;
         Exec(h);
     }
     return 1;

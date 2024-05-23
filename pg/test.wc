@@ -1,22 +1,23 @@
-: NIP SWAP DROP ;
 here
 : test-if 'N' swap if drop 'Y' then emit '.' emit ;
 here swap do i @C . loop cr
 0 test-if 1 test-if
 
-cr 10 begin dup . 1- dup      while drop
-cr  0 begin dup . 1+ dup 10 = until drop
+: dup. dup . ;
+cr 60 50 do I . loop 
+cr 10 begin dup. 1- dup      while drop
+cr  0 begin dup. 1+ dup 10 = until drop
 
 : .code HERE 0 do I (.) ':' EMIT SPACE I @C . CR loop ;
-: elapsed timer swap - . ;
+: elapsed timer swap - ."  (" . ." usec)" ;
 : mil 1000 dup * * ;
 : T0 ;
-: T1 100 drop ;
+: T1 T0 ;
 : fib dup 2 < if drop 1 exit then 1- dup fib swap 1- fib + ;
-: bm1 timer swap 0 do loop elapsed ;
-: bm2 timer swap 0 do T0 loop elapsed ;
-: bm3 timer swap 0 do T1 loop elapsed ;
-: bm4 timer swap fib . elapsed ;
-: go  cr 500 mil bm1 cr  100 mil bm2 cr  10 mil bm3 cr  25 bm4 cr ;
+: bm1 cr ." bm1: empty loop: "  timer swap 0 do loop elapsed ;
+: bm2 cr ." bm2: call loop: "   timer swap 0 do T0 loop elapsed ;
+: bm3 cr ." bm3: 2 call loop: " timer swap 0 do T1 loop elapsed ;
+: bm4 cr ." bm5: fib " dup.     timer swap fib . elapsed ;
+: go  500 mil bm1  100 mil bm2  10 mil bm3  25 bm4 cr ;
 go cr
 words
