@@ -3,20 +3,17 @@ extern int parseLine(const char *ln);
 void sys_load() {
     parseLine("\
 : 0= 0 = ; \
-: CODE-ADDR  CODE + ; \
-: VARS-ADDR  VARS + ; \
-: @C DUP + CODE-ADDR W@ ; \
-: !C DUP + CODE-ADDR W! ; \
+: @C DUP + C-ADDR W@ ; \
+: !C DUP + C-ADDR W! ; \
 : (HERE)  0 ; : HERE  (HERE)  @C ; \
 : (LAST)  1 ; : LAST  (LAST)  @C ; \
 : (VHERE) 2 ; : VHERE (VHERE) @C ; \
 : BASE    3 ; : STATE 4 ; \
-: DICT-ADDR  DICT + ; \
 : BEGIN HERE ; IMMEDIATE \
-: AGAIN JMP, , ; IMMEDIATE \
-: WHILE JMPNZ, , ; IMMEDIATE \
-: UNTIL JMPZ, , ; IMMEDIATE \
-: IF JMPZ, HERE 0 , ; IMMEDIATE \
+: AGAIN (JMP)   , , ; IMMEDIATE \
+: WHILE (JMPNZ) , , ; IMMEDIATE \
+: UNTIL (JMPZ)  , , ; IMMEDIATE \
+: IF (JMPZ) , HERE 0 , ; IMMEDIATE \
 : THEN HERE SWAP !C ; IMMEDIATE \
 : ( BEGIN \
     >IN @ C@  \
@@ -25,10 +22,10 @@ void sys_load() {
     ')' = IF EXIT THEN \
   AGAIN ; IMMEDIATE \
 : ALLOT VHERE + (VHERE) !C ; \
-: @V  VARS-ADDR @ ; \
-: !V  VARS-ADDR ! ; \
-: C@V VARS-ADDR C@ ; \
-: C!V VARS-ADDR C! ; \
+: @V  V-ADDR @ ; \
+: !V  V-ADDR ! ; \
+: C@V V-ADDR C@ ; \
+: C!V V-ADDR C! ; \
 : CELLS CELL * ; \
 : SPACE 32 EMIT ; : . (.) SPACE ; \
 : CR 13 EMIT 10 EMIT ; : TAB 9 EMIT ; \
@@ -42,10 +39,10 @@ void sys_load() {
 : TUCK SWAP OVER ; \
 : ?DUP DUP IF DUP THEN ; \
 : +! TUCK @ + SWAP ! ; \
-: WORDS 0 +A LAST DICT-ADDR BEGIN \
+: WORDS 0 +A LAST D-ADDR BEGIN \
     DUP >NAME COUNT TYPE TAB \
     A+ 8 > IF CR 0 >A THEN \
-    DUP >SIZE + DUP DICT-SZ DICT-ADDR < \
+    DUP >SIZE + DUP DICT-SZ D-ADDR < \
   WHILE -A DROP ; \
 ");
 } 
