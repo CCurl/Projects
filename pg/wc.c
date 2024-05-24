@@ -11,6 +11,7 @@
 #define STK_SZ            64
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define NCASE         goto next; case
+#define BCASE         break; case
 #define RCASE         return; case
 
 #define here          code[0]
@@ -91,7 +92,7 @@ typedef struct { const char *name; short op; byte imm; } PRIM_T;
     X(COLON,  ":",       1) \
     X(SEMI,   ";",       1) \
     X(IMM,  "IMMEDIATE", 1) \
-    X(CREATE, "CREATE",  0) \
+    X(CREATE, "CREATE",  1) \
     X(COMMA,  ",",       0) \
     X(CLK,    "TIMER",   0) \
     X(SEE,    "SEE",     1) \
@@ -114,6 +115,7 @@ enum _PRIM  {
 
 #undef X
 #define X(op, name, imm) { name, op, imm },
+
 
 PRIM_T prims[] = {
     PRIMS
@@ -218,22 +220,22 @@ void doSee() {
     if (dp->xt < LASTPRIM) { printf("%s is a primitive (%hX).\n", wd, dp->xt); return; }
     cell x = (cell)dp-(cell)dict;
     int stop = findPrevXT(dp->xt)-1;
-    printf("\n%04lX: %s (%04hX to %04X)", x, dp->nm, dp->xt, stop);
     int i = dp->xt;
+    printf("\n%04lX: %s (%04hX to %04X)", x, dp->nm, dp->xt, stop);
     while (i <= stop) {
         int op = code[i++];
         cell x = code[i];
         printf("\n%04X: %04X\t", i-1, op);
-        if (op == LIT1)  { printf("LIT1 %ld (%lX)", x, x); i++; }
-        else if (op == LIT2) {
-            x = fetchCell((cell)&code[i]);
-            printf("LIT2 %ld (%lX)", x, x);
-            i += CELL_SZ/2;
+        switch (op) {
+            case  LIT1: printf("LIT1 %ld (%lX)", x, x); i++;
+            BCASE LIT2: x = fetchCell((cell)&code[i]);
+                printf("LIT2 %ld (%lX)", x, x);
+                i += CELL_SZ / 2;
+            BCASE JMP:   printf("JMP %04lX (AGAIN)", x);   i++;
+            BCASE JMPZ:  printf("JMPZ %04lX (IF)", x);     i++;
+            BCASE JMPNZ: printf("JMPNZ %04lX (WHILE)", x); i++; break;
+            default: { x = findXT(op); printf("%s", ((DE_T*)&dict[(ushort)x])->nm); }
         }
-        else if (op == JMP)   { printf("JMP %04lX", x);  i++; }
-        else if (op == JMPZ)  { printf("JMPZ %04lX", x);  i++; }
-        else if (op == JMPNZ) { printf("JMPNZ %04lX", x); i++; }
-        else { x = findXT(op); printf("%s", ((DE_T*)&dict[(ushort)x])->nm); }
     }
 }
 
@@ -302,7 +304,7 @@ void Exec(int start) {
         NCASE SEMI:   comma(EXIT); state = 0;
         NCASE IMM:    makeImm();
         NCASE COMMA:  comma((ushort)pop());
-        NCASE CREATE: addWord(0); push(here);
+        NCASE CREATE : addWord(0); comma(LIT1); comma(vhere);
         NCASE ANEW:   aStk[++aSp] = pop();
         NCASE ASET:   aStk[aSp] = pop();
         NCASE AGET:   push(aStk[aSp]);
@@ -388,7 +390,7 @@ int parseLine(const char *ln) {
         }
     }
     if ((l==last) && (h<here) && (state==0) && (s==0)) {
-        comma(0);
+        comma(STOP);
         here=h;
         vhere=vh;
         Exec(h);
@@ -410,6 +412,7 @@ void baseSys() {
         DE_T *w = addWord(prims[i].name);
         w->xt = prims[i].op;
         w->fl = prims[i].imm;
+        if (prims[i].op == CREATE) { addWord("ADDWORD")->xt = prims[i].op; }
     }
 
     parseF(": (JMP)     #%d ;", JMP);
@@ -418,7 +421,7 @@ void baseSys() {
     parseF(": (LIT1)    #%d ;", LIT1);
     parseF(": (LIT2)    #%d ;", LIT2);
     parseF(": (EXIT)    #%d ;", EXIT);
-    parseF(": (CREATE)  #%d ;", CREATE);
+    // parseF(": CREATE  #%d ;", CREATE);
     parseF(addrFmt, "CODE", &code[0]);
     parseF(addrFmt, "VARS", &vars[0]);
     parseF(addrFmt, "DICT", &dict[0]);

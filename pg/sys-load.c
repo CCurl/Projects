@@ -24,6 +24,7 @@ void sys_load() {
 : ALLOT VHERE + (VHERE) !C ; \
 : @V  V-ADDR @ ; \
 : !V  V-ADDR ! ; \
+: ,V VHERE !V CELL ALLOT ; \
 : C@V V-ADDR C@ ; \
 : C!V V-ADDR C! ; \
 : CELLS CELL * ; \
@@ -39,10 +40,14 @@ void sys_load() {
 : TUCK SWAP OVER ; \
 : ?DUP DUP IF DUP THEN ; \
 : +! TUCK @ + SWAP ! ; \
-: WORDS 0 +A LAST D-ADDR BEGIN \
+: WORDS 0 DUP >R +A LAST D-ADDR BEGIN \
     DUP >NAME COUNT TYPE TAB \
+    R> 1+ >R \
     A+ 8 > IF CR 0 >A THEN \
     DUP >SIZE + DUP DICT-SZ D-ADDR < \
-  WHILE -A DROP ; \
+  WHILE -A DROP '(' EMIT R> . .\" words)\" ; \
+: DOES> R> , (EXIT) , ; \
+: VAR   ADDWORD CELL ALLOT (EXIT) , ; IMMEDIATE \
+: CONST ADDWORD ,V DOES> @V ; IMMEDIATE \
 ");
-} 
+}
