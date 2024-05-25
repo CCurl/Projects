@@ -9,7 +9,7 @@
 #define DICT_SZ       0xFFFF
 #define LASTPRIM         BYE
 #define STK_SZ            64
-#define btwi(a,b,c)   ((b<=a) && (a<=c))
+#define btwi(n,l,h)   ((l<=n) && (n<=h))
 #define NCASE         goto next; case
 #define BCASE         break; case
 
@@ -36,6 +36,7 @@
 #endif
 
 typedef long cell;
+typedef unsigned long ucell;
 typedef unsigned short ushort;
 typedef unsigned char byte;
 typedef union { FLT_T f; cell i; } SE_T;
@@ -114,7 +115,6 @@ enum _PRIM  {
 
 #undef X
 #define X(op, name, imm) { name, op, imm },
-
 
 PRIM_T prims[] = {
     PRIMS
@@ -239,6 +239,24 @@ void doSee() {
     }
 }
 
+char *iToA(cell N, int b) {
+    static char buf[65];
+    ucell X = (ucell)N;
+    int isNeg = 0;
+    if (b == 0) { b = (int)base; }
+    if ((b == 10) && (N < 0)) { isNeg = 1; X = -N; }
+    char c, *cp = &buf[64];
+    *(cp) = 0;
+    do {
+        c = (char)(X % b) + '0';
+        X /= b;
+        c = (c > '9') ? c+7 : c;
+        *(--cp) = c;
+    } while (X);
+    if (isNeg) { *(--cp) = '-'; }
+    return cp;
+}
+
 void quote() {
     comma(LIT2);
     commaCell((cell)&vars[vhere]);
@@ -290,7 +308,7 @@ void Exec(int start) {
         NCASE JMPZ:   if (pop()==0) { pc=code[pc]; } else { ++pc; }
         NCASE JMPNZ:  if (pop()) { pc=code[pc]; } else { ++pc; }
         NCASE EMIT:   printf("%c", (char)pop());
-        NCASE DOT:    printf("%ld", pop());
+        NCASE DOT:    t=pop(); printf("%s", iToA(t, base));
         NCASE FET:    TOS = fetchCell(TOS);
         NCASE CFET:   TOS = *(byte *)TOS;
         NCASE WFET:   TOS = fetchWord(TOS);
