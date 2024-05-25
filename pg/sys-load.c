@@ -3,8 +3,8 @@ extern int parseLine(const char *ln);
 void sys_load() {
     parseLine("\
 : 0= 0 = ; \
-: @C DUP + C-ADDR W@ ; \
-: !C DUP + C-ADDR W! ; \
+: @C DUP + >CODE W@ ; \
+: !C DUP + >CODE W! ; \
 : (HERE)  0 ; : HERE  (HERE)  @C ; \
 : (LAST)  1 ; : LAST  (LAST)  @C ; \
 : (VHERE) 2 ; : VHERE (VHERE) @C ; \
@@ -22,11 +22,9 @@ void sys_load() {
     ')' = IF EXIT THEN \
   AGAIN ; IMMEDIATE \
 : ALLOT VHERE + (VHERE) !C ; \
-: @V  V-ADDR @ ; \
-: !V  V-ADDR ! ; \
-: ,V VHERE !V CELL ALLOT ; \
-: C@V V-ADDR C@ ; \
-: C!V V-ADDR C! ; \
+: ,V VHERE >VARS ! CELL ALLOT ; \
+: C@V >VARS C@ ; \
+: C!V >VARS C! ; \
 : CELLS CELL * ; \
 : SPACE 32 EMIT ; : . (.) SPACE ; \
 : CR 13 EMIT 10 EMIT ; : TAB 9 EMIT ; \
@@ -40,14 +38,14 @@ void sys_load() {
 : TUCK SWAP OVER ; \
 : ?DUP DUP IF DUP THEN ; \
 : +! TUCK @ + SWAP ! ; \
-: WORDS 0 DUP >R +A LAST D-ADDR BEGIN \
+: WORDS 0 DUP >R +A LAST >DICT BEGIN \
     DUP >NAME COUNT TYPE TAB \
     R> 1+ >R \
     A+ 8 > IF CR 0 >A THEN \
-    DUP >SIZE + DUP DICT-SZ D-ADDR < \
+    DUP >SIZE + DUP DICT-SZ >DICT < \
   WHILE -A DROP '(' EMIT R> . .\" words)\" ; \
-: DOES> R> , (EXIT) , ; \
+: DOES> (JMP) , R> , ; \
 : VAR   ADDWORD CELL ALLOT (EXIT) , ; IMMEDIATE \
-: CONST ADDWORD ,V DOES> @V ; IMMEDIATE \
+: CONST ADDWORD ,V DOES> @ ; IMMEDIATE \
 ");
 }

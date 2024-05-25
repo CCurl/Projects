@@ -12,7 +12,6 @@
 #define btwi(a,b,c)   ((b<=a) && (a<=c))
 #define NCASE         goto next; case
 #define BCASE         break; case
-#define RCASE         return; case
 
 #define here          code[0]
 #define last          code[1]
@@ -49,7 +48,7 @@ cell aStk[STK_SZ];
 ushort sp, rsp, lsp, aSp;
 cell lstk[60], rstk[STK_SZ];
 char tib[128], wd[32], * toIn;
-ushort pc, wc, code[CODE_SZ+1];
+ushort code[CODE_SZ+1];
 
 typedef struct { const char *name; short op; byte imm; } PRIM_T;
 
@@ -100,9 +99,9 @@ typedef struct { const char *name; short op; byte imm; } PRIM_T;
     X(TYPE,   "TYPE",    0) \
     X(QUOTE,  "\"",      1) \
     X(DOTQT,  ".\"",     1) \
-    X(CADDR,  "C-ADDR",  0) \
-    X(VADDR,  "V-ADDR",  0) \
-    X(DADDR,  "D-ADDR",  0) \
+    X(TOCODE, ">CODE",   0) \
+    X(TOVARS, ">VARS",   0) \
+    X(TODICT, ">DICT",   0) \
     X(BYE,    "BYE",     0)
 
 #define X(op, name, imm) op,
@@ -119,7 +118,7 @@ enum _PRIM  {
 
 PRIM_T prims[] = {
     PRIMS
-    {0, 0, 0 }
+    {0, 0, 0}
 };
 
 void sys_load();
@@ -231,10 +230,11 @@ void doSee() {
             BCASE LIT2: x = fetchCell((cell)&code[i]);
                 printf("LIT2 %ld (%lX)", x, x);
                 i += CELL_SZ / 2;
-            BCASE JMP:   printf("JMP %04lX (AGAIN)", x);   i++;
+            BCASE JMP:   printf("JMP %04lX", x);   i++;
             BCASE JMPZ:  printf("JMPZ %04lX (IF)", x);     i++;
             BCASE JMPNZ: printf("JMPNZ %04lX (WHILE)", x); i++; break;
-            default: { x = findXT(op); printf("%s", ((DE_T*)&dict[(ushort)x])->nm); }
+            default: x = findXT(op); 
+                printf("%s", x ? ((DE_T*)&dict[(ushort)x])->nm : "??");
         }
     }
 }
@@ -258,7 +258,7 @@ void dotQuote() {
 
 void Exec(int start) {
     cell t, n;
-    pc = start;
+    ushort pc = start, wc;
     next:
     wc = code[pc++];
     switch(wc) {
@@ -304,7 +304,7 @@ void Exec(int start) {
         NCASE SEMI:   comma(EXIT); state = 0;
         NCASE IMM:    makeImm();
         NCASE COMMA:  comma((ushort)pop());
-        NCASE CREATE : addWord(0); comma(LIT1); comma(vhere);
+        NCASE CREATE: addWord(0); comma(LIT2); commaCell(vhere+(cell)vars);
         NCASE ANEW:   aStk[++aSp] = pop();
         NCASE ASET:   aStk[aSp] = pop();
         NCASE AGET:   push(aStk[aSp]);
@@ -314,10 +314,10 @@ void Exec(int start) {
         NCASE TYPE:   t=pop(); n=pop(); for (int i = 0; i<t; i++) printf("%c", ((char *)n)[i]);
         NCASE QUOTE:  quote();
         NCASE DOTQT:  quote(); comma(COUNT); comma(TYPE);
-        NCASE CADDR:  TOS += (cell)code;
-        NCASE VADDR:  TOS += (cell)vars;
-        NCASE DADDR:  TOS += (cell)dict;
-        NCASE BYE:    exit(0);
+        NCASE TOCODE:  TOS += (cell)code;
+        NCASE TOVARS:  TOS += (cell)vars;
+        NCASE TODICT:  TOS += (cell)dict;
+        NCASE BYE:     exit(0);
         default:      if (code[pc] != EXIT) { rpush(pc); } pc = wc;
             goto next;
     }
@@ -348,7 +348,7 @@ int parseWord(char *w) {
     if (!w) { w = &wd[0]; }
     // printf("-pw:%s-",w);
 
-    if (isNum(wd, base)) {
+    if (isNum(w, base)) {
         long n = pop();
         if (btwi(n, 0, 0xffff)) {
             comma(LIT1); comma((ushort)n);
@@ -376,24 +376,24 @@ int parseWord(char *w) {
 }
 
 int parseLine(const char *ln) {
-    int h=here, l=last, s=state, vh = vhere;
+    ushort cH=here, cL=last, cS=state, cV=vhere;
     toIn = (char *)ln;
     // printf("-pl:%s-",ln);
     while (nextWord()) {
         if (!parseWord(wd)) {
             printf("-%s?-", wd);
-            here=h;
-            vhere=vh;
-            last=l;
+            here=cH;
+            vhere=cV;
+            last=cL;
             state=0;
             return 0;
         }
     }
-    if ((l==last) && (h<here) && (state==0) && (s==0)) {
-        comma(STOP);
-        here=h;
-        vhere=vh;
-        Exec(h);
+    if ((cL==last) && (cH<here) && (cS==0) && (state==0 )) {
+        comma(0);
+        here=cH;
+        vhere=cV;
+        Exec(cH);
     }
     return 1;
 }

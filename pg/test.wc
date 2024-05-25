@@ -20,4 +20,10 @@ cr  0 begin dup. 1+ dup 10 = until drop
 : bm4 cr ." bm4: fib " dup.     timer swap fib . elapsed ;
 : go  500 mil bm1  100 mil bm2  10 mil bm3  25 bm4 cr ;
 go cr
-words
+words cr
+var xxx
+12345 xxx !
+xxx @
+const yyy
+xxx @ yyy =  IF ." PASS: const/var." THEN
+xxx @ yyy 0= IF ." FAIL: const/var!" THEN
