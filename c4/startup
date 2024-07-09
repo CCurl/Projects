@@ -1,3 +1,0 @@
-." c4 v0.0.1 - Chris Curl%n"
-load init
-(ohere) @ vars-sz mem-sz ." MEM: %d, VARS: %d, %d bytes used"

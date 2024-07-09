@@ -1,0 +1,30 @@
+( block 3 - strings )
+
+find fill loaded?
+
+3 >lex
+
+: fill ( start ch num-- )
+    >t swap t>
+    for over over c! 1+ next
+    drop drop ;
+
+: fill-c ( start n num-- )
+    >t swap t>
+    for over over ! cell + next
+    drop drop ;
+
+: cmove ( f t n-- )
+    +regs >a >d >s
+    a> for s>+ c@ d>+ c! next
+    -regs ;
+
+: p1 vhere ->vars 100 + ;
+: p2 p1 100 + ;
+: s-trunc ( dst--dst ) 0 over w! ;
+: s-cat   ( dst src--dst ) >t >r r@ count + t@ 1+ s-cpy drop t> c@ r@ c+! r> ;
+: s-catc  ( dst ch--dst )  over count + w! dup c++ ;
+: s-catn  ( dst n--dst )   to-string s-cat ;
+: s-scat  ( src dst--dst ) swap s-cat ;
+: s-scatc ( ch dst--dst )  swap s-catc ;
+: s-scatn ( n dst--dst )   swap s-catn ;

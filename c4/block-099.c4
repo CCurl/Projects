@@ -1,0 +1,10 @@
+( block 99 - sandbox )
+
+find ls loaded?
+
+3 load ( strings )
+5 load ( screen )
+
+: ls   s" ls -l"    system ;
+: lg   s" lazygit"  system ;
+: nvim s" nvim ."   system ;

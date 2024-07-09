@@ -1,7 +1,0 @@
-: cat ( fn-- ) FOPEN-R DUP
-    IF 
-        DUP FGETC DROP BEGIN EMIT DUP FGETC WHILE
-        DROP FCLOSE EXIT
-    THEN
-    DROP ." -noFile-%n" ;
-r2 cat BYE
