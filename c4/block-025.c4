@@ -1,0 +1,19 @@
+: ed-ctl-key ( -- )
+    a> key-up    = if -1  0 mv then
+    a> key-down  = if  1  0 mv then
+    a> key-left  = if  0 -1 mv then
+    a> key-right = if  0  1 mv then
+    a> 9         = if  0  8 mv then
+    a> 17        = if  0 -8 mv then
+    a> key-home  = if  0 >col then
+    a> key-ins   = if  insert-toggle then
+    a> 3 = if normal-mode >ed-mode exit then ;
+
+: ed-handle-key ( key-- ) >a
+    a> 32 < a> 126 > or if ed-ctl-key exit then
+    a> 'k' = if -1  0 mv then
+    a> 'j' = if  1  0 mv then
+    a> 'h' = if  0 -1 mv then
+    a> 'l' = if  0  1 mv then
+    a> 'Q' = if  0 -8 mv then
+    a> ':' = if do-cmd exit then ;

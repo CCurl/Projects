@@ -1,0 +1,20 @@
+( Editor )
+
+
+: >pos ( r c--a ) swap cols * + block + ;
+: rc>pos ( --a ) row col >pos ;
+: nt-line  ( r--)  0 swap max-col >pos c! ;
+: prep-block rows for i nt-line next ;
+: init-block block 'a' block-sz fill prep-block ;
+: normal-mode  0 ;    : quit-mode 99 ;
+: insert-mode  1 ;    : replace-mode  2 ;
+: normal-mode?  ed-mode normal-mode = ;
+: insert-mode?  ed-mode insert-mode = ;
+: replace-mode? ed-mode replace-mode = ;
+: quit?  ed-mode quit-mode = ;
+: ed-quit quit-mode >ed-mode ;
+: .mode space normal-mode? if ." -normal-" exit then
+    red insert-mode?  if ." -insert-" then
+    replace-mode? if ." -replace-" then
+    white ;
+: insert-toggle insert-mode? if normal-mode else insert-mode then >ed-mode ;

@@ -31,15 +31,16 @@
 : normal-mode?  ed-mode normal-mode = ;
 : insert-mode?  ed-mode insert-mode = ;
 : replace-mode? ed-mode replace-mode = ;
+: ed-quit quit-mode >ed-mode ;
 : .mode space normal-mode? if ." -normal-" exit then
     insert-mode?  if z" -insert-" then
     replace-mode? if z" -replace-" then
     red ztype white ;
 : insert-toggle insert-mode? if normal-mode else insert-mode then >ed-mode ;
 
-6000 >block-sz
- 200 >lines      100 >cols
-   0 >scr-top     25 >rows
+10000 >block-sz
+  250 >lines      100 >cols
+    0 >scr-top     25 >rows
 
 block-sz 2+ var block
 block-sz 2+ var work
@@ -97,36 +98,45 @@ cols 2+     var cur-line
     3 for p1 swap '0' + s-catc drop next
     s" .c4" s-cat 1+ ;
 
-: prep-block ( -- ) init-lines
-    +regs block >s  100  alloc .s >d  0 >x  d> x+ >line-addr
+: cur->lines ( n-- )
+    0 d> c!
+    >t cur-line sz-len 1+ alloc
+    cur-line s-cpy t> >line-addr ;
+
+: block->work ( -- ) init-lines
+    +regs block >s  cur-line >d  0 >x  0 >y
     begin
-        s> c@ ?dup 0= if -regs exit then
-        dup 10 =
-        if drop 0 d> c!  100 alloc >d  d> x>+ >line-addr
-        else 32 max d>+ c!
+        s>+ c@ >a
+        a> 0= if d> cur-line > if x> cur->lines then
+          y> ." -%d chars-" -regs exit
+        then
+        y+ a> 10 =
+        if x>+ cur->lines cur-line >d
+        else a> 31 > if a> d>+ c! then
         then
     again ;
+
+: work->block  +regs block >d  init-block 0 >x
+    lines for
+        i line-addr >s
+        s> 0= if x> -regs unloop exit then
+        begin
+            s>+ c@ dup if d>+ c! x+ 1 then
+        while
+        10 d>+ c! x+
+    next
+    x> -regs ;
 
 : load-block ( -- ) init-block
     block-fn fopen-rb ?dup if
       >t block block-sz t@ fread drop t> fclose 
-    then prep-block ;
+    then block->work ;
 
-: save-block block-fn fopen-wb ?dup if
-      >r block block-sz r@ fwrite drop r> fclose
-    then ;
-
-: block->work  block work block-sz cmove ;
-: work->block  block->work +regs work >s block >d
-    lines for
-        i line-addr dup >s 0= if -regs unloop exit then
-        begin
-            s>+ c@ dup if d>+ c! then
-        while
-    next ;
-    -regs ;
-
-: >cur-line cur-line s-trunc line-addr ?dup if s-cpy drop then ;
+: save-block work->block  >x
+    blk >t 22 >blk
+    block-fn fopen-wb ?dup if
+      >t block x> t@ fwrite drop t> fclose
+    then t> >blk ;
 
 : replace-char ( -- ) rc->pos ?dup if a> swap c! 0 1 mv dirty then ;
 : insert-blank ( -- ) ;
@@ -137,10 +147,10 @@ cols 2+     var cur-line
 
 : do-cmd ->cmd ':' emit
     p1 accept
-    p1 s" q"  s-eq if  quit-mode >ed-mode exit  then
-    p1 s" q!" s-eq if  quit-mode >ed-mode exit  then
-    p1 s" wq" s-eq if  quit-mode >ed-mode exit  then
-    p1 s" w"  s-eq if  clean exit  then ;
+    p1 s" q"  s-eq if  ed-quit exit  then
+    p1 s" q!" s-eq if  ed-quit exit  then
+    p1 s" wq" s-eq if  save-block ed-quit exit  then
+    p1 s" w"  s-eq if  save-block clean  exit  then ;
 
 : quit? ed-mode quit-mode = ;
 : do-ctrl ( -- )
@@ -183,6 +193,9 @@ cols 2+     var cur-line
     a> 'R' = if replace-mode >ed-mode exit then
     ;
 : ed-loop begin quit? if exit then show ->cur vkey >a do-work again ;
-: ed-init 0 >ed-mode 0 >row 0 >col 0 >scr-top ;
-: edit ( blk-- ) >blk load-block ed-init cls ed-loop ->cmd ;
-: ed 70 >rows edit ;
+: ed-init normal-mode >ed-mode 0 >row 0 >col 0 >scr-top ;
+: ed-exit lines for i line-addr free next ;
+: edit ( blk-- ) >blk load-block ed-init cls ed-loop ed-exit ->cmd ;
+
+2 >blk mb-init 
+load-block 32 >rows

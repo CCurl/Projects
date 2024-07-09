@@ -1,0 +1,21 @@
+: b1 green cols 1+ for '-' emit next cr white ;
+: b2 green '|' emit white ;
+: footer ->foot blk ."   -Block %d- "
+    dirty? if '*' else bl then emit
+    col 1+ row 1+ ."  (%d,%d) " .mode clr-eol ;
+: show 1 1 ->rc b1 rows for i 0 >pos b2 ztype b2 cr next b1 footer ;
+
+: prep-block block block-sz for dup c@ 32 max over c! 1+ next drop
+    rows for i nt-line next ;
+
+: block-fn ( --fn ) p1 s" block-" s-cpy  blk 10 /mod 10 /mod
+    3 for p1 swap '0' + s-catc drop next
+    s" .c4" s-cat 1+ ;
+
+: ed-load block 0 block-sz fill  block-fn fopen-rt ?dup 0= if ." -nf-" exit then
+    +regs >a 0 >x
+    begin  x>+ 0 >pos cols a> fgets >y  x> rows < y> 0> and  while
+    a> fclose -regs prep-block ;
+
+: ed-init 0 >row 0 >col normal-mode >ed-mode clean ;
+: ed-loop begin ->cur vkey ed-handle-key quit? until  ->cmd ;

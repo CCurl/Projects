@@ -1,3 +1,4 @@
+: \ 0 >in @ w! ; immediate
 : ->code code + ;
 : ->vars vars + ;
 : ->dict dict + ;
@@ -51,9 +52,6 @@
 : +! tuck @ + swap ! ;     : c+! tuck c@ + swap c! ;
 : c++ dup c@ 1+ swap c! ;  : c-- dup c@ 1- swap c! ;
 
-: reg-base (reg-base) @c ; : >reg-base (reg-base) !c ;
-: frame-sz (frame-sz) @c ; : >frame-sz (frame-sz) !c ;
-
 : a>  0 reg-r ;  : >a  0 reg-s ;
 : a>+ 0 reg-ri ;  : a+ 0 reg-i ;
 : a>- 0 reg-rd ;  : a- 0 reg-d ;
@@ -74,6 +72,8 @@
 : y>+ 4 reg-ri ;  : y+ 4 reg-i ;
 : y>- 4 reg-rd ;  : y- 4 reg-d ;
 
+: z>  5 reg-r ;  : >z  5 reg-s ;
+
 : bl 32 ; : space bl emit ;
 : (.) to-string count type ;
 : . (.) space ;
@@ -81,6 +81,9 @@
 : cr 13 emit 10 emit ;
 : tab 9 emit ;
 : ?  @ . ;
+: fopen-rt ( fn--fh )  z" rt" fopen ;
+: fopen-rb ( fn--fh )  z" rb" fopen ;
+: fopen-wb ( fn--fh )  z" wb" fopen ;
 : ->xt     w@ ;
 : ->size   2+  c@ ;
 : ->flags  3 + c@ ;
@@ -96,7 +99,7 @@
         a>+ 8 > if cr 0 >a else tab then
       then
       s> dup ->size + dup >s  x> <
-    while d> ."  (%d words)" -regs ;
+    while '(' emit d> . ." words)" -regs ;
 : does> (jmp) , r> , ;
 : create addword ; immediate
 : const  addword here cell 2/ - 2* ->code ! (exit) , ; immediate
@@ -104,6 +107,7 @@
 cell var vv
 : marker here 20 !c last 21 !c vhere vv ! ;
 : forget 20 @c (here) !c 21 @c (last) !c vv @ (vhere) ! 0 >lex ;
+: thru ( f t-- ) begin dup load 1- over over > until drop drop ;
 marker
 : .pt .02 '.' emit ;
 : .ver version 100 /mod 100 /mod .pt .pt .02 ;
@@ -112,4 +116,3 @@ dict-sz tstk-sz regs-sz vars-sz code-sz ." Sizes - Code: %d, Vars: %d, Regs: %d,
 forget
 
 99 load
-0 >lex

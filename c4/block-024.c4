@@ -1,0 +1,8 @@
+: save-block ( TODO! ) ;
+
+: do-cmd ->cmd ':' emit
+    p1 accept
+    p1 s" q"  s-eq if  ed-quit exit  then
+    p1 s" q!" s-eq if  ed-quit exit  then
+    p1 s" wq" s-eq if  save-block ed-quit exit  then
+    p1 s" w"  s-eq if  save-block clean  exit  then ;
