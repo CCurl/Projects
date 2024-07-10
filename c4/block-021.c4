@@ -20,4 +20,7 @@
     red insert-mode?  if ." -insert-" then
     replace-mode? if ." -replace-" then
     white ;
-: insert-toggle insert-mode? if normal-mode! else insert-mode! then ;
+: insert-toggle 
+    normal-mode? if insert-mode!  exit then
+    insert-mode? if replace-mode! exit then
+    normal-mode! ;

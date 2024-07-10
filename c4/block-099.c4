@@ -10,3 +10,6 @@ find ls loaded?
 : ls   s" ls -l"    system ;
 : lg   s" lazygit"  system ;
 : nvim s" nvim ."   system ;
+: pwd  s" pwd ."    system ;
+
+marker

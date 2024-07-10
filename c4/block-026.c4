@@ -16,7 +16,6 @@
     +regs >a 0 >x
     begin  x>+ 0 >pos cols a> fgets >y  x> rows < y> 0> and  while
     a> fclose -regs prep-block ;
-
-: ?show show? if show then ;
-: ed-init 0 >row 0 >col normal-mode! clean ;
-: ed-loop begin ?show footer ->cur vkey ed-handle-key quit? until  ->cmd ;
+: ?show show? if show then footer ;
+: ed-init 0 >row 0 >col normal-mode! clean cur-block ;
+: ed-loop begin ?show ->cur vkey cur-off ed-key quit? until  ->cmd cur-on ;
