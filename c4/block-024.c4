@@ -1,8 +1,24 @@
 : save-block ( TODO! ) ;
 
+: bs 8 emit ;
+: printable? ( c--f ) dup 31 > swap 127 < and ;
+: del-ch d> c@ if d> c-- 0 x>- 1- c! bs space bs then ;
+: app-ch d> c++ a> x>+ c! 0 x> c! a> emit ;
+: clr-buf d> >x 0 x>+ w! ;
+: accept ( str-- ) +regs >d clr-buf
+  begin
+    key >a
+    a>  13 = if -exit then
+    a>  27 = if clr-buf -exit then
+    a>   3 = if clr-buf -exit then
+    a>   8 = if del-ch then
+    a> 127 = if del-ch then
+    a> printable? if app-ch then
+  again ;
+
 : do-cmd ->cmd ':' emit
-    p1 accept
-    p1 s" q"  s-eq if  ed-quit exit  then
-    p1 s" q!" s-eq if  ed-quit exit  then
-    p1 s" wq" s-eq if  save-block ed-quit exit  then
+    p1 accept ->cmd clr-eol
+    p1 s" q"  s-eq if  quit! exit  then
+    p1 s" q!" s-eq if  quit! exit  then
+    p1 s" wq" s-eq if  save-block quit!  exit  then
     p1 s" w"  s-eq if  save-block clean  exit  then ;

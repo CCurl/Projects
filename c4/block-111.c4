@@ -23,9 +23,9 @@
 : accept ( str-- ) +regs >d clr-buf
   begin
     vkey >a
-    a> 13 = if -regs exit then
-    a> 27 = if clr-buf -regs exit then
-    a>  3 = if clr-buf -regs exit then
+    a> 13 = if -exit then
+    a> 27 = if clr-buf -exit then
+    a>  3 = if clr-buf -exit then
     a>  8 = if del-ch then
     a> printable? if app-ch then
   again ;

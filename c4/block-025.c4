@@ -1,19 +1,30 @@
-: ed-ctl-key ( -- )
-    a> key-up    = if -1  0 mv then
-    a> key-down  = if  1  0 mv then
-    a> key-left  = if  0 -1 mv then
-    a> key-right = if  0  1 mv then
-    a> 9         = if  0  8 mv then
-    a> 17        = if  0 -8 mv then
-    a> key-home  = if  0 >col then
-    a> key-ins   = if  insert-toggle then
-    a> 3 = if normal-mode >ed-mode exit then ;
-
+: ed-ctrl-key ( -- ) 
+    a> key-up    = if -1   0 mv exit then
+    a> key-down  = if  1   0 mv exit then
+    a> key-left  = if  0  -1 mv exit then
+    a> key-right = if  0   1 mv exit then
+    a> 9         = if  0   8 mv exit then
+    a> 17        = if  0  -8 mv exit then
+    a> 13        = if  1 -99 mv exit then
+    a> key-home  = if  0 >col   exit then
+    a> key-ins   = if  insert-toggle exit then
+    a> key-del   = if  delete-char   exit then
+    a> 3 = if normal-mode! exit then ;
+: rk red '?' emit white 8 emit key ;
 : ed-handle-key ( key-- ) >a
-    a> 32 < a> 126 > or if ed-ctl-key exit then
-    a> 'k' = if -1  0 mv then
-    a> 'j' = if  1  0 mv then
-    a> 'h' = if  0 -1 mv then
-    a> 'l' = if  0  1 mv then
-    a> 'Q' = if  0 -8 mv then
-    a> ':' = if do-cmd exit then ;
+    a> 32 126 btwi 0= if ed-ctrl-key  exit then
+    insert-mode?  if a> insert-char   exit then
+    replace-mode? if a> replace-char  exit then
+    a> 'k' = if -1  0 mv exit then
+    a> 'j' = if  1  0 mv exit then
+    a> 'h' = if  0 -1 mv exit then
+    a> 'l' = if  0  1 mv exit then
+    a>  32 = if  0  1 mv exit then
+    a> '_' = if  0 >col then
+    a> 'Q' = if  0 -8 mv exit then
+    a> 'R' = if replace-mode!    exit then
+    a> 'i' = if insert-mode!     exit then
+    a> 'r' = if rk replace-char  exit then
+    a> 'x' = if    delete-char   exit then
+    a> '!' = if    show!         exit then
+    a> ':' = if do-cmd exit      exit then ;

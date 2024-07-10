@@ -38,7 +38,7 @@ mb-ssz cells var mb-si  ( slot-info )
 : mb-find ( a--ndx [0 means not found] )
     +regs >a 1 >d begin
       d> mb-slot-a @ a> =
-      if d> -regs exit then
+      if d> -exit then
       d>+ mb-ssz <
     while -1 -regs ;
 
@@ -58,7 +58,7 @@ mb-ssz cells var mb-si  ( slot-info )
       if x> mb-slot-a @ >a
         a> 0= if s> mb-new dup >a x> mb-slot-a ! then
         x> mb-slot-i dup >t @ s> max negate t> !
-        a> -regs exit
+        a> -exit
       then
       x+ x> mb-ssz <
     while
@@ -73,7 +73,7 @@ mb-ssz cells var mb-si  ( slot-info )
     +regs >s >a  0 >y
     a> mb-find dup >x
     if x> mb-slot-i @ abs >y  ( already big enough? )
-       s> y> <= if a> -regs exit then
+       s> y> <= if a> -exit then
        a> free
     then
     s> alloc >x

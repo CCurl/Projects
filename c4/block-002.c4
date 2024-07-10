@@ -108,7 +108,7 @@ cols 2+     var cur-line
     begin
         s>+ c@ >a
         a> 0= if d> cur-line > if x> cur->lines then
-          y> ." -%d chars-" -regs exit
+          y> ." -%d chars-" -exit
         then
         y+ a> 10 =
         if x>+ cur->lines cur-line >d
