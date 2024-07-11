@@ -8,7 +8,8 @@
 : delete-char ( -- ) +regs rc>pos >x  row max-col >pos >y
     begin  x> 1+ c@  x>+ c!  x> y> < while
     32 y> 1- c! -regs show! ;
-
+: eol-offset ( row--off ) +regs >y max-col >x
+    begin y> x> >pos c@ 32 > if x> 1+ -exit then x>- while 0 -regs ;
 : clear-line ( r-- ) 0 >pos cols 1- for 32 over c! 1+ next 0 swap c!  ;
 
 : insert-line ( -- ) ( TODO! ) ;
@@ -16,3 +17,17 @@
 : delete-line ( -- ) ( TODO! ) ;
 
 : join-lines ( -- ) ( TODO! ) ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
