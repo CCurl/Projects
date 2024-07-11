@@ -1,5 +1,8 @@
-: save-block ( TODO! ) ;
-
+: ->file ( fh-- ) (output-fp) ! ;  : ->stdout 0 ->file ;
+: write-row  p1 i 0 >pos s-cpy sz-rtrim ztype 10 emit ;
+: write-block rows for write-row next ;
+: save-block  block-fn fopen-wb ?dup
+    if >t t@ ->file write-block t> fclose clean ->stdout then ;
 : bs 8 emit ;
 : printable? ( c--f ) dup 31 > swap 127 < and ;
 : del-ch d> c@ if d> c-- 0 x>- 1- c! bs space bs then ;

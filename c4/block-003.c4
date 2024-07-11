@@ -1,5 +1,4 @@
 ( block 3 - strings )
-
 3 >lex find fill loaded?
 
 : p1 vhere ->vars 100 + ;    : p2 p1 100 + ;
@@ -24,9 +23,10 @@
 : s-scatc ( ch dst--dst )  swap s-catc ;
 : s-scatn ( n dst--dst )   swap s-catn ;
 
-: sz-rtrim ( sz--sz ) >t +regs t@ sz-len + 1- >a
+: sz-cat   ( dst src--dst ) >t >r r@ dup sz-len + t> s-cpy drop r> ;
+: sz-rtrim ( sz--sz ) >t +regs t@ dup sz-len + 1- >a
     begin
-        a> t@ < if -regs t> exit then
-        a> c@ 32 > if -regs t> exit then
+        a> t@ < if t> -exit then
+        a> c@ 32 > if t> -exit then
         0 a>- c!
     again ;

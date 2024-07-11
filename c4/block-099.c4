@@ -11,5 +11,6 @@ find ls loaded?
 : lg   s" lazygit"  system ;
 : nvim s" nvim ."   system ;
 : pwd  s" pwd ."    system ;
+: edit 20 load ;
 
 marker

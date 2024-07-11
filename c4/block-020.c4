@@ -12,21 +12,19 @@
 : blk        46 @c ;  : >blk          46 !c ;
 : show?      48 @c ;  : show!       1 48 !c ;  : shown   0 48 !c ;
 : dirty?     47 @c ;  : dirty show! 1 47 !c ;  : clean   0 47 !c ;
-
-32 >rows   100 >cols   block-sz var block
-
+32 >rows   100 >cols
+block-sz var block
+block-sz var work
 : >pos ( r c--a ) swap cols * + block + ;
 : rc>pos ( --a ) row col >pos ;
 : nt-line  ( r--)  0 swap max-col >pos c! ;
+: nt-lines rows for i nt-line next ;
 : ->cur   col 2+ row 2+ ->cr cur-on ;
 : ->foot  rows 3 + 1 ->rc ;
 : ->cmd   ->foot cr ;
 : norm-row ( x-- )  row + 0 max max-row    min >row ;
 : norm-col ( x-- )  col + 0 max max-col 1- min >col ;
 : mv      ( r c-- ) norm-col norm-row row nt-line ;
-    
 21 26 thru
-
-: edit ( n-- ) >blk ed-init ed-load cls show ed-loop ;
-
-: rle forget 20 load ;
+: go ( n-- ) >blk ed-init ed-load cls show ed-loop ;
+go \ forget

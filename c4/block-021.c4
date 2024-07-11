@@ -1,26 +1,32 @@
-( Editor )
-
-: printable? ( n--n 1 | 0 ) dup 32 126 btwi if 1 else drop 0 then ;
-: >pos ( r c--a ) swap cols * + block + ;
-: rc>pos ( --a ) row col >pos ;
-: nt-line  ( r--)  0 swap max-col >pos c! ;
-: prep-block rows for i nt-line next ;
-: init-block block 'a' block-sz fill prep-block ;
-: normal-mode  0 ;    : quit-mode 99 ;
-: insert-mode  1 ;    : replace-mode  2 ;
-: normal-mode?  normal-mode   ed-mode = ;
-: insert-mode?  insert-mode   ed-mode = ;
-: replace-mode? replace-mode  ed-mode = ;
-: quit?         quit-mode     ed-mode = ;
-: normal-mode!  normal-mode  >ed-mode ;
-: insert-mode!  insert-mode  >ed-mode ;
-: replace-mode! replace-mode >ed-mode ;
-: quit!         quit-mode    >ed-mode ;
+: block-fn ( --fn ) p1 s" block-" s-cpy blk 10 /mod 10 /mod
+    3 for p1 swap '0' + s-catc drop next
+    s" .c4" s-cat 1+ ;
+: w1 a> 10 = if x+ x> 0 >pos >d exit then a> 32 max d>+ c! ;
+: w2 -regs nt-lines ;
+: work->block  +regs work >s block >d 0 >x
+    begin
+        s>+ c@ >a a> 0= if w2 exit then w1 x> rows <
+    while w2 ;
+: ed-load  work 32 block-sz fill  block 32 block-sz fill
+    block-fn fopen-rb ?dup 0= if nt-lines exit then
+    >t work block-sz t@ fread drop t> fclose
+    work->block ;
+: printable? ( c--c 1 | 0 ) dup 32 126 btwi if 1 else drop 0 then ;
+: normal-mode  0 ;  : insert-mode  1 ;  : replace-mode  2 ;  : quit-mode 99 ;
+: normal-mode?  normal-mode  ed-mode = ;  : normal-mode!  normal-mode  >ed-mode ;
+: insert-mode?  insert-mode  ed-mode = ;  : insert-mode!  insert-mode  >ed-mode ;
+: replace-mode? replace-mode ed-mode = ;  : replace-mode! replace-mode >ed-mode ;
+: quit?         quit-mode    ed-mode = ;  : quit!         quit-mode    >ed-mode ;
 : .mode space normal-mode? if ." -normal-" exit then
     red insert-mode?  if ." -insert-" then
     replace-mode? if ." -replace-" then
     white ;
-: insert-toggle 
+: insert-toggle
     normal-mode? if insert-mode!  exit then
     insert-mode? if replace-mode! exit then
     normal-mode! ;
+
+
+
+
+
