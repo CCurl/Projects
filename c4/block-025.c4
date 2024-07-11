@@ -20,4 +20,10 @@
     a> 'Q' = if  0 -8 mv exit then    a> 'i' = if insert-mode!  exit then
     a> ':' = if do-cmd   exit then    a> '!' = if show!         exit then
     a> 'r' = if rk replace-char  exit then
-    a> 'x' = if    delete-char   exit then ;
+    a> 'x' = if  delete-char     exit then
+    a> 'o' = if  1 0 mv insert-line exit then
+    a> 'O' = if  insert-line     exit then
+    a> 'D' = if  delete-line     exit then
+    a> 'J' = if  join-lines      exit then
+    a> 'X' = if  row clear-line  exit then
+    ;

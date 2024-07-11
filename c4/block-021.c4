@@ -26,7 +26,3 @@
     insert-mode? if replace-mode! exit then
     normal-mode! ;
 
-
-
-
-
