@@ -1,4 +1,4 @@
-: ed-ctrl-key ( -- ) 
+: ed-ctrl-key ( -- )
     a> key-up    = if -1   0 mv exit then    a> key-left  = if  0  -1 mv exit then
     a> 8         = if -1   0 mv exit then    a> 127       = if  0  -1 mv exit then
     a> key-down  = if  1   0 mv exit then    a> key-right = if  0   1 mv exit then
@@ -26,4 +26,7 @@
     a> 'D' = if  delete-line     exit then
     a> 'J' = if  join-lines      exit then
     a> 'X' = if  row clear-line  exit then
-    ;
+    a> '-' = if blk 1- 0 max >blk ed-load show! exit then
+    a> '+' = if blk 1+       >blk ed-load show! exit then ;
+
+
