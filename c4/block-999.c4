@@ -1,4 +1,4 @@
-( block 99 - sandbox )
+( block 99 - auto-loaded )
 
 find ls loaded?
 
@@ -12,5 +12,21 @@ find ls loaded?
 : nvim s" nvim ."   system ;
 : pwd  s" pwd ."    system ;
 : edit 20 load ;
+: ed 999 edit ;
 
 marker
+: .02 #10 /mod (.) (.) ;
+: .p .02 '.' emit ;
+: .ver version 100 /mod 100 /mod .p .p .02 ;
+." C4 v" .ver ." %nhello."
+forget
+
+
+
+
+
+
+
+
+
+

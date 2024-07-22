@@ -21,7 +21,7 @@ block-sz var work
 : nt-line  ( r--)  0 swap max-col >pos c! ;
 : nt-lines rows for i nt-line next ;
 : ->cur   col 2+ row 2+ ->cr cur-on ;
-: ->foot  rows 3 + 1 ->rc ;
+: ->foot  1 rows 3 + ->cr ;
 : ->cmd   ->foot cr ;
 : norm-row ( x-- )  row + 0 max max-row    min >row ;
 : norm-col ( x-- )  col + 0 max max-col 1- min >col ;
