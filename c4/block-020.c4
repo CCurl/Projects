@@ -1,5 +1,5 @@
 ( Block editor )
-
+lex 60 !c
 3 load ( strings/fill/cmove/cmove> )
 5 load ( screen )
 
@@ -27,6 +27,6 @@ block-sz var work
 : norm-col ( x-- )  col + 0 max max-col 1- min >col ;
 : mv      ( r c-- ) norm-col norm-row row nt-line ;
 : mv-lt 0 -1 mv ;  : mv-rt 0 1 mv ;  : mv-up -1 0 mv ;  : mv-dn 1 0 mv ;
-21 26 thru
->blk ed-init ed-load cls show ed-loop forget
-
+: ->edRC ( r c-- ) >col >row ;
+>blk 21 26 thru
+ed-init ed-load cls ed-loop forget 60 @c >lex
