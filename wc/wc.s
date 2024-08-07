@@ -131,7 +131,7 @@ cold:
         mov rax, lstk             ; Start of loop STACK
         mov [lsp], rax            ; Start of loop STACK
         mov qword ptr last, lastA
-        mov qword ptr here, hereA
+        mov qword ptr here, wcStart
         lea rax, [regs]           ; Start of registers
         mov [regBase], rax
         mov qword ptr base, 10
@@ -155,14 +155,16 @@ runC:   nextCell rax
         jmp runC
 
 ; ------------------------------------------------------------------------------
+jPrim:  jmp rax
 runJ:   nextCell rax
         cmp rax, wcStart
-        jge .wc
-        jmp rax
-.wc:    btr rax, BIT_JUMP   ; Must be a "word-code" ...
-        jc .1               ; Bit ON means JMP
+        jl jPrim            ; Is WC if between wcStart and wcEnd
+        cmp rax, wcEnd
+        jge jPrim
+        btr rax, BIT_JUMP   ; Must be a "word-code" ...
+        jc .call            ; Bit ON means JMP
         rPUSH PC            ; Bit OFF means CALL
-.1:     mov PC, rax
+.call:  mov PC, rax
         jmp runJ
 
 ; ------------------------------------------------------------------------------
@@ -608,8 +610,9 @@ lastA:     DICT_E _qtype, BIT_PRIM, 5, 'qtype'
 
 align 8
 buf2:      rb 64
-wcStart:
-hereA:     rq CODE_SZ
+
+wcStart:   rq CODE_SZ
+wcEnd:
 
 vStart:    rb VARS_SZ
 toIn:      rq 1

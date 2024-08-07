@@ -66,10 +66,8 @@ _swap:      dPOP  rax
             dPUSH rbx
             NEXT
 
-_over:      dPOP  rax
-            mov   rbx, TOS
+_over:      mov   rax, [DSP]
             dPUSH rax
-            dPUSH rbx
             NEXT
 
 _drop:      dPOP rax

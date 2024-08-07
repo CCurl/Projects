@@ -94,16 +94,8 @@ rpop:   push    eax
         ret
 
 ; ******************************************************************************
-mNEXT:  ;cmp     [dDepth], 1
-        ;jge     nxtOK
-        ;mov     [dDepth], 0
-        ;mov     STKP, dStack
-nxtOK:  ;cmp     esi, [HERE1]
-        ;jge     s0
-        lodsb
-        and      eax, 0x7f
-        ;jg      s0
-        ;movzx   edx, al
+mNEXT:  lodsb
+        and     eax, 0x7f
         mov     ebx, [jmpTable+eax*4]
         jmp     ebx
 
@@ -184,8 +176,10 @@ col1:   cmp     esi, [HERE1]
         jge     colX
         lodsb
         cmp     al, ';'
+        je      .E
+        cmp     al, 0
         jne     col1
-        mov     [HERE], esi
+.E:     mov     [HERE], esi
         mov     al, 'h'
         mov     ebx, esi
         call    setReg
@@ -233,27 +227,27 @@ cStore: m_pop  edx
 num:    sub     al, '0'
         and     eax, $FF
         mov     edx, eax
-n1:     mov     al, [esi]
+.l:     mov     al, [esi]
         mov     bx, '09'
         call    betw
         cmp     bl, 0
-        je      nx
+        je      .x
         sub     al, '0'
         imul    edx, edx, 10
         add     edx, eax
         inc     esi
-        jmp     n1
-nx:     m_push  edx
+        jmp     .l
+.x:     m_push  edx
         jmp     mNEXT
 
 ; ******************************************************************************
 ; Quote
 doQt:   lodsb
         cmp     al, '_'
-        je      qx
+        je      .x
         call    p1
         jmp     doQt
-qx:     jmp     mNEXT
+.x:     jmp     mNEXT
 
 ; ******************************************************************************
 betw:   cmp     al, bl
@@ -269,30 +263,33 @@ betF:   mov     bl, 0
 doFor:  m_pop   ebx
         cmp     ebx, 0
         je      fSkip
-        push    esi
+        mov     [forIndex], ebx
+        mov     [forStart], esi
         ;mov     al, 'i'
         ;call    setReg
-		mov     [reg+32], ebx
         jmp     mNEXT
 
 fSkip:  lodsb
         cmp     al, ')'
+        je      .x
+        cmp     al, 0
         jne     fSkip
+.x:     jmp     mNEXT
 
 ; ******************************************************************************
-doNext: mov     eax, [reg+32]
+doNext: mov     eax, [forIndex]
         dec     eax
-        test    eax, eax
-        jz      .out
-		mov     [reg+32], eax
-        mov     esi, [esp]
+        cmp     eax, 0
+        je      .out
+        mov     [forIndex], eax
+        mov     esi, [forStart]
         jmp     mNEXT
 .out:   pop     eax
         jmp     mNEXT
 
 ; ******************************************************************************
 f_UnknownOpcode:
-        jmp s0
+        jmp repl
 
 ; ******************************************************************************
 bye:    invoke  ExitProcess, 0
@@ -467,12 +464,18 @@ start:
 
         call    s_SYS_INIT
         mov     ebx, THE_MEMORY
+        mov     [HERE], ebx
         mov     al, 'm'
         call    setReg
-        mov     [HERE], ebx
-    
-s0:     call    ok
-        invoke  ReadConsole, [hStdIn], [HERE], 128, bytesRead, 0
+        mov     al, 'h'
+        call    setReg
+
+; ******************************************************************************
+repl:   call    ok
+        cmp     STKP, dStack
+        jge     .rd
+        mov     STKP, dStack
+.rd:    invoke  ReadConsole, [hStdIn], [HERE], 128, bytesRead, 0
         sub     [bytesRead], 2
         mov     ebx, [HERE]
         add     ebx, [bytesRead]
@@ -480,139 +483,139 @@ s0:     call    ok
         cld
         mov     esi, [HERE]
         jmp     mNEXT
-    
 
 ; ******************************************************************************
 section '.mem' data readable writable
 
 jmpTable:
-dd f_UnknownOpcode            ; # 00 ()
-dd f_UnknownOpcode            ; # 01 (☺)
-dd f_UnknownOpcode            ; # 02 (☻)
-dd f_UnknownOpcode            ; # 03 (♥)
-dd f_UnknownOpcode            ; # 04 (♦)
-dd f_UnknownOpcode            ; # 05 (♣)
-dd f_UnknownOpcode            ; # 06 (♠)
-dd f_UnknownOpcode            ; # 07 ()
-dd f_UnknownOpcode            ; # 08 ()
-dd doNop                      ; # 09 ()
-dd f_UnknownOpcode            ; # 010 ()
-dd f_UnknownOpcode            ; # 011 ()
-dd f_UnknownOpcode            ; # 012 ()
-dd f_UnknownOpcode            ; # 013 ()
-dd f_UnknownOpcode            ; # 014 ()
-dd f_UnknownOpcode            ; # 015 ()
-dd f_UnknownOpcode            ; # 016 (►)
-dd f_UnknownOpcode            ; # 017 (◄)
-dd f_UnknownOpcode            ; # 018 (↕)
-dd f_UnknownOpcode            ; # 019 (‼)
-dd f_UnknownOpcode            ; # 020 (¶)
-dd f_UnknownOpcode            ; # 021 (§)
-dd f_UnknownOpcode            ; # 022 (▬)
-dd f_UnknownOpcode            ; # 023 (↨)
-dd f_UnknownOpcode            ; # 024 (↑)
-dd f_UnknownOpcode            ; # 025 (↓)
-dd f_UnknownOpcode            ; # 026 (→)
-dd f_UnknownOpcode            ; # 027 (
-dd f_UnknownOpcode            ; # 028 (∟)
-dd f_UnknownOpcode            ; # 029 (↔)
-dd f_UnknownOpcode            ; # 030 (▲)
-dd f_UnknownOpcode            ; # 031 (▼)
-dd doNop                      ; # 032 ( )
-dd doStore                    ; # 033 (!)
-dd doDup                      ; # 034 (")
-dd doOver                     ; # 035 (#)
-dd doSwap                     ; # 036 ($)
-dd doMod                      ; # 037 (%)
-dd doAnd                      ; # 038 (&)
-dd doDrop                     ; # 039 (')
-dd doFor                      ; # 040 (()
-dd doNext                     ; # 041 ())
-dd doMult                     ; # 042 (*)
-dd doAdd                      ; # 043 (+)
-dd emit                       ; # 044 (,)
-dd doSub                      ; # 045 (-)
-dd doDot                      ; # 046 (.)
-dd doDiv                      ; # 047 (/)
-dd num                        ; # 048 (0)
-dd num                        ; # 049 (1)
-dd num                        ; # 050 (2)
-dd num                        ; # 051 (3)
-dd num                        ; # 052 (4)
-dd num                        ; # 053 (5)
-dd num                        ; # 054 (6)
-dd num                        ; # 055 (7)
-dd num                        ; # 056 (8)
-dd num                        ; # 057 (9)
-dd doCol                      ; # 058 (:)
-dd doRet                      ; # 059 (;)
-dd doLT                       ; # 060 (<)
-dd doEQ                       ; # 061 (=)
-dd doGT                       ; # 062 (>)
-dd f_UnknownOpcode            ; # 063 (?)
-dd doFetch                    ; # 064 (@)
-dd cmd                        ; # 065 (A)
-dd cmd                        ; # 066 (B)
-dd cmd                        ; # 067 (C)
-dd cmd                        ; # 068 (D)
-dd cmd                        ; # 069 (E)
-dd cmd                        ; # 070 (F)
-dd cmd                        ; # 071 (G)
-dd cmd                        ; # 072 (H)
-dd cmd                        ; # 073 (I)
-dd cmd                        ; # 074 (J)
-dd cmd                        ; # 075 (K)
-dd cmd                        ; # 076 (L)
-dd cmd                        ; # 077 (M)
-dd cmd                        ; # 078 (N)
-dd cmd                        ; # 079 (O)
-dd cmd                        ; # 080 (P)
-dd cmd                        ; # 081 (Q)
-dd cmd                        ; # 082 (R)
-dd cmd                        ; # 083 (S)
-dd cmd                        ; # 084 (T)
-dd cmd                        ; # 085 (U)
-dd cmd                        ; # 086 (V)
-dd cmd                        ; # 087 (W)
-dd cmd                        ; # 088 (X)
-dd cmd                        ; # 089 (Y)
-dd cmd                        ; # 090 (Z)
-dd f_UnknownOpcode            ; # 091 ([)
-dd bye                        ; # 092 (\)
-dd f_UnknownOpcode            ; # 093 (])
-dd doXOR                      ; # 094 (^)
-dd doQt                       ; # 095 (_)
-dd f_UnknownOpcode            ; # 096 (`)
-dd reg                        ; # 097 (a)
-dd reg                        ; # 098 (b)
-dd reg                        ; # 099 (c)
-dd reg                        ; # 100 (d)
-dd reg                        ; # 101 (e)
-dd reg                        ; # 102 (f)
-dd reg                        ; # 103 (g)
-dd reg                        ; # 104 (h)
-dd reg                        ; # 105 (i)
-dd reg                        ; # 106 (j)
-dd reg                        ; # 107 (k)
-dd reg                        ; # 108 (l)
-dd reg                        ; # 109 (m)
-dd reg                        ; # 110 (n)
-dd reg                        ; # 111 (o)
-dd reg                        ; # 112 (p)
-dd reg                        ; # 113 (q)
-dd reg                        ; # 114 (r)
-dd reg                        ; # 115 (s)
-dd reg                        ; # 116 (t)
-dd reg                        ; # 117 (u)
-dd reg                        ; # 118 (v)
-dd reg                        ; # 119 (w)
-dd reg                        ; # 120 (x)
-dd reg                        ; # 121 (y)
-dd reg                        ; # 122 (z)
-dd cFetch                     ; # 123 ({)
-dd doOr                       ; # 124 (|)
-dd cStore                     ; # 125 (})
-dd doInv                      ; # 126 (~)
+dd f_UnknownOpcode            ;   0
+dd f_UnknownOpcode            ;   1
+dd f_UnknownOpcode            ;   2
+dd f_UnknownOpcode            ;   3
+dd f_UnknownOpcode            ;   4
+dd f_UnknownOpcode            ;   5
+dd f_UnknownOpcode            ;   6
+dd f_UnknownOpcode            ;   7
+dd f_UnknownOpcode            ;   8
+dd doNop                      ;   9
+dd f_UnknownOpcode            ;  10
+dd f_UnknownOpcode            ;  11
+dd f_UnknownOpcode            ;  12
+dd f_UnknownOpcode            ;  13
+dd f_UnknownOpcode            ;  14
+dd f_UnknownOpcode            ;  15
+dd f_UnknownOpcode            ;  16
+dd f_UnknownOpcode            ;  17
+dd f_UnknownOpcode            ;  18
+dd f_UnknownOpcode            ;  19
+dd f_UnknownOpcode            ;  20
+dd f_UnknownOpcode            ;  21
+dd f_UnknownOpcode            ;  22
+dd f_UnknownOpcode            ;  23
+dd f_UnknownOpcode            ;  24
+dd f_UnknownOpcode            ;  25
+dd f_UnknownOpcode            ;  26
+dd f_UnknownOpcode            ;  27
+dd f_UnknownOpcode            ;  28
+dd f_UnknownOpcode            ;  29
+dd f_UnknownOpcode            ;  30
+dd f_UnknownOpcode            ;  31
+dd doNop                      ;  32 ( )
+dd doStore                    ;  33 (!)
+dd doDup                      ;  34 (")
+dd doOver                     ;  35 (#)
+dd doSwap                     ;  36 ($)
+dd doMod                      ;  37 (%)
+dd doAnd                      ;  38 (&)
+dd doDrop                     ;  39 (')
+dd doFor                      ;  40 (()
+dd doNext                     ;  41 ())
+dd doMult                     ;  42 (*)
+dd doAdd                      ;  43 (+)
+dd emit                       ;  44 (,)
+dd doSub                      ;  45 (-)
+dd doDot                      ;  46 (.)
+dd doDiv                      ;  47 (/)
+dd num                        ;  48 (0)
+dd num                        ;  49 (1)
+dd num                        ;  50 (2)
+dd num                        ;  51 (3)
+dd num                        ;  52 (4)
+dd num                        ;  53 (5)
+dd num                        ;  54 (6)
+dd num                        ;  55 (7)
+dd num                        ;  56 (8)
+dd num                        ;  57 (9)
+dd doCol                      ;  58 (:)
+dd doRet                      ;  59 (;)
+dd doLT                       ;  60 (<)
+dd doEQ                       ;  61 (=)
+dd doGT                       ;  62 (>)
+dd f_UnknownOpcode            ;  63 (?)
+dd doFetch                    ;  64 (@)
+dd cmd                        ;  65 (A)
+dd cmd                        ;  66 (B)
+dd cmd                        ;  67 (C)
+dd cmd                        ;  68 (D)
+dd cmd                        ;  69 (E)
+dd cmd                        ;  70 (F)
+dd cmd                        ;  71 (G)
+dd cmd                        ;  72 (H)
+dd cmd                        ;  73 (I)
+dd cmd                        ;  74 (J)
+dd cmd                        ;  75 (K)
+dd cmd                        ;  76 (L)
+dd cmd                        ;  77 (M)
+dd cmd                        ;  78 (N)
+dd cmd                        ;  79 (O)
+dd cmd                        ;  80 (P)
+dd cmd                        ;  81 (Q)
+dd cmd                        ;  82 (R)
+dd cmd                        ;  83 (S)
+dd cmd                        ;  84 (T)
+dd cmd                        ;  85 (U)
+dd cmd                        ;  86 (V)
+dd cmd                        ;  87 (W)
+dd cmd                        ;  88 (X)
+dd cmd                        ;  89 (Y)
+dd cmd                        ;  90 (Z)
+dd f_UnknownOpcode            ;  91 ([)
+dd bye                        ;  92 (\)
+dd f_UnknownOpcode            ;  93 (])
+dd doXOR                      ;  94 (^)
+dd doQt                       ;  95 (_)
+dd f_UnknownOpcode            ;  96 (`)
+dd reg                        ;  97 (a)
+dd reg                        ;  98 (b)
+dd reg                        ;  99 (c)
+dd reg                        ; 100 (d)
+dd reg                        ; 101 (e)
+dd reg                        ; 102 (f)
+dd reg                        ; 103 (g)
+dd reg                        ; 104 (h)
+dd reg                        ; 105 (i)
+dd reg                        ; 106 (j)
+dd reg                        ; 107 (k)
+dd reg                        ; 108 (l)
+dd reg                        ; 109 (m)
+dd reg                        ; 110 (n)
+dd reg                        ; 111 (o)
+dd reg                        ; 112 (p)
+dd reg                        ; 113 (q)
+dd reg                        ; 114 (r)
+dd reg                        ; 115 (s)
+dd reg                        ; 116 (t)
+dd reg                        ; 117 (u)
+dd reg                        ; 118 (v)
+dd reg                        ; 119 (w)
+dd reg                        ; 120 (x)
+dd reg                        ; 121 (y)
+dd reg                        ; 122 (z)
+dd cFetch                     ; 123 ({)
+dd doOr                       ; 124 (|)
+dd cStore                     ; 125 (})
+dd doInv                      ; 126 (~)
+dd f_UnknownOpcode            ; 127
 
 buf1        dd    4 dup(0)    ; Buffer
 dStack      dd   32 dup 0
@@ -621,7 +624,9 @@ rStack      dd   32 dup 0
 buf3        dd    4 dup(0)    ; Buffer
 
 functions   dd  26 dup 0
-regs        dd  26 dup 0
+regs        dd  36 dup 0
+forStart    dd   1 dup 0
+forIndex    dd   1 dup 0
 
 THE_MEMORY  rb 64*1024
 MEM_END:
