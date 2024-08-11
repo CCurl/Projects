@@ -1,7 +1,7 @@
 ; WC - a Tachyon Forth inspired 32-bit system
 
-FOR_OS equ WINDOWS
-; FOR_OS equ LINUX
+; FOR_OS equ WINDOWS
+FOR_OS equ LINUX
 
 match =WINDOWS, FOR_OS {
         format PE console
@@ -11,7 +11,7 @@ match =WINDOWS, FOR_OS {
 
 match =LINUX, FOR_OS {
         format ELF executable 3
-        segment readable writable
+        segment readable executable
 }
 
 ; ******************************************************************************
@@ -288,20 +288,38 @@ match =WINDOWS, FOR_OS {
 }
 
 match =LINUX, FOR_OS {
-        doBye:  invoke  LinuxExit, 0
+        doBye:  ; invoke  LinuxExit, 0
                 ret
-        doOK:   invoke  LinuxOK, 0
+        doOK:   ; invoke  LinuxOK, 0
                 ret
-        doTimer: invoke LinuxTimer
+        doTimer: ; invoke LinuxTimer
                 m_push  eax
                 ret
         doEmit: m_pop   eax
-                invoke  LinuxEmit
+                mov	[buf1], al      ; put char in message
+                mov	eax,4		; system call number (sys_write)
+                mov	ebx,1		; file descriptor (stdout)
+                mov	ecx,buf1        ; message to write
+                mov	edx,1		; message length
+                int	0x80		; call kernel
                 ret
-        ; doQKey: invoke LinuxKey
+        doType: m_pop   edx             ; Len ( string len-- )
+                m_pop   ecx             ; String
+                mov	eax,4           ; system call number (sys_write)
+                mov	ebx,1           ; file descriptor (stdout)
+                int     0x80
+                ret
+        doReadL: m_pop edx              ; buffer size
+                m_pop  ecx              ; buffer
+                mov    ebx, 0           ; stdin
+                mov    eax, 3           ; sys_read
+                int    0x80
+                m_push eax
+    ret
+        ; doQKey: ; invoke LinuxKey
         ;         m_push  eax
         ;         ret
-        ; doKey: invoke LinuxQKey
+        ; doKey: ; invoke LinuxQKey
         ;         m_push  eax
         ;         ret
 }
@@ -467,15 +485,15 @@ primEnd:
 ; ******************************************************************************
 
 ; ******************************************************************************
-start:
+entry $
         mov     [InitialESP], esp
-
+match =WINDOWS, FOR_OS {
         invoke GetStdHandle, STD_INPUT_HANDLE
         mov    [hStdIn], eax
         
         invoke GetStdHandle, STD_OUTPUT_HANDLE
         mov    [hStdOut], eax
-
+}
         mov     ebx, THE_CODE
         mov     [HERE], ebx
         mov     ebx, THE_VARS
@@ -497,20 +515,19 @@ repl:   call    doOK
         cmp     STKP, dStack
         jge     .rd
         mov     STKP, dStack
-.rd:    invoke  ReadConsole, [hStdIn], [HERE], 128, bytesRead, 0
-        sub     [bytesRead], 2
-        mov     ebx, [HERE]
-        add     ebx, [bytesRead]
-        mov     [HERE1], ebx
+.rd:    m_push  TIB
+        m_push  128
+        call    doReadL   ; ( buf sz--num )
+        m_pop   ebx
+        mov     [TIB+ebx], 0
         cld
-        mov     esi, [HERE]
         mov     esi, xBench
         call    wcRun
         ret
 
 ; ******************************************************************************
-section '.mem' data readable writable
-
+match =WINDOWS, FOR_OS { section '.mem' data readable writable }
+match =LINUX,   FOR_OS { segment readable writable }
 hStdIn      dd  ?
 hStdOut     dd  ?
 okStr       db  " ok", 13, 10, 0
@@ -525,6 +542,7 @@ VHERE       dd  THE_VARS
 LAST        dd  LastInit
 HERE1       dd  ?
 InitialESP  dd  0
+TIB         dd  128 dup 0       ; TIB
 
 buf1        db   16 dup 0       ; Buffer
 dStack      dd   64 dup 0       ; Data stack
@@ -610,5 +628,3 @@ CODE_END:
 
 THE_VARS    rb 256*1024
 VARS_END:
-
-.end start

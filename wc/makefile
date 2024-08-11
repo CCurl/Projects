@@ -1,21 +1,21 @@
-app64 := wc
+app := wc
 
 COMP := fasm
-srcfiles := wc.s           # $(shell find . -name "*.c")
-incfiles := opcodes.s      # $(shell find . -name "*.h")
-LDLIBS   := -lm
+srcfiles := wc.asm         # $(shell find . -name "*.c")
+# incfiles := opcodes.s      # $(shell find . -name "*.h")
+opts := -d FOR_OS=LINUX
 
-all: $(app64)
+all: $(app)
 
-$(app64): $(srcfiles)
-	$(COMP) $(srcfiles)
-	chmod +x $(app64)
-	ls -l $(app64)
+$(app): $(srcfiles)
+	$(COMP) $(srcfiles) $(opts)
+	chmod +x $(app)
+	ls -l $(app)
 
-force: clean $(app64)
+force: clean $(app)
 
 clean:
-	rm -f $(app64)
+	rm -f $(app)
 
 bm:
 	cat bm.txt | ./wc
@@ -23,5 +23,5 @@ bm:
 test:
 	cat test.txt | ./wc
 
-bin: $(app64)
+bin: $(app)
 	cp -u -p $(app64) ~/.local/bin/
