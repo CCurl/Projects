@@ -1,11 +1,21 @@
 ; WC - a Tachyon Forth inspired 32-bit system
 
-format PE console
-include 'win32ax.inc'
+FOR_OS equ WINDOWS
+; FOR_OS equ LINUX
+
+match =WINDOWS, FOR_OS {
+        format PE console
+        include 'win32ax.inc'
+        section '.code' code readable executable
+}
+
+match =LINUX, FOR_OS {
+        format ELF executable 3
+        segment readable writable
+}
 
 ; ******************************************************************************
 ; ******************************************************************************
-section '.code' code readable executable
 
 ; ------------------------------------------------------------------------------
 ; MACROS
@@ -82,6 +92,8 @@ doExit: mov     eax, [rStackPtr]
         jmp     repl
 
 ; ******************************************************************************
+; ** The bread and butter of the system
+; ******************************************************************************
 wCall:  call    eax
 wcRun:  lodsd
         cmp     eax, primEnd
@@ -110,10 +122,10 @@ iToA:   mov     ecx, i2aBuf+63  ; output string start
         mov     BYTE [ecx], 0
         push    0               ; isNegative flag
         bt      eax, 31
-        jnc     i2a1
+        jnc     .L
         inc     BYTE [esp]
         neg     eax
-i2a1:   push    ebx
+.L:     push    ebx
         mov     ebx, 10
         mov     edx, 0
         div     ebx
@@ -122,15 +134,42 @@ i2a1:   push    ebx
         mov     BYTE [ecx], dl
         pop     ebx
         inc     ebx
-        cmp     eax, 0
-        jne     i2a1
+        test    eax, eax
+        jnz     .L
         pop     eax             ; get the negative flag
-        cmp     eax, 0          ; 0 means not negative
-        je      i2aX
+        test    eax, eax        ; 0 means not negative
+        jz      .X
         dec     ecx
         mov     BYTE [ecx], '-'
         inc     ebx
-i2aX:   ret
+.X:     ret
+
+; ******************************************************************************
+doItoA: m_pop   eax
+        call    iToA
+        m_push  ecx
+        m_push  ebx
+        ret
+
+; ******************************************************************************
+doJmp:  m_pop  ebx
+        lodsd
+doJ:    mov    esi, eax
+        ret
+
+; ******************************************************************************
+doJmpZ: m_pop  ebx
+        lodsd
+        test   ebx, ebx
+        jz     doJ
+        ret
+
+; ******************************************************************************
+doJmpNZ: m_pop  ebx
+        lodsd
+        test    ebx, ebx
+        jnz     doJ
+        ret
 
 ; ******************************************************************************
 doFetch: m_getTOS   edx
@@ -144,13 +183,13 @@ doStore: m_pop  edx
         ret
 
 ; ******************************************************************************
-doCFetch: m_getTOS   edx
-        mov         TOS, [edx]
-        and         TOS, $ff
-        jmp         wcRun
+doCFetch: xor     eax, eax
+        mov     al, BYTE [TOS]
+        mov     TOS, eax
+        ret
 
 ; ******************************************************************************
-doCStore: m_pop  edx
+doCStore: m_pop edx
         m_pop   eax
         mov     BYTE [edx], al
         ret
@@ -175,7 +214,7 @@ num:    sub     al, '0'
 
 ; ******************************************************************************
 ; Quote
-doQt:   lodsb
+doQt:   lodsb   ; TODO
 .x:     ret
 
 ; ******************************************************************************
@@ -224,11 +263,48 @@ doUnloop:
         ret
 
 ; ******************************************************************************
-bye:    invoke  ExitProcess, 0
+match =WINDOWS, FOR_OS {
+        doBye:  invoke  ExitProcess, 0
+                ret
+        doOK:   invoke  WriteConsole, [hStdOut], okStr, 5, NULL, NULL
+                ret
+        doTimer: invoke GetTickCount
+                m_push  eax
+                ret
+        doEmit: m_pop   eax
+                mov     [buf1], al
+                invoke  WriteConsole, [hStdOut], buf1, 1, NULL, NULL
+                ret
+        doType: m_pop   eax     ; Len ( addr len-- )
+                m_pop   ebx     ; Addr
+                invoke  WriteConsole, [hStdOut], ebx, eax, NULL, NULL
+                ret
+        ; doQKey: invoke kbhit
+        ;         m_push  eax
+        ;         ret
+        ; doKey: invoke getch
+        ;         m_push  eax
+        ;         ret
+}
 
-; ******************************************************************************
-doOK:   invoke  WriteConsole, [hStdOut], okStr, 5, NULL, NULL
-        ret
+match =LINUX, FOR_OS {
+        doBye:  invoke  LinuxExit, 0
+                ret
+        doOK:   invoke  LinuxOK, 0
+                ret
+        doTimer: invoke LinuxTimer
+                m_push  eax
+                ret
+        doEmit: m_pop   eax
+                invoke  LinuxEmit
+                ret
+        ; doQKey: invoke LinuxKey
+        ;         m_push  eax
+        ;         ret
+        ; doKey: invoke LinuxQKey
+        ;         m_push  eax
+        ;         ret
+}
 
 ; ******************************************************************************
 doMult: m_pop   eax
@@ -329,16 +405,13 @@ doDot:  push    eax
         push    edx
         m_pop   eax
         call    iToA
-        invoke  WriteConsole, [hStdOut], ecx, ebx, NULL, NULL
+        m_push  ecx
+        m_push  ebx
+        call    doType
         pop     edx
         pop     ecx
         pop     ebx
         pop     eax
-        ret
-
-; ******************************************************************************
-doTimer: invoke GetTickCount
-        m_push  eax
         ret
 
 ; ******************************************************************************
@@ -376,27 +449,10 @@ doLen:  m_pop   edx             ; ( addr--len )
         ret
 
 ; ******************************************************************************
-doType: m_pop   eax     ; Len ( addr len-- )
-        m_pop   ebx     ; Addr
-        invoke  WriteConsole, [hStdOut], ebx, eax, NULL, NULL
-        ret
-
-; ******************************************************************************
-doEmit: m_pop   eax
-        mov     [buf1], al
-        invoke  WriteConsole, [hStdOut], buf1, 1, NULL, NULL
-        ret
-
-; ******************************************************************************
 p1:     push    eax
         m_push  eax
         call    doEmit
         pop     eax
-        ret
-
-; ******************************************************************************
-doJmp:  lodsd
-        mov     esi, eax
         ret
 
 ; ******************************************************************************
@@ -432,7 +488,7 @@ warm:   mov     esp, [InitialESP]
         mov     TOS, 0
         mov     esi, THE_ROM
         call    wcRun
-        invoke  ExitProcess, 0
+        call    doBye
         ret
 
 ; ******************************************************************************
@@ -448,6 +504,8 @@ repl:   call    doOK
         mov     [HERE1], ebx
         cld
         mov     esi, [HERE]
+        mov     esi, xBench
+        call    wcRun
         ret
 
 ; ******************************************************************************
@@ -479,17 +537,21 @@ buf4        dd    4 dup 0       ; Buffer
 ; ----------------------------------------------------------------
 THE_ROM:
 xCold       dd xHA, xDot, xHere, xDot, xLast, xDot, xCell, xDot
-                dd xLast, doLit, 12, doFor, xCR, xDeShow, doNext, doDrop
+                dd xCR, xWords
                 dd xCR, doLit, 'F', doEmit, doLit, 10, doFor, doI, doInc, xDot, doNext
-                dd xCR, doLit, 'S', doEmit, doLit, 500000000, doFor, doNext
-                dd doLit, 'E', doEmit
                 dd doExit
-xDeShow     dd doDup, xDot, doDup, xDeXT, xDot          ; XT
+xDeShow     dd doDup, xDeName                           ; First char of name    ( a1--a2 )
+                dd doDup, doLen, doType                 ; Name length
+                dd doDup, xDeSize, doAdd, doExit        ; Next entry
+xDeShowVB   dd xCR, doDup, xDot, doDup, xDeXT, xDot     ; XT    ( a1--a2 )
                 dd doDup, xDeSize, xDot                 ; Size
                 dd doDup, xDeFlags, xDot                ; Flags
                 dd doDup, xDeName                       ; First char of name
                 dd doDup, doLen, doType                 ; Name length
-                dd doDup, xDeSize, doAdd, doExit
+                dd doDup, xDeSize, doAdd, doExit        ; Next entry
+xWords      dd xLast
+xWdsLoop        dd xDeShow, $70000009, doEmit, doDup, xDeXT, doJmpNZ, xWdsLoop
+                dd doDrop, doExit
 xOK         dd doOK, doExit
 xDeXT       dd doFetch, doExit                                             ; dict entry size  ( de--xt )
 xDeSize     dd xCell, doAdd, doCFetch, doExit                              ; dict entry size  ( de--size )
@@ -503,6 +565,8 @@ xLA         dd doLit, LAST, doExit
 xLast       dd xLA, doFetch, doExit
 xDot        dd doDot, xSpace, doExit
 xCell       dd $70000000+CELL_SIZE, doExit
+xBench      dd xCR, doTimer, doLit, 500000000, doDup, xDot, doFor, doNext
+            dd doTimer, doSwap, doSub, xDot, doBye, doExit
 ; ----------------------------------------------------------------
 
 ; A dictionary entry looks like this:
@@ -519,7 +583,7 @@ macro addDict XT, Flags, Len, Name, NTPad
         db      NTPad dup 0
 }
 
-THE_DICT    rb 8*1024
+THE_DICT    rb 4*1024
             ; Pre-allocated for user-defined entries
 LastInit:
         addDict doInc,    0, 2, "1+",    4
@@ -528,7 +592,9 @@ LastInit:
         addDict doFor,    0, 3, "FOR",   3
         addDict doI,      0, 1, "I",     1
         addDict doNext,   0, 4, "NEXT",  2
+        addDict xWords,   0, 5, "WORDS", 1
         addDict xCell,    0, 4, "CELL",  2
+        addDict doItoA,   0, 3, "I>A",   3
         addDict xHere,    0, 4, "HERE",  2
         addDict xHA,      0, 2, "HA",    4
         addDict xLast,    0, 4, "LAST",  2
