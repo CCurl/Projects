@@ -1,2 +1,2 @@
 #/bin/sh
-fasm -d FOR_OS=LINUX wc.asm
+fasm -d FOR_OS=LINUX wc32.asm

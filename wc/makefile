@@ -1,7 +1,7 @@
-app := wc
+app := wc32
 
 COMP := fasm
-srcfiles := wc.asm         # $(shell find . -name "*.c")
+srcfiles := wc32.asm         # $(shell find . -name "*.c")
 # incfiles := opcodes.s      # $(shell find . -name "*.h")
 opts := -d FOR_OS=LINUX
 
@@ -24,4 +24,4 @@ test:
 	cat test.txt | ./wc
 
 bin: $(app)
-	cp -u -p $(app64) ~/.local/bin/
+	cp -u -p $(app) ~/.local/bin/

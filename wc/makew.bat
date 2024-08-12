@@ -1,1 +1,1 @@
-fasm -d FOR_OS=WINDOWS wc.asm
+fasm -d FOR_OS=WINDOWS wc32.asm

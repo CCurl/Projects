@@ -1,12 +1,12 @@
-; WC - a Tachyon Forth inspired 32-bit system
+; WC32 - a Tachyon Forth inspired 32-bit system
 
 ; FOR_OS equ WINDOWS
-FOR_OS equ LINUX
+; FOR_OS equ LINUX
 
 match =WINDOWS, FOR_OS {
         format PE console
         include 'win32ax.inc'
-        section '.code' code readable executable
+        .code
 }
 
 match =LINUX, FOR_OS {
@@ -262,15 +262,18 @@ doUnloop:
 .XX:    mov     [lStackPtr], edx
         ret
 
+doOK:   m_push  okStr
+        m_push  5
+        call    doType
+        ret
+
 ; ******************************************************************************
 match =WINDOWS, FOR_OS {
         doBye:  invoke  ExitProcess, 0
                 ret
-        doOK:   invoke  WriteConsole, [hStdOut], okStr, 5, NULL, NULL
-                ret
         doTimer: invoke GetTickCount
-                m_push  eax
-                ret
+                 m_push  eax
+                 ret
         doEmit: m_pop   eax
                 mov     [buf1], al
                 invoke  WriteConsole, [hStdOut], buf1, 1, NULL, NULL
@@ -279,18 +282,22 @@ match =WINDOWS, FOR_OS {
                 m_pop   ebx     ; Addr
                 invoke  WriteConsole, [hStdOut], ebx, eax, NULL, NULL
                 ret
+        doReadL: m_pop  edx              ; buffer size
+                 m_pop  ecx              ; buffer
+                 invoke ReadConsole, [hStdIn], ecx, edx, bytesRead, 0
+                 mov    eax, [bytesRead]
+                 m_push eax
+                 ret
         ; doQKey: invoke kbhit
         ;         m_push  eax
         ;         ret
         ; doKey: invoke getch
-        ;         m_push  eax
-        ;         ret
+        ;        m_push  eax
+        ;        ret
 }
 
 match =LINUX, FOR_OS {
         doBye:  ; invoke  LinuxExit, 0
-                ret
-        doOK:   ; invoke  LinuxOK, 0
                 ret
         doTimer: ; invoke LinuxTimer
                 m_push  eax
@@ -310,11 +317,11 @@ match =LINUX, FOR_OS {
                 int     0x80
                 ret
         doReadL: m_pop edx              ; buffer size
-                m_pop  ecx              ; buffer
-                mov    ebx, 0           ; stdin
-                mov    eax, 3           ; sys_read
-                int    0x80
-                m_push eax
+                 m_pop  ecx             ; buffer
+                 mov    ebx, 0          ; stdin
+                 mov    eax, 3          ; sys_read
+                 int    0x80
+                 m_push eax
     ret
         ; doQKey: ; invoke LinuxKey
         ;         m_push  eax
@@ -485,8 +492,8 @@ primEnd:
 ; ******************************************************************************
 
 ; ******************************************************************************
-entry $
-        mov     [InitialESP], esp
+match =LINUX, FOR_OS { entry $ }
+start:  mov     [InitialESP], esp
 match =WINDOWS, FOR_OS {
         invoke GetStdHandle, STD_INPUT_HANDLE
         mov    [hStdIn], eax
@@ -519,14 +526,21 @@ repl:   call    doOK
         m_push  128
         call    doReadL   ; ( buf sz--num )
         m_pop   ebx
+        dec     ebx
+        match =WINDOWS, FOR_OS { dec ebx }  ; Windows adds CR/LF
         mov     [TIB+ebx], 0
+        ; m_push  ebx
+        ; m_push  TIB
+        ; m_push  ebx
+        ; call    doType
+        ; call    doDot
         cld
         mov     esi, xBench
         call    wcRun
         ret
 
 ; ******************************************************************************
-match =WINDOWS, FOR_OS { section '.mem' data readable writable }
+match =WINDOWS, FOR_OS { .data }
 match =LINUX,   FOR_OS { segment readable writable }
 hStdIn      dd  ?
 hStdOut     dd  ?
@@ -628,3 +642,5 @@ CODE_END:
 
 THE_VARS    rb 256*1024
 VARS_END:
+
+match =WINDOWS, FOR_OS { .end start }
