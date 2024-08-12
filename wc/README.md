@@ -1,11 +1,6 @@
-# What is f4?
-f4 is an indirect-threaded Forth for Windows and/or Linux written in assembly language for FASM.
+# What is wc32?
+wc32 is a 32-bit implementation inspired by Tachyon, written for the FASM assembler.
 
-f4 is based loosely on Richard Jones' famous JonesForth.
-
-f4 uses "FASM" for the assembler. It is available for both Windows and Linux.
-See this page for more info: https://flatassembler.net/
-
-## Building f4
+## Building wc32
 - On Windows, use ./makew.bat
-- On Linux, use ./makel
+- On Linux, use make

@@ -1,14 +1,13 @@
 app := wc32
 
 COMP := fasm
-srcfiles := wc32.asm         # $(shell find . -name "*.c")
-# incfiles := opcodes.s      # $(shell find . -name "*.h")
+srcfiles := wc32.asm
 opts := -d FOR_OS=LINUX
 
 all: $(app)
 
 $(app): $(srcfiles)
-	$(COMP) $(srcfiles) $(opts)
+	$(COMP) $(opts) $(srcfiles)
 	chmod +x $(app)
 	ls -l $(app)
 
@@ -18,10 +17,10 @@ clean:
 	rm -f $(app)
 
 bm:
-	cat bm.txt | ./wc
+	cat bm.txt | $(app)
 
 test:
-	cat test.txt | ./wc
+	cat test.txt | $(app)
 
 bin: $(app)
 	cp -u -p $(app) ~/.local/bin/
