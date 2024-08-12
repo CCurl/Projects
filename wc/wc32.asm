@@ -583,6 +583,7 @@ macro addDict XT, Flags, Len, Name, Tag
 }
 
 THE_DICT:
+        addDict doBye,    0, 3, "BYE",   tg099
         addDict doInc,    0, 2, "1+",    tg100
         addDict doDec,    0, 2, "1-",    tg101
         addDict doFetch,  0, 1, "@",     tg102
@@ -599,7 +600,10 @@ THE_DICT:
         addDict xHA,      0, 2, "HA",    tg113
         addDict xLast,    0, 4, "LAST",  tg114
         addDict xLA,      0, 2, "LA",    tg115
-        addDict doLen,    0, 5, "S-LEN", tg999
+        addDict doLen,    0, 5, "S-LEN", tg116
+        addDict doKey,    0, 3, "KEY",   tg117
+        addDict doQKey,   0, 4, "QKEY",  tg118
+        addDict doDup,    0, 3, "DUP",   tg999
 ; TODO add more built-in dictionary entries here
         rd  64*1024
 DICT_END:
