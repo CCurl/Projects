@@ -13,7 +13,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -23,7 +22,7 @@
     #define MAX_MEM     0x0FFFFF
     #define STK_SZ            63
     #define LSTK_SZ           60
-    #define TSTK_SZ           60
+    #define TSTK_SZ           63
     #define btwi(n,l,h)   ((l<=n) && (n<=h))
     #define NO_FILE
     #define SYS_PRIMS \

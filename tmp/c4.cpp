@@ -8,15 +8,15 @@
 #define L0            lstk[lsp]
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
-
-enum { SPA=0, RSPA, HA, LA, BA, SA, LSPA, TSPA, LEXA, RBA, FSZ };
+#define _IMM          0x01
+#define _INL          0x02
 
 cell stk[STK_SZ+1], rstk[STK_SZ+1], lstk[LSTK_SZ+1];
 cell sp, rsp, lsp, here, vhere, last, base, state;
 char mem[MAX_MEM+1];
 char wd[32], *toIn;
 cell tstk[TSTK_SZ+1], tsp;
-cell ha;
+cell ha, inputFp, outputFp;
 
 // NOTE: Fill this in for custom primitives for your version of C4
 #define USER_PRIMS
@@ -65,9 +65,9 @@ cell ha;
 	X(KEY,     "key",       0, push(key()); ) \
 	X(QKEY,    "?key",      0, push(qKey()); ) \
 	X(COLON,   ":",         1, execIt(); addWord(0); state = 1; ) \
-	X(SEMI,    ";",         1, comma(EXIT); state=0; cH=here; cL=last; ) \
+	X(SEMI,    ";",         1, ccomma(EXIT); state=0; cH=here; cL=last; ) \
 	X(IMMED,   "immediate", 1, { DE_T *dp = (DE_T*)&mem[last]; dp->flags=1; } ) \
-	X(ADDWORD, "addword",   0, execIt(); addWord(0); comma(LIT2); ) \
+	X(ADDWORD, "addword",   0, execIt(); addWord(0); ) \
 	X(CLK,     "timer",     0, push(timer()); ) \
 	X(SEE,     "see",       1, doSee(); ) \
 	X(ZTYPE,   "ztype",     0, zType((char*)pop()); ) \
@@ -76,7 +76,7 @@ cell ha;
 	X(SEQI,    "s-eqi",     0, t=pop(); TOS = strEqI((char*)TOS, (char*)t); ) \
 	X(SZLEN,   "sz-len",    0, TOS = strLen((char*)TOS); ) \
 	X(QUOTE,   "\"",        1, quote(); ) \
-	X(DOTQT,   ".\"",       1, quote(); comma(ZTYPE); ) \
+	X(DOTQT,   ".\"",       1, quote(); ccomma(ZTYPE); ) \
 	X(ITOA,    "itoa",      0, t=pop(); push((cell)iToA(t, base)); ) \
 	SYS_PRIMS USER_PRIMS \
 	X(BYE,     "bye",       0, doBye(); )
@@ -84,7 +84,7 @@ cell ha;
 #define X(op, name, imm, cod) op,
 
 enum _PRIM  {
-	STOP, LIT1, LIT2, CALL, JMP, JMPZ, NJMPZ, JMPNZ, NJMPNZ,
+	STOP, LIT1, LIT2, LIT4, CALL, JMP, JMPZ, NJMPZ, JMPNZ, NJMPNZ,
 	PRIMS
 };
 
@@ -153,8 +153,9 @@ void strCpy(char *d, const char *s) {
 	*(d) = 0;
 }
 
-void comma(ushort x) { mem[here++] = x; }
-void commaCell(cell n) {
+void ccomma(byte x) { mem[here++] = x; }
+void wcomma(ushort x) { mem[here++] = x; }
+void comma(cell n) {
 	storeCell(&mem[here], n);
 	here += CELL_SZ / 2;
 }
@@ -172,7 +173,7 @@ DE_T *addWord(const char *w) {
 	int ln = strLen(w);
 	int sz = ln + 8;          // xt + sz + fl + lx + ln + null
 	if (sz & 1) { ++sz; }
-	ushort newLast=last - sz;
+	cell newLast=last - sz;
 	DE_T *dp = (DE_T*)&mem[newLast];
 	dp->xt = here;
 	dp->flags = 0;
@@ -301,8 +302,8 @@ void dotS() {
 }
 
 void quote() {
-	comma(LIT2);
-	commaCell((cell)&mem[vhere]);
+	ccomma(LIT2);
+	comma((cell)&mem[vhere]);
 	if (*toIn) { ++toIn; }
 	while (*toIn) {
 		if (*toIn == '"') { ++toIn; break; }
@@ -326,13 +327,12 @@ void execIt() {
 #define X(op, name, imm, code) NCASE op: code
 
 cell cL;
-void inner(ushort start) {
+void inner(cell start) {
 	cell t, n;
 	char *y;
-	ushort pc = start, wc;
+	cell pc = start;
 	next:
-	wc = mem[pc++];
-	switch(wc) {
+	switch(mem[pc++]) {
 		case  STOP:   return;
 		NCASE LIT1:   push((byte)mem[pc++]);
 		NCASE LIT2:   push(fetchCell(&mem[pc])); pc += CELL_SZ;
@@ -344,9 +344,7 @@ void inner(ushort start) {
 		NCASE NJMPNZ: if (TOS)      { pc=fetchCell(&mem[pc]); } else { pc += CELL_SZ; }
 		PRIMS
 		default:
-			if (wc & 0xE000) { push(wc & 0x1FFF); goto next; }
-			if (mem[pc] != EXIT) { rpush(pc); }
-			pc = wc;
+			zType("-ir?-");
 			goto next;
 	}
 }
@@ -378,13 +376,12 @@ int parseWord(char *w) {
 
 	if (isNum(w, base)) {
 		cell n = pop();
-		if (btwi(n, 0, 0x1fff)) {
-			comma((ushort)(n | 0xE000));
+		if (btwi(n, 0, 0xff)) {
+			ccomma(LIT1);
 		} else if (btwi(n, 0, 0xffff)) {
-			comma(LIT1); comma((ushort)n);
+			ccomma(LIT2); wcomma((ushort)n);
 		} else {
-			comma(LIT2);
-			commaCell(n);
+			ccomma(LIT4); comma(n);
 		}
 		return 1;
 	}
@@ -407,7 +404,7 @@ int parseWord(char *w) {
 
 cell cS;
 int outer(const char *ln) {
-	zTypeF("-outer:%s-\n",ln);
+	// zTypeF("-outer:%s-\n",ln);
 	cH=here, cL=last, cS=state, cV=vhere;
 	toIn = (char *)ln;
 	while (nextWord()) {
@@ -426,64 +423,63 @@ int outer(const char *ln) {
 }
 
 void defNum(const char *name, cell val) {
-	char buf[128];
-	sprintf(buf, ": %s $%s ;", name, iToA(val, 16)+1);
-	// printf("--%s--\n",buf);
-	outer(buf);
+	addWord(name);
+	if (btwi(val,0,0xFF)) { ccomma(LIT1); ccomma(val); }
+	else if (btwi(val,0,0xFFFF)) { ccomma(LIT1); wcomma(val); }
+	else { ccomma(LIT1); ccomma(val); }
+}
+
+void defPrim(const char *name, byte val) {
+	addWord(name);
+	DE_T *dp = (DE_T*)&mem[last];
+	dp->flags = _INL;
+	ccomma(val);
+	ccomma(EXIT);
 }
 
 void zTypeF(const char *fmt, ...) {
-	char buf[128];
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(buf, 128, fmt, args);
-	va_end(args);
-	zType(buf);
+	// char buf[128];
+	// va_list args;
+	// va_start(args, fmt);
+	// vsnprintf(buf, 128, fmt, args);
+	// va_end(args);
+	// zType(buf);
 }
 
 void baseSys() {
-	for (int i = 0; prims[i].name; i++) {
-        // zTypeF("[%s]",prims[i].name); if (i%10==0) { zType("\r\n"); }
-		DE_T *w = addWord(prims[i].name);
-		w->xt = prims[i].op;
-		w->flags = prims[i].fl;
-	}
-
-	defNum("version", VERSION);
-	defNum("(jmp)", JMP);
-	defNum("(jmpz)", JMPZ);
-	defNum("(jmpnz)", JMPNZ);
-	defNum("(njmpz)", NJMPZ);
+	defNum("version",  VERSION);
+	defNum("(call)",   CALL);
+	defNum("(jmp)",    JMP);
+	defNum("(jmpz)",   JMPZ);
+	defNum("(jmpnz)",  JMPNZ);
+	defNum("(njmpz)",  NJMPZ);
 	defNum("(njmpnz)", NJMPNZ);
-	defNum("(lit1)", LIT1);
-	defNum("(lit2)", LIT2);
-	defNum("(exit)", EXIT);
+	defNum("(lit1)",   LIT1);
+	defNum("(lit2)",   LIT2);
+	defNum("(exit)",   EXIT);
 
-	defNum("(sp)", SPA);
-	defNum("(rsp)", RSPA);
-	defNum("(lsp)", LSPA);
-	defNum("(tsp)", TSPA);
-	defNum("(here)", HA);
-	defNum("(last)", LA);
-	defNum("base", BA);
-	defNum("state", SA);
-	defNum("(lex)", LEXA);
-	defNum("(reg-base)", RBA);
-	defNum("(frame-sz)", FSZ);
+	defNum("(sp)",   (cell)&sp);
+	defNum("(rsp)",  (cell)&rsp);
+	defNum("(lsp)",  (cell)&lsp);
+	defNum("(tsp)",  (cell)&tsp);
+	defNum("(ha)",   (cell)&here);
+	defNum("(la)",   (cell)&last);
+	defNum("base",   (cell)&base);
+	defNum("state",  (cell)&state);
 
-	defNum("code", (cell)&mem[0]);
-	defNum(">in",  (cell)&toIn[0]);
-	defNum("(vhere)", (cell)&vhere);
+	defNum("code",        (cell)&mem[0]);
+	defNum(">in",         (cell)&toIn[0]);
+	defNum("(vhere)",     (cell)&vhere);
 	defNum("(output-fp)", (cell)&outputFp);
-	defNum("stk",  (cell)&stk[0]);
-	defNum("rstk", (cell)&rstk[0]);
-	defNum("tstk", (cell)&tstk[0]);
+	defNum("stk",         (cell)&stk[0]);
+	defNum("rstk",        (cell)&rstk[0]);
+	defNum("tstk",        (cell)&tstk[0]);
 
-	defNum("mem-sz", MAX_MEM+1);
-	defNum("stk-sz", STK_SZ+1);
+	defNum("mem-sz",  MAX_MEM+1);
+	defNum("stk-sz",  STK_SZ+1);
 	defNum("tstk-sz", TSTK_SZ+1);
-	defNum("cell", CELL_SZ);
-	sys_load();
+	defNum("cell",    CELL_SZ);
+	// sys_load();
 }
 
 void Init() {
@@ -492,9 +488,6 @@ void Init() {
 	if ((cell)&mem[last] & 0x01) { ++last; }
 	base = 10;
 	vhere = 0;
-	fileInit();
+	//fileInit();
 	baseSys();
 }
-
-void zType(const char *s) { fputs(s, stdout); }
-void zType(const char c) { fputc(c, stdout); }
