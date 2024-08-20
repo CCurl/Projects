@@ -78,7 +78,7 @@ typedef UCELL_T ucell;
 typedef unsigned short ushort;
 typedef unsigned char byte;
 typedef union { FLT_T f; cell i; } SE_T;
-typedef struct { cell xt; cell prev; byte flags, len; char name[32]; } DE_T;
+typedef struct { cell xt; byte flags, len; char name[32]; } DE_T;
 typedef struct { byte op; const char* name; byte fl; } PRIM_T;
 
 // These are defined by c4.cpp
@@ -89,8 +89,6 @@ extern int  strEq(const char *d, const char *s);
 extern int  strEqI(const char *d, const char *s);
 extern int  strLen(const char *s);
 extern int  lower(const char c);
-extern char *iToA(cell N, int b);
-extern void zTypeF(const char *fmt, ...);
 extern void inner(cell start);
 extern int  outer(const char *src);
 extern void defNum(const char *name, cell val);
@@ -104,16 +102,6 @@ extern void ttyMode(int isRaw);
 extern int  key();
 extern int  qKey();
 extern cell timer();
-extern void fileInit();
-extern void filePush(cell fh);
-extern cell filePop();
-extern cell fileOpen(const char *name, const char *mode);
-extern void fileClose(cell fh);
-extern void fileDelete(const char *name);
-extern cell fileRead(char *buf, int sz, cell fh);
-extern cell fileWrite(char *buf, int sz, cell fh);
-extern int  fileGets(char *buf, int sz, cell fh);
-extern void fileLoad(const char *name);
-extern void blockLoad(int blk);
+extern void saveBlocks();
 
 #endif //  __C4_H__

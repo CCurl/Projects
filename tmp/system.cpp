@@ -59,27 +59,9 @@ cell timer() { return (cell)clock(); }
 void zType(const char* str) { fputs(str, outputFp ? (FILE*)outputFp : stdout); }
 void emit(const char ch) { fputc(ch, outputFp ? (FILE*)outputFp : stdout); }
 
-// REP - Read/Execute/Print (no Loop)
-void REP() {
-    char tib[128];
-	if (inputFp == 0) {
-		ttyMode(0);
-		zType(" ok\r\n");
-	}
-	//if (fileGets(tib, sizeof(tib), inputFp)) {
-	//	outer(tib);
-	//	return;
-	//}
-	if (inputFp == 0) { exit(0); }
-	//fileClose(inputFp);
-	//inputFp = filePop();
-}
-
 int main(int argc, char *argv[]) {
 	Init();
-    // if (argc > 1) { loadArgument(argv[1]); }
-    // else { loadArgument("block-999.c4"); }
-    while (1) { REP(); };
+    inner(0);
 	return 0;
 }
 
