@@ -23,11 +23,16 @@
 : #> t> ;
 : . <# #s #> ztype 32 emit ;
 
-: hex. base @ >t 16 base ! . t> base ! ;
-: bin. base @ >t  2 base ! . t> base ! ;
-: dec. base @ >t 10 base ! . t> base ! ;
+: .2 <# #   #s #> ztype ;
+: .3 <# # # #s #> ztype ;
+: hex. base @ >t 16 base ! .2 t> base ! ;
+: dec. base @ >t 10 base ! .3 t> base ! ;
+: bin. base @ >t  2 base ! .  t> base ! ;
 27 . cr
 last . last hex. last bin. cr
 num-pad . num-pad hex. cr
 version . cr
 cr
+
+: mil 1000 dup * * ;
+: bm timer swap for next timer swap - . ;

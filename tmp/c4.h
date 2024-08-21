@@ -108,5 +108,9 @@ extern int  key();
 extern int  qKey();
 extern cell timer();
 extern void saveBlocks();
+extern cell fOpen(const char *name, cell mode);
+extern void fClose(cell fh);
+extern cell fRead(cell buf, cell sz, cell fh);
+extern cell fWrite(cell buf, cell sz, cell fh);
 
 #endif //  __C4_H__

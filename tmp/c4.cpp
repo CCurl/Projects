@@ -2,8 +2,8 @@
 
 #define NCASE         goto next; case
 #define BCASE         break; case
-#define TOS           stk[sp]
-#define NOS           stk[sp-1]
+#define TOS           dstk[dsp]
+#define NOS           dstk[dsp-1]
 #define L0            lstk[lsp]
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
@@ -16,13 +16,14 @@ struct {
 	byte dict[MAX_DICT+1];
 } mem;
 
-cell sp, stk[STK_SZ+1];
+cell dsp, dstk[STK_SZ+1];
 cell rsp, rstk[STK_SZ+1];
+cell tsp, tstk[STK_SZ+1];
 cell lsp, lstk[LSTK_SZ+1];
-cell tsp, tstk[STK_SZ];
 cell last, base, state, dictEnd, inputFp, outputFp;
 byte *here, *vhere;
 char *blockStart, *toIn, wd[32];
+cell a;
 
 // NOTE: Fill this in for custom primitives for your version of C4
 #define USER_PRIMS
@@ -69,6 +70,12 @@ char *blockStart, *toIn, wd[32];
 	X(TAT,     "t@",        0, push(tstk[tsp]); ) \
 	X(TSTO,    "t!",        0, tstk[tsp] = pop(); ) \
 	X(TFROM,   "t>",        0, push(tpop()); ) \
+	X(ASET,    "a!",        0, a=pop(); ) \
+	X(AGET,    "a@",        0, push(a); ) \
+	X(ASTO,    "!a",        0, t=pop(); *(byte*)a=(byte)t; ) \
+	X(AFET,    "@a",        0, push(*(byte*)a); ) \
+	X(ASTOI,   "!a+",       0, t=pop(); *(byte*)a=(byte)t; a++; ) \
+	X(AFETI,   "@a+",       0, push(*(byte*)a); a++; ) \
 	X(EMIT,    "emit",      0, emit((char)pop()); ) \
 	X(KEY,     "key",       0, push(key()); ) \
 	X(QKEY,    "?key",      0, push(qKey()); ) \
@@ -93,8 +100,8 @@ enum _PRIM  {
 
 PRIM_T prims[] = { PRIMS {0, 0, 0} };
 
-void push(cell x) { if (sp < STK_SZ) { stk[++sp] = x; } }
-cell pop() { return (0<sp) ? stk[sp--] : 0; }
+void push(cell x) { if (dsp < STK_SZ) { dstk[++dsp] = x; } }
+cell pop() { return (0<dsp) ? dstk[dsp--] : 0; }
 void rpush(cell x) { if (rsp < STK_SZ) { rstk[++rsp] = x; } }
 cell rpop() { return (0<rsp) ? rstk[rsp--] : 0; }
 void tpush(cell x) { if (tsp < STK_SZ) { tstk[++tsp] = x; } }
@@ -218,7 +225,7 @@ next:
 }
 
 int isNum(const char *w) {
-	cell n=0, b=10;
+	cell n=0, b=base;
 	if ((w[0]==39) && (w[2]==39) && (w[3]==0)) { push(w[1]); return 1; }
 	if (w[0]=='#') { b=10; w++; }
 	if (w[0]=='$') { b=16; w++; }
@@ -308,20 +315,25 @@ void baseSys() {
 	defNum("(lit4)",   LIT4);
 	defNum("(exit)",   EXIT);
 
-	defNum("(sp)",   (cell)&sp);
+	defNum("(dsp)",  (cell)&dsp);
 	defNum("(rsp)",  (cell)&rsp);
+	defNum("(tsp)",  (cell)&tsp);
 	defNum("(lsp)",  (cell)&lsp);
 	defNum("(ha)",   (cell)&here);
 	defNum("(la)",   (cell)&last);
 	defNum("base",   (cell)&base);
 	defNum("state",  (cell)&state);
 
+	defNum("vectors",     (cell)&mem.vectors[0]);
 	defNum("code",        (cell)&mem.code[0]);
+	defNum("vars",        (cell)&mem.vars[0]);
+	defNum("dict",        (cell)&mem.dict[0]);
 	defNum(">in",         (cell)&toIn[0]);
 	defNum("(vhere)",     (cell)&vhere);
 	defNum("(output-fp)", (cell)&outputFp);
-	defNum("stk",         (cell)&stk[0]);
+	defNum("dstk",        (cell)&dstk[0]);
 	defNum("rstk",        (cell)&rstk[0]);
+	defNum("tstk",        (cell)&tstk[0]);
 
 	defNum("stk-sz",  STK_SZ+1);
 	defNum("cell",    CELL_SZ);
@@ -335,19 +347,19 @@ void baseSys() {
 }
 
 void loadBlocks() {
-	FILE *fp = fopen("blocks.c4", "rb");
+	cell fp = fOpen("blocks.c4", (cell)"rb");
 	if (fp) {
-		fread(mem.blocks, 1, sizeof(mem.blocks), fp);
-		fclose(fp);
+		fRead((cell)mem.blocks, sizeof(mem.blocks), (cell)fp);
+		fClose(fp);
 	}
 	outer(&mem.blocks[0]);
 }
 
 void saveBlocks() {
-	FILE *fp = fopen("blocks.c4", "wb");
+	cell fp = fOpen("blocks.c4", (cell)"wb");
 	if (fp) {
-		fwrite(mem.blocks, 1, sizeof(mem.blocks), fp);
-		fclose(fp);
+		fWrite((cell)mem.blocks, sizeof(mem.blocks), (cell)fp);
+		fClose(fp);
 	}
 }
 

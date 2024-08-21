@@ -58,6 +58,10 @@ int key() {
 cell timer() { return (cell)clock(); }
 void zType(const char* str) { fputs(str, outputFp ? (FILE*)outputFp : stdout); }
 void emit(const char ch) { fputc(ch, outputFp ? (FILE*)outputFp : stdout); }
+cell fOpen(const char *name, cell mode) { return (cell)fopen(name, (char*)mode); }
+void fClose(cell fh) { fclose((FILE*)fh); }
+cell fRead(cell buf, cell sz, cell fh) { return (cell)fread((char*)buf, 1, sz, (FILE*)fh); }
+cell fWrite(cell buf, cell sz, cell fh) { return (cell)fread((char*)buf, 1, sz, (FILE*)fh); }
 
 void repl() {
     zType(" ok\n");
@@ -69,7 +73,6 @@ void repl() {
 int main(int argc, char *argv[]) {
 	Init();
     while (1) { repl(); }
-    inner(0);
 	return 0;
 }
 
