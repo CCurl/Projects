@@ -244,9 +244,7 @@ int isNum(const char *w) {
 }
 
 int parseWord(char *w) {
-	if (!w) { w = &wd[0]; }
 	// zType("-pw:"); zType(w); zType("-");
-
 	if (isNum(w)) {
 		if (state == 0) { return 1; }
 		cell n = pop();
@@ -329,7 +327,7 @@ void baseSys() {
 	defNum("vars",        (cell)&mem.vars[0]);
 	defNum("dict",        (cell)&mem.dict[0]);
 	defNum("blocks",      (cell)&mem.blocks[0]);
-	defNum(">in",         (cell)&toIn[0]);
+	defNum(">in",         (cell)&toIn);
 	defNum("(vhere)",     (cell)&vhere);
 	defNum("(output-fp)", (cell)&outputFp);
 	defNum("dstk",        (cell)&dstk[0]);
