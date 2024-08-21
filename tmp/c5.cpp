@@ -12,8 +12,8 @@ struct {
 	cell vectors[32];
 	byte code[MAX_CODE+1];
 	byte vars[MAX_VARS+1];
-	char blocks[BLOCK_SZ*(MAX_BLOCKNUM+1)];
 	byte dict[MAX_DICT+1];
+	char blocks[BLOCK_SZ*(MAX_BLOCKNUM+1)];
 } mem;
 
 cell dsp, dstk[STK_SZ+1];
@@ -328,6 +328,7 @@ void baseSys() {
 	defNum("code",        (cell)&mem.code[0]);
 	defNum("vars",        (cell)&mem.vars[0]);
 	defNum("dict",        (cell)&mem.dict[0]);
+	defNum("blocks",      (cell)&mem.blocks[0]);
 	defNum(">in",         (cell)&toIn[0]);
 	defNum("(vhere)",     (cell)&vhere);
 	defNum("(output-fp)", (cell)&outputFp);

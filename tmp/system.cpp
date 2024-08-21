@@ -62,7 +62,7 @@ void emit(const char ch) { fputc(ch, outputFp ? (FILE*)outputFp : stdout); }
 cell fOpen(const char *name, cell mode) { return (cell)fopen(name, (char*)mode); }
 void fClose(cell fh) { fclose((FILE*)fh); }
 cell fRead(cell buf, cell sz, cell fh) { return (cell)fread((char*)buf, 1, sz, (FILE*)fh); }
-cell fWrite(cell buf, cell sz, cell fh) { return (cell)fread((char*)buf, 1, sz, (FILE*)fh); }
+cell fWrite(cell buf, cell sz, cell fh) { return (cell)fwrite((char*)buf, 1, sz, (FILE*)fh); }
 
 void repl() {
     zType(" ok\n");
