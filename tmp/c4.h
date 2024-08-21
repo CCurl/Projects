@@ -86,6 +86,7 @@ typedef struct { byte op; const char* name; byte fl; } PRIM_T;
 
 // These are defined by c4.cpp
 extern void inner(cell start);
+extern int  outer(const char *src);
 extern void Init();
 /*
 extern void push(cell x);
@@ -95,7 +96,6 @@ extern int  strEq(const byte *d, const byte *s);
 extern int  strEqI(const byte *d, const byte *s);
 extern int  strLen(const byte *s);
 extern int  lower(const char c);
-extern int  outer(const byte *src);
 extern void defNum(const byte *name, cell val);
 */
 

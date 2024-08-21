@@ -1,6 +1,5 @@
 #include "c4.h"
 
-#define LASTPRIM      BYE
 #define NCASE         goto next; case
 #define BCASE         break; case
 #define TOS           stk[sp]
@@ -8,8 +7,6 @@
 #define L0            lstk[lsp]
 #define L1            lstk[lsp-1]
 #define L2            lstk[lsp-2]
-#define _IMM          0x01
-#define _INL          0x02
 
 struct {
 	cell vectors[32];
@@ -31,7 +28,6 @@ char *blockStart, *toIn, wd[32];
 #define USER_PRIMS
 
 #define PRIMS \
-	X(DUMP, "dump", 0, t=pop(); n=pop(); for (cell i=n;i<t;i++) { printf("%d ", (byte)*((byte*)i));} ) \
 	X(EXIT,    "exit",      0, if (0<rsp) { pc = (byte*)rpop(); } else { return; } ) \
 	X(CCOM,    "c,",        0, t=pop(); ccomma(t); ) \
 	X(WCOM,    "w,",        0, t=pop(); wcomma(t); ) \
@@ -82,7 +78,6 @@ char *blockStart, *toIn, wd[32];
 	X(CLK,     "timer",     0, push(timer()); ) \
 	X(ZTYPE,   "ztype",     0, zType((const char *)pop()); ) \
 	X(FLUSH,   "flush",     0, saveBlocks(); ) \
-	X(XDOT,    "x.",        0, printf("[#%ld]", pop()); ) \
 	SYS_PRIMS USER_PRIMS \
 	X(BYE,     "bye",       0, doBye(); )
 
@@ -207,17 +202,17 @@ next:
 		NCASE LIT1:   push((byte)*(pc++));
 		NCASE LIT2:   push(fetchWord(pc)); pc += 2;
 		NCASE LIT4:   push(fetchCell(pc)); pc += CELL_SZ;
-		NCASE CALL:   rpush((cell)pc+CELL_SZ); pc = (byte*)fetchCell(pc);
-		NCASE JMP:    t=fetchCell(pc); pc = (byte*)t;
+		NCASE CALL:   t=(cell)pc+CELL_SZ; rpush(t); pc = (byte*)fetchCell(pc);
+		NCASE JMP:    pc=(byte*)fetchCell(pc); // zType("-jmp-");
 		NCASE JMPZ:   t=fetchCell(pc); if (pop()==0) { pc = (byte*)t; } else { pc += CELL_SZ; }
 		NCASE NJMPZ:  t=fetchCell(pc); if (TOS==0)   { pc = (byte*)t; } else { pc += CELL_SZ; }
 		NCASE JMPNZ:  t=fetchCell(pc); if (pop())    { pc = (byte*)t; } else { pc += CELL_SZ; }
 		NCASE NJMPNZ: t=fetchCell(pc); if (TOS)      { pc = (byte*)t; } else { pc += CELL_SZ; }
 		PRIMS
 		default:
-			// zType("-ir?-");
+			zType("-ir?-");
 			// goto next;
-			printf("-ir:%d?-", *(pc-1));
+			// printf("-ir:%d?-", *(pc-1));
 			return; // goto next;
 	}
 }
@@ -225,9 +220,15 @@ next:
 int isNum(const char *w) {
 	cell n=0, b=10;
 	if ((w[0]==39) && (w[2]==39) && (w[3]==0)) { push(w[1]); return 1; }
+	if (w[0]=='#') { b=10; w++; }
+	if (w[0]=='$') { b=16; w++; }
+	if (w[0]=='%') { b=2; w++; }
+	if (w[0]==0) { return 0; }
 	char c = *(w++);
 	while (c) {
-		if (btwi(c,'0','9')) { n = (n*b)+(c-'0'); }
+		if ((b==2) && btwi(c,'0','0')) { n = (n*b)+(c-'0'); }
+		else if (btwi(c,'0','9')) { n = (n*b)+(c-'0'); }
+		else if ((b==16) && btwi(c,'a','f')) { n = (n*b)+(c-'a'+10); }
 		else { return 0; }
 		c = *(w++);
 	}
@@ -242,38 +243,31 @@ int parseWord(char *w) {
 	if (isNum(w)) {
 		if (state == 0) { return 1; }
 		cell n = pop();
-		if (btwi(n, 0, 0x7f)) {
-			ccomma(LIT1); ccomma((char)n);
-		} else if (btwi(n, 0, 0x7fff)) {
-			ccomma(LIT2); wcomma((ushort)n);
-		} else {
-			ccomma(LIT4); comma(n);
-		}
+		if (btwi(n, 0, 0x7f)) { ccomma(LIT1); ccomma((char)n); }
+		else if (btwi(n, 0, 0x7fff)) { ccomma(LIT2); wcomma((ushort)n); }
+		else { ccomma(LIT4); comma(n); }
 		return 1;
 	}
 
-	DE_T *de = findWord(w);
-	if (de) {
-		if ((state==0) || (de->flags & 0x01)) {   // Interpret or Immediate
-			// rpush(STOP);
-			// inner(de->xt);
-			// return 1;
+	DE_T *dp = findWord(w);
+	if (dp) {
+		if ((state==0) || (dp->flags & 0x01)) {   // Interpret or Immediate
 			byte *y = here+100;
 			*(y++) = CALL;
-			storeCell(y, de->xt); y += CELL_SZ;
+			storeCell(y, dp->xt); y += CELL_SZ;
 			*(y) = STOP;
 			inner((cell)here+100);
 			return 1;
 		}
 
 		// Compiling ...
-		if ((de->flags & 0x02)) {   // Inline
-			byte *y = (byte*)de->xt;
+		if ((dp->flags & 0x02)) {   // Inline
+			byte *y = (byte*)dp->xt;
 			do { ccomma(*(y++)); } while ( *(y) != EXIT );
 		} else {
-			//if (*(here-CELL_SZ-1) == CALL) { *(here-CELL_SZ-1) = JMP; }
-			//else { ccomma(CALL); comma(de->xt); }
-			ccomma(CALL); comma(de->xt);
+			// if (*(here-CELL_SZ-1) == CALL) { *(here-CELL_SZ-1) = JMP; }
+			// else { ccomma(CALL); comma(dp->xt); }
+			ccomma(CALL); comma(dp->xt);
 		}
 		return 1;
 	}
@@ -299,19 +293,6 @@ void defNum(const char *name, cell val) {
 	else if (btwi(val,0,0x7FFF)) { ccomma(LIT2); wcomma(val); }
 	else { ccomma(LIT4); comma(val); }
 	ccomma(EXIT);
-}
-
-void defPrim(const char *name, byte prim, byte fl) {
-	DE_T *dp = addWord(name);
-	dp->flags = _INL | fl;
-	ccomma(prim);
-	ccomma(EXIT);
-}
-
-#undef X
-#define X(op, name, imm, code) defPrim(name, op, imm);
-void defPrims() {
-	PRIMS
 }
 
 void baseSys() {
@@ -344,40 +325,40 @@ void baseSys() {
 
 	defNum("stk-sz",  STK_SZ+1);
 	defNum("cell",    CELL_SZ);
-	defPrims();
+	for (int i = 0; prims[i].name; i++) {
+		PRIM_T* p = &prims[i];
+		DE_T* dp = addWord(p->name);
+		dp->flags = (p->fl) ? p->fl : 0x02;
+		ccomma(p->op);
+		ccomma(EXIT);
+	}
 }
 
 void loadBlocks() {
 	FILE *fp = fopen("blocks.c4", "rb");
 	if (fp) {
-		fread(&mem, 1, sizeof(mem), fp);
+		fread(mem.blocks, 1, sizeof(mem.blocks), fp);
 		fclose(fp);
-	} else {
-		FILE *fp = fopen("src.c4", "rb");
-		toIn = &mem.blocks[0];
-		cell num = fread(toIn, 1, 50000, fp);
-		// printf("%ld bytes read", num);
-		fclose(fp);
-		outer(toIn);
 	}
+	outer(&mem.blocks[0]);
 }
 
 void saveBlocks() {
 	FILE *fp = fopen("blocks.c4", "wb");
 	if (fp) {
-		fwrite(&mem, 1, sizeof(mem), fp);
+		fwrite(mem.blocks, 1, sizeof(mem.blocks), fp);
 		fclose(fp);
 	}
 }
 
 void Init() {
 	fill((byte*)&mem, sizeof(mem), 0);
-	base = 10;
+	base       = 10;
 	here       = &mem.code[0];
 	vhere      = &mem.vars[0];
 	blockStart = &mem.blocks[0];
-	last = (cell)&mem.dict[MAX_DICT] & (~0x03);
-	dictEnd = last;
+	last       = (cell)&mem.dict[MAX_DICT] & (~0x03);
+	dictEnd    = last;
 	baseSys();
 	loadBlocks();
 }

@@ -59,8 +59,16 @@ cell timer() { return (cell)clock(); }
 void zType(const char* str) { fputs(str, outputFp ? (FILE*)outputFp : stdout); }
 void emit(const char ch) { fputc(ch, outputFp ? (FILE*)outputFp : stdout); }
 
+void repl() {
+    zType(" ok\n");
+    char tib[256];
+    if (fgets(tib, 256, stdin) != tib) { exit(0); }
+    outer(tib);
+}
+
 int main(int argc, char *argv[]) {
 	Init();
+    while (1) { repl(); }
     inner(0);
 	return 0;
 }

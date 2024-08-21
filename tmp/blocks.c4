@@ -7,7 +7,9 @@
 
 : begin here ; immediate
 : while  (jmpnz)  c, , ; immediate
-: -while (njmpnz) c, , cr ; immediate
+: -while (njmpnz) c, , ; immediate
+: until  (jmpz)   c, , ; immediate
+: -until (njmpz)  c, , ; immediate
 
 : if (jmpz) c, here 0 , ; immediate
 : then here swap ! ; immediate
@@ -27,7 +29,5 @@
 27 . cr
 last . last hex. last bin. cr
 num-pad . num-pad hex. cr
-65 emit cr
 version . cr
-65 1 + 1+ emit cr
 cr
