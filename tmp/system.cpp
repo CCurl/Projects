@@ -1,4 +1,4 @@
-#include "c4.h"
+#include "c5.h"
 
 #ifdef IS_WINDOWS
 
@@ -58,6 +58,7 @@ int key() {
 cell timer() { return (cell)clock(); }
 void zType(const char* str) { fputs(str, outputFp ? (FILE*)outputFp : stdout); }
 void emit(const char ch) { fputc(ch, outputFp ? (FILE*)outputFp : stdout); }
+
 cell fOpen(const char *name, cell mode) { return (cell)fopen(name, (char*)mode); }
 void fClose(cell fh) { fclose((FILE*)fh); }
 cell fRead(cell buf, cell sz, cell fh) { return (cell)fread((char*)buf, 1, sz, (FILE*)fh); }

@@ -1,4 +1,4 @@
-#include "c4.h"
+#include "c5.h"
 
 #define NCASE         goto next; case
 #define BCASE         break; case
@@ -25,7 +25,7 @@ byte *here, *vhere;
 char *blockStart, *toIn, wd[32];
 cell a;
 
-// NOTE: Fill this in for custom primitives for your version of C4
+// NOTE: Fill this in for custom primitives for your version of C5
 #define USER_PRIMS
 
 #define PRIMS \
@@ -347,8 +347,8 @@ void baseSys() {
 }
 
 void loadBlocks() {
-	cell fp = fOpen("blocks.c4", (cell)"rb");
-	if (!fp) { fp = fOpen("src.c4", (cell)"rb"); }
+	cell fp = fOpen("blocks.c5", (cell)"rb");
+	if (!fp) { fp = fOpen("src.c5", (cell)"rb"); }
 	if (fp) {
 		fRead((cell)mem.blocks, sizeof(mem.blocks), (cell)fp);
 		fClose(fp);
@@ -357,7 +357,7 @@ void loadBlocks() {
 }
 
 void saveBlocks() {
-	cell fp = fOpen("blocks.c4", (cell)"wb");
+	cell fp = fOpen("blocks.c5", (cell)"wb");
 	if (fp) {
 		fWrite((cell)mem.blocks, sizeof(mem.blocks), (cell)fp);
 		fClose(fp);

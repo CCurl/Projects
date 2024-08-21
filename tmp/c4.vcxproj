@@ -24,7 +24,7 @@
     <ProjectGuid>{bdd1c19e-3eec-4ddf-ad67-406628bacccf}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>c4</ProjectName>
+    <ProjectName>c5</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -144,18 +144,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="c4.ino" />
+    <None Include="c5.ino" />
     <None Include="LICENSE" />
     <None Include="makefile" />
     <None Include="README.md" />
-    <None Include="src.c4" />
+    <None Include="src.c5" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="c4.cpp" />
+    <ClCompile Include="c5.cpp" />
     <ClCompile Include="system.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="c4.h" />
+    <ClInclude Include="c5.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

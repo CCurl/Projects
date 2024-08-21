@@ -1,4 +1,4 @@
-#include "c4.h"
+#include "c5.h"
 
 void ttyMode(int isRaw) {}
 cell timer() { return millis(); }
@@ -32,7 +32,7 @@ void setup() {
     isInit = 0;
     in = 0;
     serialInit();
-    zTypeF("\r\nc4 - version %d", VERSION);
+    zTypeF("\r\nc5 - version %d", VERSION);
     // zTypeF("hello\r\n");
 }
 

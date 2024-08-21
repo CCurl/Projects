@@ -1,4 +1,4 @@
-#ifndef __C4_H__
+#ifndef __C5_H__
 
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
@@ -84,7 +84,7 @@ typedef unsigned char byte;
 typedef struct { cell xt; byte flags, len; char name[32]; } DE_T;
 typedef struct { byte op; const char* name; byte fl; } PRIM_T;
 
-// These are defined by c4.cpp
+// These are defined by c5.cpp
 extern void inner(cell start);
 extern int  outer(const char *src);
 extern void Init();
@@ -99,7 +99,7 @@ extern int  lower(const char c);
 extern void defNum(const byte *name, cell val);
 */
 
-// c4.cpp needs these to be defined
+// c5.cpp needs these to be defined
 extern cell inputFp, outputFp;
 extern void zType(const char *str);
 extern void emit(const char ch);
@@ -113,4 +113,4 @@ extern void fClose(cell fh);
 extern cell fRead(cell buf, cell sz, cell fh);
 extern cell fWrite(cell buf, cell sz, cell fh);
 
-#endif //  __C4_H__
+#endif //  __C5_H__

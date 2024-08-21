@@ -1,5 +1,5 @@
-app := c4
-app32 := c4-32
+app := c5
+app32 := c5-32
 
 CXX := clang
 CXXFLAGS := -m64 -O3
@@ -23,7 +23,7 @@ clean:
 	rm -f $(app) $(app32)
 
 test: $(app)
-	./$(app) block-200.c4
+	./$(app) block-200.c5
 
 run: $(app)
 	./$(app)
