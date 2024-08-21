@@ -2,40 +2,32 @@
 
 : here (ha) @ ;
 : last (la) @ ;
-: , here ! here cell + (ha) ! ;
-: c, here ! here 1+ (ha) ! ;
-'I' emit here
 : immediate 1 last cell + c! ;
-'E' emit here dump cr
 : inline    2 last cell + c! ;
 
-888 x.
+: begin here ; immediate
+: while  (jmpnz)  c, , ; immediate
+: -while (njmpnz) c, , cr ; immediate
 
-: begin here 'B' emit dup x. ; immediate
-900 x.
-: while  (jmpnz)  c, , 'W' emit ; immediate
-901 x.
-: -while dup x. (njmpnz) dup x. c, , 'w' emit cr ; immediate
-999 x.
-sdf
-here 
-: xx begin dup x. 1- dup while x. ;
-here dump cr
-here
-: yy xx 'y' emit cr ;
-here dump cr
+: if (jmpz) c, here 0 , ; immediate
+: then here swap ! ; immediate
+
 : num-pad last 32 - ;
 : <# num-pad 0 over c! >t ;
-: #c t@ 1- dup t! c! 'c' emit t@ x. ;
-: #n 'n' emit '0' + dup emit #c ;
+: #c t@ 1- dup t! c! ;
+: #n '0' + dup '9' > if 7 + then #c ;
 : # base @ /mod swap #n ;
-: #s begin # dup while drop 'e' emit t@ x. ;
-: #> '#' emit t> dup x. ;
-: . <# 'a' emit #s 'x' emit #> 'z' emit ztype 32 emit ;
+: #s begin # -while drop ;
+: #> t> ;
+: . <# #s #> ztype 32 emit ;
+
+: hex. base @ >t 16 base ! . t> base ! ;
+: bin. base @ >t  2 base ! . t> base ! ;
+: dec. base @ >t 10 base ! . t> base ! ;
 27 . cr
-ssd
-last . cr
-num-pad . cr
+last . last hex. last bin. cr
+num-pad . num-pad hex. cr
 65 emit cr
 version . cr
-65 1 + 1+ emit
+65 1 + 1+ emit cr
+cr

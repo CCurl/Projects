@@ -19,14 +19,18 @@
 #define VERSION   240805
 
 #ifdef IS_PC
-    #define MAX_MEM     0x0FFFFF
+    #define MAX_CODE    0x00FFFF
+    #define MAX_VARS    0x0FFFFF
+    #define MAX_DICT    0x007FFF
     #define STK_SZ            63
     #define LSTK_SZ           60
     #define TSTK_SZ           63
+    #define BLOCK_SZ        1000
+    #define MAX_BLOCKNUM     999
     #define btwi(n,l,h)   ((l<=n) && (n<=h))
     #define NO_FILE
     #define SYS_PRIMS \
-	    X(SYSTEM,  "system",    0, t=pop(); ttyMode(0); system((byte*)t+1); )
+	    X(SYSTEM,  "system",    0, t=pop(); ttyMode(0); system((char*)t); )
 #else
     // Must be a dev board ...
     #include <Arduino.h>
@@ -77,7 +81,6 @@ typedef CELL_T cell;
 typedef UCELL_T ucell;
 typedef unsigned short ushort;
 typedef unsigned char byte;
-typedef union { FLT_T f; cell i; } SE_T;
 typedef struct { cell xt; byte flags, len; char name[32]; } DE_T;
 typedef struct { byte op; const char* name; byte fl; } PRIM_T;
 
