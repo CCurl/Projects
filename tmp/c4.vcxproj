@@ -148,7 +148,7 @@
     <None Include="LICENSE" />
     <None Include="makefile" />
     <None Include="README.md" />
-    <None Include="blocks.c4" />
+    <None Include="src.c4" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="c4.cpp" />

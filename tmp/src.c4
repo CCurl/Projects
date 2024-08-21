@@ -1,5 +1,3 @@
-: cr 13 emit 10 emit ;
-
 : here (ha) @ ;
 : last (la) @ ;
 : immediate 1 last cell + c! ;
@@ -14,25 +12,29 @@
 : if (jmpz) c, here 0 , ; immediate
 : then here swap ! ; immediate
 
-: num-pad last 32 - ;
-: <# num-pad 0 over c! >t ;
+: cr 13 emit 10 emit ;
+: space 32 emit ;
+
+: <# last 32 - >t 0 t@ c! ;
 : #c t@ 1- dup t! c! ;
 : #n '0' + dup '9' > if 7 + then #c ;
 : # base @ /mod swap #n ;
 : #s begin # -while drop ;
 : #> t> ;
-: . <# #s #> ztype 32 emit ;
+: . <# #s #> ztype space ;
+: .2 <# # #s #> ztype space ;
+: .3 <# # # #s #> ztype space ;
 
-: .2 <# #   #s #> ztype ;
-: .3 <# # # #s #> ztype ;
 : hex. base @ >t 16 base ! .2 t> base ! ;
 : dec. base @ >t 10 base ! .3 t> base ! ;
 : bin. base @ >t  2 base ! .  t> base ! ;
 27 . cr
 last . last hex. last bin. cr
-num-pad . num-pad hex. cr
 version . cr
 cr
+
+: dump    a@ >r >t a! begin @a+    . a@ t@ > until t> drop r> a! ;
+: hexdump a@ >r >t a! begin @a+ hex. a@ t@ > until t> drop r> a! ;
 
 : mil 1000 dup * * ;
 : bm timer swap for next timer swap - . ;

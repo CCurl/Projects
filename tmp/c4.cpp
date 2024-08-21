@@ -348,6 +348,7 @@ void baseSys() {
 
 void loadBlocks() {
 	cell fp = fOpen("blocks.c4", (cell)"rb");
+	if (!fp) { fp = fOpen("src.c4", (cell)"rb"); }
 	if (fp) {
 		fRead((cell)mem.blocks, sizeof(mem.blocks), (cell)fp);
 		fClose(fp);
