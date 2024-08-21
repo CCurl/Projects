@@ -26,7 +26,7 @@
     #define btwi(n,l,h)   ((l<=n) && (n<=h))
     #define NO_FILE
     #define SYS_PRIMS \
-	    X(SYSTEM,  "system",    0, t=pop(); ttyMode(0); system((char*)t+1); )
+	    X(SYSTEM,  "system",    0, t=pop(); ttyMode(0); system((byte*)t+1); )
 #else
     // Must be a dev board ...
     #include <Arduino.h>
@@ -82,17 +82,19 @@ typedef struct { cell xt; byte flags, len; char name[32]; } DE_T;
 typedef struct { byte op; const char* name; byte fl; } PRIM_T;
 
 // These are defined by c4.cpp
+extern void inner(cell start);
+extern void Init();
+/*
 extern void push(cell x);
 extern cell pop();
-extern void strCpy(char *d, const char *s);
-extern int  strEq(const char *d, const char *s);
-extern int  strEqI(const char *d, const char *s);
-extern int  strLen(const char *s);
+extern void strCpy(byte *d, const byte *s);
+extern int  strEq(const byte *d, const byte *s);
+extern int  strEqI(const byte *d, const byte *s);
+extern int  strLen(const byte *s);
 extern int  lower(const char c);
-extern void inner(cell start);
-extern int  outer(const char *src);
-extern void defNum(const char *name, cell val);
-extern void Init();
+extern int  outer(const byte *src);
+extern void defNum(const byte *name, cell val);
+*/
 
 // c4.cpp needs these to be defined
 extern cell inputFp, outputFp;

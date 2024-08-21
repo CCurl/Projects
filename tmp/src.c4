@@ -11,7 +11,7 @@
 
 888 x.
 
-: begin here 'B' emit ; immediate
+: begin here 'B' emit dup x. ; immediate
 900 x.
 : while  (jmpnz)  c, , 'W' emit ; immediate
 901 x.

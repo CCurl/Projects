@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.c4": "fs",
+        "system_error": "cpp",
+        "typeinfo": "cpp"
+    }
+}

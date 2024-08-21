@@ -10,31 +10,49 @@
 #define L2            lstk[lsp-2]
 #define _IMM          0x01
 #define _INL          0x02
+#define BLOCK_SZ	  1000
+#define NUM_BLOCKS	   100
+#define BLOCK_START	  1000
+
+struct {
+	cell vectors[64];
+	byte code[64*2014];
+	byte vars[128*1024];
+	char blocks[BLOCK_SZ*NUM_BLOCKS];
+	byte dict[32*1024];
+} mem;
+
+// vectors    256
+// code     50000
+// vars    100000
+// blocks  100000
+// dictionary
+// 256      50000 100000 
 
 cell stk[STK_SZ+1], rstk[STK_SZ+1], lstk[LSTK_SZ+1], tstk[STK_SZ];
-cell sp, rsp, lsp, tsp, vhere, last, base, state, dictEnd;
+cell sp, rsp, lsp, tsp, last, base, state, dictEnd;
 cell vectors[32];
-char *here;
-char mem[MAX_MEM+1];
-char wd[32], *toIn;
+byte *here, *vhere;
+char *blockStart, *toIn, wd[32];
+// char mem[MAX_MEM+1];
 cell inputFp, outputFp;
 
 // NOTE: Fill this in for custom primitives for your version of C4
 #define USER_PRIMS
 
 #define PRIMS \
-	X(DUMP, "dump", 0, t=pop(); n=pop(); for (int i=n;i<t;i++) { printf("%d ", (byte)*((char*)i));} ) \
-	X(EXIT,    "exit",      0, if (0<rsp) { pc = (char*)rpop(); } else { return; } ) \
+	X(DUMP, "dump", 0, t=pop(); n=pop(); for (cell i=n;i<t;i++) { printf("%d ", (byte)*((byte*)i));} ) \
+	X(EXIT,    "exit",      0, if (0<rsp) { pc = (byte*)rpop(); } else { return; } ) \
 	X(DUP,     "dup",       0, t=TOS; push(t); ) \
 	X(SWAP,    "swap",      0, t=TOS; TOS=NOS; NOS=t; ) \
 	X(DROP,    "drop",      0, pop(); ) \
 	X(OVER,    "over",      0, t=NOS; push(t); ) \
-	X(FET,     "@",         0, TOS = fetchCell((char*)TOS); ) \
+	X(FET,     "@",         0, TOS = fetchCell((byte*)TOS); ) \
 	X(CFET,    "c@",        0, TOS = *(byte *)TOS; ) \
-	X(WFET,    "w@",        0, TOS = fetchWord((char*)TOS); ) \
-	X(STO,     "!",         0, t=pop(); n=pop(); storeCell((char*)t, n); ) \
+	X(WFET,    "w@",        0, TOS = fetchWord((byte*)TOS); ) \
+	X(STO,     "!",         0, t=pop(); n=pop(); storeCell((byte*)t, n); ) \
 	X(CSTO,    "c!",        0, t=pop(); n=pop(); *(byte*)t=(byte)n; ) \
-	X(WSTO,    "w!",        0, t=pop(); n=pop(); storeWord((char*)t, n); ) \
+	X(WSTO,    "w!",        0, t=pop(); n=pop(); storeWord((byte*)t, n); ) \
 	X(ADD,     "+",         0, t=pop(); TOS += t; ) \
 	X(SUB,     "-",         0, t=pop(); TOS -= t; ) \
 	X(MUL,     "*",         0, t=pop(); TOS *= t; ) \
@@ -52,7 +70,7 @@ cell inputFp, outputFp;
 	X(COM,     "com",       0, TOS = ~TOS; ) \
 	X(FOR,     "for",       0, lsp+=3; L2=(cell)pc; L0=0; L1=pop(); ) \
 	X(NDX_I,   "i",         0, push(L0); ) \
-	X(NEXT,    "next",      0, if (++L0<L1) { pc=(char*)L2; } else { lsp=(lsp<3) ? 0 : lsp-3; } ) \
+	X(NEXT,    "next",      0, if (++L0<L1) { pc=(byte*)L2; } else { lsp=(lsp<3) ? 0 : lsp-3; } ) \
 	X(TOR,     ">r",        0, rpush(pop()); ) \
 	X(RAT,     "r@",        0, push(rstk[rsp]); ) \
 	X(RSTO,    "r!",        0, rstk[rsp] = pop(); ) \
@@ -69,7 +87,7 @@ cell inputFp, outputFp;
 	X(SEMI,    ";",         1, ccomma(EXIT); state=0; ) \
 	X(ADDWORD, "addword",   0, addWord(0); ) \
 	X(CLK,     "timer",     0, push(timer()); ) \
-	X(ZTYPE,   "ztype",     0, zType((char*)pop()); ) \
+	X(ZTYPE,   "ztype",     0, zType((const byte*)pop()); ) \
 	X(FLUSH,   "flush",     0, saveBlocks(); ) \
 	X(XDOT,    "x.",        0, printf("[#%ld]", pop()); ) \
 	SYS_PRIMS USER_PRIMS \
@@ -94,13 +112,14 @@ cell rpop() { return (0<rsp) ? rstk[rsp--] : 0; }
 void tpush(cell x) { if (tsp < STK_SZ) { tstk[++tsp] = x; } }
 cell tpop() { return (0<tsp) ? tstk[tsp--] : 0; }
 int lower(const char c) { return btwi(c, 'A', 'Z') ? c + 32 : c; }
-int strLen(const char *s) { int l = 0; while (s[l]) { l++; } return l; }
+int strLen(const byte *s) { int l = 0; while (s[l]) { l++; } return l; }
+void fill(byte *buf, long sz, byte val) { for (int i=0; i<sz; i++) { buf[i] = val; } }
 
 #ifdef IS_PC
-void storeWord(char *a, cell v) { *(ushort*)(a) = (ushort)v; }
-ushort fetchWord(char *a) { return *(ushort*)(a); }
-void storeCell(char *a, cell v) { *(cell*)(a) = v; }
-cell fetchCell(char *a) { return *(cell*)(a); }
+void storeWord(byte *a, cell v) { *(ushort*)(a) = (ushort)v; }
+ushort fetchWord(byte *a) { return *(ushort*)(a); }
+void storeCell(byte *a, cell v) { *(cell*)(a) = v; }
+cell fetchCell(byte *a) { return *(cell*)(a); }
 void doBye() { ttyMode(0); exit(0); }
 #else
 void doBye() { zType("-bye?-"); }
@@ -167,10 +186,10 @@ DE_T *addWord(const char *w) {
 	return dp;
 }
 
-DE_T *findWord(const char *w) {
+DE_T *findWord(const byte *w) {
 	if (!w) { nextWord(); w = wd; }
 	int len = strLen(w);
-	int cw = last;
+	cell cw = last;
 	while (cw < dictEnd) {
 		DE_T *dp = (DE_T*)cw;
 		// printf("-%ld,(%s)-", cw, dp->name);
@@ -186,7 +205,7 @@ DE_T *findWord(const char *w) {
 void inner(cell start) {
 	cell t, n;
 	//printf("\n");
-	char *pc = (char *)start;
+	byte *pc = (byte *)start;
 next:
 	if (pc==0) return;
 	//printf("-pc:%ld,ir:%d-",(cell)pc,*pc);
@@ -195,12 +214,12 @@ next:
 		NCASE LIT1:   push((byte)*(pc++));
 		NCASE LIT2:   push(fetchWord(pc)); pc += 2;
 		NCASE LIT4:   push(fetchCell(pc)); pc += CELL_SZ;
-		NCASE CALL:   rpush((cell)pc); pc = (char*)fetchCell(pc);
-		NCASE JMP:    t=fetchCell(pc); pc = (char*)t;
-		NCASE JMPZ:   t=fetchCell(pc); if (pop()==0) { pc = (char*)t; } else { pc += CELL_SZ; }
-		NCASE NJMPZ:  t=fetchCell(pc); if (TOS==0)   { pc = (char*)t; } else { pc += CELL_SZ; }
-		NCASE JMPNZ:  t=fetchCell(pc); if (pop())    { pc = (char*)t; } else { pc += CELL_SZ; }
-		NCASE NJMPNZ: t=fetchCell(pc); if (TOS)      { pc = (char*)t; } else { pc += CELL_SZ; }
+		NCASE CALL:   rpush((cell)pc); pc = (byte*)fetchCell(pc);
+		NCASE JMP:    t=fetchCell(pc); pc = (byte*)t;
+		NCASE JMPZ:   t=fetchCell(pc); if (pop()==0) { pc = (byte*)t; } else { pc += CELL_SZ; }
+		NCASE NJMPZ:  t=fetchCell(pc); if (TOS==0)   { pc = (byte*)t; } else { pc += CELL_SZ; }
+		NCASE JMPNZ:  t=fetchCell(pc); if (pop())    { pc = (byte*)t; } else { pc += CELL_SZ; }
+		NCASE NJMPNZ: t=fetchCell(pc); if (TOS)      { pc = (byte*)t; } else { pc += CELL_SZ; }
 		PRIMS
 		default:
 			zType("-ir?-");
@@ -208,7 +227,7 @@ next:
 	}
 }
 
-int isNum(const char *w) {
+int isNum(const byte *w) {
 	cell n=0, b=base;
 	if ((w[0]==39) && (w[2]==39) && (w[3]==0)) { push(w[1]); return 1; }
 	char c = *(w++);
@@ -241,16 +260,17 @@ int parseWord(char *w) {
 	DE_T *de = findWord(w);
 	if (de) {
 		if ((state==0) || (de->flags & 0x01)) {   // Interpret or Immediate
-			*(here+100) = JMP;
-			storeCell(here+101, de->xt);
-			rpush(0);
+			byte *y = here+100;
+			*(y++) = CALL;
+			storeCell(y, de->xt); y += CELL_SZ;
+			*(y++) = STOP;
 			inner((cell)here+100);
 			return 1;
 		}
 
 		// Compiling ...
 		if ((de->flags & 0x02)) {   // Inline
-			char *y = (char*)de->xt;
+			byte *y = (byte*)de->xt;
 			do { ccomma(*(y++)); } while ( *(y) != EXIT );
 		} else {
 			//if (*(here-CELL_SZ-1) == CALL) { *(here-CELL_SZ-1) = JMP; }
@@ -264,7 +284,7 @@ int parseWord(char *w) {
 }
 
 int outer(const char *ln) {
-	toIn = (char *)ln;
+	toIn = (byte *)ln;
 	while (nextWord()) {
 		if (!parseWord(wd)) {
 			emit('-'); zType(wd); zType("?-");
@@ -317,14 +337,13 @@ void baseSys() {
 	defNum("base",   (cell)&base);
 	defNum("state",  (cell)&state);
 
-	defNum("code",        (cell)&mem[0]);
+	defNum("code",        (cell)&mem.code[0]);
 	defNum(">in",         (cell)&toIn[0]);
 	defNum("(vhere)",     (cell)&vhere);
 	defNum("(output-fp)", (cell)&outputFp);
 	defNum("stk",         (cell)&stk[0]);
 	defNum("rstk",        (cell)&rstk[0]);
 
-	defNum("mem-sz",  MAX_MEM+1);
 	defNum("stk-sz",  STK_SZ+1);
 	defNum("cell",    CELL_SZ);
 	defPrims();
@@ -333,11 +352,12 @@ void baseSys() {
 void loadBlocks() {
 	FILE *fp = fopen("blocks.c4", "rb");
 	if (fp) {
-		fread(mem, 1, MAX_MEM+1, fp);
+		fread(&mem, 1, sizeof(mem), fp);
 		fclose(fp);
 	} else {
+		fill((byte*)&mem, sizeof(mem), 0);
 		FILE *fp = fopen("src.c4", "rb");
-		toIn = &mem[10000];
+		toIn = &mem.blocks[0];
 		fread(toIn, 1, 50000, fp);
 		fclose(fp);
 		outer(toIn);
@@ -347,17 +367,18 @@ void loadBlocks() {
 void saveBlocks() {
 	FILE *fp = fopen("blocks.c4", "wb");
 	if (fp) {
-		fwrite(mem, 1, MAX_MEM + 1, fp);
+		fwrite(&mem, 1, sizeof(mem), fp);
 		fclose(fp);
 	}
 }
 
 void Init() {
-	for (int t=0; t<=MAX_MEM; t++) { mem[t]=0; }
 	base = 10;
-	here = &mem[256];
-	dictEnd = (cell)(&mem[MAX_MEM]) ^ 0x03;
-	last = dictEnd;
+	here       = &mem.code[0];
+	vhere      = &mem.vars[0];
+	blockStart = &mem.blocks[0];
+	last = (cell)mem.dict[0]^ 0x03;
+	dictEnd = last;
 	baseSys();
 	loadBlocks();
 }
