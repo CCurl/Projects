@@ -15,8 +15,8 @@
 
 : ( a@  >t >in @ a! begin @a 0= @a+ ')' = or if a@ >in ! t> a! exit then again ; immediate
 
-: cr 13 emit 10 emit ;
-: space 32 emit ;
+: cr 13 emit 10 emit ; inline
+: space 32 emit ; inline
 
 : <# last 32 - >t 0 t@ c! ;
 : #c t@ 1- dup t! c! ;

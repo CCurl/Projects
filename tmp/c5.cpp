@@ -91,8 +91,7 @@ cell a;
 #define X(op, name, imm, cod) op,
 
 enum _PRIM  {
-	STOP, LIT1, LIT2, LIT4, CALL, JMP, JMPZ, NJMPZ, JMPNZ, NJMPNZ,
-	PRIMS
+	STOP, LIT1, LIT2, LIT4, CALL, JMP, JMPZ, NJMPZ, JMPNZ, NJMPNZ, PRIMS
 };
 
 #undef X
@@ -119,36 +118,23 @@ void fill(byte *buf, long sz, byte val) { for (int i=0; i<sz; i++) { buf[i] = va
 #else
 void doBye() { zType("-bye?-"); }
 void storeWord(cell a, cell v) {
-	// zTypeF("-sw:%lx=%lx-",a,v);
-	if ((a & 0x01) == 0) { *(ushort*)(a) = (ushort)v; }
-	else {
-		byte *y=(byte*)a;
-		*(y++) = (v & 0xFF);
-		*(y) = (v>>8) & 0xFF;
-	}
+	if ((a & 0x01) == 0) { *(ushort*)(a) = (ushort)v; return; }
+	byte *y=(byte*)a; *(y++) = (v & 0xFF); *(y) = (v>>8) & 0xFF;
 }
 cell fetchWord(cell a) {
-    // zTypeF("-fw:%lx-",a);
-	if ((a & 0x01) == 0) { return *(ushort*)(a); }
-	else {
-		cell x;
-		byte *y = (byte*)a;
-		x = *(y++); x |= (*(y) << 8);
-		return x;
-    }
+	if ((a & 0x01) == 0) { return *(ushort*)(a); return; }
+	cell x;
+	byte *y = (byte*)a;
+	x = *(y++); x |= (*(y) << 8);
+	return x;
 }
-void storeCell(cell a, cell v) {
-	storeWord(a, v & 0xFFFF);
-	storeWord(a+2, v >> 16);
-}
-cell fetchCell(cell a) {
-	return fetchWord(a) | (fetchWord(a+2) << 16);
-}
+void storeCell(cell a, cell v) { storeWord(a, v & 0xFFFF); storeWord(a+2, v >> 16); }
+cell fetchCell(cell a) { return fetchWord(a) | (fetchWord(a+2) << 16); }
 #endif
 
-void ccomma(byte n)   { /*printf("-cc:%ld-",(long)n);*/ *(here++) = n; }
-void wcomma(ushort n) { /*printf("-wc:%ld-",(long)n);*/ storeWord(here, n); here += 2; }
-void comma(cell n)    { /*printf("-lc:%ld-",(long)n);*/ storeCell(here, n); here += CELL_SZ; }
+void ccomma(byte n)   { *(here++) = n; }
+void wcomma(ushort n) { storeWord(here, n); here += 2; }
+void comma(cell n)    { storeCell(here, n); here += CELL_SZ; }
 
 int strEqI(const char *s, const char *d) {
 	while (lower(*s) == lower(*d)) { if (*s == 0) { return 1; } s++; d++; }
