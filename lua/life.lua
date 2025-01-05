@@ -55,14 +55,14 @@ function alive(g, ndx)
     if (g[x])   then n = n + 1 end
     if (g[x+1]) then n = n + 1 end
     if (g[x+2]) then n = n + 1 end
-    
+
     if (n == 2) then return g[ndx]
     elseif (n == 3) then return true
     else return false
     end
 end
 
-oneGen = function(g)
+oneGen = function(g,i)
     local w = {}
     for r = 0, rows do
         ndx = toNDX(r, 0)
@@ -70,15 +70,15 @@ oneGen = function(g)
             if alive(g, ndx+c) then w[ndx+c] = true end
         end
     end
+	disp(g,i)
     return w
 end
 
 life = function(g, gens)
     scr.cls()
     scr.curOff()
-    for i =  1, gens do
-        g = oneGen(g)
-        disp(g, i)
+    for i = 1, gens do
+        g = oneGen(g,i)
     end
     scr.curOn()
     return g

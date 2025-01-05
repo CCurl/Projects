@@ -1,5 +1,8 @@
+-- note: globals are in _G
+-- use require "autoexec" to load this file
+
 ut = {}
-ut.dump = function(t) for k,v in pairs(t) do print(k,v) end end
+ut.dump = function(t) if t ~= nil then for k,v in pairs(t) do print(k,v) end end end
 ut.size = function(t) local n=0 for _ in pairs(t) do n=n+1 end return n end
 
 ut.copy = function (orig)
@@ -10,7 +13,7 @@ ut.copy = function (orig)
         for orig_key, orig_value in pairs(orig) do
             if type(orig_value) == 'table' then
                 obj[orig_key] = ut.copy(orig_value)
-            else 
+            else
                 obj[orig_key] = orig_value
             end
         end
@@ -20,4 +23,13 @@ ut.copy = function (orig)
     return obj
 end
 
-scr=require("screen")
+ut.edit = function()
+	os.execute("nvim .")
+end
+
+ut.RL = function()
+	package.loaded["autoexec"] = nil
+	require("autoexec")
+end
+
+scr = require("screen")
