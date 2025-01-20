@@ -29,6 +29,7 @@ end
 
 ut.RL = function()
 	package.loaded["autoexec"] = nil
+	package.loaded["screen"] = nil
 	require("autoexec")
 end
 
