@@ -1,57 +1,43 @@
-/*
+-- UT: a simple Utility class.
+-- NOTE: the default side is BLUE
 
-coalition.side = {
-   NEUTRAL = 0
-   RED = 1
-   BLUE = 2
-}
+UT = { side = coalition.side.BLUE }
 
-Group.Category = {
-  AIRPLANE      = 0
-  HELICOPTER    = 1
-  GROUND        = 2
-  SHIP          = 3
-  TRAIN         = 4
-}
+UT.isRed  = function(side) return (side == coalition.side.RED)  end
+UT.isBlue = function(side) return (side == coalition.side.BLUE) end
+UT.msg = function(str) trigger.action.outText(str, 30) end
 
-*/
+UT.getGroupsForSide = function(side)
+    if (not side) then side = UT.side end
+    if (UT.isRed(side))  then return coalition.getGroups(1) end -- RED
+    if (UT.isBlue(side)) then return coalition.getGroups(2) end -- BLUE
+    return coalition.getGroups(0) -- NEUTRAL
+end
 
-ut = { side=nil }
+UT.dumpUnits = function(group)
+    UT.msg("  Units: ")
+    for i, un in pairs(Group.getUnits(group)) do
+        UT.msg("  - " .. Unit.getName(un))
+    end
+end
 
-ut.isRed = function(side) return (side == coalition.side.RED) end
-ut.isBlue = function(side) return (side == coalition.side.BLUE) end
-
-ut.dumpGroups(color) = function(groups)
-    env.info(color .. " groups:")
+UT.dumpGroups = function(color, groups)
+    UT.msg(color .. " groups:")
     for i, gp in pairs(groups) do
-        env.info(Group.getName(gp))
+        UT.msg("- " .. Group.getName(gp))
+        UT.dumpUnits(gp)
     end
 end
 
-ut.dumpRedGroups() = function()
-    dump(ut.getGroups(coalition.side.RED))
-end
+UT.dumpRedGroups = function()  UT.dumpGroups("RED",  UT.getGroupsForSide(coalition.side.RED))  end
+UT.dumpBlueGroups = function() UT.dumpGroups("BLUE", UT.getGroupsForSide(coalition.side.BLUE)) end
 
-ut.dumpBlueGroups() = function()
-    dump(ut.getGroups(coalition.side.BLUE))
-end
-
-ut.getGroups(side) = function()
-    local groups = {}
-    if (!side) then side = ut.side end
-    if (ut.isRed(side)) then
-        groups = coalition.getGroups(coalition.side.RED)
-    end
-    if (ut.isBlue(side)) then
-        groups = coalition.getGroups(coalition.side.RED)
-    end
-    return groups;
-end
-
-ut.findGroup = function(side, name)
-    local groups = ut.getGroups(side)
+UT.findGroup = function(side, name)
+    local groups = UT.getGroupsForSide(side)
     for i, gp in pairs(groups) do
-        if (Group.getName() == name) then return gp end
+        if (gp.getName(gp) == name) then return gp end
     end
     return nil
 end
+
+UT.msg("--- Utilities loaded ---")
