@@ -16,6 +16,21 @@ UT.btw = function(n, lo, hi)
     return true
 end
 
+-- Clone a table (object)
+-- Returns the cloned table (object)
+UT.clone = function (orig)
+    local obj = {}
+	for key, val in pairs(orig) do
+         -- A "class" table has "__index" equal to itself
+		if (val == orig) then obj[key] = obj
+		else obj[key] = type(val) == 'table' and ut.clone(val) or val
+		end
+	end
+    -- An instance of a "class" has a metatable
+	setmetatable(obj, getmetatable(orig))
+    return obj
+end
+
 -- Get the Groups for a coalition/side
 -- if side is nil, it defaults to BLUE
 -- Returns: a table of Groups

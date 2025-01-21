@@ -5,21 +5,18 @@ ut = {}
 ut.dump = function(t) if t ~= nil then for k,v in pairs(t) do print(k,v) end end end
 ut.size = function(t) local n=0 for _ in pairs(t) do n=n+1 end return n end
 
-ut.copy = function (orig)
-    local orig_type = type(orig)
-    local obj
-    if orig_type == 'table' then
-        obj = {}
-        for orig_key, orig_value in pairs(orig) do
-            if type(orig_value) == 'table' then
-                obj[orig_key] = ut.copy(orig_value)
-            else
-                obj[orig_key] = orig_value
-            end
-        end
-    else -- number, string, boolean, etc
-        obj = orig
-    end
+-- Clone a table (object)
+-- Returns the cloned table (object)
+ut.clone = function (orig)
+    local obj = {}
+	for key, val in pairs(orig) do
+         -- A "class" table has "__index" equal to itself
+		if (val == orig) then obj[key] = obj
+		else obj[key] = type(val) == 'table' and ut.clone(val) or val
+		end
+	end
+    -- An instance of a "class" has a metatable
+	setmetatable(obj, getmetatable(orig))
     return obj
 end
 
