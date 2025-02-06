@@ -5,9 +5,11 @@
 
 green ." c4 - v" .version cr white
 code-sz mem-sz ." Memory: %d bytes, Code: %d word-codes%n"
+here ." %d word-codes used.%n"
 
 rb  (--)forget 999 load ;
-ls  (--)z" ls -l"    system ;
+ls  (--)z" ls"       system ;
+ll  (--)z" ls -l"    system ;
 pwd (--)z" pwd"      system ;
 lg  (--)z" lazygit"  system ;
 nvim(--)z" nvim ."   system ;
@@ -17,8 +19,6 @@
 ed! (blk--)block! ; inline
 
 999 block! ." Hello."
-
- marker
 
 
 
