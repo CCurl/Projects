@@ -18,11 +18,11 @@
 rshift(n1 count--n2)for 2/ next ;
 align(a1--a2)4 over 3 and - 3 and + ;
 
-
-
-
-
-
+( Example usage:
+   val x    (val) (x)    : x! (x) ! ;   12345 x!   see x   see (x)
+ )
+valaddword (lit) ,cell wc-sz / lit,for 0 , next (exit) , ;
+(val) here 1- cell wc-sz / - wc-sz * ->memory const ;
 
 
 
