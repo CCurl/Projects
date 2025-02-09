@@ -18,8 +18,8 @@
 ky  (--)6 for key . next ;
 ed! (blk--)block! ; inline
 
-999 block! ." Hello."
-
+[[ block@ if0 999 block! then ]]
+." Hello."
 
 
 

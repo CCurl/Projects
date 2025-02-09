@@ -1,4 +1,4 @@
-( Block 6 - Some utility words )
+(Block 6 - Some utility words)
 
 find dump loaded?
 
@@ -18,14 +18,14 @@
 rshift(n1 count--n2)for 2/ next ;
 align(a1--a2)4 over 3 and - 3 and + ;
 
-( Example usage:
-   val x    (val) (x)    : x! (x) ! ;   12345 x!   see x   see (x)
- )
-valaddword (lit) ,cell wc-sz / lit,for 0 , next (exit) , ;
-(val) here 1- cell wc-sz / - wc-sz * ->memory const ;
+val  (--)addword (lit) ,cell wc-sz / lit,for 0 , next (exit) , ;
+(val)(--)here 1- cell wc-sz / - wc-sz * ->memory const ;
 
-
-
+find dump loaded?(keep examples from being loaded)
+Example usage for 'val' and (val):
+val x     (val) (x)    x!(x) ! ;
+#12345 x!   see x   see (x)
+$54321 x!   see x   see (x)
 
 
 

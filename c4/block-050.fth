@@ -8,12 +8,12 @@
 num-blocks500 ;inline
 
 block-sz num-blocks * var blocks
-num-blocks var fl(clean/dirty flags)
+num-blocks var flgs(clean/dirty flags)
 
 blk-norm(n1--n2)0 maxnum-blocks 1- lit,min ;
-blk-dirty!(n--)blk-norm 1 swap fl + c! ;
-blk-clean!(n--)blk-norm 0 swap fl + c! ;
-blk-dirty?(n--)blk-norm fl + c@ ;
+blk-dirty!(n--)blk-norm 1 swap flgs + c! ;
+blk-clean!(n--)blk-norm 0 swap flgs + c! ;
+blk-dirty?(n--)blk-norm flgs + c@ ;
 blk-buf(n--buf)blk-norm block-sz * blocks + ;
 
 32 var fn(file-name)
