@@ -20,13 +20,13 @@
 bmk1000 mil bm1 ;
 go 250 mil dup dup bmk bm2 bm3 bm4  38 bm5 cr ;
 go cr
- cell var xxx
- see xxx cr cr
- 12345 xxx !
+ val xx   (val) (xx)   22334455 (xx) !   xx ." val xx: %d%n"
+ cell var xxx   xx xxx !
+ see xx cr   see xxx cr
  xxx @ ." -xxx created, (%d)-%n"
  xxx @ const yyy
  yyy ." -yyy created, (%d)-" cr
  see yyy cr
-t0xxx @ yyy = ." const/var: "if." PASS" exitthen." FAIL!" ; t0
+t0xx yyy = ." const/val: "if." PASS" exitthen." FAIL!" ; t0
 
 
