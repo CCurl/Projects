@@ -9,12 +9,11 @@ history.txt
 S4/t-*
 /*/h.txt
 /mint/mint.exe
-/MINT/mint/Debug/mint.exe
+/mint/mint/Debug/mint.exe
 history.*
 template/t.exe
 template/h.txt
 verilog/a.out
-/clrForth/clrForth
 s3/s3
 /s3/work
 c4/*.bmp
