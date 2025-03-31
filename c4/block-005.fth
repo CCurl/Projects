@@ -1,6 +1,6 @@
 ( Block 5 - Screen )
 
-find colors loaded?
+find cls loaded?
 
 cur-on   (--)     ." %e[?25h" ;
 cur-off  (--)     ." %e[?25l" ;
@@ -10,9 +10,8 @@
 ->rc     (c r--)  swap ->cr ;
 cls      (--)     ." %e[2J" 1 dup ->rc ;
 clr-eol  (--)     ." %e[0K" ;
+color    (bg fg--)." %e[%d;%dm" ;
 fg       (fg--)   ." %e[38;5;%dm" ;
-bg       (bg--)   ." %e[48;5;%dm" ;
-color    (bg fg--)fg bg ;
 
 white 255 fg ;    red   203 fg ;
 green  40 fg ;    yellow226 fg ;
@@ -22,6 +21,7 @@
 colors(f t--)over - 1+ for
     dup i + dup fg ." (color-%d)" i 10 modif0crthen
  next drop white ;
+
 
 
 

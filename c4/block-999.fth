@@ -1,28 +1,28 @@
 (Block 999 - local words)
 
-3 6 thru(strings, case/switch, screen, utility)
-50 load(blocks)
+forget
+
+ 3 load(strings)
+ 4 load(case/switch)
+ 5 load(screen)
+ 6 load(utility)
+50 load(blocks)
 
 green ." c4 - v" .version cr white
 code-sz mem-sz ." Memory: %d bytes, Code: %d word-codes%n"
-here ." %d word-codes used.%n"
 
 rb  (--)forget 999 load ;
-ls  (--)z" ls"       system ;
-ll  (--)z" ls -l"    system ;
-pwd (--)z" pwd"      system ;
-lg  (--)z" lazygit"  system ;
-nvim(--)z" nvim ."   system ;
+ls  (--)z" ls -l"       system ;
+pwd (--)z" pwd"         system ;
+lg  (--)z" lazygit"     system ;
+vi  (--)z" nvim ."      system ;
 pull(--)z" git pull -p" system ;
 bm  (--)200 load ;
 ky  (--)6 for key . next ;
-ed! (blk--)block! ; inline
+ed! (blk--)block! ;inline
 
-[[ block@ if0 999 block! then ]]
 ." Hello."
-
-
-
+8 block! rl8 load ;
 
 
 

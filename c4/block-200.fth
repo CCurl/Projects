@@ -5,10 +5,10 @@
 if-elseifz" yes" else z" no"thenztype '.' emit ;
 cr 0 test-if 1 test-if    see test-if cr
  cr 0 if-else 1 if-else    see if-else cr
- ..dup . ;
-[[ cr 5 for i . ." -- " 4 for i . next ." -- " next ]]
- [[ cr 10 begin .. 1- dup      while drop ]]
- [[ cr  0 begin .. 1+ dup 10 = until drop ]]
+..dup . ;
+[[cr 5 for i . ." -- " 4 for i . next ." -- " next]]
+[[cr 10 begin .. 1- dup      while drop]]
+[[cr  0 begin .. 1+ dup 10 = until drop]]
 elapsedtimer swap - ."  (%d usec)" ;   mil1000 dup * * ;
 t01 drop ;                             t11 drop t0 ;
 fib1- dup 2 < if drop 1 exit then dup fib swap 1- fib + ;
@@ -19,14 +19,14 @@
 bm5cr dup ." bm5: fib (%d) ... " timer swap fib . elapsed ;
 bmk1000 mil bm1 ;
 go 250 mil dup dup bmk bm2 bm3 bm4  38 bm5 cr ;
-go cr
- val xx   (val) (xx)   22334455 (xx) !   xx ." val xx: %d%n"
- cell var xxx   xx xxx !
- see xx cr   see xxx cr
- xxx @ ." -xxx created, (%d)-%n"
- xxx @ const yyy
+go
+ val xxx (val) (xxx) 1234 (xxx) !
+see xxx cr cr
+ xxx ." -xxx created, (%d)-%n"
+ xxx const yyy
  yyy ." -yyy created, (%d)-" cr
  see yyy cr
-t0xx yyy = ." const/val: "if." PASS" exitthen." FAIL!" ; t0
+[[xxx yyy = ." val/const: "if." PASS" exitthen." FAIL!"]]
+
 
 
