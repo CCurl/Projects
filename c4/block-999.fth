@@ -6,6 +6,7 @@
  4 load(case/switch)
  5 load(screen)
  6 load(utility)
+ 9 load(encode/decode)
 50 load(blocks)
 
 green ." c4 - v" .version cr white
@@ -22,11 +23,10 @@
 ed! (blk--)block! ;inline
 
 ." Hello."
-8 block! rl8 load ;
+9 block! rl9 load ;
 
-
-
-
-
+z" test.dat" fn!
+xx(a--)rd encode wt ;
+yy(a--)rd decode wt ;
 
 
