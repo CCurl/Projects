@@ -25,8 +25,8 @@
 ." Hello."
 9 block! rl9 load ;
 
-z" test.dat" fn!
-xx(a--)rd encode wt ;
-yy(a--)rd decode wt ;
+
+
+
 
 

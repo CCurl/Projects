@@ -13,10 +13,10 @@
 rd(--)clr-txt txt max-sz fn read-file sz ! ;
 wt(--)txt sz @ fn write-file ;
 go(n--)>t txt >a sz @ for @a t@ xor !a+ next atdrop ;
-encode(a--)dup 2/ go go ;
-decode(a--)encode ;
+encode(a--)$100 /mod rd go go wt ;
+decode(a--)$100 /mod rd swap go go wt ;
 
-
+z" test.dat" fn!
 
 
 
