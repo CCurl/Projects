@@ -15,17 +15,17 @@
 lg  (--)z" lazygit"     system ;
 vi  (--)z" nvim ."      system ;
 ed! (blk--)block! ;inline
-dict-sz  (--n)mem-end last - ;
-hu(--n)vhere vars - ;          hf(--n)last vhere - ;
-cf(--n)code-sz here - ;        nw(--)dict-sz de-sz / ;
 
-white ." C4 - v" .version ."  - https://github.com/CCurl/c4%n"
-yellow mem-sz   ."      Memory: %d bytes%n"
+dict-sz  (--n)mem-end last - ; nwords(--)dict-sz de-sz / ;
+hp-used(--n)vhere vars - ;     hp-free(--n)last vhere - ;
+cf(--n)code-sz here - ;
+
+." %WC4 - %Gv" .version ." %B - https://github.com/CCurl/c4%n"
+mem-sz          ." %Y     Memory: %d bytes%n"
 cf here code-sz ."        Code: %d word-codes, %d used, %d available%n"
-nw dict-sz      ."  Dictionary: %d bytes used, %d words%n"
-hf hu           ."        Heap: %d bytes used, %d available"
+nwords dict-sz  ."  Dictionary: %d bytes used, %d words%n"
+hp-free hp-used ."        Heap: %d bytes used, %d available"
 white
-
 
 
 
