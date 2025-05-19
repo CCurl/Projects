@@ -9,24 +9,24 @@
  6 load(utility)
 50 load(blocks)
 
-rb  (--)forget 999 load ;
-ls  (--)z" ls -l"       system ;
-pwd (--)z" pwd"         system ;
-lg  (--)z" lazygit"     system ;
-vi  (--)z" nvim ."      system ;
-ed! (blk--)block! ;inline
+rb  (--)forget 999 load ;        ls  (--)z" ls -l"    system ;
+pwd (--)z" pwd"     system ;     lg  (--)z" lazygit"  system ;
+vi  (--)z" nvim ."  system ;
 
-dict-sz  (--n)mem-end last - ; nwords(--)dict-sz de-sz / ;
-hp-used(--n)vhere vars - ;     hp-free(--n)last vhere - ;
-cf(--n)code-sz here - ;
+128 var cmd
+go(s--)green dup ztype white cr system ;
+home(--s)cmd z" cd /home/chris/code/" s-cpy ;
+c4(--s)home z" c4" s-cat ;          proj(--s)home z" Projects" s-cat ;
+pull(s--)z"  && git pull -p" s-cat go ;
+pull-all(--)c4 pull proj pull ;
 
-." %WC4 - %Gv" .version ." %B - https://github.com/CCurl/c4%n"
-mem-sz          ." %Y     Memory: %d bytes%n"
-cf here code-sz ."        Code: %d word-codes, %d used, %d available%n"
-nwords dict-sz  ."  Dictionary: %d bytes used, %d words%n"
-hp-free hp-used ."        Heap: %d bytes used, %d available"
-white
+dict-sz  (--n)mem-end last - ;
+hused(--n)vhere vars - ;       hfree(--n)last vhere - ;
+cf(--n)code-sz here - ;        nw(--)dict-sz de-sz / ;
 
-
-
+." %WC4 - %Gv" .version ." %W - https://github.com/CCurl/c4%n"
+memory mem-sz    ."  %W    Memory: %Y%d bytes starting at $%x%n"
+cf here code-sz  ."  %W      Code: %Y%d word-codes, %d used, %d available%n"
+de-sz nw dict-sz ."  %WDictionary: %Y%d bytes used, %d words, %d bytes per word%n"
+hfree hused      ."  %W      Heap: %Y%d bytes used, %d available%W"
 
