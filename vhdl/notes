@@ -1,0 +1,14 @@
+
+
+man ghdl
+
+ghdl -s ha.vhdl  - Check syntax
+ghdl -a ha.vhdl - Analyze and Create object file
+ghdl -a ha_tb.vhdl
+ghdl -r ha_tb
+
+
+Dr Ting's CPU-16
+
+https://www.ultratechnology.com/p16vhdl.htm
+
