@@ -149,7 +149,6 @@
     <None Include="test.wc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="sys-load.c" />
     <ClCompile Include="wc.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
