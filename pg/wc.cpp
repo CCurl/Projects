@@ -239,6 +239,7 @@ int main() {
 	addLit("vars", (cell)&vars[0]);
 	addLit("code", (cell)&code[0]);
 	addLit("dict", (cell)&dict[0]);
+	addLit("dict-sz", DICT_SZ);
 	addLit(">in", (cell)&toIn);
 	FILE *fp = fopen("boot.fth", "rb");
 	if (fp) {

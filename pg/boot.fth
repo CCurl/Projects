@@ -1,5 +1,5 @@
 add-word ] 1 state ! 1 state ! exit [
-add-word immediate ] $80 (l) @ 3 + c! exit [
+add-word immediate ] $80 (l) @ 5 + c! exit [
 add-word ; immediate ] 0 , 0 state ! exit [
 add-word : ] add-word ] ;
 
@@ -22,7 +22,7 @@ add-word : ] add-word ] ;
 : vhere (vh) @ ;
 : dict-end dict dict-sz + ;
 
-: cells cell * ; inline
+: cells cell * ;
 
 : const add-word (lit) , , (exit) , ;
 : var vhere const  ;
@@ -30,41 +30,23 @@ add-word : ] add-word ] ;
 : vc, vhere c! 1 allot ;
 : v,  vhere ! cell allot ;
 
-: if (jmpz) c, here 0 , ; immediate
-: then here swap !      ; immediate
-: exit (exit) c,        ; immediate
-
-: tuck swap over ; inline
-: nip  swap drop ; inline
+: over >r dup r> swap ;
+: tuck swap over ;
+: nip  swap drop ;
 : ?dup dup if dup then ;
+: 0= 0 = ;
+: 1+ 1 + ;
+: +! dup >r @ + r> ! ;
 
-: begin here         ; immediate
-: while (jmpnz) c, , ; immediate
-: until (jmpz)  c, , ; immediate
-: again (jmp)   c, , ; immediate
+: (   >in @ c@ 1 >in +!
+      dup 0= if drop exit then
+      ')' = if drop exit then
+    ( ; immediate
 
-: ( begin 
-        >in @ c@ >in @ 1+ >in !
-        dup  0= if drop exit then
-        ')' = if drop exit then
-    again ; immediate
+( this is a test )
 
-: and [ (bitop) c, 11 c, ] ; inline
-: or  [ (bitop) c, 12 c, ] ; inline
-: xor [ (bitop) c, 13 c, ] ; inline
-: com [ (bitop) c, 14 c, ] ; inline
-
-: >r [ (retop) c, 11 c, ] ; inline
-: r@ [ (retop) c, 12 c, ] ; inline
-: r> [ (retop) c, 13 c, ] ; inline
-: rdrop r> drop ; inline
 : rot >r swap r> swap ;
 : -rot rot rot ;
-
-: (i) (lsp) @ cells (lstk) + ;
-: i (i) @ ;
-: +i (i) tuck @ + swap ! ;
-: unloop (lsp) @ 3 - (lsp) ! ;
 
 : bl 32 ; inline
 : space bl emit ; inline
@@ -73,7 +55,6 @@ add-word : ] add-word ] ;
 
 : negate com 1+ ; inline
 : abs dup 0 < if negate then ;
-: +!  dup @   + swap !  ; inline
 : ++  dup @  1+ swap !  ; inline
 : c++ dup c@ 1+ swap c! ; inline
 
