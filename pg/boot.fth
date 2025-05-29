@@ -24,7 +24,7 @@ add-word : ] add-word ] ;
 
 : cells cell * ;
 
-: const add-word (lit) , , (exit) , ;
+: const add-word (lit) , , 0 , (exit) , ;
 : var vhere const  ;
 : allot vhere + (vh) ! ;
 : vc, vhere c! 1 allot ;
@@ -34,49 +34,51 @@ add-word : ] add-word ] ;
 : tuck swap over ;
 : nip  swap drop ;
 : ?dup dup if dup then ;
-: 0= 0 = ;
-: 1+ 1 + ;
 : +! dup >r @ + r> ! ;
+: 0= 0 = ;
+: 0< 0 < ;
+: 1+ 1 + ;
+: 1- 1 - ;
 
 : (   >in @ c@ 1 >in +!
+      dup emit
       dup 0= if drop exit then
-      ')' = if drop exit then
+      ')' = if exit then
     ( ; immediate
-
-( this is a test )
 
 : rot >r swap r> swap ;
 : -rot rot rot ;
 
-: bl 32 ; inline
-: space bl emit ; inline
-: tab 9 emit ; inline
-: cr 13 emit 10 emit ; inline
+: bl 32 ;
+: space bl emit ;
+: tab 9 emit ;
+: cr 13 emit 10 emit ;
 
-: negate com 1+ ; inline
-: abs dup 0 < if negate then ;
-: ++  dup @  1+ swap !  ; inline
-: c++ dup c@ 1+ swap c! ; inline
+: negate 0 swap - ;
+: abs dup 0< if negate then ;
+: ++  dup @  1+ swap !  ;
+: --  dup @  1- swap !  ;
+: c++ dup c@ 1+ swap c! ;
 
-: /   /mod nip  ; inline
-: mod /mod swap ; inline
+: /   /mod nip  ;
+: mod /mod swap ;
+: xx emit cr ;
 
-var (neg) cell allot
-var (len) cell allot
-: len (len) @ ;
-: #digit '0' + dup '9' > if 7 + then ;
-: <# 0 (neg) c! 0 (len) ! dup 0 < 
-    if negate 1 (neg) ! then 0 swap ;         \ ( n1 -- 0 n2 )
-: # base @ /mod swap #digit swap (len) ++ ;   \ ( u1 -- c u2 )
-: #S begin # dup while ;                      \ ( u1 -- u2 )
-: #> ;
-: #- drop (neg) @ if '-' emit then ;
-: #P #- begin emit dup while drop ;           \ ( 0 ... n 0 -- )
-: (.) <# #S #> #P ;
+var (neg) 1 allot
+var buf 65 allot
+var (buf) cell allot
+: ?neg 0 (neg) c!  dup 0< if negate 1 (neg) c! then ;
+: #c (buf) -- (buf) @ c! ;
+: #digit '0' + dup '9' > if 7 + then #c ;
+: #digit '0' +  #c ;
+: # base @ /mod swap #digit ;
+: #S # dup if #S exit then drop ;
+: <# ?neg buf 65 + (buf) ! 0 #c ;
+: #> (neg) @ if '-' #c then (buf) @ ;
+
+: (.) <# #S #> (buf) @ ztype ;
 : . (.) space ;
-
-: count dup 1+ swap c@ ; inline
-: type 0 do dup c@ emit 1+ loop drop ;
+1234 . -5678 .
 
 : S" (lit4) c, vhere ,
     vhere >r 0 vc,

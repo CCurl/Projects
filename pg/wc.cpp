@@ -31,13 +31,13 @@ char *toIn, wd[32];
 #define PRIMS \
 	X(EXIT,  "exit",     0, pc=(wc_t)rpop(); if (pc <= BYE) { /* zType("\n"); */ return 0; } ) \
 	X(LIT,   "",         0, push(cellAt((cell)&code[pc])); pc += (sizeof(cell)/sizeof(wc_t)); ) \
-	X(JMP0,  "",         0, if (pop()) { pc = code[pc]; } else { pc++; } ) \
+	X(JMP0,  "",         0, if (pop()==0) { pc = code[pc]; } else { pc++; } ) \
 	X(COMMA, ",",        0, comma((wc_t)pop()); ) \
 	X(DUP,   "dup",      0, push(TOS); ) \
 	X(DROP,  "drop",     0, pop(); ) \
 	X(SWAP,  "swap",     0, t = TOS; TOS = NOS; NOS = t; ) \
 	X(STO,   "!",        0, t = pop(); n = pop(); storeAt(t,n); ) \
-	X(FET,   "@",        0, push(cellAt(pop())); ) \
+	X(FET,   "@",        0, TOS = cellAt(TOS); ) \
 	X(CSTO,  "c!",       0, t = pop(); n= pop(); *(byte*)t = (byte)n; ) \
 	X(CFET,  "c@",       0, TOS = *(byte*)TOS; ) \
 	X(RTO,   ">r",       0, rpush(pop()); ) \
@@ -45,13 +45,13 @@ char *toIn, wd[32];
 	X(RFROM, "r>",       0, push(rpop()); ) \
 	X(ATO,   "a!",       0, A = pop(); ) \
 	X(AAT,   "a",        0, push(A); ) \
-	X(OUTER, "outer",    0, outer((char*)pop()); ) \
 	X(MULT,  "*",        0, t = pop(); TOS *= t; ) \
 	X(ADD,   "+",        0, t = pop(); TOS += t; ) \
-	X(COM,   "com",      0, TOS = ~TOS; ) \
-	X(EQ0,   "0=",       0, TOS = (TOS) ? 1 : 0; ) \
+	X(SUB,   "-",        0, t = pop(); TOS -= t; ) \
 	X(SMOD,  "/mod",     0, t = TOS; n = NOS; TOS = n/t; NOS = n%t; ) \
+	X(LT,    "<",        0, t = pop(); TOS = (TOS  < t) ? 1 : 0; ) \
 	X(EQ,    "=",        0, t = pop(); TOS = (TOS == t) ? 1 : 0; ) \
+	X(GT,    ">",        0, t = pop(); TOS = (TOS  > t) ? 1 : 0; ) \
 	X(EMIT,  "emit",     0, emit(pop()); ) \
 	X(ZTYPE, "ztype",    0, zType((const char*)pop()); ) \
 	X(ADDW,  "add-word", 0, addToDict(0); ) \
@@ -92,7 +92,7 @@ void strCpy(char* dst, const char *src) {
 }
 
 int strEqI(const char *src, char *dst) {
-	while (*src == *dst) {
+	while (lower(*src) == lower(*dst)) {
 		if (*src == 0) { return 1; }
 		src++; dst++;
 	}
@@ -229,13 +229,16 @@ void addPrim(const char *nm, wc_t op, byte fl) {
 
 int main() {
 	last = (cell)&dict[DICT_SZ];
+	vhere = (cell)&vars[0];
 	here = BYE+1;
 	base = 10;
+	state = 0;
 	PRIMS
 	addLit("(vh)", (cell)&vhere);
 	addLit("(h)", (cell)&here);
 	addLit("(l)", (cell)&last);
 	addLit("state", (cell)&state);
+	addLit("base", (cell)&base);
 	addLit("vars", (cell)&vars[0]);
 	addLit("code", (cell)&code[0]);
 	addLit("dict", (cell)&dict[0]);
