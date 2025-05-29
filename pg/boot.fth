@@ -1,34 +1,32 @@
+add-word ] 1 state ! 1 state ! exit [
+add-word immediate ] $80 (l) @ 3 + c! exit [
+add-word ; immediate ] 0 , 0 state ! exit [
+add-word : ] add-word ] ;
+
+: cell 8 ;
+: wc-sz 4 ;
+
 : \ 0 >in @ ! ;
 
-: (exit)    1 ; 
-: (jmp)     2 ;
-: (jmpz)    3 ;
-: (jmpnz)   4 ;
-: (call)    5 ;
-: (lit1)    6 ;
-: (lit4)    7 ;
-: (bitop)   8 ;
-: (retop)   9 ;
-: (fileop) 10 ;
+: (exit)    0 ; 
+: (lit)     1 ;
+: (jmpz)    2 ;
+: (,)       3 ;
+: (dup)     4 ;
+: (drop)    5 ;
+: (swap)    6 ;
+: (!)       7 ;
 
-: last (last) @ ;
-: here (here) @ ;
-: vhere (vhere) @ ;
-: mem-end (mem) mem-sz + ;
+: last (l) @ ;
+: here (h) @ ;
+: vhere (vh) @ ;
+: dict-end dict dict-sz + ;
 
-: inline 2 last c! ;
-: immediate 1 last c! ;
-: [ 0 state ! ; immediate
-: ] 1 state ! ;
-: bye 999 state ! ;
 : cells cell * ; inline
 
-: c, here c! here 1+     (here) ! ;
-: ,  here !  here cell + (here) ! ;
-
-: const create (lit4) c, , (exit) c, ;
+: const add-word (lit) , , (exit) , ;
 : var vhere const  ;
-: allot vhere + (vhere) ! ;
+: allot vhere + (vh) ! ;
 : vc, vhere c! 1 allot ;
 : v,  vhere ! cell allot ;
 
