@@ -5,7 +5,7 @@
 
 #define CODE_SZ       0x10000
 #define VARS_SZ      0x400000
-#define DICT_SZ       10000
+#define DICT_SZ       16*1024
 #define STK_SZ           63
 #define NAME_LEN         25
 #define IMMED          0x80
@@ -30,21 +30,21 @@ char *toIn, wd[32];
 
 #define PRIMS \
 	X(EXIT,  "exit",     0, pc=(wc_t)rpop(); if (pc <= BYE) { /* zType("\n"); */ return 0; } ) \
-	X(LIT,   "",         0, push(cellAt((cell)&code[pc])); pc += (sizeof(cell)/sizeof(wc_t)); ) \
+	X(LIT,   "",         0, push(cellAt((cell)&code[pc])); pc += (CELL_SZ/WC_SZ); ) \
 	X(JMP0,  "",         0, if (pop()==0) { pc = code[pc]; } else { pc++; } ) \
+	X(JMP,   "",         0, pc = code[pc]; ) \
 	X(COMMA, ",",        0, comma((wc_t)pop()); ) \
 	X(DUP,   "dup",      0, push(TOS); ) \
 	X(DROP,  "drop",     0, pop(); ) \
 	X(SWAP,  "swap",     0, t = TOS; TOS = NOS; NOS = t; ) \
-	X(STO,   "!",        0, t = pop(); n = pop(); storeAt(t,n); ) \
+	X(STO,   "!",        0, t = pop(); n = pop(); cellTo(t,n); ) \
 	X(FET,   "@",        0, TOS = cellAt(TOS); ) \
 	X(CSTO,  "c!",       0, t = pop(); n= pop(); *(byte*)t = (byte)n; ) \
 	X(CFET,  "c@",       0, TOS = *(byte*)TOS; ) \
 	X(RTO,   ">r",       0, rpush(pop()); ) \
 	X(RAT,   "r@",       0, push(rstk[rsp]); ) \
 	X(RFROM, "r>",       0, push(rpop()); ) \
-	X(ATO,   "a!",       0, A = pop(); ) \
-	X(AAT,   "a",        0, push(A); ) \
+	X(TIMER, "timer",    0, push(clock()); ) \
 	X(MULT,  "*",        0, t = pop(); TOS *= t; ) \
 	X(ADD,   "+",        0, t = pop(); TOS += t; ) \
 	X(SUB,   "-",        0, t = pop(); TOS -= t; ) \
@@ -59,7 +59,7 @@ char *toIn, wd[32];
 	X(OP27,  "for",      0, lsp += 2; lstk[lsp] = pop(); lstk[lsp-1] = pc; ) \
 	X(OP28,  "next",     0, if (0 < lstk[lsp]--) { pc=(wc_t)lstk[lsp-1]; } else { lsp=(1<lsp) ? lsp-2: 0; } ) \
 	X(OP29,  "if",   IMMED, comma(JMP0); push(here); comma(0); ) \
-	X(OP30,  "then", IMMED, code[(wc_t)pop()] = here; ) \
+	X(OP30,  "then", IMMED, code[(wc_t)pop()] = (wc_t)here; ) \
 	X(BYE,   "bye",      0, zType("Bye\n"); exit(0); )
 
 #define X(op, nm, fl, cd) op,
@@ -73,7 +73,7 @@ cell pop() { return (0 < dsp) ? dstk[dsp--] : 0; }
 void rpush(cell v) { if (rsp < STK_SZ) { rstk[++rsp] = v; } }
 cell rpop() { return (0 < rsp) ? rstk[rsp--] : 0; }
 cell cellAt(cell loc) { return *(cell*)loc; }
-void storeAt(cell loc, cell val) { *(cell*)loc = val; }
+void cellTo(cell loc, cell val) { *(cell*)loc = val; }
 void comma(wc_t val) { code[here++] = val; }
 void emit(cell ch) { fputc((char)ch, stdout); }
 void zType(const char *str) { fputs(str, stdout); }
@@ -101,7 +101,7 @@ int strEqI(const char *src, char *dst) {
 
 void compileNum(cell n) {
 	if (btwi(n, 0, LIT_BITS)) { comma((wc_t)(n | LIT_MASK)); }
-	else { comma(LIT); storeAt((cell)&code[here], n); here += 2; }
+	else { comma(LIT); cellTo((cell)&code[here], n); here += 2; }
 }
 
 int nextWord() {
@@ -237,6 +237,7 @@ int main() {
 	addLit("(vh)", (cell)&vhere);
 	addLit("(h)", (cell)&here);
 	addLit("(l)", (cell)&last);
+	addLit("(a)", (cell)&A);
 	addLit("state", (cell)&state);
 	addLit("base", (cell)&base);
 	addLit("vars", (cell)&vars[0]);
@@ -249,6 +250,12 @@ int main() {
 		fread(&vars[1000], 1, 10000, fp);
 		fclose(fp);
 		outer((char *)&vars[1000]);
+	}
+	while (1) {
+		zType(" ok\n");
+		char* tib = (char*)(vhere + 1024);
+		fgets(tib, 256, stdin);
+		outer(tib);
 	}
 	return 0;
 }

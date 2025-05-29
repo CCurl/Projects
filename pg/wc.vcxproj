@@ -144,12 +144,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="boot.fth" />
     <None Include="makefile" />
     <None Include="README.md" />
     <None Include="test.wc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="wc.c" />
+    <ClCompile Include="wc.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -97,10 +97,8 @@ dict-end last - . here . cr
 hex $DEADBEEF dup . decimal .
 >in @ c@ .
 
-: begin here ; immediate
-: again (jmp) , , ; immediate
-
-: z" vhere dup a! 
+: S" (lit4) c, vhere ,
+    vhere >r 0 vc,
     begin >in @ c@ >in ++
         dup 0= over '"' = or
         if drop 0 vc, rdrop exit then
