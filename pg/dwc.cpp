@@ -20,6 +20,7 @@
 #define WC_SZ             4
 #define CELL_SZ           4
 
+enum { COMPILE=1, INTERPRET, COMMENT };
 typedef struct { wc_t xt; byte sz; byte fl; byte ln; char nm[NAME_LEN+1]; } DE_T;
 
 wc_t code[CODE_SZ], dsp, rsp, lsp;
@@ -66,7 +67,7 @@ char *toIn, wd[32];
 enum { PRIMS };
 
 DE_T *addToDict(const char *w);
-int outer(const char *src);
+void outer(const char *src);
 void compileNum(cell n);
 void push(cell v) { if (dsp < STK_SZ) { dstk[++dsp] = v; } }
 cell pop() { return (0 < dsp) ? dstk[dsp--] : 0; }
@@ -75,6 +76,7 @@ cell rpop() { return (0 < rsp) ? rstk[rsp--] : 0; }
 cell cellAt(cell loc) { return *(cell*)loc; }
 void cellTo(cell loc, cell val) { *(cell*)loc = val; }
 void comma(wc_t val) { code[here++] = val; }
+int changeState(int st) { state = st; return st; }
 void emit(cell ch) { fputc((char)ch, stdout); }
 void zType(const char *str) { fputs(str, stdout); }
 void addLit(const char* name, cell val) { addToDict(name); compileNum(val); comma(EXIT); }
@@ -91,7 +93,7 @@ void strCpy(char* dst, const char *src) {
 	*dst = 0;
 }
 
-int strEqI(const char *src, char *dst) {
+int strEqI(const char *src, const char *dst) {
 	while (lower(*src) == lower(*dst)) {
 		if (*src == 0) { return 1; }
 		src++; dst++;
@@ -106,7 +108,7 @@ void compileNum(cell n) {
 
 int nextWord() {
 	int ln = 0;
-	while (*toIn && (*toIn < 33)) { ++toIn; }
+	while (*toIn && (*toIn < 33)) { if (btwi(*toIn,COMPILE, COMMA)) { changeState(*toIn); } ++toIn; }
 	while (*toIn > 32) { wd[ln++] = *(toIn++); }
 	wd[ln] = 0;
 	return ln;
@@ -187,28 +189,44 @@ next:
 	}
 }
 
-int outer(const char *src) {
+int isStateChange(const char *w) {
+	if (state == COMMENT) {
+		if (strEqI(w, "))")) { return changeState(COMPILE); }
+		if (strEqI(w, ")"))  { return changeState(INTERPRET); }
+		return state;
+	}
+	if (strEqI(w, "]"))  { return changeState(COMPILE); }
+	if (strEqI(w, ":"))  { addToDict(0); return changeState(COMPILE); }
+	if (strEqI(w, ";"))  { comma(EXIT);  return changeState(INTERPRET); }
+	if (strEqI(w, "["))  { return changeState(INTERPRET); }
+	if (strEqI(w, "("))  { return changeState(COMMENT); }
+	if (strEqI(w, "((")) { return changeState(COMMENT); }
+	return 0;
+}
+
+void outer(const char *src) {
+	char *svIn = toIn;
 	toIn = (char *)src;
 	while (nextWord()) {
+		if (isStateChange(wd)) { continue; }
 		if (isNum(wd, base)) {
-			if (state == 1) { compileNum(pop()); }
+			if (state == COMPILE) { compileNum(pop()); }
 			continue;
 		}
 		DE_T *dp = findInDict(wd);
-		if (dp) {
-			if ((state == 0) || (dp->fl & IMMED)) {
-				code[10] = dp->xt;
-				code[11] = EXIT;
-				inner(10);
-			}
-			else { comma(dp->xt); }
-			continue;
+		if (!dp) {
+			zType("\n-word:["); zType(wd); zType("]?-\n");
+			state = INTERPRET;
+			break;
 		}
-		zType("\n-word:["); zType(wd); zType("]?-\n");
-		state = 0;
-		return 1;
+		if ((state == INTERPRET) || (dp->fl & IMMED)) {
+			code[10] = dp->xt;
+			code[11] = EXIT;
+			inner(10);
+		}
+		else { comma(dp->xt); }
 	}
-	return 0;
+	toIn = svIn;
 }
 
 void addPrim(const char *nm, wc_t op, byte fl) {
@@ -222,12 +240,13 @@ void addPrim(const char *nm, wc_t op, byte fl) {
 #undef X
 #define X(op, nm, fl, cd) addPrim(nm, op, fl);
 
-int main() {
+int main(int argc, char *argv[]) {
+	const char *boot_fn = (1 < argc) ? argv[1]  : "boot.fth";
 	last = (cell)&vars[VARS_SZ];
 	vhere = (cell)&vars[0];
 	here = LAST_OP+1;
 	base = 10;
-	state = 0;
+	state = 3;
 	PRIMS
 	addLit("(vh)", (cell)&vhere);
 	addLit("(h)", (cell)&here);
@@ -240,7 +259,7 @@ int main() {
 	addLit("code", (cell)&code[0]);
 	addLit("vars-sz", VARS_SZ);
 	addLit(">in", (cell)&toIn);
-	FILE *fp = fopen("boot.fth", "rb");
+	FILE *fp = fopen(boot_fn, "rb");
 	if (fp) {
 		fread(&vars[1000], 1, 10000, fp);
 		fclose(fp);

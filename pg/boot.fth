@@ -1,14 +1,14 @@
-add-word ] 1 state ! 1 state ! exit [
-add-word immediate ] $80 (l) @ 5 + c! exit [
-add-word ; immediate ] 0 , 0 state ! exit [
-add-word : ] add-word ] ;
+( comments are free )
+( add-word ] 1 state ! 1 state ! exit [ )
+( add-word : ] add-word ] ; )
+( add-word ; immediate ] 0 , 0 state ! exit [ )
+
+: immediate $80 (l) @ 5 + c! ;
 
 : cell  4 ;
 : cell+ cell + ;
 : cells cell * ;
 : wc-sz 4 ;
-
-: \ 0 >in @ ! ;
 
 : (exit)    0 ; 
 : (lit)     1 ;
@@ -24,7 +24,7 @@ add-word : ] add-word ] ;
 : vhere (vh) @ ;
 : dict-end vars vars-sz + ;
 
-: comp? state @ 1 = ;
+: comp? (( --n )) state @ 1 = ;
 : if (jmpz) , here 0 , ; immediate
 : if0 $70000000 , (=) , (jmpz) , here 0 , ; immediate
 : then here swap ->code !  ; immediate
@@ -80,11 +80,6 @@ var (t) cell allot
 : t  (t) @ ;
 : t+ (t) @ dup 1+ t! ;
 
-: (   >in @ c@ 1 >in +!
-      dup 0= if drop exit then
-      ')' = if exit then
-    ( ; immediate
-( this is a test )
 
 : bl 32 ;
 : space bl emit ;
@@ -118,13 +113,6 @@ var (buf) cell allot
         (stk) cell+ a! depth for a+c @ . next 
     then ')' emit ;
 
-: words last a! 0 b! 0 t! begin
-        a dict-end < if0 drop exit then
-        a 7 + ztype 9 emit
-        (t) ++ b+ 9 > if cr 0 b! then
-        a wc-sz + c@ a + a!
-    again ;
-
 : (") vhere dup a! >in ++
     begin >in @ c@ >r >in ++
         r@ 0= r@ '"' = or
@@ -137,10 +125,18 @@ var (buf) cell allot
 : z" (") ; immediate
 : ." (") comp? if (ztype) , exit then ztype ;  immediate
 
+: words last a! 0 b! 0 t! begin
+        a dict-end < if0 '(' emit t . ." words)" exit then
+        a 7 + ztype 9 emit
+        (t) ++ b+ 9 > if cr 0 b! then
+        a wc-sz + c@ a + a!
+    again ;
+
 ( temp for testing )
 : elapsed timer swap - . ." usec" cr ;
-: bm1 timer swap begin 1- dup 1 < until drop elapsed ;
+: bm1 timer swap begin 1- dup while drop elapsed ;
 : bm2 timer swap for next elapsed ;
 : mil #1000 dup * * ;
-: sz #500 mil ;
-: bm sz bm1 sz bm2 ;
+: bm 250 mil bm1 1000 mil bm2 ;
+: bb 1000 mil bm2 ;
+ ." dwc v0.0.1" cr ." Hello."

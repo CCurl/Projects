@@ -24,7 +24,7 @@
     <ProjectGuid>{bdd1c19e-3eec-4ddf-ad67-406628bacccf}</ProjectGuid>
     <RootNamespace>stable</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>wc</ProjectName>
+    <ProjectName>dwc</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -150,7 +150,7 @@
     <None Include="test.wc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="wc.cpp" />
+    <ClCompile Include="dwc.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
