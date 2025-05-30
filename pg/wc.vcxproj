@@ -147,7 +147,6 @@
     <None Include="boot.fth" />
     <None Include="makefile" />
     <None Include="README.md" />
-    <None Include="test.wc" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dwc.cpp" />
