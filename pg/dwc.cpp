@@ -29,7 +29,7 @@ cell here, last, vhere, base, state;
 char *toIn, wd[32];
 
 #define PRIMS \
-	X(EXIT,  "exit",     0, pc=(wc_t)rpop(); if (pc <= LAST_OP) { /* zType("\n"); */ return 0; } ) \
+	X(EXIT,  "exit",     0, pc=(wc_t)rpop(); if (pc <= LAST_OP) { return 0; } ) \
 	X(LIT,   "",         0, push(cellAt((cell)&code[pc])); pc += (CELL_SZ/WC_SZ); ) \
 	X(JMP0,  "",         0, if (pop()==0) { pc = code[pc]; } else { pc++; } ) \
 	X(JMP,   "",         0, pc = code[pc]; ) \
@@ -156,16 +156,13 @@ DE_T *addToDict(const char *w) {
 	dp->fl = 0;
 	dp->ln = ln;
 	strCpy(dp->nm, w);
-	// iToA(last, 10); zType(": "); zType(dp->nm); zType("\n");
 	return dp;
 }
 
 DE_T *findInDict(char *w) {
 	cell cw = last, ln = strLen(w);
-	// zType("\nlast:"); iToA(last, 10); zType("<"); iToA((cell)&vars[VARS_SZ], 10); zType("\n");
 	while (cw < (cell)&vars[VARS_SZ]) {
 		DE_T *dp = (DE_T *)cw;
-		// zType(dp->nm); zType("\n");
 		if ((dp->ln == ln) && (strEqI(dp->nm, w))) { return dp; }
 		cw += dp->sz;
 	}
@@ -180,7 +177,6 @@ int inner(wc_t pc) {
 	cell n, t;
 next:
 	ir = code[pc++];
-	// zType("-pc:"); iToA(pc-1,10); zType(",ir:"); iToA(ir,10); emit('-');
 	switch (ir)	{
 		PRIMS
 	default:
@@ -194,7 +190,6 @@ next:
 int outer(const char *src) {
 	toIn = (char *)src;
 	while (nextWord()) {
-		// zType("-"); zType(wd); zType("-");
 		if (isNum(wd, base)) {
 			if (state == 1) { compileNum(pop()); }
 			continue;
