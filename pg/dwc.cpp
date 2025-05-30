@@ -5,31 +5,31 @@
 
 #define CODE_SZ       0x10000
 #define VARS_SZ      0x400000
-#define DICT_SZ       16*1024
 #define STK_SZ           63
 #define NAME_LEN         25
 #define IMMED          0x80
-#define LIT_MASK      0xF0000000
+#define LAST_OP          31
+#define LIT_MASK      0x70000000
 #define LIT_BITS      0x0FFFFFFF
 #define btwi(n,l,h)   ((l<=n) && (n<=h))
 #define TOS           dstk[dsp]
 #define NOS           dstk[dsp-1]
 #define byte          uint8_t
 #define wc_t          uint32_t
-#define cell          int64_t
+#define cell          int32_t
 #define WC_SZ             4
-#define CELL_SZ           8
+#define CELL_SZ           4
 
 typedef struct { wc_t xt; byte sz; byte fl; byte ln; char nm[NAME_LEN+1]; } DE_T;
 
 wc_t code[CODE_SZ], dsp, rsp, lsp;
-byte vars[VARS_SZ], dict[DICT_SZ];
+byte vars[VARS_SZ];
 cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1];
-cell here, last, vhere, base, state, A;
+cell here, last, vhere, base, state;
 char *toIn, wd[32];
 
 #define PRIMS \
-	X(EXIT,  "exit",     0, pc=(wc_t)rpop(); if (pc <= BYE) { /* zType("\n"); */ return 0; } ) \
+	X(EXIT,  "exit",     0, pc=(wc_t)rpop(); if (pc <= LAST_OP) { /* zType("\n"); */ return 0; } ) \
 	X(LIT,   "",         0, push(cellAt((cell)&code[pc])); pc += (CELL_SZ/WC_SZ); ) \
 	X(JMP0,  "",         0, if (pop()==0) { pc = code[pc]; } else { pc++; } ) \
 	X(JMP,   "",         0, pc = code[pc]; ) \
@@ -57,10 +57,10 @@ char *toIn, wd[32];
 	X(ADDW,  "add-word", 0, addToDict(0); ) \
 	X(OP26,  "[",    IMMED, state = 0; ) \
 	X(OP27,  "for",      0, lsp += 2; lstk[lsp] = pop(); lstk[lsp-1] = pc; ) \
-	X(OP28,  "next",     0, if (0 < lstk[lsp]--) { pc=(wc_t)lstk[lsp-1]; } else { lsp=(1<lsp) ? lsp-2: 0; } ) \
-	X(OP29,  "if",   IMMED, comma(JMP0); push(here); comma(0); ) \
-	X(OP30,  "then", IMMED, code[(wc_t)pop()] = (wc_t)here; ) \
-	X(BYE,   "bye",      0, zType("Bye\n"); exit(0); )
+	X(OP28,  "next",     0, if (0 < --lstk[lsp]) { pc=(wc_t)lstk[lsp-1]; } else { lsp=(1<lsp) ? lsp-2: 0; } ) \
+	X(OP29,  "and",      0, t = pop(); TOS &= t; ) \
+	X(OP30,  "or",       0, t = pop(); TOS |= t; ) \
+	X(OP31,  "xor",      0, t = pop(); TOS ^= t; )
 
 #define X(op, nm, fl, cd) op,
 enum { PRIMS };
@@ -101,7 +101,7 @@ int strEqI(const char *src, char *dst) {
 
 void compileNum(cell n) {
 	if (btwi(n, 0, LIT_BITS)) { comma((wc_t)(n | LIT_MASK)); }
-	else { comma(LIT); cellTo((cell)&code[here], n); here += 2; }
+	else { comma(LIT); cellTo((cell)&code[here], n); here += (CELL_SZ/WC_SZ); }
 }
 
 int nextWord() {
@@ -149,7 +149,7 @@ DE_T *addToDict(const char *w) {
 	byte sz = WC_SZ + 3 + ln + 1;
 	while (sz & 0x03) { ++sz; }
 	last -= sz;
-	if (last < (cell)&dict[0]) { last += sz; return (DE_T*)0; }
+	if (last < vhere) { last += sz; return (DE_T*)0; }
 	DE_T *dp = (DE_T*)last;
 	dp->xt = (wc_t)here;
 	dp->sz = sz;
@@ -162,8 +162,8 @@ DE_T *addToDict(const char *w) {
 
 DE_T *findInDict(char *w) {
 	cell cw = last, ln = strLen(w);
-	// zType("\nlast:"); iToA(last, 10); zType("<"); iToA((cell)&dict[DICT_SZ], 10); zType("\n");
-	while (cw < (cell)&dict[DICT_SZ]) {
+	// zType("\nlast:"); iToA(last, 10); zType("<"); iToA((cell)&vars[VARS_SZ], 10); zType("\n");
+	while (cw < (cell)&vars[VARS_SZ]) {
 		DE_T *dp = (DE_T *)cw;
 		// zType(dp->nm); zType("\n");
 		if ((dp->ln == ln) && (strEqI(dp->nm, w))) { return dp; }
@@ -228,22 +228,22 @@ void addPrim(const char *nm, wc_t op, byte fl) {
 #define X(op, nm, fl, cd) addPrim(nm, op, fl);
 
 int main() {
-	last = (cell)&dict[DICT_SZ];
+	last = (cell)&vars[VARS_SZ];
 	vhere = (cell)&vars[0];
-	here = BYE+1;
+	here = LAST_OP+1;
 	base = 10;
 	state = 0;
 	PRIMS
 	addLit("(vh)", (cell)&vhere);
 	addLit("(h)", (cell)&here);
 	addLit("(l)", (cell)&last);
-	addLit("(a)", (cell)&A);
+	addLit("(sp)", (cell)&dsp);
+	addLit("(stk)", (cell)&dstk[0]);
 	addLit("state", (cell)&state);
 	addLit("base", (cell)&base);
 	addLit("vars", (cell)&vars[0]);
 	addLit("code", (cell)&code[0]);
-	addLit("dict", (cell)&dict[0]);
-	addLit("dict-sz", DICT_SZ);
+	addLit("vars-sz", VARS_SZ);
 	addLit(">in", (cell)&toIn);
 	FILE *fp = fopen("boot.fth", "rb");
 	if (fp) {
@@ -251,7 +251,7 @@ int main() {
 		fclose(fp);
 		outer((char *)&vars[1000]);
 	}
-	while (1) {
+	while (state != 999) {
 		zType(" ok\n");
 		char* tib = (char*)(vhere + 1024);
 		fgets(tib, 256, stdin);

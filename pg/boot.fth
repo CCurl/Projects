@@ -3,7 +3,7 @@ add-word immediate ] $80 (l) @ 5 + c! exit [
 add-word ; immediate ] 0 , 0 state ! exit [
 add-word : ] add-word ] ;
 
-: cell  8 ;
+: cell  4 ;
 : cell+ cell + ;
 : cells cell * ;
 : wc-sz 4 ;
@@ -13,54 +13,78 @@ add-word : ] add-word ] ;
 : (exit)    0 ; 
 : (lit)     1 ;
 : (jmpz)    2 ;
-: (,)       3 ;
-: (dup)     4 ;
-: (drop)    5 ;
-: (swap)    6 ;
-: (!)       7 ;
+: (jmp)     3 ;
+: (=)      21 ;
+: (ztype)  24 ;
 
+: bye 999 state ! ;
 : last (l) @ ;
 : here (h) @ ;
+: ->code wc-sz * code + ;
 : vhere (vh) @ ;
-: dict-end dict dict-sz + ;
+: dict-end vars vars-sz + ;
+
+: comp? state @ 1 = ;
+: if (jmpz) , here 0 , ; immediate
+: if0 $70000000 , (=) , (jmpz) , here 0 , ; immediate
+: then here swap ->code !  ; immediate
+: begin here ; immediate
+: again (jmp) , , ; immediate
+: while $70000000 , (=) , (jmpz) , , ; immediate
+: until (jmpz) , , ; immediate
 
 : hex     $10 base ! ;
 : decimal #10 base ! ;
 
-: const add-word (lit) , , 0 , (exit) , ;
+: const add-word (lit) , , (exit) , ;
 : var vhere const  ;
 : allot vhere + (vh) ! ;
 : vc, vhere c! 1 allot ;
 : v,  vhere ! cell allot ;
 
+: rot >r swap r> swap ;
+: -rot rot rot ;
 : over >r dup r> swap ;
 : tuck swap over ;
 : nip  swap drop ;
 : ?dup dup if dup then ;
-: +! dup >r @ + r> ! ;
 : 0= 0 = ;
 : 0< 0 < ;
 : 1+ 1 + ;
 : cell+ cell + ;
 : 1- 1 - ;
 : 2* 2 * ;
+: +! dup >r @ + r> ! ;
+: ++  1 swap +! ;
+: -- -1 swap +! ;
 
-: a! (a) ! ;
-: a (a) @ ;
-: a+ (a) @ dup 1+ a! ;
+var (a) cell allot
+: a!  (a) ! ;
+: a   (a) @ ;
+: a+  (a) @ dup 1+ a! ;
 : a+c (a) @ dup cell+ a! ;
-: @a a c@ ;
-: @a+ a+ c@ ;
-: @ac a @ ;
+: @a   a c@ ;
+: @a+  a+ c@ ;
+: @ac  a @ ;
 : @a+c a+c @ ;
+: !a+  a+ c! ;
+: !a   a  c! ;
+
+var (b) cell allot
+: b! (b) ! ;
+: b  (b) @ ;
+: b+ (b) @ dup 1+ b! ;
+
+var (t) cell allot
+: t! (t) ! ;
+: t  (t) @ ;
+: t+ (t) @ dup 1+ t! ;
 
 : (   >in @ c@ 1 >in +!
       dup 0= if drop exit then
       ')' = if exit then
     ( ; immediate
 ( this is a test )
-: rot >r swap r> swap ;
-: -rot rot rot ;
 
 : bl 32 ;
 : space bl emit ;
@@ -69,9 +93,6 @@ add-word : ] add-word ] ;
 
 : negate 0 swap - ;
 : abs dup 0< if negate then ;
-: ++  dup @  1+ swap !  ;
-: --  dup @  1- swap !  ;
-: c++ dup c@ 1+ swap c! ;
 
 : /   /mod nip  ;
 : mod /mod drop ;
@@ -89,48 +110,37 @@ var (buf) cell allot
 
 : (.) <# #S #> ztype ;
 : . (.) space ;
-
-: mil 1000 dup * * ;
-: bm dup . dup . timer swap for next timer swap - ;
-500 mil bm 2* .
-dict-end last - . here . cr
-hex $DEADBEEF dup . decimal .
->in @ c@ .
-
-: begin here ; immediate
-: again (jmp) , , ; immediate
-
-: z" vhere dup a! 
-    begin >in @ c@ >in ++
-        dup 0= over '"' = or
-        if drop 0 vc, rdrop exit then
-        vc, r@ c++
-    again ; immediate
-
-: ." [ (call) c, ' S" drop drop , ]
-    (call) c, [ (lit4) c, ' count drop drop , ] ,
-    (call) c, [ (lit4) c, ' type  drop drop , ] , ;  immediate
-
 : ? @ . ;
 
 : 0sp 0 (sp) ! ;
 : depth (sp) @ 1- ;
-: .s '(' emit space depth ?dup if
-        0 do (stk) i 1+ cells + @ . loop 
+: .s '(' emit space depth if
+        (stk) cell+ a! depth for a+c @ . next 
     then ')' emit ;
 
-: words last begin
-        dup mem-end < 0=  if drop exit then
-        dup 1+ count type tab word-sz +
+: words last a! 0 b! 0 t! begin
+        a dict-end < if0 drop exit then
+        a 7 + ztype 9 emit
+        (t) ++ b+ 9 > if cr 0 b! then
+        a wc-sz + c@ a + a!
     again ;
 
-\ temp for testing
-: ms (.) ."  usec " ;
-: elapsed timer swap - ms ;
-: bm1 timer swap begin 1- dup while drop elapsed ;
-: bm2 timer swap 0 do loop elapsed ;
+: (") vhere dup a! >in ++
+    begin >in @ c@ >r >in ++
+        r@ 0= r@ '"' = or
+        if  r> drop 0 !a+
+            comp? if (lit) , , a (vh) ! then exit
+        then
+        r> !a+
+    again ;
+
+: z" (") ; immediate
+: ." (") comp? if (ztype) , exit then ztype ;  immediate
+
+( temp for testing )
+: elapsed timer swap - . ." usec" cr ;
+: bm1 timer swap begin 1- dup 1 < until drop elapsed ;
+: bm2 timer swap for next elapsed ;
 : mil #1000 dup * * ;
 : sz #500 mil ;
-
-sz bm1 sz bm2
-\ bye
+: bm sz bm1 sz bm2 ;

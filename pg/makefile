@@ -1,4 +1,4 @@
-app := wc
+app := dwc
 
 CXX := clang
 CFLAGS := -m32 -O3 -D IS_LINUX
