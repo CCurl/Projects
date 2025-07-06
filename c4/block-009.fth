@@ -2,8 +2,9 @@
 
 find fn! loaded?
 
-64 var fn  cell var sz max-sz  20 1024 * ; max-sz var txt
+64 var fn  cell var sz
 
+max-sz  20 1024 * ; max-sz var txt
 fn!(fn--)fn s-scpy drop ;
 clr-txt(--)txt max-sz 0 fill ;
 dmp(--)txt 256 dump ;
@@ -17,7 +18,6 @@
 decode(n--)$100 /mod rd swap go go wt ;
 
 z" test.dat" fn!
-
 
 
 
