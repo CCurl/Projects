@@ -1,4 +1,4 @@
-app := dwc
+app := lsp
 
 CXX := clang
 CFLAGS := -m32 -O3 -D IS_LINUX
@@ -17,7 +17,7 @@ clean:
 	rm -f $(app) $(app32)
 
 test: $(app)
-	./$(app) test.wc
+	./$(app) test.lsp
 
 run: $(app)
 	./$(app)
