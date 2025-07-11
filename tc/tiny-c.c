@@ -62,22 +62,14 @@ void message(char *msg) { fprintf(stdout, "%s\n", msg); }
 void error(char *err) { message(err); exit(1); }
 void syntax_error() { error("-syntax error-"); }
 
+int isAlpha(int ch) { return BTWI(ch,'A','Z') || BTWI(ch,'a','z') || (ch=='_'); }
+int isNum(int ch) { return BTWI(ch,'0','9'); }
+int isAlphaNum(int ch) { return isAlpha(ch) || isNum(ch); }
+
 void next_ch() {
     if (input_fp) { ch = fgetc(input_fp); }
     else { ch = getchar(); }
     // if (BTWI(ch,32,126)) { printf("%c", ch); } else { printf("(%d)", ch); }
-}
-
-int isAlpha(int ch) {
-  return BTWI(ch,'A','Z') || BTWI(ch,'a','z') || (ch=='_');
-}
-
-int isNum(int ch) {
-  return BTWI(ch,'0','9');
-}
-
-int isAlphaNum(int ch) {
-  return isAlpha(ch) || isNum(ch);
 }
 
 void next_sym() {

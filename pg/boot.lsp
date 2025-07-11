@@ -1,3 +1,3 @@
-( 1 2 3 4 5 )
-( + 2 3 )
-( apple orange cherry 1 22 333 )
+( 1 2 3 4 5 ( true nil ) ( 6 7 ) )
+( 22 ( 66 false 77 ) apple Banana )
+12345 
