@@ -104,7 +104,7 @@ PCHAR hAlloc(int sz) {
 		return &heap[hIndex[hi].off];
 	}
 	
-	if (HEAP_SZ <= (hHere+sz) { error("heap full!"); }
+	if (HEAP_SZ <= (hHere+sz)) { error("heap full!"); }
 	if (HEAPINDEX_SZ <= hiCount) { error("heap index full!"); }
 	
 	PHEAP x = &hIndex[hiCount++];
@@ -328,7 +328,6 @@ void dumpAtom(PNODE obj) {
 		zType(" ");
 		if (o) { o = o->next; }
 	}
-	printf("\n");
 }
 
 void parse() {
@@ -337,7 +336,7 @@ void parse() {
 	nextSym();
 	while (sym != SYM_EOI) {
 		PNODE a = buildAtom();
-		dumpAtom(a);
+		dumpAtom(a); printf("\n");
 		// hDump();
 		// ndFree(a);
 		nextSym();
