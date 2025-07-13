@@ -20,7 +20,6 @@
 				<enum> <alphanum>
 */
 
-#define HEAP_SZ 1000
 #define NUM_OBJECTS 100
 #define BTWI(n,l,h) (((l)<=(n)) && ((n)<=(h)))
 #define BCASE break; case
@@ -61,82 +60,84 @@ int isAlphaNum(int ch) { return isAlpha(ch) || isNum(ch); }
 
 /*---------------------------------------------------------------------------*/
 /* A simple heap allocator */
+#define HEAPINDEX_SZ 1000
+#define HEAP_SZ 100000
 
 typedef struct {
-	int prev, next, sz, inUse;
-	char data[8];
+	uint32_t sz, inUse, off;
 } HEAP_T, *PHEAP;
 
-const int hASG = sizeof(long); // alloc size granularity
-int hHere = 0, hLast = -1;
+uint32_t hHere = 0, hiCount = 0;
+HEAP_T hIndex[HEAPINDEX_SZ];
 char heap[HEAP_SZ];
-#define OH (sizeof(int)*4)
 
-PHEAP hFindFree(int sz) {
-	int c = 0;
-	PHEAP closest = NULL;
-	while (c <= hLast) {
-		PHEAP cur = (PHEAP)&heap[c];
-		if ((cur->inUse == 0) && (sz <= cur->sz)) {
-			if (cur->sz == sz) { return cur; }
-			if ((closest == NULL) || (closest->sz < cur->sz)) { closest = cur; }
+int hFindFree(int sz) {
+	int best = -1;
+	for (int i = 0; i < hiCount; i++) {
+		PHEAP x = &hIndex[i];
+		if ((x->inUse == 0) && (sz <= x->sz)) {
+			if (x->sz == sz) { return i; }
+			if ((best == -1) || (hIndex[best].sz < x->sz)) { best = i; }
 		}
-		c = cur->next;
-		if (c == 0) { break; }
 	}
-	return closest;
+	return best;
 }
 
 PCHAR hAlloc(int sz) {
+	const int hASG = 8; // alloc size granularity
 	if (sz == 0) { sz = 1; }
 	if ((sz % hASG) != 0) { sz += hASG - (sz % hASG); }
 	
-	PHEAP h = hFindFree(sz);
-	if (h) {
-		h->inUse = 1;
-		return &h->data[0];
+	int hi = hFindFree(sz);
+	if (0 <= hi) {
+		hIndex[hi].inUse = 0;
+		return &heap[hIndex[hi].off];
 	}
 	
-	int newLast = hHere;
-	int newHere = newLast + sz + OH;
-	if (HEAP_SZ <= newHere) { error("out of heap!"); }
+	int newHere = hHere + sz;
+	if (HEAP_SZ <= newHere) { error("heap full!"); }
+	if (HEAPINDEX_SZ <= hiCount) { error("heap index full!"); }
 	
-	if (0 <= hLast) {
-		h = (PHEAP)&heap[hLast];
-		h->next = hHere;
-	}
-	h = (PHEAP)&heap[hHere];
-	h->prev = hLast;
-	h->next = 0;
-	h->sz = sz;
-	h->inUse = 1;
-	PCHAR ret = &h->data[0];
+	PHEAP x = &hIndex[hiCount++];
+	x->sz = sz;
+	x->off = hHere;
+	x->inUse = 1;
 	hHere = newHere;
-	hLast = newLast;
-	return ret;
+	return &heap[x->off];
 }
 
-void hFree(PCHAR obj) {
-	int i = (obj - OH) - &heap[0];
-	if (!BTWI(i, 0, hHere-1)) { return; }
-	PHEAP h = (PHEAP)&heap[i];
-	if (h->inUse == 1) { h->inUse = 0; }
-	while (0 <= hLast) {
-		h = (PHEAP)&heap[hLast];
-		if (h->inUse) { break; }
-		hHere = hLast;
-		hLast = h->prev;
+int hFindData(char *data) {
+	int32_t off = data-&heap[0];
+	if (!BTWI(off,0,HEAP_SZ-1)) { printf("-oob-"); return -1; }
+	for (int i = 0; i < hiCount; i++) {
+		if (hIndex[i].off == off) { return i; }
+	}
+	printf("-hnf-");
+	return -1;
+}
+
+void hFree(char *data) {
+	int hi = hFindData(data);
+	printf("-hf/hi:%d-", hi); 
+	if (hi == -1) { return; }
+	PHEAP x = (PHEAP)&heap[hi];
+	x->inUse = 0;
+	printf("-hf/iu:%d-", x->inUse); 
+	while (0 < hiCount) {
+		x = (PHEAP)&hIndex[hiCount-1];
+		if (x->inUse) { break; }
+		hHere = x->off;
+		x->off = x->sz = 0;
+		hiCount--;
 	}
 }
 
 void hDump() {
-	int c = 0;
-	printf("\nl-%d/h-%d/oh-%d/asg-%d",hLast,hHere,OH,hASG);
-	while (c <= hLast) {
-		PHEAP h = (PHEAP)&heap[c];
-		printf("\nc-%d/p-%d/n-%d/u-%d/sz-%d/%s",c,h->prev, h->next, h->inUse, h->sz, h->data);
-		c = h->next;
-		if (c == 0) { break; }
+	printf("\nn-%u/h-%u",hiCount,hHere);
+	for (int i = 0; i < hiCount; i++) {
+		PHEAP x = (PHEAP)&hIndex[i];
+		printf("\nhi-%d/iu-%u/sz-%u/off-%u",
+			i, x->inUse, x->sz, x->off);
 	}
 	printf("\n");
 }
@@ -158,11 +159,12 @@ PNODE ndAlloc(int type) {
 }
 
 void ndFree(PNODE obj) {
-	while (obj) {
+	while (obj) { 
+		printf("-ndf/%d-", obj->type);
 		switch (obj->type) {
 			case ATOM_ENUM:
 			case ATOM_STRING:
-				hFree(obj->val);
+				printf("-thf-"); hFree(obj->val);
 				break;
 			case ATOM_LIST:
 				ndFree((PNODE)obj->val);
@@ -184,11 +186,13 @@ FILE *inputFp;
 char *getInput() {
 	if (inputFp == NULL) { zType("\nlsp>"); }
 	if (tib == fgets(tib, sizeof(tib), inputFp ? inputFp : stdin)) {
+		printf("--%s", tib);
 		return tib;
 	} else {
 		if (inputFp) { fclose(inputFp); }
-		inputFp = NULL;
-		return getInput();
+		return NULL;
+		// inputFp = NULL;
+		// return getInput();
 	}
 }
 
@@ -212,6 +216,7 @@ int isEnum(const char *w) {
 
 int symSub() {
 	restart:
+	if (toIn == NULL) { return SYM_EOI; }
 	while (*toIn && (*toIn < 33)) { ++toIn; }
 	if (*toIn == 0) { toIn = getInput(); goto restart; }
 	
@@ -308,10 +313,6 @@ PNODE buildAtom() {
 	return NULL;
 }
 
-PNODE evalAtom(PNODE obj) {
-	return obj;
-}
-
 void dumpAtom(PNODE obj) {
 	if (obj == NULL) { message("<null>",0); }
 	PNODE o = obj;
@@ -331,20 +332,19 @@ void dumpAtom(PNODE obj) {
 		zType(" ");
 		if (o) { o = o->next; }
 	}
+	printf("\n");
 }
 
-void repl(const char *src) {
-	toIn = (PCHAR)src;
-	if (toIn == NULL) { toIn = getInput(); }
+void parse() {
+	toIn = getInput();
 
-	while (1) {
+	nextSym();
+	while (sym != SYM_EOI) {
+		PNODE a = buildAtom();
+		dumpAtom(a);
+		hDump();
+		ndFree(a);
 		nextSym();
-		PNODE atom = buildAtom();
-		PNODE x = evalAtom(atom);
-		dumpAtom(x); printf("\n");
-		ndFree(x);
-		if (x != atom) { ndFree(atom); }
-		if (state == 999) { return; }
 	}
 }
 
@@ -357,6 +357,6 @@ int main(int argc, char *argv[]) {
 		ndFree(&object[i]);
 	}
 	inputFp = fopen(boot_fn, "rb");
-	repl(0);
+	parse();
 	return 0;
 }
