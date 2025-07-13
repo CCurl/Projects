@@ -60,8 +60,8 @@ int isAlphaNum(int ch) { return isAlpha(ch) || isNum(ch); }
 
 /*---------------------------------------------------------------------------*/
 /* A simple heap allocator */
-#define HEAPINDEX_SZ 1000
-#define HEAP_SZ 100000
+#define HEAPINDEX_SZ 500
+#define HEAP_SZ 10000
 
 typedef struct {
 	uint32_t sz, inUse, off;
@@ -100,19 +100,18 @@ PCHAR hAlloc(int sz) {
 	
 	int hi = hFindFree(sz);
 	if (0 <= hi) {
-		hIndex[hi].inUse = 0;
+		hIndex[hi].inUse = 1;
 		return &heap[hIndex[hi].off];
 	}
 	
-	int newHere = hHere + sz;
-	if (HEAP_SZ <= newHere) { error("heap full!"); }
+	if (HEAP_SZ <= (hHere+sz) { error("heap full!"); }
 	if (HEAPINDEX_SZ <= hiCount) { error("heap index full!"); }
 	
 	PHEAP x = &hIndex[hiCount++];
 	x->sz = sz;
 	x->off = hHere;
 	x->inUse = 1;
-	hHere = newHere;
+	hHere += sz;
 	return &heap[x->off];
 }
 
@@ -340,7 +339,7 @@ void parse() {
 		PNODE a = buildAtom();
 		dumpAtom(a);
 		// hDump();
-		ndFree(a);
+		// ndFree(a);
 		nextSym();
 	}
 }
