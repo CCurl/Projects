@@ -7,7 +7,8 @@
 /*	Grammar:
 	-------------
 	<atom>  ::=	<number> |
-				<string> |
+				'<string>' |
+				"<string>" |
 				<enum> |
 				"(" <list> ")" |
 				true |
@@ -30,11 +31,9 @@ typedef char *PCHAR;
 typedef SNODE { SNODE *next; int type; char *val; } NODE_T, *PNODE;
 
 int ch = ' ', sym, state = 0;
-char sym_name[32];
-char tib[1024], *toIn, tok[64];
-NODE_T object[NUM_OBJECTS], *freeList;
-int len, tokType;
+char sym_name[32], tib[1024], *toIn, tok[64];
 long theNum;
+NODE_T object[NUM_OBJECTS], *freeList;
 
 enum {
 	SYM_FREE, SYM_LPAR, SYM_RPAR, SYM_IF, SYM_TRUE, SYM_FALSE, SYM_NIL,
@@ -60,12 +59,10 @@ int isAlpha(int ch) { return BTWI(ch,'A','Z') || BTWI(ch,'a','z'); }
 int isNum(int ch) { return BTWI(ch,'0','9'); }
 int isAlphaNum(int ch) { return isAlpha(ch) || isNum(ch); }
 
-PNODE getNext(PNODE obj) { return obj->next; }
-
 /*---------------------------------------------------------------------------*/
 /* A simple heap allocator */
 
-typedef struct HEAP_S {
+typedef struct {
 	int prev, next, sz, inUse;
 	char data[8];
 } HEAP_T, *PHEAP;
@@ -77,17 +74,17 @@ char heap[HEAP_SZ];
 
 PHEAP hFindFree(int sz) {
 	int c = 0;
-	PHEAP best = NULL;
+	PHEAP closest = NULL;
 	while (c <= hLast) {
 		PHEAP cur = (PHEAP)&heap[c];
 		if ((cur->inUse == 0) && (sz <= cur->sz)) {
 			if (cur->sz == sz) { return cur; }
-			if ((best == NULL) || (best->sz < cur->sz)) { best = cur; }
+			if ((closest == NULL) || (closest->sz < cur->sz)) { closest = cur; }
 		}
 		c = cur->next;
 		if (c == 0) { break; }
 	}
-	return best;
+	return closest;
 }
 
 PCHAR hAlloc(int sz) {
@@ -102,7 +99,7 @@ PCHAR hAlloc(int sz) {
 	
 	int newLast = hHere;
 	int newHere = newLast + sz + OH;
-	if (HEAP_SZ <= newHere) { error("out of heap!"); return NULL; }
+	if (HEAP_SZ <= newHere) { error("out of heap!"); }
 	
 	if (0 <= hLast) {
 		h = (PHEAP)&heap[hLast];
@@ -147,17 +144,17 @@ void hDump() {
 /*---------------------------------------------------------------------------*/
 /* NODE allocate/free */
 
-PNODE ndAlloc(int type, PNODE next) {
-	PNODE obj = NULL;
-	if (freeList == NULL) { error("Empty!"); }
-	else {
-		obj = freeList;
-		freeList = getNext(obj);
+PNODE ndAlloc(int type) {
+	if (freeList) {
+		PNODE obj = freeList;
+		freeList = freeList->next;
 		obj->type = type;
-		obj->next = next;
+		obj->next = NULL;
 		obj->val = 0;
+		return obj;
 	}
-	return obj;
+	error("Empty!");
+	return NULL;
 }
 
 void ndFree(PNODE obj) {
@@ -195,10 +192,9 @@ char *getInput() {
 	}
 }
 
-long isNum(char *w) {
-	int isNeg = 0;
-	long x = 0;
-	if (*w == '-') { ++w; isNeg = 1; }
+long isNum(const char *w) {
+	long x = 0, isNeg = (*w == '-');
+	if (isNeg) { ++w; if (*w == 0) { return 0; } }
 	while (*w) {
 		char c = *(w++);
 		if (!BTWI(c,'0','9')) { return 0; }
@@ -208,10 +204,9 @@ long isNum(char *w) {
 	return 1;
 }
 
-int isEnum(char *w) {
-	if (!isAlpha(w[0])) { return 0; }
-	int l = 1;
-	while (w[l]) { if (!isAlphaNum(w[l++])) { return 0; } }
+int isEnum(const char *w) {
+	if (!isAlpha(*(w++))) { return 0; }
+	while (*w) { if (!isAlphaNum(*(w++))) { return 0; } }
 	return 1;
 }
 
@@ -220,7 +215,7 @@ int symSub() {
 	while (*toIn && (*toIn < 33)) { ++toIn; }
 	if (*toIn == 0) { toIn = getInput(); goto restart; }
 	
-	len = 0;
+	int len = 0;
 	if ((*toIn == '"') || (*toIn == '\'')) {
 		char c = *(toIn++);
 		while (*toIn && (*toIn != c)) { tok[len++] = *(toIn++); }
@@ -262,26 +257,26 @@ PNODE buildAtom() {
 
 	switch (sym) {
 		case SYM_UNK:   return NULL;
-		case SYM_TRUE:  return ndAlloc(ATOM_TRUE, NULL);
-		case SYM_FALSE: return ndAlloc(ATOM_FALSE, NULL);
-		case SYM_NIL:   return ndAlloc(ATOM_NIL, NULL);
-		case SYM_ADD:   return ndAlloc(ATOM_ADD, NULL);
+		case SYM_TRUE:  return ndAlloc(ATOM_TRUE);
+		case SYM_FALSE: return ndAlloc(ATOM_FALSE);
+		case SYM_NIL:   return ndAlloc(ATOM_NIL);
+		case SYM_ADD:   return ndAlloc(ATOM_ADD);
 		case SYM_NUMBER:
-			x = ndAlloc(ATOM_NUMBER, NULL);
+			x = ndAlloc(ATOM_NUMBER);
 			x->val = (PCHAR)theNum;
 			return x;
 		case SYM_ENUM:
-			x = ndAlloc(ATOM_ENUM, NULL);
+			x = ndAlloc(ATOM_ENUM);
 			x->val = hAlloc(strlen(tok)+1);
 			strcpy(x->val, tok);
 			return x;
 		case SYM_STRING:
-			x = ndAlloc(ATOM_STRING, NULL);
+			x = ndAlloc(ATOM_STRING);
 			x->val = hAlloc(strlen(tok)+1);
 			strcpy(x->val, tok);
 			return x;
 		case SYM_DEFUN:
-			x = ndAlloc(ATOM_FUNC, NULL);
+			x = ndAlloc(ATOM_FUNC);
 			nextSym();
 			if (assert(sym == SYM_LPAR, "defun ( ID ... )")) {
 				n = buildAtom();
@@ -295,7 +290,7 @@ PNODE buildAtom() {
 			ndFree(x);
 			return NULL;
 		case SYM_LPAR:
-			x = ndAlloc(ATOM_LIST, NULL);
+			x = ndAlloc(ATOM_LIST);
 			x->val = NULL;
 			nextSym();
 			while (sym != SYM_RPAR) {
