@@ -71,6 +71,16 @@ uint32_t hHere = 0, hiCount = 0;
 HEAP_T hIndex[HEAPINDEX_SZ];
 char heap[HEAP_SZ];
 
+void hDump() {
+	printf("\nn-%u/h-%u",hiCount,hHere);
+	for (int i = 0; i < hiCount; i++) {
+		PHEAP x = (PHEAP)&hIndex[i];
+		printf("\nhi-%d/iu-%u/sz-%u/off-%u/d:[%s]",
+			i, x->inUse, x->sz, x->off, &heap[x->off]);
+	}
+	printf("\n");
+}
+
 int hFindFree(int sz) {
 	int best = -1;
 	for (int i = 0; i < hiCount; i++) {
@@ -108,21 +118,18 @@ PCHAR hAlloc(int sz) {
 
 int hFindData(char *data) {
 	int32_t off = data-&heap[0];
-	if (!BTWI(off,0,HEAP_SZ-1)) { printf("-oob-"); return -1; }
+	if (!BTWI(off,0,HEAP_SZ-1)) { return -1; }
 	for (int i = 0; i < hiCount; i++) {
 		if (hIndex[i].off == off) { return i; }
 	}
-	printf("-hnf-");
 	return -1;
 }
 
 void hFree(char *data) {
 	int hi = hFindData(data);
-	printf("-hf/hi:%d-", hi); 
 	if (hi == -1) { return; }
-	PHEAP x = (PHEAP)&heap[hi];
+	PHEAP x = &hIndex[hi];
 	x->inUse = 0;
-	printf("-hf/iu:%d-", x->inUse); 
 	while (0 < hiCount) {
 		x = (PHEAP)&hIndex[hiCount-1];
 		if (x->inUse) { break; }
@@ -130,16 +137,6 @@ void hFree(char *data) {
 		x->off = x->sz = 0;
 		hiCount--;
 	}
-}
-
-void hDump() {
-	printf("\nn-%u/h-%u",hiCount,hHere);
-	for (int i = 0; i < hiCount; i++) {
-		PHEAP x = (PHEAP)&hIndex[i];
-		printf("\nhi-%d/iu-%u/sz-%u/off-%u",
-			i, x->inUse, x->sz, x->off);
-	}
-	printf("\n");
 }
 
 /*---------------------------------------------------------------------------*/
@@ -154,17 +151,17 @@ PNODE ndAlloc(int type) {
 		obj->val = 0;
 		return obj;
 	}
-	error("Empty!");
+	error("Out of nodes!");
 	return NULL;
 }
 
 void ndFree(PNODE obj) {
 	while (obj) { 
-		printf("-ndf/%d-", obj->type);
+		// printf("-ndf/%d-", obj->type);
 		switch (obj->type) {
 			case ATOM_ENUM:
 			case ATOM_STRING:
-				printf("-thf-"); hFree(obj->val);
+				hFree(obj->val);
 				break;
 			case ATOM_LIST:
 				ndFree((PNODE)obj->val);
@@ -186,7 +183,7 @@ FILE *inputFp;
 char *getInput() {
 	if (inputFp == NULL) { zType("\nlsp>"); }
 	if (tib == fgets(tib, sizeof(tib), inputFp ? inputFp : stdin)) {
-		printf("--%s", tib);
+		// printf("--%s", tib);
 		return tib;
 	} else {
 		if (inputFp) { fclose(inputFp); }
@@ -342,7 +339,7 @@ void parse() {
 	while (sym != SYM_EOI) {
 		PNODE a = buildAtom();
 		dumpAtom(a);
-		hDump();
+		// hDump();
 		ndFree(a);
 		nextSym();
 	}
@@ -358,5 +355,6 @@ int main(int argc, char *argv[]) {
 	}
 	inputFp = fopen(boot_fn, "rb");
 	parse();
+	hDump();
 	return 0;
 }
