@@ -1,0 +1,101 @@
+<html>
+	<title>Forth</title>
+	<head></head>
+	<body><center>
+		<div class="hdr">Forth - JS</div>
+		cmd: <input id="cmd" type="text" size="100" onkeyup="qGo(event)"> <button id="go-btn" onclick="doOuter(0)"> Run </button><br><br>
+		<textarea id="output" cols="100" rows="25"></textarea>
+	</body>
+	<script>
+	document.getElementById("cmd").focus();
+	stk = [];
+	rstk = [];
+	dict = {};
+	init = 0;
+	state = 0; // 0=interp, 1=compile, 2=comment
+	curWord = {};
+	words = [];
+	wordNdx = 0;
+	wd = '';
+	
+	// dict entry types: 1=num, 2=prim, 3=colonDef
+	function createDict(name, type, imm, val) {
+		let x = { name: name, type: type, imm: imm, val: val };
+		dict[name] = x;
+	}
+	function vmInit() {
+		createDict('dup',    2, false, function() { a=stk.pop(); stk.push(a); stk.push(a); });
+		createDict('swap',   2, false, function() { a=stk.pop(); b=stk.pop(); stk.push(a); stk.push(b); });
+		createDict('over',   2, false, function() { a=stk.pop(); b=stk.pop(); stk.push(b); stk.push(a); stk.push(b); });
+		createDict('drop',   2, false, function() { stk.pop(); });
+		createDict('+',      2, false, function() { a=stk.pop(); b=stk.pop(); stk.push(b+a); });
+		createDict('-',      2, false, function() { a=stk.pop(); b=stk.pop(); stk.push(b-a); });
+		createDict('*',      2, false, function() { a=stk.pop(); b=stk.pop(); stk.push(b*a); });
+		createDict('/',      2, false, function() { a=stk.pop(); b=stk.pop(); stk.push(b/a); });
+		createDict('*/',     2, false, function() { a=stk.pop(); b=stk.pop(); c=stk.pop(); stk.push((c*b)/a); });
+		createDict('.',      2, false, function() { a=stk.pop(); strOut(a ? a.toString() : '', 0); });
+		createDict('.s',     2, false, function() { strOut('( ',0); for (i in stk) { strOut(stk[i].toString()+' ', 0); } strOut(')',0); });
+		createDict('emit',   2, false, function() { strOut(String.fromCharCode(stk.pop()), 0); });
+		createDict('words',  2, false, function() { n=0; for (i in dict) { strOut(i+'\t',0); if (n>9) { strOut('',1); n=0; } n=n+1; } });
+		createDict('create', 2, false, function() { strOut('(create)',0); });
+		createDict(':',      2, false, function() { nextWord(); if (wd) { curWord={}; createDict(wd,3,0,curWord); state = 1; } });
+		createDict(';',      2, false, function() { strOut('(;)',0); state = 0; curWord={}; });
+		createDict('if',     2, false, function() { strOut('(if)',0); });
+		createDict('then',   2, false, function() { strOut('(then)',0); });
+		createDict('test',   2, false, function() { strOut('testing 123'); });
+	}
+	function nextWord() {
+		wd = '';
+		while (wordNdx < words.length) {
+			wd = words[wordNdx];
+			wordNdx = wordNdx+1;
+			if (wd.length > 0){ return true; }
+		}
+		return false;
+	}
+	function doColon(def) {
+	}
+	function isNum(w) {
+		if (isNaN(w)) { return false; }
+		stk.push(Number(w));
+		return true;
+	}
+	function outer(src) {
+		if (init == 0) { init=1; vmInit(); }
+		let lWords = words;
+		words = src.split(' ');
+		wordNdx = 0;
+		while (nextWord()) {
+			if (isNum(wd)) { continue; }
+			let x = dict[wd];
+			if (x) {
+				if (x.type == 1) { stk.push(x.val); }
+				if (x.type == 2) { x.val(); }
+				if (x.type == 3) { doColon(x.val); }
+				continue;
+			} else {
+				strOut(wd + '??');
+				state=0;
+				break;
+			}
+		}
+		words = lWords;
+		strOut(' ok', 1);
+	}
+	function strOut(str, cr) {
+		if (cr == 1) { str = str + '\n'; }
+		out = document.getElementById("output");
+		out.value = out.value + str;
+		out.scrollTop = out.scrollHeight;
+	}
+	function doOuter(clr) {
+		src = document.getElementById("cmd");
+		strOut('>> '+ src.value, 1);
+		outer(src.value);
+		if (clr) { src.value = ''; }
+	}
+	function qGo(evt) {
+		if (evt.keyCode === 13) { doOuter(1); }
+	}
+	</script>
+</html>
