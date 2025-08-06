@@ -43,21 +43,18 @@ void initVM() {
 
 /*     ModR/M    */
 uint32_t toModRM(uint32_t ip) {
-    uint8_t v = f1(ip);
+    uint8_t v = f1(ip++);
     modrm.mod = (v >> 6) & 0x03;  // bits 6-7 - mode
     modrm.r =   (v >> 3) & 0x07;  // bits 3-5 - reg
     modrm.m =   (v >> 0) & 0x07;  // bits 0-2 - reg/mem
     modrm.disp8  = 0;
     modrm.disp32 = 0;
+    printf("\nModRM: (%02x) mod=%d r=%d m=%d disp8=%d disp32=%d", v, modrm.mod, modrm.r, modrm.m, modrm.disp8, modrm.disp32);
     return ip;
 }
 
 uint32_t ModRM(uint8_t ip) {
-    ip = toModRM(f1(ip));
-
-    // printf("ModRM: mod=%d r=%d m=%d disp=%d\n", mod, r, m, d);
-
-    int32_t *src = NULL, *tgt = NULL, disp = 0;
+    ip = toModRM(ip);
 
     switch (modrm.mod) {
         case 0: /* TODO */ // memory, no displacement
@@ -139,7 +136,7 @@ uint32_t pop() {
 }
 
 void op00() { uOP(); }
-void op01() { ip = ModRM(ip); *tgt += arg1; }
+void op01() { ip = ModRM(ip); *tgt += arg1; } // ADD
 void op02() { uOP(); }
 void op03() { uOP(); }
 void op04() { uOP(); }
@@ -269,7 +266,7 @@ void op7F() { uOP(); }
 void op80() { uOP(); }
 void op81() { uOP(); }
 void op82() { uOP(); }
-void op83() { uOP(); }
+void op83() { ip = ModRM(ip); *tgt -= arg1; } // sub
 void op84() { uOP(); }
 void op85() { uOP(); }
 void op86() { uOP(); }
@@ -418,10 +415,12 @@ void GotoRC(int r, int c) { printf("\x1B[%d;%dH", r, c); }
 
 void seeCPU() {
     char *x[8] = {"EAX", "ECX" , "EDX" , "EBX" , "ESP" , "EBP" , "ESI" , "EDI" };
+    int y[8] = { 0,3,1,2,4,5,6,7 };
     char *clr = "\x1B[K";
+    printf("\x1B[s");
     for (int i = 0; i < 8; i++) {
         GotoRC(i+1, 90);
-        printf("%s: 0x%x/%d%s", x[i], reg[i], reg[i], clr);
+        printf("%s: 0x%x/%d%s", x[y[i]], reg[y[i]], reg[y[i]], clr);
     }
     GotoRC(10, 90); printf(" IP: 0x%x/%d%s", ip, ip, clr);
     GotoRC(11, 90); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
@@ -430,6 +429,7 @@ void seeCPU() {
     if (BTWI(ip, 0, here)) {
         // printf("put breakpoint here ...");
     }
+    printf("\x1B[u");
 }
 
 void runCPU(uint32_t st) {
@@ -450,18 +450,24 @@ void g1(int n) {
 
 void runTests() {
     here = 0;
-    g1(0xb8); g4(0x11111111);
-    g1(0xb9); g4(0x33333333);
-    g1(0xba); g4(0x44444444);
-    g1(0xbb); g4(0x22222222);
-    g1(0x50);
-    g1(0x51);
-    g1(0x52);
-    g1(0x53);
-    g1(0x58);
-    g1(0x59);
-    g1(0x5a);
-    g1(0x5b);
+    g1(0xb8); g4(0x110); // mov eax, 110
+    g1(0xbb); g4(0x220); // mov ebx, 220
+    g1(0xb9); g4(0x333); // mov ecx, 333
+    g1(0xba); g4(0x444); // mov edx, 444
+    g1(0x01); g1(0xd8);  // add eax, ebx
+    g1(0x01); g1(0xc3);  // add ebx, eax
+    g1(0x83); g1(0xec); g1(0x04); // sub esp, 4
+    g1(0x83); g1(0xc4); g1(0x04); // add esp, 4
+    g1(0x83); g1(0xc5); g1(0x04); // add ebp, 4
+    g1(0x83); g1(0xed); g1(0x04); // add ebp, 4
+    g1(0x50); // push EAX
+    g1(0x53); // push EBX
+    g1(0x51); // push ECX
+    g1(0x52); // push EDX
+    g1(0x58); // pop EAX
+    g1(0x5b); // pop EBX
+    g1(0x59); // pop ECX
+    g1(0x5a); // pop EDX
     runCPU(0);
 }
 
