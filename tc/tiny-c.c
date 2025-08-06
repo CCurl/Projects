@@ -445,6 +445,7 @@ void dis() {
 
 int main(int argc, char *argv[]) {
     if (argc>1) { input_fp = fopen(argv[1], "rt"); }
+    else { input_fp = fopen("test.tc", "rt"); }
     c(program());
 
     printf("(nodes: %d, ", num_nodes);
