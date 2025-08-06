@@ -147,7 +147,7 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pg1.c" />
+    <ClCompile Include="x86.c" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="test1.txt" />
