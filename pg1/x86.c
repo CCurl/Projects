@@ -77,53 +77,7 @@ uint32_t SlashR(uint32_t ip) {
     return ip;
 }
 
-void runVM(int st) {
-    ip = st;
-    again:
-    ir = (f1(ip)<<8) + f1(ip+1);
-    // printf("-pc:%04x/ir:%d-\n", pc, vm[pc]);
-    switch (ir) {
-        case  0x83c5: EBP = EBP+f1(ip+2); ip += 3; // add EBP,<b>
-        ACASE 0x83ed: EBP = EBP-f1(ip+2); ip += 3; // sub EBP,<b>
-        ACASE 0x89d8: EAX=EBX;  ip += 2;  // sub EBP,<b>
-        ACASE 0x89c3: EBX=EAX;  ip += 2;  // sub EBP,<b>
-        ACASE 0x01d8: EAX+=EBX; ip += 2;  // add EAX, EBX
-        ACASE 0x01c3: EBX+=EAX; ip += 2;  // add EBX, EAX
-        goto again;
-    }
-    ir = vm[ip++];
-    switch (ir) {
-        case  0x90: //                        // nop
-        ACASE 0x50: ESP -= 4; s4(ESP, EAX);   // push EAX
-        ACASE 0x51: ESP -= 4; s4(ESP, ECX);   // push ECX
-        ACASE 0x52: ESP -= 4; s4(ESP, EDX);   // push EDX
-        ACASE 0x53: ESP -= 4; s4(ESP, EBX);   // push EBX
-        ACASE 0x58: EAX = f4(ESP); ESP += 4;  // pop EAX
-        ACASE 0x5b: ECX = f4(ESP); ESP += 4;  // pop ECX
-        ACASE 0x59: EDX = f4(ESP); ESP += 4;  // pop EDX
-        ACASE 0x5a: EBX = f4(ESP); ESP += 4;  // pop EBX
-        ACASE 0x9a: ip = f4(ip);            // call absolute
-        ACASE 0xc3: ip = f4(ESP); ESP += 4;  // ret
-        ACASE 0xb8: EAX = f4(ip); ip += 4;  // mov EAX, <imm>
-        ACASE 0xbb: ECX = f4(ip); ip += 4;  // mov ECX, <imm>
-        ACASE 0xb9: EDX = f4(ip); ip += 4;  // mov EDX, <imm>
-        ACASE 0xba: EBX = f4(ip); ip += 4;  // mov EBX, <imm>
-        default: printf("Invalid IR: %d\n", vm[ip-1]);  return;
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-/* Disassembly. */
-
-static FILE *outFp;
-static void pB(int n) { for (int i=0; i<n; i++) fprintf(outFp, " "); }
-static void pS(char *s) { fprintf(outFp, "; %s ", s); }
-static void pNX(long n) { fprintf(outFp, "%02lX ", n); }
-static void pN1(int n) { pNX((n & 0xff)); }
-static void pN2(int n) { pN1(n); pN1(n >> 8); }
-static void pN4(int n) { pN2(n); pN2(n >> 16); }
-
-void uOP() { printf("Undefined opcode: %02X (%d)\n", ir, ir); }
+void uOP() { printf("-opcode:%02X/%d?-", ir, ir); }
 
 void push(uint32_t v) { ESP -= 4; s4(ESP, v); ++stkDepth; }
 uint32_t pop() {
@@ -457,9 +411,9 @@ void runTests() {
     g1(0x01); g1(0xd8);  // add eax, ebx
     g1(0x01); g1(0xc3);  // add ebx, eax
     g1(0x83); g1(0xec); g1(0x04); // sub esp, 4
-    g1(0x83); g1(0xc4); g1(0x04); // add esp, 4
-    g1(0x83); g1(0xc5); g1(0x04); // add ebp, 4
-    g1(0x83); g1(0xed); g1(0x04); // add ebp, 4
+    g1(0x83); g1(0xc4); g1(0x04); // add esp, 5
+    g1(0x83); g1(0xc5); g1(0x04); // add ebp, 6
+    g1(0x83); g1(0xed); g1(0x04); // sub ebp, 7
     g1(0x50); // push EAX
     g1(0x53); // push EBX
     g1(0x51); // push ECX
