@@ -6,7 +6,7 @@
 
 #define BTWI(n,l,h) ((l<=n)&&(n<=h))
 typedef void (*voidfn_t)();
-typedef struct { uint8_t mod, r, m; int32_t disp32; int8_t disp8; } MODRM_T;
+typedef struct { uint8_t mod, r, m; } MODRM_T;
 
 #define EAX reg[0]
 #define ECX reg[1]
@@ -31,7 +31,9 @@ MODRM_T modrm;
 static void    s1(int32_t a, int32_t v) { vm[a] = (v&0xff); }
 static void    s4(int32_t a, int32_t v) { *(int32_t*)(&vm[a]) = v; }
 static int32_t f1(int32_t a) { return vm[a]; }
+static int32_t f2(int32_t a) { return *(int16_t*)(&vm[a]); }
 static int32_t f4(int32_t a) { return *(int32_t*)(&vm[a]); }
+static int32_t ip4() { int32_t x = f4(ip); ip += 4; return x; }
 
 void initVM() {
     ESP = VM_SZ;
@@ -42,30 +44,47 @@ void initVM() {
 
 
 /*     ModR/M    */
-uint32_t toModRM(uint32_t ip) {
+void toModRM() {
     uint8_t v = f1(ip++);
     modrm.mod = (v >> 6) & 0x03;  // bits 6-7 - mode
     modrm.r =   (v >> 3) & 0x07;  // bits 3-5 - reg
     modrm.m =   (v >> 0) & 0x07;  // bits 0-2 - reg/mem
-    modrm.disp8  = 0;
-    modrm.disp32 = 0;
-    printf("\nModRM: (%02x) mod=%d r=%d m=%d disp8=%d disp32=%d", v, modrm.mod, modrm.r, modrm.m, modrm.disp8, modrm.disp32);
-    return ip;
+    printf("\nModRM: (%02x) mod=%d r=%d m=%d", v, modrm.mod, modrm.r, modrm.m);
 }
 
 /*
-values for ".r" in group 1
-Group 1 Opcodes (0x80, 0x81, 0x83):
-000 = ADD
-001 = OR
-010 = ADC (Add with Carry)
-011 = SBB (Subtract with Borrow)
-100 = AND
-101 = SUB
-110 = XOR
-111 = CMP
+  Group 1 Opcodes (0x80, 0x81, 0x83):
+  values for ".r" in group 1
+  000 = ADD
+  001 = OR
+  010 = ADC (Add with Carry)
+  011 = SBB (Subtract with Borrow)
+  100 = AND
+  101 = SUB
+  110 = XOR
+  111 = CMP
+*/
+void Group1(int bits) {
+    toModRM();
+    tgt = (uint32_t*)&reg[modrm.m];
+    if (bits == 8) { arg1 = f1(ip++); }
+    else if (bits == 16) { arg1 = f2(ip); ip += 2; }
+    else if (bits == 32) { arg1 = f4(ip); ip += 4; }
 
+    switch (modrm.r) {
+        case 0: *tgt += arg1; break;
+        case 1: *tgt |= arg1; break;
+        case 2: *tgt += arg1; break;
+        case 3: *tgt -= arg1; break;
+        case 4: *tgt &= arg1; break;
+        case 5: *tgt -= arg1; break;
+        case 6: *tgt ^= arg1; break;
+        case 7: *tgt = arg1; break;
+    }
+}
+/*
 Group 2 Opcodes 
+values for ".r" in group 1
 000 = ROL (Rotate Left)
 001 = ROR (Rotate Right)
 010 = RCL (Rotate Through Carry Left)
@@ -84,28 +103,23 @@ Opcode Prefixes:
 0xC1: Shift/Rotate 16/32-bit by immediate
 */
 
-uint32_t ModRM(uint8_t ip) {
-    ip = toModRM(ip);
+void ModRM() {
+    toModRM();
 
     switch (modrm.mod) {
-        case 0: /* TODO */ // memory, no displacement
-            break;
-        case 1: /* TODO */ // 8-bit displacement
-            break;
-        case 2: /* TODO */ // 32-bit displacement
-            break;
-        case 3:  // register to register
+        case  0: ; // memory, no displacement
+        BCASE 1: tgt = (uint32_t*)&reg[modrm.m] + f1(ip++);  // m+8-bit
+        BCASE 2: tgt = (uint32_t*)&reg[modrm.m] + ip4();     // m+32-bit
+        BCASE 3:  // register to register
             arg1 = reg[modrm.r];
             tgt = (uint32_t*)&reg[modrm.m];
             break;
     }
-    return ip;
 }
 
 /*    /r     */
-uint32_t SlashR(uint32_t ip) {
-    ip = toModRM(ip);
-    return ip;
+void SlashR() {
+    toModRM();
 }
 
 void uOP() { printf("-opcode:%02X/%d?-", ir, ir); }
@@ -121,7 +135,7 @@ uint32_t pop() {
 }
 
 void op00() { uOP(); }
-void op01() { ip = ModRM(ip); *tgt += arg1; } // ADD
+void op01() { ModRM(); *tgt += arg1; } // ADD
 void op02() { uOP(); }
 void op03() { uOP(); }
 void op04() { uOP(); }
@@ -169,7 +183,7 @@ void op2D() { uOP(); }
 void op2E() { uOP(); }
 void op2F() { uOP(); }
 void op30() { uOP(); }
-void op31() { ip = ModRM(ip); *tgt = (*tgt) ^ arg1; }
+void op31() { ModRM(); *tgt = (*tgt) ^ arg1; }
 void op32() { uOP(); }
 void op33() { uOP(); }
 void op34() { uOP(); }
@@ -251,15 +265,17 @@ void op7F() { uOP(); }
 void op80() { uOP(); }
 void op81() { uOP(); }
 void op82() { uOP(); }
-void op83() { ip = ModRM(ip); *tgt += arg1; } // add/sub imm8, group 1
+void op83() { // imm8, group 1
+    Group1(8);
+}
 void op84() { uOP(); }
 void op85() { uOP(); }
 void op86() { uOP(); }
 void op87() { uOP(); }
 void op88() { uOP(); }
-void op89() { uOP(); }
+void op89() { uOP(); } // mov REG to mem/reg - 89 45 00 - mov [ebp], eax
 void op8A() { uOP(); }
-void op8B() { uOP(); }
+void op8B() { uOP(); } // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
 void op8C() { uOP(); }
 void op8D() { uOP(); }
 void op8E() { uOP(); }
@@ -280,10 +296,10 @@ void op9C() { uOP(); }
 void op9D() { uOP(); }
 void op9E() { uOP(); }
 void op9F() { uOP(); }
-void opA0() { uOP(); }
-void opA1() { uOP(); }
-void opA2() { uOP(); }
-void opA3() { uOP(); }
+void opA0() { EAX = f1(ip4()); } // mov AL, [mem]
+void opA1() { EAX = f4(ip4()); } // mov EAX, [mem]
+void opA2() { s1(ip4(), EAX); } // mov [mem], AL
+void opA3() { s4(ip4(), EAX); } // mov [mem], EAX
 void opA4() { uOP(); }
 void opA5() { uOP(); }
 void opA6() { uOP(); }
@@ -424,7 +440,7 @@ void runCPU(uint32_t st) {
         ir = f1(ip++);
         opcodes[ir]();
     }
-    if (dbg) { seeCPU(); }
+    if (dbg) { seeCPU(); printf("\n"); }
 }
 
 void g1(int n) {
