@@ -6,7 +6,16 @@
 
 #define BTWI(n,l,h) ((l<=n)&&(n<=h))
 typedef void (*voidfn_t)();
-typedef struct { uint8_t mod, r, m; } MODRM_T;
+typedef struct { uint8_t val, mod, r, m; } MODRM_T;
+
+#define _DEBUG_ 1
+#ifdef _DEBUG_
+    #define DBG(str) printf("-%s-", str)
+    #define DBG1(str, num) printf("-%s%d-", str, num)
+#else 
+    #define DBG(str)
+    #define DBG1(str, num)
+#endif
 
 #define EAX reg[0]
 #define ECX reg[1]
@@ -17,7 +26,7 @@ typedef struct { uint8_t mod, r, m; } MODRM_T;
 #define ESI reg[6]
 #define EDI reg[7]
 
-#define VM_SZ 100000
+#define VM_SZ 100
 uint8_t vm[VM_SZ];
 int32_t reg[8], disp, arg1;
 uint32_t ip, here, *src, *tgt;
@@ -30,7 +39,9 @@ uint32_t EBPbase;
 #define RCASE    return; case
 
 static void    s1(int32_t a, int32_t v) { vm[a] = (v&0xff); }
-static void    s4(int32_t a, int32_t v) { *(int32_t*)(&vm[a]) = v; }
+static void    s4(int32_t a, int32_t v) {
+    *(int32_t*)(&vm[a]) = v;
+}
 static int32_t f1(int32_t a) { return vm[a]; }
 static int32_t f2(int32_t a) { return *(int16_t*)(&vm[a]); }
 static int32_t f4(int32_t a) { return *(int32_t*)(&vm[a]); }
@@ -38,8 +49,8 @@ static int32_t ip4() { int32_t x = f4(ip); ip += 4; return x; }
 
 void initVM() {
     ESP = VM_SZ;
-    EBPbase = VM_SZ-256;
-    EBP = EBPbase;
+    EBPbase = 0x40; // VM_SZ-256;
+    EBP = EBPbase-4;
     ip = 0;
     here = 0;
 }
@@ -48,10 +59,11 @@ void initVM() {
 /*     ModR/M    */
 void toModRM() {
     uint8_t v = f1(ip++);
+    modrm.val = v;
     modrm.mod = (v >> 6) & 0x03;  // bits 6-7 - mode
     modrm.r =   (v >> 3) & 0x07;  // bits 3-5 - reg
     modrm.m =   (v >> 0) & 0x07;  // bits 0-2 - reg/mem
-    printf("\nModRM: (%02x) mod=%d r=%d m=%d", v, modrm.mod, modrm.r, modrm.m);
+    // printf(" ModRM: (%02x) mod=%d r=%d m=%d", v, modrm.mod, modrm.r, modrm.m);
 }
 
 /*
@@ -65,27 +77,8 @@ void toModRM() {
   101 = SUB
   110 = XOR
   111 = CMP
-*/
-void Group1(int bits) {
-    toModRM();
-    tgt = (uint32_t*)&reg[modrm.m];
-    if (bits == 8) { arg1 = f1(ip++); }
-    else if (bits == 16) { arg1 = f2(ip); ip += 2; }
-    else if (bits == 32) { arg1 = f4(ip); ip += 4; }
 
-    switch (modrm.r) {
-        case 0: *tgt += arg1; break;
-        case 1: *tgt |= arg1; break;
-        case 2: *tgt += arg1; break;
-        case 3: *tgt -= arg1; break;
-        case 4: *tgt &= arg1; break;
-        case 5: *tgt -= arg1; break;
-        case 6: *tgt ^= arg1; break;
-        case 7: *tgt = arg1; break;
-    }
-}
-/*
-Group 2 Opcodes 
+ Group 2 Opcodes 
 values for ".r" in group 1
 000 = ROL (Rotate Left)
 001 = ROR (Rotate Right)
@@ -130,7 +123,10 @@ void push(uint32_t v) { ESP -= 4; s4(ESP, v); }
 uint32_t pop() { ESP += 4; return f4(ESP-4); }
 
 void op00() { uOP(); }
-void op01() { ModRM(); *tgt += arg1; } // ADD
+void op01() {
+    toModRM(); // ADD
+    if (modrm.val == 0xd8) { DBG("ADD EBX"); EAX += EBX; }
+}
 void op02() { uOP(); }
 void op03() { uOP(); }
 void op04() { uOP(); }
@@ -178,7 +174,7 @@ void op2D() { uOP(); }
 void op2E() { uOP(); }
 void op2F() { uOP(); }
 void op30() { uOP(); }
-void op31() { ModRM(); *tgt = (*tgt) ^ arg1; }
+void op31() { DBG("MOV"); ModRM(); *tgt = (*tgt) ^ arg1; }
 void op32() { uOP(); }
 void op33() { uOP(); }
 void op34() { uOP(); }
@@ -209,18 +205,18 @@ void op4C() { uOP(); }
 void op4D() { uOP(); }
 void op4E() { uOP(); }
 void op4F() { uOP(); }
-void op50() { push(EAX); }
-void op51() { push(ECX); }
-void op52() { push(EDX); }
-void op53() { push(EBX); }
+void op50() { DBG("PUSH EAX"); push(EAX); }
+void op51() { DBG("PUSH ECX"); push(ECX); }
+void op52() { DBG("PUSH EDX"); push(EDX); }
+void op53() { DBG("PUSH EBX"); push(EBX); }
 void op54() { uOP(); }
 void op55() { uOP(); }
 void op56() { uOP(); }
 void op57() { uOP(); }
-void op58() { EAX = pop(); }
-void op59() { ECX = pop(); }
-void op5A() { EDX = pop(); }
-void op5B() { EBX = pop(); }
+void op58() { DBG("POP EAX"); EAX = pop(); }
+void op59() { DBG("POP ECX"); ECX = pop(); }
+void op5A() { DBG("POP EDX"); EDX = pop(); }
+void op5B() { DBG("POP EBX"); EBX = pop(); }
 void op5C() { uOP(); }
 void op5D() { uOP(); }
 void op5E() { uOP(); }
@@ -260,17 +256,27 @@ void op7F() { uOP(); }
 void op80() { uOP(); }
 void op81() { uOP(); }
 void op82() { uOP(); }
-void op83() { // imm8, group 1
-    Group1(8);
+void op83() { toModRM();
+    if (modrm.val == 0x45) { DBG1("MOV EAX #", f4(ip)); EAX += ip4(); }
+    else if (modrm.val == 0xc5) { DBG1("ADD EBP #", f1(ip)); EBP += f1(ip++); }
+    else if (modrm.val == 0xed) { DBG1("SUB EBP #", f1(ip)); EBP -= f1(ip++); }
 }
 void op84() { uOP(); }
 void op85() { uOP(); }
 void op86() { uOP(); }
 void op87() { uOP(); }
 void op88() { uOP(); }
-void op89() { EAX = f4(EBP); ip += 2; } // mov REG to mem/reg - 89 45 00 - mov [ebp], eax
+void op89() { toModRM();
+    if (modrm.val == 0x45) { DBG("MOV [EBP], EAX"); s4(EBP, EAX); ip++; }
+    else if (modrm.val == 0xc5) { DBG1("???ADD EBP #", f1(ip)); EBP += f1(ip++); }
+    else if (modrm.val == 0xc3) { DBG("MOV EBX, EAX"); EBX = EAX; }
+    // EAX = f4(EBP); ip += 2;
+}
 void op8A() { uOP(); }
-void op8B() { s4(EBP, EAX); ip += 2; }  // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
+void op8B() { toModRM();
+if (modrm.val == 0x45) { DBG("MOV EAX, [EBP]"); EAX = f4(EBP); ip++; }
+    // s4(EBP, EAX); ip += 2;
+}  // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
 void op8C() { uOP(); }
 void op8D() { uOP(); }
 void op8E() { uOP(); }
@@ -293,8 +299,8 @@ void op9E() { uOP(); }
 void op9F() { uOP(); }
 void opA0() { EAX = f1(ip4()); } // mov AL, [mem]
 void opA1() { EAX = f4(ip4()); } // mov EAX, [mem]
-void opA2() { s1(ip4(), EAX); } // mov [mem], AL
-void opA3() { s4(ip4(), EAX); } // mov [mem], EAX
+void opA2() { s1(ip4(), EAX); }  // mov [mem], AL
+void opA3() { s4(ip4(), EAX); }  // mov [mem], EAX
 void opA4() { uOP(); }
 void opA5() { uOP(); }
 void opA6() { uOP(); }
@@ -320,7 +326,9 @@ void opB7() {  // xchg reg1, reg2
     reg[modrm.m] = reg[modrm.r];
     reg[modrm.r] = arg1;
 }
-void opB8() { EAX = ip4(); }  // mov EAX, <imm>
+void opB8() {
+    DBG1("MOV EAX $", f4(ip));  EAX = ip4();
+}  // mov EAX, <imm>
 void opB9() { ECX = ip4(); }  // mov ECX, <imm>
 void opBA() { EDX = ip4(); }  // mov EDX, <imm>
 void opBB() { EBX = ip4(); }  // mov EBX, <imm>
@@ -425,7 +433,8 @@ void seeCPU() {
     }
     GotoRC(10, 90); printf(" IP: 0x%x/%d%s", ip, ip, clr);
     GotoRC(11, 90); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
-    GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(EBP), (EBP-EBPbase)/4, clr);
+    int depth = (EBP<EBPbase) ? 0 : (EBP - EBPbase) / 4;
+    GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(EBP), depth, clr);
     printf("\x1B[u");
 
     if (BTWI(ip, 0, here)) {
@@ -438,6 +447,7 @@ void runCPU(uint32_t st) {
     while (ip < here) {
         if (dbg) { seeCPU(); }
         ir = f1(ip++);
+        printf("\nIP: %2d, IR: %02x ", ip-1, ir);
         opcodes[ir]();
     }
     if (dbg) { seeCPU(); printf("\n"); }
@@ -476,27 +486,27 @@ void gPop() {
     gN(3, "\x83\xc5\x04");  // sub ebp, 4
 }
 
-// add:  op1=x01, op2=xd8)
-// sub:  op1=x29, op2=xd8)
-// imul: op1=xf7, op2=xeb)
-// idiv: op1=xf7, op2=xfb)
-// and:  op1=x21, op2=xd8)
-// or:   op1=x09, op2=xd8)
-// xor:  op1=x31, op2=xd8)
+// add:  op1=x01, op2=xd8
+// sub:  op1=x29, op2=xd8
+// imul: op1=xf7, op2=xeb
+// idiv: op1=xf7, op2=xfb
+// and:  op1=x21, op2=xd8
+// or:   op1=x09, op2=xd8
+// xor:  op1=x31, op2=xd8
 void gMath(int op1, int op2) {
     gN(2, "\x89\xC3");      // mov ebx, eax
-    gN(3, "\x8B\x45\x00");  // mov eax, [dbp]
+    gN(3, "\x8b\x45\x00");  // mov eax, [ebp]
     g1(op1); g1(op2);       // -see above-
     gN(3, "\x83\xED\x04");  // sub ebp, 4
 }
 
-void gAdd() { gMath(0x01, 0xd8); }  // add:  op1=x01, op2=xd8)
-void gSub() { gMath(0x29, 0xd8); }  // sub:  op1=x29, op2=xd8)
-void gMul() { gMath(0xf7, 0xeb); }  // imul: op1=xf7, op2=xeb)
-void gDiv() { gMath(0xf7, 0xfb); }  // idiv: op1=xf7, op2=xfb)
-void gAnd() { gMath(0x21, 0xd8); }  // and:  op1=x21, op2=xd8)
-void gOr()  { gMath(0x09, 0xd8); }  // or:   op1=x09, op2=xd8)
-void gXor() { gMath(0x31, 0xd8); }  // xor:  op1=x31, op2=xd8)
+void gAdd() { gMath(0x01, 0xd8); }  // add  : op1=x01, op2=xd8
+void gSub() { gMath(0x29, 0xd8); }  // sub  : op1=x29, op2=xd8
+void gMul() { gMath(0xf7, 0xeb); }  // imul : op1=xf7, op2=xeb
+void gDiv() { gMath(0xf7, 0xfb); }  // idiv : op1=xf7, op2=xfb
+void gAnd() { gMath(0x21, 0xd8); }  // and  : op1=x21, op2=xd8
+void gOr()  { gMath(0x09, 0xd8); }  // or   : op1=x09, op2=xd8
+void gXor() { gMath(0x31, 0xd8); }  // xor  : op1=x31, op2=xd8
 
 void runTests() {
     here = 0;
