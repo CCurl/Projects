@@ -53,6 +53,19 @@ uint32_t toModRM(uint32_t ip) {
     return ip;
 }
 
+/*
+values for ".r" in group 1
+Group 1 Opcodes (0x80, 0x81, 0x83):
+000 = ADD
+001 = OR
+010 = ADC (Add with Carry)
+011 = SBB (Subtract with Borrow)
+100 = AND
+101 = SUB
+110 = XOR
+111 = CMP
+*/
+
 uint32_t ModRM(uint8_t ip) {
     ip = toModRM(ip);
 
@@ -65,7 +78,7 @@ uint32_t ModRM(uint8_t ip) {
             break;
         case 3:  // register to register
             arg1 = reg[modrm.r];
-            tgt = &reg[modrm.m];
+            tgt = (uint32_t*)&reg[modrm.m];
             break;
     }
     return ip;
@@ -220,7 +233,7 @@ void op7F() { uOP(); }
 void op80() { uOP(); }
 void op81() { uOP(); }
 void op82() { uOP(); }
-void op83() { ip = ModRM(ip); *tgt -= arg1; } // sub
+void op83() { ip = ModRM(ip); *tgt += arg1; } // add/sub imm8, group 1
 void op84() { uOP(); }
 void op85() { uOP(); }
 void op86() { uOP(); }
