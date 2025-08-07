@@ -318,14 +318,14 @@ void opB7() {  // xchg reg1, reg2
     reg[modrm.m] = reg[modrm.r];
     reg[modrm.r] = arg1;
 }
-void opB8() { EAX = f4(ip); ip += 4; }
-void opB9() { ECX = f4(ip); ip += 4; }
-void opBA() { EDX = f4(ip); ip += 4; }
-void opBB() { EBX = f4(ip); ip += 4; }
-void opBC() { uOP(); }
-void opBD() { uOP(); }
-void opBE() { uOP(); }
-void opBF() { uOP(); }
+void opB8() { EAX = ip4(); }  // mov EAX, <imm>
+void opB9() { ECX = ip4(); }  // mov ECX, <imm>
+void opBA() { EDX = ip4(); }  // mov EDX, <imm>
+void opBB() { EBX = ip4(); }  // mov EBX, <imm>
+void opBC() { ESP = ip4(); }  // mov ESP, <imm>
+void opBD() { EBP = ip4(); }  // mov EBP, <imm>
+void opBE() { ESI = ip4(); }  // mov ESI, <imm>
+void opBF() { EDI = ip4(); }  // mov EDI, <imm>
 void opC0() { uOP(); }
 void opC1() { uOP(); }
 void opC2() { uOP(); }
