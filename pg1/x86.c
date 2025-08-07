@@ -124,15 +124,8 @@ void SlashR() {
 
 void uOP() { printf("-opcode:%02X/%d?-", ir, ir); }
 
-void push(uint32_t v) { ESP -= 4; s4(ESP, v); ++stkDepth; }
-uint32_t pop() {
-    uint32_t v = 0;
-    if (0 < stkDepth) {
-        --stkDepth;
-        v = f4(ESP); ESP += 4;
-    }
-    return v;
-}
+void push(uint32_t v) { ESP -= 4; s4(ESP, v); }
+uint32_t pop() { ESP += 4; return f4(ESP-4); }
 
 void op00() { uOP(); }
 void op01() { ModRM(); *tgt += arg1; } // ADD
@@ -319,7 +312,12 @@ void opB3() { uOP(); }
 void opB4() { uOP(); }
 void opB5() { uOP(); }
 void opB6() { uOP(); }
-void opB7() { uOP(); }
+void opB7() {  // xchg reg1, reg2
+    toModRM();
+    arg1 = reg[modrm.m];
+    reg[modrm.m] = reg[modrm.r];
+    reg[modrm.r] = arg1;
+}
 void opB8() { EAX = f4(ip); ip += 4; }
 void opB9() { ECX = f4(ip); ip += 4; }
 void opBA() { EDX = f4(ip); ip += 4; }
@@ -448,6 +446,19 @@ void g1(int n) {
 }
 #define g2(n) g1(n); g1(n>>8)
 #define g4(n) g2(n); g2(n>>16)
+
+// FORTH 1000 +
+//
+// xchg ebp, esp
+// push eax
+// xchg ebp, esp
+// mov eax, 1000
+//
+// add [ebp], eax
+// xchg ebp, esp
+// pop eax
+// xchg ebp, esp
+
 
 void runTests() {
     here = 0;
