@@ -64,6 +64,24 @@ Group 1 Opcodes (0x80, 0x81, 0x83):
 101 = SUB
 110 = XOR
 111 = CMP
+
+Group 2 Opcodes 
+000 = ROL (Rotate Left)
+001 = ROR (Rotate Right)
+010 = RCL (Rotate Through Carry Left)
+011 = RCR (Rotate Through Carry Right)
+100 = SHL (Shift Logical Left)
+101 = SHR (Shift Logical Right)
+110 = (Reserved)
+111 = SAR (Shift Arithmetic Right)
+
+Opcode Prefixes:
+0xD0: Shift/Rotate by 1
+0xD1: Shift/Rotate 16/32-bit by 1
+0xD2: Shift/Rotate by CL (8-bit)
+0xD3: Shift/Rotate by CL (16/32-bit)
+0xC0: Shift/Rotate 8-bit by immediate
+0xC1: Shift/Rotate 16/32-bit by immediate
 */
 
 uint32_t ModRM(uint8_t ip) {
