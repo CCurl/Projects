@@ -23,6 +23,7 @@ int32_t reg[8], disp, arg1;
 uint32_t ip, here, *src, *tgt;
 uint8_t ir, flags[8], dbg = 1, stkDepth;
 MODRM_T modrm;
+uint32_t EBPbase;
 
 #define ACASE    goto again; case
 #define BCASE    break; case
@@ -37,9 +38,10 @@ static int32_t ip4() { int32_t x = f4(ip); ip += 4; return x; }
 
 void initVM() {
     ESP = VM_SZ;
+    EBPbase = VM_SZ-256;
+    EBP = EBPbase;
     ip = 0;
     here = 0;
-    stkDepth = 0;
 }
 
 
@@ -122,7 +124,7 @@ void SlashR() {
     toModRM();
 }
 
-void uOP() { printf("-opcode:%02X/%d?-", ir, ir); }
+void uOP() { printf("\n-opcode:%02X/%d?-", ir, ir); }
 
 void push(uint32_t v) { ESP -= 4; s4(ESP, v); }
 uint32_t pop() { ESP += 4; return f4(ESP-4); }
@@ -266,9 +268,9 @@ void op85() { uOP(); }
 void op86() { uOP(); }
 void op87() { uOP(); }
 void op88() { uOP(); }
-void op89() { uOP(); } // mov REG to mem/reg - 89 45 00 - mov [ebp], eax
+void op89() { EAX = f4(EBP); ip += 2; } // mov REG to mem/reg - 89 45 00 - mov [ebp], eax
 void op8A() { uOP(); }
-void op8B() { uOP(); } // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
+void op8B() { s4(EBP, EAX); ip += 2; }  // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
 void op8C() { uOP(); }
 void op8D() { uOP(); }
 void op8E() { uOP(); }
@@ -423,12 +425,12 @@ void seeCPU() {
     }
     GotoRC(10, 90); printf(" IP: 0x%x/%d%s", ip, ip, clr);
     GotoRC(11, 90); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
-    GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(ESP), stkDepth, clr);
+    GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(EBP), (EBP-EBPbase)/4, clr);
+    printf("\x1B[u");
 
     if (BTWI(ip, 0, here)) {
-        // printf("put breakpoint here ...");
+        y[0]++; // break here if wanted
     }
-    printf("\x1B[u");
 }
 
 void runCPU(uint32_t st) {
@@ -441,11 +443,10 @@ void runCPU(uint32_t st) {
     if (dbg) { seeCPU(); printf("\n"); }
 }
 
-void g1(int n) {
-    vm[here++] = (n & 0xff);
-}
-#define g2(n) g1(n); g1(n>>8)
-#define g4(n) g2(n); g2(n>>16)
+void g1(int n) { vm[here++] = (n & 0xff); }
+void g2(int n) { g1(n); g1(n >> 8); }
+void g4(int n) { g2(n); g2(n >> 16); }
+void gN(int n, uint8_t* bytes) { for (int i = 0; i < n; i++) { g1(bytes[i]); } }
 
 // FORTH 1000 +
 //
@@ -460,26 +461,46 @@ void g1(int n) {
 // xchg ebp, esp
 
 
+// EBP is the "data stack pointer"
+// EAX is the "top of stack" TOS
+// Generate code to push a value
+void gPush(int val) {
+    gN(3, "\x83\xc5\x04");  // add ebp, 4
+    gN(3, "\x89\x45\x00");  // mov [ebp], eax
+    g1(0xb8); g4(val);      // mov eax, <val>
+}
+
+// Generate code to drop TOS
+void gPop() {
+    gN(3, "\x8b\x45\x00");  // mov eax, [ebp]
+    gN(3, "\x83\xc5\x04");  // sub ebp, 4
+}
+
+// add:  op1=x01, op2=xd8)
+// sub:  op1=x29, op2=xd8)
+// imul: op1=xf7, op2=xeb)
+// idiv: op1=xf7, op2=xfb)
+// and:  op1=x21, op2=xd8)
+// or:   op1=x09, op2=xd8)
+// xor:  op1=x31, op2=xd8)
+void gMath(int op1, int op2) {
+    gN(2, "\x89\xC3");      // mov ebx, eax
+    gN(3, "\x8B\x45\x00");  // mov eax, [dbp]
+    g1(op1); g1(op2);       // -see above-
+    gN(3, "\x83\xED\x04");  // sub ebp, 4
+}
+
+void gAdd() { gMath(0x01, 0xd8); }  // add:  op1=x01, op2=xd8)
+void gSub() { gMath(0x29, 0xd8); }  // sub:  op1=x29, op2=xd8)
+void gMul() { gMath(0xf7, 0xeb); }  // imul: op1=xf7, op2=xeb)
+void gDiv() { gMath(0xf7, 0xfb); }  // idiv: op1=xf7, op2=xfb)
+void gAnd() { gMath(0x21, 0xd8); }  // and:  op1=x21, op2=xd8)
+void gOr()  { gMath(0x09, 0xd8); }  // or:   op1=x09, op2=xd8)
+void gXor() { gMath(0x31, 0xd8); }  // xor:  op1=x31, op2=xd8)
+
 void runTests() {
     here = 0;
-    g1(0xb8); g4(0x110); // mov eax, 110
-    g1(0xbb); g4(0x220); // mov ebx, 220
-    g1(0xb9); g4(0x333); // mov ecx, 333
-    g1(0xba); g4(0x444); // mov edx, 444
-    g1(0x01); g1(0xd8);  // add eax, ebx
-    g1(0x01); g1(0xc3);  // add ebx, eax
-    g1(0x83); g1(0xec); g1(0x04); // sub esp, 4
-    g1(0x83); g1(0xc4); g1(0x04); // add esp, 5
-    g1(0x83); g1(0xc5); g1(0x04); // add ebp, 6
-    g1(0x83); g1(0xed); g1(0x04); // sub ebp, 7
-    g1(0x50); // push EAX
-    g1(0x53); // push EBX
-    g1(0x51); // push ECX
-    g1(0x52); // push EDX
-    g1(0x58); // pop EAX
-    g1(0x5b); // pop EBX
-    g1(0x59); // pop ECX
-    g1(0x5a); // pop EDX
+    gPush(0x1); gPush(0x2); gPush(0x3); gAdd(); gAdd();
     runCPU(0);
 }
 
