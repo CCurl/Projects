@@ -17,7 +17,7 @@
 typedef void (*voidfn_t)();
 typedef struct { uint8_t val, mod, r, m; } MODRM_T;
 
-// #define _DEBUG_ 1
+#define _DEBUG_ 1
 
 #ifdef _DEBUG_
     #define DBG(str) printf("-%s-", str)
@@ -231,7 +231,11 @@ void op83() { toModRM();
 void op84() { uOP(); }
 void op85() { uOP(); }
 void op86() { uOP(); }
-void op87() { uOP(); }
+void op87() { toModRM();  // xchg reg1, reg2;
+    arg1 = reg[modrm.m];
+    reg[modrm.m] = reg[modrm.r];
+    reg[modrm.r] = arg1;
+}
 void op88() { uOP(); }
 void op89() { toModRM();
     if (modrm.val == 0x45) { DBG("MOV [EBP], EAX"); s4(EBP, EAX); ip++; }
@@ -241,7 +245,7 @@ void op89() { toModRM();
 }
 void op8A() { uOP(); }
 void op8B() { toModRM();
-if (modrm.val == 0x45) { DBG("MOV EAX, [EBP]"); EAX = f4(EBP); ip++; }
+    if (modrm.val == 0x45) { DBG("MOV EAX, [EBP]"); EAX = f4(EBP); ip++; }
     // s4(EBP, EAX); ip += 2;
 }  // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
 void op8C() { uOP(); }
@@ -287,21 +291,15 @@ void opB3() { uOP(); }
 void opB4() { uOP(); }
 void opB5() { uOP(); }
 void opB6() { uOP(); }
-void opB7() { toModRM();  // xchg reg1, reg2;
-    arg1 = reg[modrm.m];
-    reg[modrm.m] = reg[modrm.r];
-    reg[modrm.r] = arg1;
-}
-void opB8() {
-    DBG1("MOV EAX $", f4(ip));  EAX = ip4();
-}  // mov EAX, <imm>
-void opB9() { ECX = ip4(); }  // mov ECX, <imm>
-void opBA() { EDX = ip4(); }  // mov EDX, <imm>
-void opBB() { EBX = ip4(); }  // mov EBX, <imm>
-void opBC() { ESP = ip4(); }  // mov ESP, <imm>
-void opBD() { EBP = ip4(); }  // mov EBP, <imm>
-void opBE() { ESI = ip4(); }  // mov ESI, <imm>
-void opBF() { EDI = ip4(); }  // mov EDI, <imm>
+void opB7() { uOP(); }
+void opB8() { DBG1("MOV EAX #", f4(ip));  EAX = ip4(); }  // mov EAX, <imm>
+void opB9() { DBG1("MOV ECX #", f4(ip));  ECX = ip4(); }  // mov ECX, <imm>
+void opBA() { DBG1("MOV EDX #", f4(ip));  EDX = ip4(); }  // mov EDX, <imm>
+void opBB() { DBG1("MOV EBX #", f4(ip));  EBX = ip4(); }  // mov EBX, <imm>
+void opBC() { DBG1("MOV ESP #", f4(ip));  ESP = ip4(); }  // mov ESP, <imm>
+void opBD() { DBG1("MOV EBP #", f4(ip));  EBP = ip4(); }  // mov EBP, <imm>
+void opBE() { DBG1("MOV ESI #", f4(ip));  ESI = ip4(); }  // mov ESI, <imm>
+void opBF() { DBG1("MOV EDI #", f4(ip));  EDI = ip4(); }  // mov EDI, <imm>
 void opC0() { uOP(); }
 void opC1() { uOP(); }
 void opC2() { uOP(); }
@@ -402,6 +400,7 @@ void seeCPU() {
     }
     GotoRC(10, 90); printf(" IP: 0x%x/%d%s", ip, ip, clr);
     GotoRC(11, 90); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
+    GotoRC(12, 90); printf("  H: 0x%x/%d%s", here, here, clr);
     int depth = (EBP<EBPbase) ? 0 : (EBP - EBPbase) / 4;
     GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(EBP), depth, clr);
     printf("\x1B[u");
@@ -428,9 +427,11 @@ void g4(int n) { g2(n); g2(n >> 16); }
 void gN(int n, uint8_t* bytes) { for (int i = 0; i < n; i++) { g1(bytes[i]); } }
 
 // Generate code to push a value
+// https://yozan233.github.io/Online-Assembler-Disassembler/
 void gPush(int val) {
-    gN(3, "\x83\xc5\x04");  // add ebp, 4
-    gN(3, "\x89\x45\x00");  // mov [ebp], eax
+    gN(5, "\x87\xe5\x50\x87\xe5");  // xchg ebp, esp; push eax; xchg ebp, esp
+    // gN(3, "\x83\xc5\x04");  // add ebp, 4
+    // gN(3, "\x89\x45\x00");  // mov [ebp], eax
     g1(0xb8); g4(val);      // mov eax, <val>
 }
 
