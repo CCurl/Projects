@@ -1,6 +1,0 @@
-: NIP SWAP DROP ;
-: T0 100 drop ;
-: elapsed clock swap - . ;
-: mil 1000 dup * * ;
-: bm1 clock swap for T0 next elapsed ;
-: bm2 clock swap for next elapsed ;

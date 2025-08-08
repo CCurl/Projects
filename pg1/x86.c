@@ -1,20 +1,32 @@
-/*---------------------------------------------------------------------------*/
-/* Virtual machine. */
+// An extremely simple x86 emulator to test my compiler.
+// This implements a simple stack-based machine
+// It only implement the small subset of x86 opcodes,
+// those that the code generator uses.
+
+// EAX is the "top of stack" TOS
+// EBP is the "data stack" pointer
+// ESP is the "return stack" pointer
 
 #include <stdio.h>
 #include <stdint.h>
+
+#define VM_SZ     10000
+#define DSTK_SZ     128
 
 #define BTWI(n,l,h) ((l<=n)&&(n<=h))
 typedef void (*voidfn_t)();
 typedef struct { uint8_t val, mod, r, m; } MODRM_T;
 
-#define _DEBUG_ 1
+// #define _DEBUG_ 1
+
 #ifdef _DEBUG_
     #define DBG(str) printf("-%s-", str)
     #define DBG1(str, num) printf("-%s%d-", str, num)
+    int dbg = 1;
 #else 
     #define DBG(str)
     #define DBG1(str, num)
+    int dbg = 0;
 #endif
 
 #define EAX reg[0]
@@ -26,104 +38,52 @@ typedef struct { uint8_t val, mod, r, m; } MODRM_T;
 #define ESI reg[6]
 #define EDI reg[7]
 
-#define VM_SZ 100
 uint8_t vm[VM_SZ];
-int32_t reg[8], disp, arg1, EBPbase;
+int32_t reg[8], disp, arg1, memBase, EBPbase;
 uint32_t ip, here, *src, *tgt;
-uint8_t ir, flags[8], dbg = 1, stkDepth;
+uint8_t ir, flags[8], stkDepth;
 MODRM_T modrm;
 
 #define ACASE    goto again; case
 #define BCASE    break; case
 #define RCASE    return; case
 
-static void    s1(int32_t a, int32_t v) { vm[a] = (v&0xff); }
-static void    s4(int32_t a, int32_t v) {
-    *(int32_t*)(&vm[a]) = v;
+void initVM() {
+    memBase = 0x08048000; // Default Linux code start address
+    ESP = memBase + VM_SZ;
+    EBPbase = ESP-(DSTK_SZ*4);
+    EBP = EBPbase - 4;
+    ip = 0;
+    here = memBase;
 }
-static int32_t f1(int32_t a) { return vm[a]; }
-static int32_t f2(int32_t a) { return *(int16_t*)(&vm[a]); }
-static int32_t f4(int32_t a) { return *(int32_t*)(&vm[a]); }
+
+static void    s1(int32_t a, int32_t v) { vm[a-memBase] = (v&0xff); }
+static void    s2(int32_t a, int32_t v) { *(int16_t*)(&vm[a-memBase]) = (v&0xffff); }
+static void    s4(int32_t a, int32_t v) { *(int32_t*)(&vm[a-memBase]) = v; }
+static int32_t f1(int32_t a) { return vm[a-memBase]; }
+static int32_t f2(int32_t a) { return *(int16_t*)(&vm[a-memBase]); }
+static int32_t f4(int32_t a) { return *(int32_t*)(&vm[a-memBase]); }
 static int32_t ip4() { int32_t x = f4(ip); ip += 4; return x; }
 
-void initVM() {
-    ESP = VM_SZ;
-    EBPbase = 0x40; // VM_SZ-256;
-    EBP = EBPbase-4;
-    ip = 0;
-    here = 0;
-}
-
-
-/*     ModR/M    */
+// mod/rm
 void toModRM() {
     uint8_t v = f1(ip++);
     modrm.val = v;
     modrm.mod = (v >> 6) & 0x03;  // bits 6-7 - mode
     modrm.r =   (v >> 3) & 0x07;  // bits 3-5 - reg
     modrm.m =   (v >> 0) & 0x07;  // bits 0-2 - reg/mem
-    // printf(" ModRM: (%02x) mod=%d r=%d m=%d", v, modrm.mod, modrm.r, modrm.m);
+#ifdef _DEBUG_
+    printf(" ModRM: (%02x) mod=%d r=%d m=%d", v, modrm.mod, modrm.r, modrm.m);
+#endif // _DEBUG_
 }
 
-/*
-  Group 1 Opcodes (0x80, 0x81, 0x83):
-  values for ".r" in group 1
-  000 = ADD
-  001 = OR
-  010 = ADC (Add with Carry)
-  011 = SBB (Subtract with Borrow)
-  100 = AND
-  101 = SUB
-  110 = XOR
-  111 = CMP
-
- Group 2 Opcodes 
-values for ".r" in group 1
-000 = ROL (Rotate Left)
-001 = ROR (Rotate Right)
-010 = RCL (Rotate Through Carry Left)
-011 = RCR (Rotate Through Carry Right)
-100 = SHL (Shift Logical Left)
-101 = SHR (Shift Logical Right)
-110 = (Reserved)
-111 = SAR (Shift Arithmetic Right)
-
-Opcode Prefixes:
-0xD0: Shift/Rotate by 1
-0xD1: Shift/Rotate 16/32-bit by 1
-0xD2: Shift/Rotate by CL (8-bit)
-0xD3: Shift/Rotate by CL (16/32-bit)
-0xC0: Shift/Rotate 8-bit by immediate
-0xC1: Shift/Rotate 16/32-bit by immediate
-*/
-
-void ModRM() {
-    toModRM();
-
-    switch (modrm.mod) {
-        case  0: ; // memory, no displacement
-        BCASE 1: tgt = (uint32_t*)&reg[modrm.m] + f1(ip++);  // m+8-bit
-        BCASE 2: tgt = (uint32_t*)&reg[modrm.m] + ip4();     // m+32-bit
-        BCASE 3:  // register to register
-            arg1 = reg[modrm.r];
-            tgt = (uint32_t*)&reg[modrm.m];
-            break;
-    }
-}
-
-/*    /r     */
-void SlashR() {
-    toModRM();
-}
-
-void uOP() { printf("\n-opcode:%02X/%d?-", ir, ir); }
 
 void push(uint32_t v) { ESP -= 4; s4(ESP, v); }
 uint32_t pop() { ESP += 4; return f4(ESP-4); }
 
+void uOP() { printf("\n-opcode:%02X/%d?-", ir, ir); }
 void op00() { uOP(); }
-void op01() {
-    toModRM(); // ADD
+void op01() { toModRM(); // ADD
     if (modrm.val == 0xd8) { DBG("ADD EBX"); EAX += EBX; }
 }
 void op02() { uOP(); }
@@ -133,7 +93,9 @@ void op05() { uOP(); }
 void op06() { uOP(); }
 void op07() { uOP(); }
 void op08() { uOP(); }
-void op09() { uOP(); }
+void op09() { toModRM(); // OR
+    if (modrm.val == 0xd8) { DBG("AND EBX"); EAX |= EBX; }
+}
 void op0A() { uOP(); }
 void op0B() { uOP(); }
 void op0C() { uOP(); }
@@ -157,7 +119,9 @@ void op1D() { uOP(); }
 void op1E() { uOP(); }
 void op1F() { uOP(); }
 void op20() { uOP(); }
-void op21() { uOP(); }
+void op21() { toModRM(); // AND
+    if (modrm.val == 0xd8) { DBG("AND EBX"); EAX &= EBX; }
+}
 void op22() { uOP(); }
 void op23() { uOP(); }
 void op24() { uOP(); }
@@ -165,7 +129,9 @@ void op25() { uOP(); }
 void op26() { uOP(); }
 void op27() { uOP(); }
 void op28() { uOP(); }
-void op29() { uOP(); }
+void op29() { toModRM(); // SUB
+    if (modrm.val == 0xd8) { DBG("SUB EBX"); EAX -= EBX; }
+}
 void op2A() { uOP(); }
 void op2B() { uOP(); }
 void op2C() { uOP(); }
@@ -173,7 +139,9 @@ void op2D() { uOP(); }
 void op2E() { uOP(); }
 void op2F() { uOP(); }
 void op30() { uOP(); }
-void op31() { DBG("MOV"); ModRM(); *tgt = (*tgt) ^ arg1; }
+void op31() { toModRM(); // XOR
+    if (modrm.val == 0xd8) { DBG("XOR EBX"); EAX ^= EBX; }
+}
 void op32() { uOP(); }
 void op33() { uOP(); }
 void op34() { uOP(); }
@@ -319,8 +287,7 @@ void opB3() { uOP(); }
 void opB4() { uOP(); }
 void opB5() { uOP(); }
 void opB6() { uOP(); }
-void opB7() {  // xchg reg1, reg2
-    toModRM();
+void opB7() { toModRM();  // xchg reg1, reg2;
     arg1 = reg[modrm.m];
     reg[modrm.m] = reg[modrm.r];
     reg[modrm.r] = arg1;
@@ -390,7 +357,10 @@ void opF3() { uOP(); }
 void opF4() { uOP(); }
 void opF5() { uOP(); }
 void opF6() { uOP(); }
-void opF7() { uOP(); }
+void opF7() { toModRM();  // IMUL / IDIV
+    if (modrm.val == 0xeb) { DBG("IMUL EBX"); EAX *= EBX; }
+    else if (modrm.val == 0xfb) { DBG("IDIV EBX"); EAX /= EBX; }
+}
 void opF8() { uOP(); }
 void opF9() { uOP(); }
 void opFA() { uOP(); }
@@ -446,32 +416,17 @@ void runCPU(uint32_t st) {
     while (ip < here) {
         if (dbg) { seeCPU(); }
         ir = f1(ip++);
-        printf("\nIP: %2d, IR: %02x ", ip-1, ir);
+        if (dbg) { printf("\nIP: %08lX, IR: %02x ", ip - 1, ir); }
         opcodes[ir]();
     }
     if (dbg) { seeCPU(); printf("\n"); }
 }
 
-void g1(int n) { vm[here++] = (n & 0xff); }
+void g1(int n) { s1(here++, n); }
 void g2(int n) { g1(n); g1(n >> 8); }
 void g4(int n) { g2(n); g2(n >> 16); }
 void gN(int n, uint8_t* bytes) { for (int i = 0; i < n; i++) { g1(bytes[i]); } }
 
-// FORTH 1000 +
-//
-// xchg ebp, esp
-// push eax
-// xchg ebp, esp
-// mov eax, 1000
-//
-// add [ebp], eax
-// xchg ebp, esp
-// pop eax
-// xchg ebp, esp
-
-
-// EBP is the "data stack pointer"
-// EAX is the "top of stack" TOS
 // Generate code to push a value
 void gPush(int val) {
     gN(3, "\x83\xc5\x04");  // add ebp, 4
@@ -485,32 +440,36 @@ void gPop() {
     gN(3, "\x83\xc5\x04");  // sub ebp, 4
 }
 
-// add:  op1=x01, op2=xd8
-// sub:  op1=x29, op2=xd8
-// imul: op1=xf7, op2=xeb
-// idiv: op1=xf7, op2=xfb
-// and:  op1=x21, op2=xd8
-// or:   op1=x09, op2=xd8
-// xor:  op1=x31, op2=xd8
-void gMath(int op1, int op2) {
+void gMath(int op, int modrm) {
     gN(2, "\x89\xC3");      // mov ebx, eax
     gN(3, "\x8b\x45\x00");  // mov eax, [ebp]
-    g1(op1); g1(op2);       // -see above-
+    g1(op); g1(modrm);      // -see below-
     gN(3, "\x83\xED\x04");  // sub ebp, 4
 }
 
-void gAdd() { gMath(0x01, 0xd8); }  // add  : op1=x01, op2=xd8
-void gSub() { gMath(0x29, 0xd8); }  // sub  : op1=x29, op2=xd8
-void gMul() { gMath(0xf7, 0xeb); }  // imul : op1=xf7, op2=xeb
-void gDiv() { gMath(0xf7, 0xfb); }  // idiv : op1=xf7, op2=xfb
-void gAnd() { gMath(0x21, 0xd8); }  // and  : op1=x21, op2=xd8
-void gOr()  { gMath(0x09, 0xd8); }  // or   : op1=x09, op2=xd8
-void gXor() { gMath(0x31, 0xd8); }  // xor  : op1=x31, op2=xd8
+void gAdd() { gMath(0x01, 0xd8); }  // add  : op01, mod/rm=xd8
+void gSub() { gMath(0x29, 0xd8); }  // sub  : op29, mod/rm=xd8
+void gMul() { gMath(0xf7, 0xeb); }  // imul : opf7, mod/rm=xeb
+void gDiv() { gMath(0xf7, 0xfb); }  // idiv : opf7, mod/rm=xfb
+void gAnd() { gMath(0x21, 0xd8); }  // and  : op21, mod/rm=xd8
+void gOr()  { gMath(0x09, 0xd8); }  // or   : op09, mod/rm=xd8
+void gXor() { gMath(0x31, 0xd8); }  // xor  : op31, mod/rm=xd8
+
+void assert(int32_t exp, char *msg) {
+    runCPU(memBase);
+    if (EAX != exp) { printf("\nFAIL: %s, expected %d, got %d", msg, exp, EAX); }
+    else { printf("\nPASS: %s", msg); }
+    here = memBase; ESP = EBPbase;
+}
 
 void runTests() {
-    here = 0;
-    gPush(0x1); gPush(0x2); gPush(0x3); gAdd(); gAdd();
-    runCPU(0);
+    gPush(0x4); gPush(0x5); gAdd(); assert( 9, "add");
+    gPush(0x7); gPush(0x8); gSub(); assert(-1, "sub");
+    gPush(0x6); gPush(0x6); gMul(); assert(36, "mult");
+    gPush(0x9); gPush(0x2); gDiv(); assert( 4, "div");
+    gPush(0xa); gPush(0x7); gAnd(); assert( 2, "and");
+    gPush(0x1); gPush(0x2); gOr();  assert( 3, "or");
+    gPush(0xa); gPush(0xa); gXor(); assert( 0, "xor");
 }
 
 /*---------------------------------------------------------------------------*/
