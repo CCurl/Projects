@@ -28,11 +28,10 @@ typedef struct { uint8_t val, mod, r, m; } MODRM_T;
 
 #define VM_SZ 100
 uint8_t vm[VM_SZ];
-int32_t reg[8], disp, arg1;
+int32_t reg[8], disp, arg1, EBPbase;
 uint32_t ip, here, *src, *tgt;
 uint8_t ir, flags[8], dbg = 1, stkDepth;
 MODRM_T modrm;
-uint32_t EBPbase;
 
 #define ACASE    goto again; case
 #define BCASE    break; case

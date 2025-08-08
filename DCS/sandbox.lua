@@ -21,14 +21,55 @@ end
 UT.clone = function (orig)
     local obj = {}
 	for key, val in pairs(orig) do
-         -- A "class" table has "__index" equal to itself
-		if (val == orig) then obj[key] = obj
-		else obj[key] = type(val) == 'table' and ut.clone(val) or val
+         -- A "class" has "__index" equal to itself
+		if (val == orig) then
+            obj[key] = obj
+            UT.msg(key .. ": (same val)")
+		else
+            local t = type(val)
+            if (t == 'table') then
+                UT.msg(key .. ": <table>")
+                obj[key] = UT.clone(val)
+            else
+                obj[key] = val
+                UT.msg(key .. ": (" .. t .. "): " .. val)
+            end
 		end
 	end
     -- An instance of a "class" has a metatable
 	setmetatable(obj, getmetatable(orig))
     return obj
+end
+
+-- Clone a table (object)
+-- Returns the cloned table (object)
+UT.dump = function (obj, indent)
+	for key, val in pairs(obj) do
+        if (type(val) == 'table') then
+            UT.dump(val, indent+2)
+        else
+            local m = ""
+            for i=1, indent do m = m .. " " end
+            UT.msg(m .. key .. ": " .. val)
+        end
+	end
+end
+
+UT.getZone = function(index)
+    return mission.triggers.zones[index]
+end
+
+-- Rename an object
+-- Returns the object
+UT.renameObject = function(self, oldPrefix, newPrefix)
+    local name = self:getName()
+    s,e = string.find(name, oldPrefix, 1)
+    if (s == 1) then
+        local newName = newPrefix .. string.sub(name, e+1)
+        UT.msg("Rename " .. name .. " to " .. newName)
+        self:setName(newName)
+        end
+    return self
 end
 
 -- Get the Groups for a coalition/side
@@ -44,7 +85,7 @@ end
 UT.dumpUnits = function(group)
     UT.msg("  Units: ")
     for i, un in pairs(Group.getUnits(group)) do
-        UT.msg("  - " . i .. ": " .. Unit.getName(un))
+        UT.msg("  - " .. i .. ": " .. Unit.getName(un))
     end
 end
 
