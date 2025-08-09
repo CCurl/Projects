@@ -14,10 +14,11 @@
 #define DSTK_SZ     128
 
 #define BTWI(n,l,h) ((l<=n)&&(n<=h))
+typedef uint8_t byte;
 typedef void (*voidfn_t)();
 typedef struct { uint8_t val, mod, r, m; } MODRM_T;
 
-#define _DEBUG_ 1
+// #define _DEBUG_ 1
 
 #ifdef _DEBUG_
     #define DBG(str) printf("-%s-", str)
@@ -140,7 +141,8 @@ void op2E() { uOP(); }
 void op2F() { uOP(); }
 void op30() { uOP(); }
 void op31() { toModRM(); // XOR
-    if (modrm.val == 0xd8) { DBG("XOR EBX"); EAX ^= EBX; }
+    if (modrm.val == 0xd8) { DBG("XOR EAX, EBX"); EAX ^= EBX; }
+    if (modrm.val == 0xc0) { DBG("XOR EAX, EAX"); EAX ^= EAX; }
 }
 void op32() { uOP(); }
 void op33() { uOP(); }
@@ -238,28 +240,32 @@ void op87() { toModRM();  // xchg reg1, reg2;
 }
 void op88() { uOP(); }
 void op89() { toModRM();
-    if (modrm.val == 0x45) { DBG("MOV [EBP], EAX"); s4(EBP, EAX); ip++; }
-    else if (modrm.val == 0xc5) { DBG1("???ADD EBP #", f1(ip)); EBP += f1(ip++); }
+    if (modrm.val == 0x45) { DBG("MOV [EBP+x], EAX"); s4(EBP+f1(ip++), EAX); }
+    else if (modrm.val == 0xc1) { DBG("MOV ECX, EAX"); ECX = EAX; }
+    else if (modrm.val == 0xc2) { DBG("MOV EDX, EAX"); EDX = EAX; }
     else if (modrm.val == 0xc3) { DBG("MOV EBX, EAX"); EBX = EAX; }
+    else if (modrm.val == 0xc8) { DBG("MOV EAX, ECX"); EAX = ECX; }
+    else if (modrm.val == 0xd0) { DBG("MOV EAX, EDX"); EAX = EDX; }
+    else if (modrm.val == 0xd8) { DBG("MOV EAX, EBX"); EAX = EBX; }
     // EAX = f4(EBP); ip += 2;
 }
 void op8A() { uOP(); }
 void op8B() { toModRM();
-    if (modrm.val == 0x45) { DBG("MOV EAX, [EBP]"); EAX = f4(EBP); ip++; }
+    if (modrm.val == 0x45) { DBG("MOV EAX, [EBP+x]"); EAX = f4(EBP+f1(ip++)); }
     // s4(EBP, EAX); ip += 2;
 }  // mov mem/reg to REG - 8B 45 00 - mov eax, [ebp]
 void op8C() { uOP(); }
 void op8D() { uOP(); }
 void op8E() { uOP(); }
 void op8F() { uOP(); }
-void op90() { uOP(); }
-void op91() { uOP(); }
-void op92() { uOP(); }
-void op93() { uOP(); }
-void op94() { uOP(); }
-void op95() { uOP(); }
-void op96() { uOP(); }
-void op97() { uOP(); }
+void op90() { DBG("NOP") }
+void op91() { DBG("xchg EAX, ECX"); }
+void op92() { DBG("xchg EAX, EDX"); }
+void op93() { DBG("xchg EAX, EBX"); }
+void op94() { DBG("xchg EAX, ESP"); }
+void op95() { DBG("xchg EAX, EBP"); }
+void op96() { DBG("xchg EAX, ESI"); }
+void op97() { DBG("xchg EAX, EDI"); }
 void op98() { uOP(); }
 void op99() { uOP(); }
 void op9A() { uOP(); }
@@ -268,10 +274,10 @@ void op9C() { uOP(); }
 void op9D() { uOP(); }
 void op9E() { uOP(); }
 void op9F() { uOP(); }
-void opA0() { EAX = f1(ip4()); } // mov AL, [mem]
+void opA0() { byte *x = (byte *)&EAX; x[0] = f1(ip4()); } // mov AL, [mem]
 void opA1() { EAX = f4(ip4()); } // mov EAX, [mem]
-void opA2() { s1(ip4(), EAX); }  // mov [mem], AL
-void opA3() { s4(ip4(), EAX); }  // mov [mem], EAX
+void opA2() { s1(ip4(), EAX&0xff); }  // mov [mem], AL
+void opA3() { s4(ip4(), EAX); }       // mov [mem], EAX
 void opA4() { uOP(); }
 void opA5() { uOP(); }
 void opA6() { uOP(); }
@@ -387,6 +393,9 @@ opE0, opE1, opE2, opE3, opE4, opE5, opE6, opE7, opE8, opE9, opEA, opEB, opEC, op
 opF0, opF1, opF2, opF3, opF4, opF5, opF6, opF7, opF8, opF9, opFA, opFB, opFC, opFD, opFE, opFF
 };
 
+/*---------------------------------------------------------------------------*/
+// CPU loop.
+
 void GotoRC(int r, int c) { printf("\x1B[%d;%dH", r, c); }
 void CLS() { GotoRC(1,1); printf("\x1B[2J"); }
 
@@ -394,17 +403,17 @@ void seeCPU() {
     char *x[8] = {"EAX", "ECX" , "EDX" , "EBX" , "ESP" , "EBP" , "ESI" , "EDI" };
     int y[8] = { 0,3,1,2,4,5,6,7 };
     char *clr = "\x1B[K";
-    printf("\x1B[s");
+    printf("\x1B[s"); // Save cursor
     for (int i = 0; i < 8; i++) {
-        GotoRC(i+1, 90);
+        GotoRC(i+1, 80);
         printf("%s: 0x%x/%d%s", x[y[i]], reg[y[i]], reg[y[i]], clr);
     }
-    GotoRC(10, 90); printf(" IP: 0x%x/%d%s", ip, ip, clr);
-    GotoRC(11, 90); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
     int depth = (EBP<EBPbase) ? 0 : (EBP - EBPbase) / 4;
-    GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(EBP), depth, clr);
-    GotoRC(13, 90); printf("  H: 0x%x/%d%s", here-memBase, here-memBase, clr);
-    printf("\x1B[u");
+    GotoRC(10, 80); printf(" IP: 0x%x/%d%s", ip, ip, clr);
+    GotoRC(11, 80); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
+    GotoRC(12, 80); printf("TOS: 0x%x (%d)%s", f4(EBP), depth, clr);
+    GotoRC(13, 80); printf("  H: 0x%x/%d%s", here, here-memBase, clr);
+    printf("\x1B[u"); // Restore cursor
 
     if (BTWI(ip, 0, here)) {
         y[0]++; // break here if wanted
@@ -416,30 +425,40 @@ void runCPU(uint32_t st) {
     while (ip < here) {
         if (dbg) { seeCPU(); }
         ir = f1(ip++);
-        if (dbg) { printf("\nIP: %08lX, IR: %02x ", ip - 1, ir); }
+        if (dbg) { printf("\nIP: %08X, IR: %02x ", ip-1, ir); }
         opcodes[ir]();
     }
     if (dbg) { seeCPU(); printf("\n"); }
 }
 
+
+/*---------------------------------------------------------------------------*/
+// Tests
 void g1(int n) { s1(here++, n); }
 void g2(int n) { g1(n); g1(n >> 8); }
 void g4(int n) { g2(n); g2(n >> 16); }
-void gN(int n, uint8_t* bytes) { for (int i = 0; i < n; i++) { g1(bytes[i]); } }
+void gN(int n, char *bytes) { for (int i = 0; i < n; i++) { g1(bytes[i]); } }
+
+// https://yozan233.github.io/Online-Assembler-Disassembler/
+
+// Push EAX
+void gPushEAX() {
+    gN(2, "\x87\xe5");   // xchg ebp, esp
+    g1(0x50);            // push eax
+    gN(2, "\x87\xe5");   // xchg ebp, esp
+}
 
 // Generate code to push a value
-// https://yozan233.github.io/Online-Assembler-Disassembler/
 void gPush(int val) {
-    gN(5, "\x87\xe5\x50\x87\xe5");  // xchg ebp, esp; push eax; xchg ebp, esp
-    // gN(3, "\x83\xc5\x04");       // add ebp, 4
-    // gN(3, "\x89\x45\x00");       // mov [ebp], eax
-    g1(0xb8); g4(val);              // mov eax, <val>
+    gPushEAX();
+    g1(0xb8); g4(val);   // mov eax, <val>
 }
 
 // Generate code to drop TOS
 void gPop() {
-    gN(3, "\x8b\x45\x00");  // mov eax, [ebp]
-    gN(3, "\x83\xc5\x04");  // sub ebp, 4
+    gN(2, "\x87\xe5");   // xchg ebp, esp
+    g1(0x58);            // pop eax
+    gN(2, "\x87\xe5");   // xchg ebp, esp
 }
 
 void gMath(int op, int modrm) {
@@ -457,8 +476,15 @@ void gAnd() { gMath(0x21, 0xd8); }  // and  : op21, mod/rm=xd8
 void gOr()  { gMath(0x09, 0xd8); }  // or   : op09, mod/rm=xd8
 void gXor() { gMath(0x31, 0xd8); }  // xor  : op31, mod/rm=xd8
 
+void gFetch1(uint32_t addr) { g1(0xa0); g4(addr); } // mov al, [addr]
+void gFetch4(uint32_t addr) { g1(0xa1); g4(addr); } // mov eax, [addr]
+void gStore1(uint32_t addr) { g1(0xa2); g4(addr); } // mov [addr], al
+void gStore4(uint32_t addr) { g1(0xa3); g4(addr); } // mov [addr], eax
+
 void assert(int32_t exp, char *msg) {
-    CLS(); runCPU(memBase);
+    if (dbg) { CLS(); }
+    runCPU(memBase);
+    seeCPU();
     if (EAX != exp) { printf("\nFAIL: %s, expected %d, got %d", msg, exp, EAX); }
     else { printf("\nPASS: %s", msg); }
     here = memBase; ESP = EBPbase;
@@ -472,10 +498,12 @@ void runTests() {
     gPush(0xa); gPush(0x7); gAnd(); assert( 2, "and");
     gPush(0x1); gPush(0x2); gOr();  assert( 3, "or");
     gPush(0xa); gPush(0xa); gXor(); assert( 0, "xor");
+
+    printf("\n");
 }
 
 /*---------------------------------------------------------------------------*/
-/* Main program. */
+// Main program.
 
 int main(int argc, char *argv[]) {
     char *fn = (argc > 1) ? argv[1] : "tc.out";
