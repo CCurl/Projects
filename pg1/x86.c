@@ -176,18 +176,18 @@ void op50() { DBG("PUSH EAX"); push(EAX); }
 void op51() { DBG("PUSH ECX"); push(ECX); }
 void op52() { DBG("PUSH EDX"); push(EDX); }
 void op53() { DBG("PUSH EBX"); push(EBX); }
-void op54() { uOP(); }
-void op55() { uOP(); }
-void op56() { uOP(); }
-void op57() { uOP(); }
+void op54() { DBG("PUSH ESP"); push(ESP); }
+void op55() { DBG("PUSH EBP"); push(EBP); }
+void op56() { DBG("PUSH ESI"); push(ESI); }
+void op57() { DBG("PUSH EDI"); push(EDI); }
 void op58() { DBG("POP EAX"); EAX = pop(); }
 void op59() { DBG("POP ECX"); ECX = pop(); }
 void op5A() { DBG("POP EDX"); EDX = pop(); }
 void op5B() { DBG("POP EBX"); EBX = pop(); }
-void op5C() { uOP(); }
-void op5D() { uOP(); }
-void op5E() { uOP(); }
-void op5F() { uOP(); }
+void op5C() { DBG("POP ESP"); ESP = pop(); }
+void op5D() { DBG("POP EBP"); EBP = pop(); }
+void op5E() { DBG("POP ESI"); ESI = pop(); }
+void op5F() { DBG("POP EDI"); EDI = pop(); }
 void op60() { uOP(); }
 void op61() { uOP(); }
 void op62() { uOP(); }
@@ -388,6 +388,7 @@ opF0, opF1, opF2, opF3, opF4, opF5, opF6, opF7, opF8, opF9, opFA, opFB, opFC, op
 };
 
 void GotoRC(int r, int c) { printf("\x1B[%d;%dH", r, c); }
+void CLS() { GotoRC(1,1); printf("\x1B[2J"); }
 
 void seeCPU() {
     char *x[8] = {"EAX", "ECX" , "EDX" , "EBX" , "ESP" , "EBP" , "ESI" , "EDI" };
@@ -400,9 +401,9 @@ void seeCPU() {
     }
     GotoRC(10, 90); printf(" IP: 0x%x/%d%s", ip, ip, clr);
     GotoRC(11, 90); printf(" IR: 0x%x/%d%s", f1(ip), f1(ip), clr);
-    GotoRC(12, 90); printf("  H: 0x%x/%d%s", here, here, clr);
     int depth = (EBP<EBPbase) ? 0 : (EBP - EBPbase) / 4;
     GotoRC(12, 90); printf("TOS: 0x%x (%d)%s", f4(EBP), depth, clr);
+    GotoRC(13, 90); printf("  H: 0x%x/%d%s", here-memBase, here-memBase, clr);
     printf("\x1B[u");
 
     if (BTWI(ip, 0, here)) {
@@ -430,9 +431,9 @@ void gN(int n, uint8_t* bytes) { for (int i = 0; i < n; i++) { g1(bytes[i]); } }
 // https://yozan233.github.io/Online-Assembler-Disassembler/
 void gPush(int val) {
     gN(5, "\x87\xe5\x50\x87\xe5");  // xchg ebp, esp; push eax; xchg ebp, esp
-    // gN(3, "\x83\xc5\x04");  // add ebp, 4
-    // gN(3, "\x89\x45\x00");  // mov [ebp], eax
-    g1(0xb8); g4(val);      // mov eax, <val>
+    // gN(3, "\x83\xc5\x04");       // add ebp, 4
+    // gN(3, "\x89\x45\x00");       // mov [ebp], eax
+    g1(0xb8); g4(val);              // mov eax, <val>
 }
 
 // Generate code to drop TOS
@@ -457,7 +458,7 @@ void gOr()  { gMath(0x09, 0xd8); }  // or   : op09, mod/rm=xd8
 void gXor() { gMath(0x31, 0xd8); }  // xor  : op31, mod/rm=xd8
 
 void assert(int32_t exp, char *msg) {
-    runCPU(memBase);
+    CLS(); runCPU(memBase);
     if (EAX != exp) { printf("\nFAIL: %s, expected %d, got %d", msg, exp, EAX); }
     else { printf("\nPASS: %s", msg); }
     here = memBase; ESP = EBPbase;
