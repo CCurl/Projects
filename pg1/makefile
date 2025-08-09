@@ -18,8 +18,8 @@ clean:
 
 force: clean $(app)
 
-test1: $(app)
-	./$(app) test1.txt
+test: $(app)
+	clear && ./$(app)
 
 test2: $(app)
 	cat test2.txt | ./$(app)
