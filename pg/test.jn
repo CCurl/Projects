@@ -22,5 +22,5 @@ def main
 	y[a] = 123;
 	y[a+1] = 0;
 	xx = 1;
-	xx[xx++] = 100;
+	xx[xx++] = a;
 end

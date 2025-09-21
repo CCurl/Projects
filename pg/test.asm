@@ -64,7 +64,7 @@ F10: ; main
 	MOV  EAX, [I4] ; xx
 	INC  [I4] ; xx
 	PUSH EAX
-	MOV  EAX, 100
+	MOV  EAX, [I6] ; a
 	POP  ECX
 	MOV  DWORD [I4 + ECX*4], EAX ; xx
 	RET
