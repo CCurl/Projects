@@ -258,7 +258,7 @@ void op8C() { uOP(); }
 void op8D() { uOP(); }
 void op8E() { uOP(); }
 void op8F() { uOP(); }
-void op90() { DBG("NOP") }
+void op90() { DBG("NOP"); }
 void op91() { DBG("xchg EAX, ECX"); }
 void op92() { DBG("xchg EAX, EDX"); }
 void op93() { DBG("xchg EAX, EBX"); }

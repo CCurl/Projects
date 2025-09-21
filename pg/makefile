@@ -3,7 +3,7 @@ app := lsp
 CXX := clang
 CFLAGS := -m32 -O3 -D IS_LINUX
 
-srcfiles := $(shell find . -name "*.cpp")
+srcfiles := $(shell find . -name "*.c")
 incfiles := $(shell find . -name "*.h")
 LDLIBS   := -lm
 
@@ -16,8 +16,9 @@ $(app): $(srcfiles) $(incfiles)
 clean:
 	rm -f $(app) $(app32)
 
-test: $(app)
-	./$(app) test.lsp
+test: $(app) test.jn
+	./$(app) test.jn > test.asm
+	fasm test.asm
 
 run: $(app)
 	./$(app)

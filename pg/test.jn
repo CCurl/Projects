@@ -1,0 +1,26 @@
+int xx[100];
+char y[256];
+int a;
+int a2;
+char b;
+
+def func
+	L2 = L1+2;
+	L3 = L2+3;
+end
+
+def main
+	+L; L1 = 4;
+	func();
+	a = L3;
+	-L;
+	// [a1] = [a]+456;
+	// [b] = [a1+1];
+	// EAX = 'A';
+	y[a++] = 'a';
+	y[2] = a+223;
+	y[a] = 123;
+	y[a+1] = 0;
+	xx = 1;
+	xx[xx++] = 100;
+end
