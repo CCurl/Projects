@@ -1,19 +1,20 @@
-int xx[100];
+int stk[100];
 char y[256];
 int a;
 int a2;
 char b;
 
-def func
-	L2 = L1+2;
-	L3 = L2+3;
+def func()
+	L3 = L2 * 3 + L1;
 end
 
-def main
-	+L; L1 = 4;
-	func();
-	a = L3;
-	-L;
+def pushA()
+	stk = stk+1; stk[stk] = a;
+end
+
+def main()
+	+L; L1=4; L2=5; func(); a=L3; -L;
+	b = a;
 	// [a1] = [a]+456;
 	// [b] = [a1+1];
 	// EAX = 'A';
@@ -21,6 +22,6 @@ def main
 	y[2] = a+223;
 	y[a] = 123;
 	y[a+1] = 0;
-	xx = 1;
-	xx[xx++] = a;
+	pushA(); a=a+1; pushA();
+	// b = stk[stk--];
 end

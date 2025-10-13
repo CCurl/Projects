@@ -234,7 +234,7 @@ char *varName(int si) {
 enum {
     NOP, GETIMM, SETIMM, ADDROF, VALAT
     , GETLOC, SETLOC, INCLOC, DECLOC, LOCSA, LOCSD
-    , GETVAR, SETVAR, INCVAR, DECVAR
+    , GETVAR, SETVAR, SETVARC, INCVAR, DECVAR
     , SYSCALL, MOVAC
     , ADD, SUB, MUL, DIV
     , LT, GT, EQU, NEQ, CMP
@@ -247,6 +247,7 @@ void opArg(INST_T *x, INST_T *y) {
     x->s1 = hAlloc(16);
     if (y->op == GETVAR) { sprintf(x->s1, "%s ; %s", varName(y->a1), symName(y->a1)); }
     if (y->op == GETIMM) { sprintf(x->s1, "%d", y->a1); }
+    if (y->op == GETLOC) { sprintf(x->s1, "[EBP+%d]", y->a1*4); }
     x->s1[15]=0; y->op = 999; // Nothing
 }
 
@@ -328,9 +329,10 @@ emit:
             BCASE ADDROF:  printf("\n\tLEA  EAX, %s; symbol %d", v1, a1);
             BCASE VALAT:   printf("\n\tMOVZX  EAX, BYTE [%s]", v1);
             BCASE GETVAR:  printf("\n\tMOV  EAX, %s ; %s", v1, n1);
-            BCASE SETVAR:  t1 = symbols[a1].type == 'C' ? 1 : 4;
-                            printf("\n\tMOV  %s [%s + ECX*%d], %s ; %s",
-                                a2==1?"BYTE":"DWORD", as1, a2, a2==1?"AL":"EAX", n1);
+            BCASE SETVAR:  printf("\n\tMOV  [%s], %s ; %s",
+                               as1, a2==1?"AL":"EAX", n1);
+            BCASE SETVARC: printf("\n\tMOV  [%s + ECX%s], %s ; %s",
+                               as1, a2==1?"":"*4", a2==1?"AL":"EAX", n1);
             BCASE INCVAR:  printf("\n\tINC  %s ; %s", v1, n1);
             BCASE DECVAR:  printf("\n\tDEC  %s ; %s", v1, n1);
             BCASE GETLOC:  printf("\n\tMOV  EAX, [EBP+%d]", a1*4);
@@ -522,19 +524,18 @@ void idStmt() {
     if (si < 0) { si = findSymbol(id_name, 'C'); }
     if (si < 0) { msg(1, "variable not defined!"); }
     int sz = symbols[si].type == 'C' ? 1 : 4;
+    int isArray = 0;
     next_token();
     if (tok == TOK_LARR) { // Array reference
+        isArray = 1;
         next_token(); expr();
         expectToken(TOK_RARR);
         g1(PUSH, 0);    // Push the index
-    } else {
-        g1(GETIMM, 0);  // Index 0
-        g1(PUSH, 0);    // Push EAX
     }
     if (tok == TOK_SET) {
         next_token(); expr();
-        g1(POP, 2); // Pop index into ECX
-        g2(SETVAR, si, sz);
+        if (isArray) { g1(POP, 2); g2(SETVARC, si, sz); }
+        else { g2(SETVAR, si, sz); }
     }
     expectToken(TOK_SEMI);
 }
@@ -583,7 +584,8 @@ void funcDef() {
     next_token();
     int s = genSymbol(id_name, 'F');
     g1(DEFUN, s);
-    next_token();
+    expectNext(TOK_LPAR);
+    expectToken(TOK_RPAR);
     statements(TOK_END);
     expectToken(TOK_END);
     if (code[codeSz].op != RET) { g(RET); }
