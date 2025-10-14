@@ -93,9 +93,9 @@ void run(const char *x) {
     NCASE 'X': printf("%c",u);
     NCASE 'Y': printf("%c",u);
     NCASE 'Z': printf("%c",u);
-    NCASE '[': lsp+=3; L0=PP; L1=PP; L2=(long)pc;
+    NCASE '[': lsp+=2; L0=PP; L1=(long)pc;
     NCASE '\\': if (0<sp) sp--;
-    NCASE ']': if (++L0<L1) { pc=(char *)L2; } else { lsp-=3; }
+    NCASE ']': if (--L0) { pc=(char *)L1; } else { lsp-=2; }
     NCASE '^': printf("%c",u);
     NCASE '_': printf("%c",u);
     NCASE '`': printf("%c",u);
@@ -125,15 +125,15 @@ void run(const char *x) {
     NCASE 'x': ext();
     NCASE 'y': printf("%c",u);
     NCASE 'z': printf("%c",u);
-    NCASE '{': lsp+=3; L2=(long)pc;
+    NCASE '{': lsp+=2; L1=(long)pc;
     NCASE '|': printf("%c",u);
-    NCASE '}': if (PP) { pc=(char*)L2; } else { lsp -=3; }
+    NCASE '}': if (S0) { pc=(char*)L1; } else { lsp -=2; }
     NCASE '~': printf("%c",u);
     }
 }
 
 int main() {
     sp = rsp = lsp = 0;
-    run("T500 1000#**0[]T$-.N");
-    run("T500 1000#**{d#}\\T$-.N");
+    run("T1000 1000#**[]T$-.N");
+    run("T1000 1000#**{d}\\T$-.N");
 }

@@ -20,7 +20,7 @@
 pull(s--)z"  && git pull -p" s-cat go ;
 pull-all(--)c4 pull proj pull ;
 
-dict-sz  (--n)mem-end last - ;
+dict-sz(--n)mem-end last - ;
 hused(--n)vhere vars - ;       hfree(--n)last vhere - ;
 cf(--n)code-sz here - ;        nw(--)dict-sz de-sz / ;
 
