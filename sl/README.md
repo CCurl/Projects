@@ -137,6 +137,23 @@ SWAP         \ Stack: 1 3 2
 . .          \ Prints: 2 3, Stack: 1
 ```
 
+### Fibonacci Sequence
+
+```
+\ Calculate first 8 Fibonacci numbers
+0 1
+DUP . SWAP OVER +
+DUP . SWAP OVER +
+DUP . SWAP OVER +
+DUP . SWAP OVER +
+DUP . SWAP OVER +
+DUP . SWAP OVER +
+DUP . SWAP OVER +
+DUP .
+CR
+\ Prints: 1 1 2 3 5 8 13 21
+```
+
 ## Comments
 
 Lines starting with `\` are comments and are ignored by the interpreter.
