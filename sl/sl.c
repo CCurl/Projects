@@ -130,7 +130,7 @@ void emit_byte(unsigned char b) {
 /* Emit cell (as bytes) */
 void emit_cell(cell_t val) {
     emit_byte(OP_LIT);
-    for (int i = 0; i < sizeof(cell_t); i++) {
+    for (size_t i = 0; i < sizeof(cell_t); i++) {
         emit_byte((val >> (i * 8)) & 0xFF);
     }
 }
@@ -138,7 +138,7 @@ void emit_cell(cell_t val) {
 /* Read cell from code */
 cell_t read_cell(int addr) {
     cell_t val = 0;
-    for (int i = 0; i < sizeof(cell_t); i++) {
+    for (size_t i = 0; i < sizeof(cell_t); i++) {
         val |= ((cell_t)code[addr + i]) << (i * 8);
     }
     return val;
@@ -352,7 +352,7 @@ void parse_word(char *word) {
     if (idx >= 0) {
         if (compiling && !dict[idx].is_immediate) {
             emit_byte(OP_CALL);
-            for (int i = 0; i < sizeof(cell_t); i++) {
+            for (size_t i = 0; i < sizeof(cell_t); i++) {
                 emit_byte((dict[idx].code_addr >> (i * 8)) & 0xFF);
             }
         } else {
