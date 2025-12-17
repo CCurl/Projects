@@ -7,6 +7,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_misc.all;
 use ieee.std_logic_unsigned.all;
@@ -16,11 +17,11 @@ entity cpu16 is
         generic(width: integer := 16);
         port(
 -- standard logic signals can be true, false, tri-stated, or unknown.
-        clk, clr: in std_logic;
-        write, read: out std_logic;
+                clk, clr: in std_logic;
+                write, read: out std_logic;
 -- address and data busses
-        addr: out std_logic_vector(width downto 0);
-        data: in std_logic_vector(width downto 0)
+                addr: out std_logic_vector(width downto 0);
+                data: in std_logic_vector(width downto 0)
         );
 end  cpu16;
 
@@ -120,15 +121,15 @@ begin
 
 -- define the second mux
         with reg_sel select
-        reg_out <= a when "01",
-                   r when "10",
+        reg_out <= a    when "01",
+                   r    when "10",
                    data when "11",
-                   n when others;
+                   n    when others;
 
 -- instruction latch mux
         with slot select
-        code <= i(width-1 downto width-5) when 1,
-                i(width-6 downto width-10) when 2,
+        code <= i(width-1  downto width-5)  when 1,
+                i(width-6  downto width-10) when 2,
                 i(width-11 downto width-15) when 3,
                 ftch when others;
 
@@ -148,147 +149,170 @@ begin
                 or t(3) or t(2) or t(1) or t(0));
 
         decode: process(code,z,t) begin
-                alu_sel<="00";
-                reg_sel<="00";
-                npush<='0';
-                npop<='0';
-                rpush<='0';
-                rpop<='0';
-                rsel<='0';
-                tsel<='0';
-                tright<='0';
-                tleft<='0';
-                ainc<='0';
-                aload<='0';
-                pinc<='0';
-                pload<='0';
-                msel<='0';
-                psel<='0';
-                write<='0';
-                read<='0';
-                iload<='0';
-                reset<='0';
+                alu_sel <= "00";
+                reg_sel <= "00";
+                npush   <= '0';
+                npop    <= '0';
+                rpush   <= '0';
+                rpop    <= '0';
+                rsel    <= '0';
+                tsel    <= '0';
+                tright  <= '0';
+                tleft   <= '0';
+                ainc    <= '0';
+                aload   <= '0';
+                pinc    <= '0';
+                pload   <= '0';
+                msel    <= '0';
+                psel    <= '0';
+                write   <= '0';
+                read    <= '0';
+                iload   <= '0';
+                reset   <= '0';
 
 -- specify each opcode
         case code is
-                when ftch => iload<='1';
-                        pinc<='1';
-                        read<='1';
-                when jmp => pload<='1';
-                        npush<='1';
-                        rpush<='1';
-                        reset<='1';
-                when ret => pload<='1';
-                        rpop<='1';
-                        psel<='1';
-                        reset<='1';
-                when jz => pload<=z;
-                        reset<='1';
-                when jnc => pload<= not t(width);
-                        reset<='1';
-                when call => pload<='1';
-                        rpush<='1';
-                        rsel<='1';
-                        reset<='1';
-                when ldp => msel<='1';
-                        ainc<='1';
-                        tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        npush<='1';
-                        reg_sel<="11";
-                        read<='1';
-                when lit => pinc<='1';
-                        tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        npush<='1';
-                        reg_sel<="11";
-                        read<='1';
-
-               when lp => msel<='1';     -- ld is typo?
-  --            when ld => msel<='1';
-
-                        tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        npush<='1';
-                        reg_sel<="11";
-                        read<='1';
-                when stp => msel<='1';
-                        ainc<='1';
-                        tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        npop<='1';
-                        reg_sel<="00";
-                        write<='1';
+                when ftch =>
+                        iload   <= '1';
+                        pinc    <= '1';
+                        read    <= '1';
+                when jmp =>
+                        pload   <= '1';
+                        npush   <= '1';
+                        rpush   <= '1';
+                        reset   <= '1';
+                when ret =>
+                        pload   <= '1';
+                        rpop    <= '1';
+                        psel    <= '1';
+                        reset   <= '1';
+                when jz =>
+                        pload   <= z;
+                        reset   <= '1';
+                when jnc =>
+                        pload   <= not t(width);
+                        reset   <= '1';
+                when call =>
+                        pload   <= '1';
+                        rpush   <= '1';
+                        rsel    <= '1';
+                        reset   <= '1';
+                when ldp =>
+                        msel    <= '1';
+                        ainc    <= '1';
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        npush   <= '1';
+                        reg_sel <= "11";
+                        read    <= '1';
+                when lit =>
+                        pinc    <= '1';
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        npush   <= '1';
+                        reg_sel <= "11";
+                        read    <= '1';
+                        
+                -- ld is typo?
+                -- when ld => msel<='1';
+                when lp =>
+                        msel    <= '1';
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        npush   <= '1';
+                        reg_sel <= "11";
+                        read    <= '1';
+                when stp =>
+                        msel    <= '1';
+                        ainc    <= '1';
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        npop    <= '1';
+                        reg_sel <= "00";
+                        write   <= '1';
 --                      data <= t;
-                when st => msel<='1';
-                        tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        npop<='1';
-                        reg_sel<="00";
-                        write<='1';
+                when st =>
+                        msel    <= '1';
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        npop    <= '1';
+                        reg_sel <= "00";
+                        write   <= '1';
 --                      data <= t;
-                when com => tright<='1';
-                        tleft<='1';
-                        alu_sel<="00";
-                when shr => tright<='1';
-                        tleft<='0';
-                        alu_sel<="00";
-                when shl => tright<='0';
-                        tleft<='1';
-                        alu_sel<="00";
+                when com =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        alu_sel <= "00";
+                when shr =>
+                        tright  <= '1';
+                        tleft   <= '0';
+                        alu_sel <= "00";
+                when shl =>
+                        tright  <= '0';
+                        tleft   <= '1';
+                        alu_sel <= "00";
                 when addc => if t(0)='1' then
-                        tright<='1';
-                        tleft<='1';
-                        alu_sel<="11";
+                        tright  <= '1';
+                        tleft   <= '1';
+                        alu_sel <= "11";
                         end if;
-                when xorr => tright<='1';
-                        tleft<='1';
-                        alu_sel<="01";
-                        npop<='1';
-                when andd => tright<='1';
-                        tleft<='1';
-                        alu_sel<="10";
-                        npop<='1';
-                when addd => tright<='1';
-                        tleft<='1';
-                        alu_sel<="11";
-                        npop<='1';
-                when pop => tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        reg_sel<="10";
-                        rpop<='1';
-                        npush<='1';
-                when lda => tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        reg_sel<="01";
-                        npush<='1';
-                when dup => npush<='1';
-                when over => tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        reg_sel<="00";
-                        npush<='1';
-                when push => tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        rpush<='1';
-                        npop<='1';
-                when sta => tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        aload<='1';
-                        npop<='1';
-                when drop => tright<='1';
-                        tleft<='1';
-                        tsel<='1';
-                        npop<='1';
+                when xorr =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        alu_sel <= "01";
+                        npop    <= '1';
+                when andd =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        alu_sel <= "10";
+                        npop    <= '1';
+                when addd =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        alu_sel <= "11";
+                        npop    <= '1';
+                when pop =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        reg_sel <= "10";
+                        rpop    <= '1';
+                        npush   <= '1';
+                when lda =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        reg_sel <= "01";
+                        npush   <= '1';
+                when dup =>
+                        npush   <= '1';
+                when over =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        reg_sel <= "00";
+                        npush   <= '1';
+                when push => tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        rpush   <= '1';
+                        npop    <= '1';
+                when sta =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        aload   <= '1';
+                        npop    <= '1';
+                when drop =>
+                        tright  <= '1';
+                        tleft   <= '1';
+                        tsel    <= '1';
+                        npop    <= '1';
                 when others => null;
         end case;
         end process decode;
