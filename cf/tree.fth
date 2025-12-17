@@ -94,28 +94,24 @@ cell var seed
 
 5 var colors
 : color ( n--c ) colors + c@ ;
-: rnd-col ( --c ) random 7 and color fg ;
+: rnd-col ( --c ) random 3 and color fg ;
 colors b!
- 28 c!b+ (( dk green ))
-203 c!b+ (( red ))
- 28 c!b+ (( dk green ))
-226 c!b+ (( yellow ))
- 28 c!b+ (( dk green ))
-255 c!b+ (( white ))
  40 c!b+ (( green ))
-255 c!b+ (( white ))
+203 c!b+ (( red ))
+255 c!b+ (( green ))
+226 c!b+ (( yellow ))
 
 : t0 a@ i - spaces star ;
-: t1 i if i 2 * 1- spaces star then ;
+: t1 i if i 2 * stars then ;
 : t2 a@ b@ - spaces b@ 2 * 1+ stars cr ;
 : t3 a@ 2 - spaces 5 stars cr ;
 : body 0 color fg b@ for t0 t1 cr next t2 255 fg ;
 : stump 94 fg t3 t3 t3 255 fg ;
-: rnd-r ( --r ) b@ 1- rand-max 2 + ;
+: rnd-r ( --r ) b@ rand-max 2 + ;
 : rnd-c ( r--r c ) >t t@  a@ t@ - 2 +  t> 2 * 1- rand-max + ;
 : rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
 : twinkle rnd-cr rnd-col star cr ;
-: twinkling cur-off begin twinkle 100 ms ?key until cur-on ;
+: twinkling cur-off begin twinkle 100 ms ?key until cur-on 255 fg ;
 : tree ( h c-- ) a! b! cls body stump twinkling  ;
 
 25 35 tree
