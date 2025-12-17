@@ -3,8 +3,8 @@
 : here  (ha)  @ ;
 : vhere (vha) @ ;
 : last  (la)  @ ;
-: ->code ( n--a ) cell * memory + ;
-: , ( n-- ) here ->code ! 1 (ha) +! ;
+: code! ( n--a ) cell * memory + ! ;
+: , ( n-- ) here code! 1 (ha) +! ;
 : allot ( n-- ) (vha) +! ;
 : const ( n-- ) addword lit, (exit) , ;
 : var   ( n-- ) vhere const allot ;
@@ -26,7 +26,7 @@ const -la-    const -ha-    vhere const -vha-
 : -if  (njmpz)  , here 0 , ; immediate
 : if0  (jmpnz)  , here 0 , ; immediate
 : -if0 (njmpnz) , here 0 , ; immediate
-: then  here swap ->code ! ; immediate
+: then  here swap code! ; immediate
 
 : c@a   a@  c@    ; inline
 : c@a+  a@+ c@    ; inline
@@ -113,6 +113,6 @@ colors b!
 : rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
 : twinkle rnd-cr rnd-col star cr ;
 : twinkling begin twinkle 100 ms ?key until ;
-: tree ( h c-- ) cur-off a! b! cls body stump twinkling cur-on ;
+: tree ( h c-- ) cur-off a! b! cls body stump ( twinkling ) cur-on ;
 
 25 35 tree
