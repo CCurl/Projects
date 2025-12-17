@@ -48,6 +48,8 @@ const -la-    const -ha-    vhere const -vha-
 : z"  t4 ; immediate
 : ."  t4 compiling? if (ztype) , exit then ztype ; immediate
 
+: vi z" vi tree.fth" system ;
+
 ( number format / print )
 : negate com 1+ ;
 : #neg 0 >a dup 0 < if negate 1 a! then ;
@@ -73,6 +75,7 @@ const -la-    const -ha-    vhere const -vha-
 : ->cr  ( c r-- ) csi (.) ';' emit (.) 'H' emit ;
 : cls   ( -- )    csi ." 2J" 1 dup ->cr ;
 : fg    ( n-- )   csi ." 38;5;" (.) 'm' emit ;
+: .colors ( s n-- ) swap a! for a@ fg ." *** " a@+ . ." ***" cr next 255 fg ;
 
 (( Random number generator ))
 cell var seed
@@ -100,19 +103,19 @@ colors b!
  28 c!b+ (( dk green ))
 255 c!b+ (( white ))
  40 c!b+ (( green ))
+255 c!b+ (( white ))
 
 : t0 a@ i - spaces star ;
 : t1 i if i 2 * 1- spaces star then ;
-: t2 a@ b@ - spaces b@ 1- stars 3 spaces b@ 1- stars cr ;
-: t3 a@ 2 - spaces star 3 spaces star cr ;
-: t4 a@ 2 - spaces 5 stars cr ;
-: body b@ for t0 t1 cr next ;
-: stump t2 t3 t3 t4 ;
+: t2 a@ b@ - spaces b@ 2 * 1+ stars cr ;
+: t3 a@ 2 - spaces 5 stars cr ;
+: body 0 color fg b@ for t0 t1 cr next t2 255 fg ;
+: stump 94 fg t3 t3 t3 255 fg ;
 : rnd-r ( --r ) b@ 1- rand-max 2 + ;
-: rnd-c ( r--r c ) dup rand-max over 2 * 1- + a@ swap - ;
+: rnd-c ( r--r c ) >t t@  a@ t@ - 2 +  t> 2 * 1- rand-max + ;
 : rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
 : twinkle rnd-cr rnd-col star cr ;
-: twinkling begin twinkle 100 ms ?key until ;
-: tree ( h c-- ) cur-off a! b! cls body stump ( twinkling ) cur-on ;
+: twinkling cur-off begin twinkle 100 ms ?key until cur-on ;
+: tree ( h c-- ) a! b! cls body stump twinkling  ;
 
 25 35 tree
