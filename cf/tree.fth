@@ -68,6 +68,8 @@ const -la-    const -ha-    vhere const -vha-
 
 ( ANSI escape codes )
 : csi   ( -- )    27 emit '[' emit ;
+: cur-on  ( -- )  csi ." ?25h" ;
+: cur-off ( -- )  csi ." ?25l" ;
 : ->cr  ( c r-- ) csi (.) ';' emit (.) 'H' emit ;
 : cls   ( -- )    csi ." 2J" 1 dup ->cr ;
 : fg    ( n-- )   csi ." 38;5;" (.) 'm' emit ;
@@ -89,21 +91,28 @@ cell var seed
 
 5 var colors
 : color ( n--c ) colors + c@ ;
+: rnd-col ( --c ) random 7 and color fg ;
 colors b!
-  0 c!b+ (( black ))
- 40 c!b+ (( green ))
+ 28 c!b+ (( dk green ))
 203 c!b+ (( red ))
+ 28 c!b+ (( dk green ))
 226 c!b+ (( yellow ))
+ 28 c!b+ (( dk green ))
 255 c!b+ (( white ))
+ 40 c!b+ (( green ))
 
 : t0 a@ i - spaces star ;
 : t1 i if i 2 * 1- spaces star then ;
 : t2 a@ b@ - spaces b@ 1- stars 3 spaces b@ 1- stars cr ;
 : t3 a@ 2 - spaces star 3 spaces star cr ;
 : t4 a@ 2 - spaces 5 stars cr ;
-: body a! b! b@ for t0 t1 cr next ;
+: body b@ for t0 t1 cr next ;
 : stump t2 t3 t3 t4 ;
-: twinkle ( TODO ) ;
-: tree cls body stump twinkle ;
+: rnd-r ( --r ) b@ 1- rand-max 2 + ;
+: rnd-c ( r--r c ) dup rand-max over 2 * 1- + a@ swap - ;
+: rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
+: twinkle rnd-cr rnd-col star cr ;
+: twinkling begin twinkle 100 ms ?key until ;
+: tree ( h c-- ) cur-off a! b! cls body stump twinkling cur-on ;
 
 25 35 tree
