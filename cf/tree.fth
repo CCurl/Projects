@@ -109,10 +109,10 @@ colors b!
 : body ( -- ) 0 color fg b@ for t0 t1 cr next t2 255 fg ;
 : stump ( -- ) 94 fg t3 t3 t3 255 fg ;
 : rnd-r ( --r ) b@ rand-max 2 + ;
-: rnd-c ( r--r c ) >t t@  a@ t@ - 2 +  t> 2 * 1- rand-max + ;
+: rnd-c ( r--r c ) t! t@  a@ t@ - 2 +  t@ 2 * 1- rand-max + ;
 : rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
 : twinkle ( -- ) rnd-cr rnd-col star cr ;
 : twinkling ( -- ) cur-off begin twinkle ( 1 ms ) ?key until cur-on 255 fg ;
-: tree ( h c-- ) a! b! cls body stump twinkling  ;
+: tree ( h c-- ) a! b! cls body stump twinkling 1 b@ 5 + ->cr ;
 
 25 35 tree
