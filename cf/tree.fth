@@ -96,10 +96,10 @@ cell var seed
 : color ( n--c ) colors + c@ ;
 : rnd-col ( --c ) random 3 and color fg ;
 colors b!
- 40 c!b+ (( green ))
+ 28 c!b+ (( dk green ))
 203 c!b+ (( red ))
 255 c!b+ (( white ))
- 40 c!b+ (( yellow ))
+ 82 c!b+ (( green ))
 226 c!b+ (( yellow ))
 
 : t0 ( -- ) a@ i - spaces star ;
@@ -112,7 +112,8 @@ colors b!
 : rnd-c ( r--r c ) t! t@  a@ t@ - 2 +  t@ 2 * 1- rand-max + ;
 : rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
 : twinkle ( -- ) rnd-cr rnd-col star cr ;
-: twinkling ( -- ) cur-off begin twinkle ( 1 ms ) ?key until cur-on 255 fg ;
-: tree ( h c-- ) a! b! cls body stump twinkling 1 b@ 5 + ->cr ;
+: twinkling ( -- ) cur-off begin twinkle 1 ms ?key until key drop cur-on 255 fg ;
+: tall ( n-- ) dup b! 5 + a! ;
+: tree ( -- ) cls body stump twinkling 1 b@ 5 + ->cr ;
 
-25 35 tree
+25 tall tree
