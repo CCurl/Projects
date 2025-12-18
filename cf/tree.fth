@@ -1,4 +1,4 @@
-(( code: 65536 cells, then vars ))
+( code: 65536 cells, then vars )
 65536 cell * memory + (vha) ! (ha) @ (la) @
 : here  (ha)  @ ;
 : vhere (vha) @ ;
@@ -9,7 +9,7 @@
 : const ( n-- ) addword lit, (exit) , ;
 : var   ( n-- ) vhere const allot ;
 
-(( these are used by "rb" ))
+( these are used by "rb" )
 const -la-    const -ha-    vhere const -vha-
 
 : immediate 1 last cell + c! ; immediate
@@ -77,7 +77,7 @@ const -la-    const -ha-    vhere const -vha-
 : fg    ( n-- )   csi ." 38;5;" (.) 'm' emit ;
 : .colors ( s n-- ) swap a! for a@ fg ." *** " a@+ . ." ***" cr next 255 fg ;
 
-(( Random number generator ))
+( Random number generator )
 cell var seed
 : random ( --n )
     seed @ -if0 drop timer then
@@ -96,11 +96,11 @@ cell var seed
 : color ( n--c ) colors + c@ ;
 : rnd-col ( --c ) random 3 and color fg ;
 colors b!
- 28 c!b+ (( dk green ))
-203 c!b+ (( red ))
-255 c!b+ (( white ))
- 82 c!b+ (( green ))
-226 c!b+ (( yellow ))
+ 28 c!b+ ( green )
+203 c!b+ ( red )
+255 c!b+ ( white )
+ 82 c!b+ ( yellow )
+226 c!b+ ( yellow )
 
 : t0 ( -- ) a@ i - spaces star ;
 : t1 ( -- ) i if i 2 * stars then ;
@@ -112,8 +112,8 @@ colors b!
 : rnd-c ( r--r c ) t! t@  a@ t@ - 2 +  t@ 2 * 1- rand-max + ;
 : rnd-cr ( -- ) rnd-r rnd-c swap ->cr ;
 : twinkle ( -- ) rnd-cr rnd-col star cr ;
-: twinkling ( -- ) cur-off begin twinkle 1 ms ?key until key drop cur-on 255 fg ;
+: twinkling ( -- ) cur-off begin twinkle 1 ms key? until key drop cur-on 255 fg ;
 : tall ( n-- ) dup b! 5 + a! ;
 : tree ( -- ) cls body stump twinkling 1 b@ 5 + ->cr ;
 
-25 tall tree
+25 tall tree bye
