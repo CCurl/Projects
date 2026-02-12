@@ -65,13 +65,18 @@ int isNum(const char *w) {
 	return 1;
 }
 
-void parse(const char *src) {
-    toIn = (char*)src;
-    while (nextWord()) {
+int lvl = 0, err = 0;
+void eval() {
+    printf("--eval: %d--\n",  lvl);
+    while ( (!err) && nextWord()) {
         if (isNum(wd)) { double x = pop(); printf("num: %f (%ld)\n", x, (long)x); }
         else if (wd[0] == '"') { printf("string: %s\n", &wd[1]); }
-        else if (wd[0] == '(') { printf("-lpar-\n"); }
-        else if (wd[0] == ')') { printf("-rpar-\n"); }
+        else if (wd[0] == '(') { printf("-lpar-\n"); ++lvl; eval(); }
+        else if (wd[0] == ')') {
+            printf("-rpar-\n"); --lvl;
+            if (lvl < 0) { printf("Error: unmatched parens\n"); lvl = 0; err = 1; }
+            return;
+        }
         else if (strcmp(wd, "car") == 0) { printf("-car-\n"); }
         else if (strcmp(wd, "cdr") == 0) { printf("-cdr-\n"); }
         else if (strcmp(wd, "lambda") == 0) { printf("-lambda-\n"); }
@@ -80,8 +85,12 @@ void parse(const char *src) {
     }
 }
 
+void parse(const char *s) {
+    toIn = (char*)s;
+    eval();
+}
+
 int main() {
-    toIn = mem;
     parse("123451234512345.6789 ( \"hello world\" (2 3 (foo bar)) )");
     parse("lambda (L) (car L))");
     parse("def (func x) (cdr x))");
