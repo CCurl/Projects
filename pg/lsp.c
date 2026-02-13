@@ -1,5 +1,7 @@
 // A minimal LISP experiment (c) 2025 Chris Curl
 
+https://leinonen.ninja/posts/building-lisp-from-the-ground-up
+
 #include <stdio.h>
 #include <string.h>
 
