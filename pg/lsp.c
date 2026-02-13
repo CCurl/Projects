@@ -1,194 +1,184 @@
 // A minimal LISP experiment (c) 2025 Chris Curl
-
-https://leinonen.ninja/posts/building-lisp-from-the-ground-up
+// https://leinonen.ninja/posts/building-lisp-from-the-ground-up
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+#define MAX_LIST 999
+#define MAX_ATOM 999
 #define btwi(a ,b, c) ((a) >= (b) && (a) <= (c))
 #define strEq(a, b) (strcmp((a), (b)) == 0)
 
-enum { TYPE_NUMBER, TYPE_STRING, TYPE_LIST, TYPE_NIL } ATOM_TYPES;
-enum {
-    TOK_LPAR, TOK_RPAR, TOK_NUMBER, TOK_STRING
-    , TOK_LAMBDA, TOK_DEFINE, TOK_CAR, TOK_CDR
-    , TOK_EOI, TOK_UNKNOWN
-};
+enum { ATOM_INT, ATOM_DOUBLE, ATOM_STRING, ATOM_LIST, ATOM_NIL } ATOM_TYPES;
 
-typedef struct {
-    int token;
-    char *name;
-} tokens;
-
-typedef unsigned char BYTE;
+typedef struct LIST_S {
+    struct ATOM_S *car;
+    struct LIST_S *cdr;
+} LIST;
 
 typedef struct ATOM_S {
-    BYTE type;       // ATOM_TYPES
-    union val {
-        double num;  // TYPE_NUMBER
-        char *sym;   // TYPE_SYMBOL
-        char *str;   // TYPE_STRING
-    };
-	struct ATOM_S *car; // TYPE_LIST
-    struct ATOM_S *cdr;
+    char type;          // ATOM_TYPES
+    union {
+        long intVal;    // ATOM_INT
+        double dblVal;  // ATOM_DOUBLE
+        char *sym;      // ATOM_SYMBOL
+        char *str;      // ATOM_STRING
+        LIST *lst;      // ATOM_LIST
+    } val;
 } ATOM;
 
-char *toIn, wd[256];
-
-int doQuote() {
-    int ln = 0;
-    wd[ln++] = '"';
-    while (*toIn) {
-        char ch = (*toIn++);
-        if (ch == '"') { break; }
-        wd[ln++] = ch;
-    }
-    wd[ln] = 0;
-    return ln;
-}
+char *toIn, token[256], tib[256];
+int tokenLen, isInt, isDouble, err = 0;
 
 double dblVal;
-int isNum(const char* w) {
-    dblVal = 0;
-    int isNeg = 0;
-    if (w[0] == '-') { isNeg = 1; ++w; }
-    if (w[0] == 0) { return 0; }
-    while (*w && (*w != '.')) {
-        char c = *(w++);
-        if (btwi(c, '0', '9')) { dblVal = (dblVal * 10) + (c - '0'); }
-        else return 0;
-    }
-    if (*w == '.') {
-        ++w;
-        double frac = 1;
-        while (*w) {
-            char c = *(w++);
-            if (btwi(c, '0', '9')) { frac /= 10; dblVal += (c - '0') * frac; }
-            else return 0;
-        }
-    }
-    if (isNeg) { dblVal = -dblVal; }
-    return 1;
-}
-
-int nextWord() {
-    int ln = 0;
-    while (*toIn && (*toIn < 33)) { ++toIn; }
-
-    if (*toIn == '(') { wd[0] = *(toIn++); wd[1] = 0; return 1; }
-    if (*toIn == ')') { wd[0] = *(toIn++); wd[1] = 0; return 1; }
-    if (*toIn == '"') { ++toIn; return doQuote(); }
-    while (*toIn > 32) {
-        char ch = (*toIn++);
-        if (ch == '(') { --toIn; break; }
-        if (ch == ')') { --toIn; break; }
-        wd[ln++] = ch;
-    }
-    wd[ln] = 0;
-    return ln;
+long intVal;
+void checkNumType(const char* w) {
+    char *lastChar = NULL;
+    dblVal = strtod(w, &lastChar);
+    isDouble = (*lastChar == 0);
+    intVal = strtol(w, &lastChar, 10);
+    isInt = (*lastChar == 0);
 }
 
 int nextToken() {
-    if (nextWord() == 0) { return TOK_EOI; }
-    if (wd[0] == '"') { return TOK_STRING; }
-    if (strEq(wd, "(")) { return TOK_LPAR; }
-    if (strEq(wd, ")")) { return TOK_RPAR; }
-    if (strEq(wd, "lambda")) { return TOK_LAMBDA; }
-    if (strEq(wd, "define")) { return TOK_DEFINE; }
-    if (strEq(wd, "car")) { return TOK_CAR; }
-    if (strEq(wd, "cdr")) { return TOK_CDR; }
-    if (isNum(wd)) { return TOK_NUMBER; }
-    return TOK_UNKNOWN;
+    again:
+    tokenLen = 0;
+    isInt = isDouble = 0;
+    while (*toIn && (*toIn < 33)) { ++toIn; }
+    if ((*toIn == '(') || (*toIn == ')')) {
+        token[0] = *(toIn++);
+        tokenLen = 1; token[tokenLen] = 0;
+        return tokenLen;
+    }
+    while (*toIn > 32) {
+        if (*toIn == ')') { break; }
+        token[tokenLen++] = *(toIn++);
+    }
+    if ((*toIn == ')') && (tokenLen == 0)) { goto again; }
+    token[tokenLen] = 0;
+    checkNumType(token);
+    return tokenLen;
 }
 
-// SYMBOLS
-#define MAX_ATOM 999
+void print(ATOM *atom) {
+    if (atom == NULL) { printf("nil\n"); return; }
+    switch (atom->type) {
+        case ATOM_INT:
+            printf("%ld", (long)atom->val.intVal);
+            break;
+        case ATOM_DOUBLE:
+            printf("%f", atom->val.dblVal);
+            break;
+        case ATOM_STRING:
+            printf("%s", atom->val.str);
+            break;
+        case ATOM_LIST:
+            printf("( ");
+            LIST *entry = atom->val.lst;
+            while (entry != NULL) {
+                print(entry->car);
+                printf(" ");
+                entry = entry->cdr;
+            }
+            printf(")");
+            break;
+        default:
+            printf("Print: unknown ATOM type: %d\n", atom->type);
+    }
+}
+
+// Parser
+LIST lists[MAX_LIST + 1];
+int num_lists = 0;
+LIST *newListEntry() {
+    if (num_lists > MAX_LIST) { printf("Out of lists!"); err=999; return NULL; }
+    LIST *e = &lists[num_lists++];
+	e->car = NULL;
+	e->cdr = NULL;
+    return e;
+}
+
 ATOM atoms[MAX_ATOM + 1];
 int num_atoms = 0;
-ATOM *newAtom(BYTE type, double num, char *str) {
-    ATOM *a = &atoms[num_atoms];
+ATOM *newAtom(char type, double num, char *str) {
+    if (num_atoms > MAX_ATOM) { printf("Out of atoms!"); err=999; return NULL; }
+    ATOM *a = &atoms[num_atoms++];
 	a->type = type;
-	a->car = a->cdr = NULL;
-    if (type == TYPE_NUMBER) a->num = num;
-    if (type == TYPE_STRING) a->str = _strdup(str);
+    if (type == ATOM_INT) a->val.intVal = (long)num;
+    else if (type == ATOM_DOUBLE) a->val.dblVal = num;
+    else if (type == ATOM_STRING) a->val.str = strdup(str);
+    else if (type == ATOM_LIST) a->val.lst = newListEntry();
     return a;
 }
 
-// REPL
+ATOM *parse() {
+    if  (err) { return NULL; }
+    if (tokenLen == 0) { return NULL; }
+    if (isInt) { return newAtom(ATOM_INT, (double)intVal, NULL); }
+    if (isDouble) { return newAtom(ATOM_DOUBLE, dblVal, NULL); }
+    if (strEq(token, "(")) {
+        ATOM *atom = newAtom(ATOM_LIST, 0, NULL);
+        LIST *entry = atom->val.lst;
+        nextToken();
+        while (!strEq(token, ")") && !err) {
+            if (tokenLen == 0) { printf("-eoi-"); err = 1; return NULL; }
+            ATOM *a = parse();
+            if (entry->car == NULL) { entry->car = a; }
+            else {
+                LIST *newEntry = newListEntry();
+                newEntry->car = a;
+                entry->cdr = newEntry;
+                entry = newEntry;
+            }
+            nextToken();
+        }
+        return atom;
+    }
+    return newAtom(ATOM_STRING, 0, token);
+}
 
-char tib[256];
+ATOM *eval(ATOM *atom) {
+    // For simplicity, we just return the atom itself for now
+    if (atom == NULL) { return NULL; }
+    switch (atom->type) {
+        case ATOM_INT:
+            return atom;
+        case ATOM_DOUBLE:
+            return atom;
+        case ATOM_STRING:
+            return atom;
+        case ATOM_LIST:
+            return atom;
+        default:
+            printf("Eval: unknown ATOM type: %d\n", atom->type);
+            return NULL;
+    }
+}
+
 void read() {
     printf("\nlisp: ");
     fgets(tib, sizeof(tib), stdin);
     toIn = tib;
-}
-
-int lvl = 0, err = 0;
-ATOM *eval(int tok) {
-    ATOM *atom = NULL;
-    if (tok == TOK_EOI) { return NULL; }
-    // printf("--token: %d--\n", tok);
-    switch (tok) {
-        case TOK_LPAR: { // List
-            atom = newAtom(TYPE_LIST, 0, NULL);
-            int tok2 = nextToken();
-            ATOM *entry = NULL;
-            while (tok2 != ')') {
-                if (tok2 == TOK_EOI) { err = 1; return NULL; }
-                if (atom->car == NULL) {
-                    atom->car = eval(tok2);
-                    entry = atom->car;
-                } else {
-                    entry->cdr = eval(tok2);
-                    entry = entry->cdr;
-                }
-                tok2 = nextToken();
-            }
-            return atom;
-        }
-        break;
-        case TOK_STRING:
-			atom = newAtom(TYPE_STRING, 0, wd);
-            break;
-        case TOK_LAMBDA: printf("-lambda-\n"); break;
-        case TOK_DEFINE: printf("-def-\n"); break;
-        case TOK_CAR: printf("-car-\n"); break;
-        case TOK_CDR: printf("-cdr-\n"); break;
-        case TOK_NUMBER: 
-			atom = newAtom(TYPE_NUMBER, dblVal, NULL);
-            break;
-        default:
-            printf("Unknown token: %s\n", wd);
-            err = 1;
-    }
-    return atom;
-}
-
-void print() {
-    if (err) {
-        printf("Evaluation completed with errors.\n");
-        err = 0;
-    }
-    else {
-        printf("Evaluation completed successfully.\n");
-    }
+    err = 0;
 }
 
 void init(char *s) {
-    printf("init: %s\n", s);
+    printf("\ninit: %s\n", s);
     toIn = s;
-    eval(nextToken());
+    nextToken();
+    ATOM *result = eval(parse());
+    print(result);
 }
 
 int main() {
-    init("123451234512345.6789 ( \"hello world\" (2 3 (foo bar)))");
-    init("(lambda (L) (car L))");
-    init("(define (func x) (cdr x))");
-    while (1) {
+    init("123456789012345.6789");
+    init("(1 2 3 4 5)");
+    while (err != 999) {
         read();
-        eval(nextToken());
-        print();
+        nextToken();
+        ATOM *result = eval(parse());
+        print(result);
     }
     return 0;
 }
-
