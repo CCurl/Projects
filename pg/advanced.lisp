@@ -1,8 +1,0 @@
-(defun square (x) (* x x))
-(square 5)
-(defun add-two (a b) (+ a b))
-(add-two 3 4)
-(let ((x 10) (y 20)) (+ x y))
-((lambda (x) (* x 2)) 6)
-(defun factorial (n) (if (eq n 0) 1 (* n (factorial (- n 1)))))
-(factorial 5)
