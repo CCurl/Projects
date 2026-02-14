@@ -1,0 +1,10 @@
+42
+(+ 1 2 3)
+(* 5 5)
+(cons 1 '(2 3))
+(car '(a b c))
+(define x 10)
+(* x x)
+((lambda (n) (* n n)) 7)
+(define fact (lambda (n) (if (< n 2) 1 (* n (fact (- n 1))))))
+(fact 5)

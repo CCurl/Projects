@@ -1,27 +1,19 @@
-app := lsp
+all: lsp
 
-CXX := clang
-CFLAGS := -m64 -O3 -D IS_LINUX
+lsp: lsp.c
+	$(CC) -m64 -O3 -D IS_LINUX -o lsp lsp.c
 
-srcfiles := $(shell find . -name "*.c")
-incfiles := $(shell find . -name "*.h")
-LDLIBS   := -lm
+nlsp: nlsp.c
+	$(CC) -m64 -O3 -D IS_LINUX -o nlsp nlsp.c
 
-all: $(app)
-
-$(app): $(srcfiles) $(incfiles)
-	$(CXX) $(CFLAGS) $(LDFLAGS) -o $(app) $(srcfiles) $(LDLIBS)
-	ls -l $(app)
+l99: l99.c
+	$(CC) -m64 -O3 -D IS_LINUX -o l99 l99.c
 
 clean:
-	rm -f $(app)
+	rm -f lsp
 
-test: $(app) test.jn
-	./$(app) test.jn > test.asm
-	fasm test.asm
+run: lsp
+	./lsp
 
-run: $(app)
-	./$(app)
-
-bin: $(app)
-	cp -u -p $(app) ~/bin/
+bin: lsp
+	cp -u -p lsp ~/bin/
