@@ -10,11 +10,11 @@
 #define strEq(a, b) (strcmp((a), (b)) == 0)
 
 typedef struct CONS_S {
-    ATOM_T *car;
+    struct ATOM_S *car;
     struct CONS_S *cdr;
 } CONS_T;
 
-typedef struct {
+typedef struct ATOM_S {
     short type; // ATOM_TYPES
     short ndx;  // location of the atom in the atom array
     union { double d; int64_t i; char *s; CONS_T *l; } val;
@@ -45,6 +45,7 @@ CONS_T *newCons() {
 }
 
 ATOM_T *newAtom(int type, double num, char *str) {
+    printf("-newAtom: type %d-", type);
     if (num_atoms >= ATOM_MAX) { err("Out of atoms!"); }
     ATOM_T * ret = &atom[num_atoms++];
     ret->ndx = num_atoms - 1;
@@ -92,7 +93,7 @@ again:
     return STRING;
 }
 
-ATOM_T *parse(int tok);
+ATOM_T *parseToken(int tok);
 ATOM_T *parseList() {
     nextToken(); // consume '('
     ATOM_T *listAtom = newAtom(CONS, 0, NULL);
@@ -100,7 +101,7 @@ ATOM_T *parseList() {
     int tok = nextToken();
     while ((tok != RPAR)) {
         if (tok == EOI) { err("Unexpected end of input!"); }
-        ATOM_T *elem = parse(tok);
+        ATOM_T *elem = parseToken(tok);
         if (current == NULL) {
             consVal(listAtom)->car = elem;
             current = consVal(listAtom);
@@ -130,29 +131,29 @@ ATOM_T *parseToken(int tok) {
 void test(char *src) {
     printf("Testing: %s\n", src);
     toIn = src;
-    parse(0);
+    parseToken(0);
     // TODO: implement the logic to parse and evaluate the source code
     // For now, we just print the source
 }
 
 void tests() {
     ATOM_T *i = newAtom(INT, 42, NULL);
+    printf("INT: %ld\n", intVal(i));
     ATOM_T *d = newAtom(DOUBLE, 3.14, NULL);
+    printf("DOUBLE: %f\n", dblVal(d));
     ATOM_T *s = newAtom(STRING, 0, "hello");
-        printf("INT: %ld\n", intVal(i));
-        printf("DOUBLE: %f\n", dblVal(d));
-        printf("STRING: %s\n", strVal(s));
+    printf("STRING: %s\n", strVal(s));
     test("123456789012345.6789");
-    test("(+ 1 2)");
-    test("(+ 1 (+ 2 3))");
-    test("(+ \"hi ()\" (+ 2 3))");
+    // test("(+ 1 2)");
+    // test("(+ 1 (+ 2 3))");
+    // test("(+ \"hi ()\" (+ 2 3))");
 }
 
 int main(int argc, char **argv) {
     // printf("%d\n", (int)sizeof(ATOM_ENTRY)); 
     tests();
     ATOM_T *expr;
-    while ((expr = parse("")) != NULL) { 
+    while ((expr = parseToken(0)) != NULL) { 
         //ATOM_T *result = eval(expr); 
         //print_expr(result); 
         //printf("\n"); 
