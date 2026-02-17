@@ -1,306 +1,161 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <stdint.h>
 
-#define MAX_CELLS 8192
+#define ATOM_MAX 32
+#define CONS_MAX 32
 #define MAX_TOKEN 64
-#define MAX_ENV 256
+#define btwi(a ,b, c) ((a) >= (b) && (a) <= (c))
+#define strEq(a, b) (strcmp((a), (b)) == 0)
 
-typedef struct cell {
-    int type; // 0=atom, 1=list, 2=function
-    union { 
-        char atom[MAX_TOKEN]; 
-        struct { struct cell *car, *cdr; } list; 
-        struct { struct cell *params, *body; } func;
-    } v;
-} cell_t;
+typedef struct CONS_S {
+    ATOM_T *car;
+    struct CONS_S *cdr;
+} CONS_T;
 
-typedef struct env {
-    char name[MAX_TOKEN];
-    cell_t *value;
-} env_t;
+typedef struct {
+    short type; // ATOM_TYPES
+    short ndx;  // location of the atom in the atom array
+    union { double d; int64_t i; char *s; CONS_T *l; } val;
+} ATOM_T;
 
-static cell_t cells[MAX_CELLS];
-static env_t env[MAX_ENV];
-static int next_cell = 0, env_size = 0;
-static char token[MAX_TOKEN], *input_ptr;
+// Types of atoms and tokens
+enum { EOI=-1, INT=1, DOUBLE, SYMBOL, STRING, CONS, LPAR='(', RPAR=')' };
 
-// Forward declarations
-cell_t *parse();
-cell_t *eval(cell_t *expr);
+ATOM_T atom[ATOM_MAX+1];
+CONS_T cons[CONS_MAX+1];
+short num_atoms = 0, num_cons = 0;
+char token[MAX_TOKEN], *toIn, tib[256];
+int tokenLen, isInt, isDouble;
 
-cell_t *new_cell() { 
-    if (next_cell >= MAX_CELLS) { 
-        fprintf(stderr, "Out of memory\n"); 
-        exit(1); 
-    } 
-    return &cells[next_cell++]; 
-}
-cell_t *make_atom(const char *s) {
-    cell_t *c = new_cell();
-    c->type = 0;
-    if (s) strcpy(c->v.atom, s);
-    return c;
-}
-cell_t *make_list(cell_t *car, cell_t *cdr) { 
-    cell_t *c = new_cell(); 
-    c->type = 1; 
-    c->v.list.car = car; 
-    c->v.list.cdr = cdr; 
-    return c; 
-}
-cell_t *make_func(cell_t *params, cell_t *body) { 
-    cell_t *c = new_cell(); 
-    c->type = 2; 
-    c->v.func.params = params; 
-    c->v.func.body = body; 
-    return c; 
-}
-int is_number(const char *s) { 
-    if (*s == '-' || *s == '+') s++; 
-    if (!*s) return 0; 
-    while (*s) if (!isdigit(*s++)) return 0; 
-    return 1; 
+#define car(L) ((L)->car)
+#define cdr(L) ((L)->cdr)
+#define dblVal(a) ((a)->val.d)
+#define intVal(a) ((a)->val.i)
+#define strVal(a) ((a)->val.s)
+#define consVal(a) ((a)->val.l)
+
+void err(const char *msg) { fprintf(stderr, "Error: %s\n", msg); exit(1); }
+
+CONS_T *newCons() {
+    if (num_cons >= CONS_MAX) { err("Out of lists!"); }
+    cons[num_cons] = (CONS_T){ NULL, NULL };
+    return &cons[num_cons++];
 }
 
-cell_t *lookup(const char *name) { 
-    for (int i = env_size - 1; i >= 0; i--) 
-        if (strcmp(env[i].name, name) == 0) return env[i].value; 
-    return NULL; 
-}
-void bind(const char *name, cell_t *value) { 
-    if (env_size < MAX_ENV) { 
-        strcpy(env[env_size].name, name); 
-        env[env_size].value = value; 
-        env_size++; 
-    } 
-}
-
-char *next_token() {
-    while (*input_ptr && isspace(*input_ptr)) input_ptr++; 
-    if (!*input_ptr) return NULL;
-    char *start = token;
-    if (*input_ptr == '(' || *input_ptr == ')') *start++ = *input_ptr++;
-    else while (*input_ptr && !isspace(*input_ptr) && *input_ptr != '(' && *input_ptr != ')') *start++ = *input_ptr++;
-    *start = '\0'; 
-    return token;
-}
-
-cell_t *parse_list() {
-    char *tok = next_token(); 
-    if (!tok || strcmp(tok, ")") == 0) return NULL;
-    cell_t *car, *cdr;
-    if (strcmp(tok, "(") == 0) { 
-        car = parse_list();
-        // next_token(); // consume closing ')'
-    } else { 
-        car = make_atom(tok); 
+ATOM_T *newAtom(int type, double num, char *str) {
+    if (num_atoms >= ATOM_MAX) { err("Out of atoms!"); }
+    ATOM_T * ret = &atom[num_atoms++];
+    ret->ndx = num_atoms - 1;
+    ret->type = type;
+    switch (type) {
+        case INT:    intVal(ret)  = (int64_t)num; break;
+        case DOUBLE: dblVal(ret)  = num; break;
+        case STRING: strVal(ret)  = str ? strdup(str) : NULL; break;
+        case CONS:   consVal(ret) = NULL; break;
     }
-    cdr = parse_list(); 
-    return make_list(car, cdr);
+    return ret;
 }
 
-cell_t *parse() { 
-    char *tok = next_token(); 
-    if (!tok) return NULL; 
-    if (strcmp(tok, "(") == 0) { 
-        cell_t *result = parse_list(); 
-        next_token(); 
-        return result; 
-    } 
-    return make_atom(tok); 
+double dblValue;
+long intValue;
+
+int doNum(char w) {
+    tokenLen = 0;
+    token[tokenLen++] = w;
+    while (btwi(*toIn, '0', '9')) { token[tokenLen++] = *toIn++; }
+    if (*toIn == '.') {
+        token[tokenLen++] = *toIn++;
+        while (btwi(*toIn, '0', '9')) { token[tokenLen++] = *toIn++; }
+        token[tokenLen] = 0;
+        isDouble = 1; dblValue = strtod(token, NULL);
+        return DOUBLE;
+    }
+    token[tokenLen] = 0;
+    isInt = 1;
+    intValue = strtol(token, NULL, 10);
+    return INT;
 }
 
-cell_t *eval_args(cell_t *args) { 
-    if (!args) return NULL; 
-    return make_list(eval(args->v.list.car), eval_args(args->v.list.cdr)); 
+int nextToken() {
+again:
+    switch (*toIn) {
+        case 0: return EOI;
+        case ' ': case '\t': case '\n': ++toIn; goto again;
+        case '(': case ')': return *toIn++;
+    }
+    if (btwi(*toIn, '0', '9') || *toIn == '.') { return doNum(*toIn++); }
+    tokenLen = 0;
+    while (*toIn > 32 && *toIn != '(' && *toIn != ')') { token[tokenLen++] = *toIn++; }
+    token[tokenLen] = 0;
+    return STRING;
 }
 
-cell_t *apply_func(cell_t *func, cell_t *args) {
-    if (!func || func->type != 2) return NULL; 
-    int old_env_size = env_size; 
-    cell_t *params = func->v.func.params;
-    while (params && args) { 
-        bind(params->v.list.car->v.atom, args->v.list.car); 
-        params = params->v.list.cdr; 
-        args = args->v.list.cdr; 
-    }
-    cell_t *result = eval(func->v.func.body); 
-    env_size = old_env_size; 
-    return result;
-}
-
-cell_t *eval(cell_t *expr) {
-    if (!expr) return NULL;
-    if (expr->type == 0) { // atom
-        if (is_number(expr->v.atom)) return expr;
-        if (strcmp(expr->v.atom, "nil") == 0) return NULL;
-        if (strcmp(expr->v.atom, "t") == 0) return make_atom("t");
-        cell_t *val = lookup(expr->v.atom); // variable lookup
-        return val ? val : expr;
-    }
-    
-    cell_t *op = expr->v.list.car;
-    if (!op || op->type != 0) return NULL;
-    cell_t *args = expr->v.list.cdr;
-    
-    if (!strcmp(op->v.atom, "quote")) return args ? args->v.list.car : NULL;
-    
-    if (!strcmp(op->v.atom, "car")) { 
-        if (!args) return NULL;
-        cell_t *arg = eval(args->v.list.car);
-        if (!arg) return NULL;
-        return (arg->type == 1) ? arg->v.list.car : NULL;
-    }
-    
-    if (!strcmp(op->v.atom, "cdr")) { 
-        if (!args) return NULL;
-        cell_t *arg = eval(args->v.list.car);
-        if (!arg) return NULL;
-        return (arg->type == 1) ? arg->v.list.cdr : NULL;
-    }
-    
-    if (!strcmp(op->v.atom, "cons")) {
-        if (!args || !args->v.list.cdr) return NULL;
-        cell_t *car_val = eval(args->v.list.car);
-        cell_t *cdr_val = eval(args->v.list.cdr->v.list.car);
-        return make_list(car_val, cdr_val);
-    }
-    
-    if (!strcmp(op->v.atom, "atom")) { 
-        if (!args) return NULL;
-        cell_t *arg = eval(args->v.list.car);
-        if (!arg) return make_atom("t");  // nil is considered atomic
-        return (arg->type == 0) ? make_atom("t") : NULL; 
-    }
-    
-    if (!strcmp(op->v.atom, "eq")) {
-        if (!args || !args->v.list.cdr) return NULL;
-        cell_t *a1 = eval(args->v.list.car);
-        cell_t *a2 = eval(args->v.list.cdr->v.list.car);
-        if (!a1 && !a2) return make_atom("t");
-        if (!a1 || !a2) return NULL;
-        if (a1->type == 0 && a2->type == 0) {
-            return strcmp(a1->v.atom, a2->v.atom) == 0 ? make_atom("t") : NULL;
+ATOM_T *parse(int tok);
+ATOM_T *parseList() {
+    nextToken(); // consume '('
+    ATOM_T *listAtom = newAtom(CONS, 0, NULL);
+    CONS_T *current = NULL;
+    int tok = nextToken();
+    while ((tok != RPAR)) {
+        if (tok == EOI) { err("Unexpected end of input!"); }
+        ATOM_T *elem = parse(tok);
+        if (current == NULL) {
+            consVal(listAtom)->car = elem;
+            current = consVal(listAtom);
+        } else {
+            current->cdr = newCons();
+            current = current->cdr;
+            current->car = elem;
         }
-        return (a1 == a2) ? make_atom("t") : NULL;
+        tok = nextToken();
     }
-    
-    if (!strcmp(op->v.atom, "+") || !strcmp(op->v.atom, "-") || !strcmp(op->v.atom, "*") || !strcmp(op->v.atom, "/")) {
-        if (!args || !args->v.list.cdr) return NULL;
-        cell_t *a1 = eval(args->v.list.car);
-        cell_t *a2 = eval(args->v.list.cdr->v.list.car);
-        if (!a1 || !a2) return NULL;
-        if (a1->type != 0 || a2->type != 0) return NULL;
-        if (!is_number(a1->v.atom) || !is_number(a2->v.atom)) return NULL;
-        int n1 = atoi(a1->v.atom), n2 = atoi(a2->v.atom), result = 0;
-        if (op->v.atom[0] == '+') result = n1 + n2;
-        else if (op->v.atom[0] == '-') result = n1 - n2;
-        else if (op->v.atom[0] == '*') result = n1 * n2;
-        else if (op->v.atom[0] == '/') result = n2 ? n1 / n2 : 0;
-        static char buf[32]; sprintf(buf, "%d", result); 
-        return make_atom(buf);
+    return listAtom;
+}
+
+ATOM_T *parseToken(int tok) {
+    if (tok == 0) { tok = nextToken(); }
+    switch (tok) {
+        case EOI: return NULL;
+        case LPAR: return parseList();
+        case INT: return newAtom(INT, (double)intValue, NULL);
+        case DOUBLE: return newAtom(DOUBLE, dblValue, NULL);
+        case STRING: return newAtom(STRING, 0, token);
     }
-    
-    if (!strcmp(op->v.atom, "if")) {
-        if (!args || !args->v.list.cdr || !args->v.list.cdr->v.list.cdr) return NULL;
-        cell_t *cond = eval(args->v.list.car);
-        return cond ? eval(args->v.list.cdr->v.list.car) : eval(args->v.list.cdr->v.list.cdr->v.list.car);
-    }
-    
-    if (!strcmp(op->v.atom, "defun")) {
-        if (!args || !args->v.list.cdr || !args->v.list.cdr->v.list.cdr) return NULL;
-        char *name = args->v.list.car->v.atom;
-        cell_t *params = args->v.list.cdr->v.list.car;
-        cell_t *body = args->v.list.cdr->v.list.cdr->v.list.car;
-        cell_t *func = make_func(params, body);
-        bind(name, func);
-        return make_atom(name);
-    }
-    
-    if (!strcmp(op->v.atom, "lambda")) {
-        if (!args || !args->v.list.cdr) return NULL;
-        return make_func(args->v.list.car, args->v.list.cdr->v.list.car);
-    }
-    
-    if (!strcmp(op->v.atom, "let")) {
-        if (!args || !args->v.list.cdr) return NULL;
-        int old_env_size = env_size;
-        cell_t *bindings = args->v.list.car;
-        while (bindings) {
-            cell_t *binding = bindings->v.list.car;
-            if (binding && binding->type == 1) {
-                bind(binding->v.list.car->v.atom, eval(binding->v.list.cdr->v.list.car));
-            }
-            bindings = bindings->v.list.cdr;
-        }
-        cell_t *result = eval(args->v.list.cdr->v.list.car);
-        env_size = old_env_size;
-        return result;
-    }
-    
-    // Built-in predicates and functions
-    if (!strcmp(op->v.atom, "null")) {
-        if (!args) return NULL;
-        cell_t *arg = eval(args->v.list.car);
-        return (!arg) ? make_atom("t") : NULL;
-    }
-    
-    if (!strcmp(op->v.atom, "list")) {
-        return NULL;
-    }
-    
-    // Function application
-    cell_t *func = eval(op);
-    if (func && func->type == 2) {
-        return apply_func(func, eval_args(args));
-    }
-    
+    printf("Unknown token type: %d\n", tok);
     return NULL;
 }
 
-void print_expr(cell_t *expr) {
-    if (!expr) { printf("nil"); return; }
-    if (expr->type == 0) { printf("%s", expr->v.atom); return; }
-    if (expr->type == 2) { printf("#<function>"); return; }
-    printf("("); 
-    cell_t *current = expr; 
-    int first = 1;
-    while (current && current->type == 1) { 
-        if (!first) printf(" "); 
-        print_expr(current->v.list.car); 
-        current = current->v.list.cdr; 
-        first = 0; 
-        if (current && current->type != 1) {
-            printf(" . ");
-            print_expr(current);
-            break;
-        }
-    }
-    printf(")");
+void test(char *src) {
+    printf("Testing: %s\n", src);
+    toIn = src;
+    parse(0);
+    // TODO: implement the logic to parse and evaluate the source code
+    // For now, we just print the source
+}
+
+void tests() {
+    ATOM_T *i = newAtom(INT, 42, NULL);
+    ATOM_T *d = newAtom(DOUBLE, 3.14, NULL);
+    ATOM_T *s = newAtom(STRING, 0, "hello");
+        printf("INT: %ld\n", intVal(i));
+        printf("DOUBLE: %f\n", dblVal(d));
+        printf("STRING: %s\n", strVal(s));
+    test("123456789012345.6789");
+    test("(+ 1 2)");
+    test("(+ 1 (+ 2 3))");
+    test("(+ \"hi ()\" (+ 2 3))");
 }
 
 int main(int argc, char **argv) {
-    FILE *fp = stdin;
-    if (argc > 1) { 
-        fp = fopen(argv[1], "r"); 
-        if (!fp) { 
-            fprintf(stderr, "Cannot open file %s\n", argv[1]); 
-            return 1; 
-        } 
-    }
-    static char input[8192];
-    size_t len = fread(input, 1, sizeof(input) - 1, fp);
-    input[len] = '\0'; 
-    input_ptr = input;
-    if (fp != stdin) fclose(fp);
-    
-    cell_t *expr;
-    while ((expr = parse()) != NULL) { 
-        cell_t *result = eval(expr); 
-        print_expr(result); 
-        printf("\n"); 
+    // printf("%d\n", (int)sizeof(ATOM_ENTRY)); 
+    tests();
+    ATOM_T *expr;
+    while ((expr = parse("")) != NULL) { 
+        //ATOM_T *result = eval(expr); 
+        //print_expr(result); 
+        //printf("\n"); 
     }
     return 0;
 }
