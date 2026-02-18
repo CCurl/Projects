@@ -1,69 +1,59 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
+#include <inttypes.h>
 
-#define ATOM_MAX 32
-#define CONS_MAX 32
-#define MAX_TOKEN 64
-#define btwi(a ,b, c) ((a) >= (b) && (a) <= (c))
-#define strEq(a, b) (strcmp((a), (b)) == 0)
+#ifdef _MSC_VER
+#define strdup _strdup
+#endif
 
-typedef struct CONS_S {
-    struct ATOM_S *car;
-    struct CONS_S *cdr;
-} CONS_T;
+enum { ATOM_MAX = 1024, CONS_MAX = 1024, MAX_TOKEN = 256};
+enum { EOI=-1, INT=1, DOUBLE, SYMBOL, STRING, CONS, LPAR='(', RPAR=')' };
 
+typedef struct CONS_S { struct ATOM_S *car; struct CONS_S *cdr; } CONS_T;
 typedef struct ATOM_S {
     short type; // ATOM_TYPES
     short ndx;  // location of the atom in the atom array
     union { double d; int64_t i; char *s; CONS_T *l; } val;
 } ATOM_T;
 
-// Types of atoms and tokens
-enum { EOI=-1, INT=1, DOUBLE, SYMBOL, STRING, CONS, LPAR='(', RPAR=')' };
-
 ATOM_T atom[ATOM_MAX+1];
 CONS_T cons[CONS_MAX+1];
-short num_atoms = 0, num_cons = 0;
 char token[MAX_TOKEN], *toIn, tib[256];
-int tokenLen, isInt, isDouble;
+short num_atoms = 0, num_cons = 0, tokenLen, isInt, isDouble;
+double dblValue;
+int64_t intValue;
 
-#define car(L) ((L)->car)
-#define cdr(L) ((L)->cdr)
-#define dblVal(a) ((a)->val.d)
-#define intVal(a) ((a)->val.i)
-#define strVal(a) ((a)->val.s)
-#define consVal(a) ((a)->val.l)
+#define btwi(a ,b, c) ((b) <= (a) && (a) <= (c))
 
+ATOM_T *parseToken(int tok);
+void print(ATOM_T *a);
+void pList(CONS_T *c) { while (c) { print(c->car); printf(" "); c=c->cdr; } }
 void err(const char *msg) { fprintf(stderr, "Error: %s\n", msg); exit(1); }
 
-CONS_T *newCons() {
+CONS_T *newCons(ATOM_T *atom, CONS_T *cdr) {
     if (num_cons >= CONS_MAX) { err("Out of lists!"); }
-    cons[num_cons] = (CONS_T){ NULL, NULL };
+    cons[num_cons] = (CONS_T){ atom, cdr };
     return &cons[num_cons++];
 }
 
 ATOM_T *newAtom(int type, double num, char *str) {
-    printf("-newAtom: type %d-", type);
     if (num_atoms >= ATOM_MAX) { err("Out of atoms!"); }
-    ATOM_T * ret = &atom[num_atoms++];
-    ret->ndx = num_atoms - 1;
+    ATOM_T *ret = &atom[num_atoms];
+    ret->ndx = num_atoms++;
     ret->type = type;
     switch (type) {
-        case INT:    intVal(ret)  = (int64_t)num; break;
-        case DOUBLE: dblVal(ret)  = num; break;
-        case STRING: strVal(ret)  = str ? strdup(str) : NULL; break;
-        case CONS:   consVal(ret) = NULL; break;
+        case INT:    ret->val.i  = (int64_t)num; break;
+        case DOUBLE: ret->val.d  = num; break;
+        case STRING: ret->val.s  = str ? strdup(str) : NULL; break;
+        case SYMBOL: ret->val.s  = str ? strdup(str) : NULL; break;
+        case CONS:   ret->val.l = NULL; break; //  newCons(NULL, NULL); break;
     }
     return ret;
 }
 
-double dblValue;
-long intValue;
-
 int doNum(char w) {
-    tokenLen = 0;
+    isInt = isDouble = tokenLen = 0;
     token[tokenLen++] = w;
     while (btwi(*toIn, '0', '9')) { token[tokenLen++] = *toIn++; }
     if (*toIn == '.') {
@@ -75,42 +65,38 @@ int doNum(char w) {
     }
     token[tokenLen] = 0;
     isInt = 1;
-    intValue = strtol(token, NULL, 10);
+    intValue = strtoll(token, NULL, 10);
     return INT;
 }
 
 int nextToken() {
-again:
-    switch (*toIn) {
+    tokenLen = 0;
+again: switch (*toIn) {
         case 0: return EOI;
         case ' ': case '\t': case '\n': ++toIn; goto again;
         case '(': case ')': return *toIn++;
+        case '"': ++toIn; // Skip the opening quote
+        while (*toIn && (*toIn != '"')) { token[tokenLen++] = *toIn++; }
+        if (*toIn == '"') { ++toIn; }
+        token[tokenLen] = 0;
+        return STRING;
     }
     if (btwi(*toIn, '0', '9') || *toIn == '.') { return doNum(*toIn++); }
-    tokenLen = 0;
     while (*toIn > 32 && *toIn != '(' && *toIn != ')') { token[tokenLen++] = *toIn++; }
     token[tokenLen] = 0;
-    return STRING;
+    return SYMBOL;
 }
 
-ATOM_T *parseToken(int tok);
-ATOM_T *parseList() {
-    nextToken(); // consume '('
-    ATOM_T *listAtom = newAtom(CONS, 0, NULL);
+ATOM_T *parseList(ATOM_T *listAtom) {
     CONS_T *current = NULL;
-    int tok = nextToken();
-    while ((tok != RPAR)) {
+    while (1) {
+        int tok = nextToken();
+        if (tok == RPAR) { return listAtom; }
         if (tok == EOI) { err("Unexpected end of input!"); }
-        ATOM_T *elem = parseToken(tok);
-        if (current == NULL) {
-            consVal(listAtom)->car = elem;
-            current = consVal(listAtom);
-        } else {
-            current->cdr = newCons();
-            current = current->cdr;
-            current->car = elem;
-        }
-        tok = nextToken();
+        CONS_T *next = newCons(parseToken(tok), NULL);
+		if (listAtom->val.l == NULL) { listAtom->val.l = next; }
+        else { current->cdr = next; }
+        current = next;
     }
     return listAtom;
 }
@@ -119,38 +105,45 @@ ATOM_T *parseToken(int tok) {
     if (tok == 0) { tok = nextToken(); }
     switch (tok) {
         case EOI: return NULL;
-        case LPAR: return parseList();
+        case LPAR: return parseList(newAtom(CONS, 0, NULL));
         case INT: return newAtom(INT, (double)intValue, NULL);
         case DOUBLE: return newAtom(DOUBLE, dblValue, NULL);
         case STRING: return newAtom(STRING, 0, token);
+        case SYMBOL: return newAtom(SYMBOL, 0, token);
     }
     printf("Unknown token type: %d\n", tok);
     return NULL;
 }
 
+void print(ATOM_T *a) {
+    CONS_T *cons;
+    if (a == NULL) { printf("nil"); return; }
+    switch (a->type) {
+		case CONS: printf("( "); pList(a->val.l); printf(")"); break;
+        case INT: printf("%" PRId64, a->val.i); break;
+        case DOUBLE: printf("%f", a->val.d); break;
+        case STRING: printf("\"%s\"", a->val.s); break;
+		case SYMBOL: printf("%s", a->val.s); break;
+    }
+}
+
 void test(char *src) {
     printf("Testing: %s\n", src);
     toIn = src;
-    parseToken(0);
-    // TODO: implement the logic to parse and evaluate the source code
-    // For now, we just print the source
+	print(parseToken(0)); printf("\n");
 }
 
 void tests() {
-    ATOM_T *i = newAtom(INT, 42, NULL);
-    printf("INT: %ld\n", intVal(i));
-    ATOM_T *d = newAtom(DOUBLE, 3.14, NULL);
-    printf("DOUBLE: %f\n", dblVal(d));
-    ATOM_T *s = newAtom(STRING, 0, "hello");
-    printf("STRING: %s\n", strVal(s));
+    test("999888777666");
     test("123456789012345.6789");
-    // test("(+ 1 2)");
-    // test("(+ 1 (+ 2 3))");
-    // test("(+ \"hi ()\" (+ 2 3))");
+    test("()");
+    test("(+ 1 2)");
+    test("(+ 1 (+ 2 3))");
+    test("(+ \"hi ()\" (+ 2 (* 3 4)))");
 }
 
 int main(int argc, char **argv) {
-    // printf("%d\n", (int)sizeof(ATOM_ENTRY)); 
+    printf("%d\n", (int)sizeof(ATOM_T)); 
     tests();
     ATOM_T *expr;
     while ((expr = parseToken(0)) != NULL) { 
@@ -158,5 +151,6 @@ int main(int argc, char **argv) {
         //print_expr(result); 
         //printf("\n"); 
     }
+    printf("%d atoms used, %d cons used\n", num_atoms, num_cons); 
     return 0;
 }
