@@ -123,9 +123,9 @@ This is very fast, but poses some limitations:
 
 ## Building r4
 - The target machine/environment is controlled by the #defines in the file "config.h"
-- For Windows, There is a Visual Studio solution. Use the x86 configuration (32-bit).
+- For Windows, There is a Visual Studio solution. Use the x86 configuration (32-bit, cell size: 4 bytes).
 - For Development boards, I use the Arduino IDE. See the file "config.h" for board-specific settings.
-- For Linux systems, there is a makefile. Default is 64-bit, or you can change it to 32-bit.
+- For Linux systems, there is a makefile. Default is 64-bit (cell size: 8 bytes), or you can change it to 32-bit (cell size: 4 bytes).
 - I do not have an Apple system, so I haven't tried to build r4 for that environment.
   - However, being such a minimal C program, it should not be difficult to port r4 to any environment.
 
@@ -188,6 +188,10 @@ This is very fast, but poses some limitations:
 
 
 ### MEMORY OPERATIONS
+#### NOTES:
+- CELL size is platform-dependent: 8 bytes (64-bit) on 64-bit Linux builds, 4 bytes (32-bit) on Windows x86 and 32-bit Linux builds.
+- Use `xIC` to query the cell size at runtime.
+
 | OP |Stack |Description|
 |:-- |:--   |:--|
 | @  | (a--n)      | Fetch CELL n from address a
