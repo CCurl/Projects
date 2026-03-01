@@ -27,6 +27,7 @@ Kitchen: Unknown, Peach (unknown)
 ## Other
 Mulch: 17 bags
 Refrigerator water filter: Kenmore 9801
+Air filter: 20x25x4
 
 ## Finance
 Mortgage: 30-year, $450,000 at 3.625% (Aug 2010)

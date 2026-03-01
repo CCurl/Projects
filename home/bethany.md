@@ -19,4 +19,5 @@ Kitchen:
 
 ## Other
 Mulch: 12 bags
-Refrigerator filter: 
+Air filter: 20x30x1?
+
