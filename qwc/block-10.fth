@@ -1,4 +1,4 @@
-\ ftype - usage: 123 z" %qthi-%d-there%q" ftype
+\ ftype - usage: 123 .f" %q%Gthi-%R%d-%Ythere%W%q"
 
 : t8 ( c-- ) x! \ handler for '%'
   x@ 'd' = if (.) exit then

@@ -7,14 +7,11 @@ s1: s1.c
 	$(CC) $(CCFLAGS) -o s1 s1.c
 	ls -l s1
 
-r1: s1
+run: s1
 	./s1
 
-run: $(app)
-	./$(app)
-
 clean:
-	rm -f $(app)
+	rm -f s1
 
-bin: $(app)
-	cp -u -p $(app) ~/bin/
+bin: s1
+	cp -u -p s1 ~/bin/

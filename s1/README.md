@@ -1,23 +1,27 @@
-# S2
-S2 is a full-featured and interactive stack-based interpreter/VM, implemented in fewer than 100 lines of C code.
+# S1
+S1 is a full-featured and interactive stack-based interpreter/VM, implemented in fewer than 100 lines of C code.
 
 It was inspired by Sandor Schneider's STABLE program.
 
-S2 supports up to 676 (26*26) function definitions, floating point math, locals, and simple file operations. It also provides 26 registers.
+S1 supports:
+- 26 registers (a-z) with auto- increment and decrement.
+- 26 function definitions (A-Z).
+- floating point math.
+- Simple file operations. 
 
 ## Some Examples
 ```
 0(this is a comment)
 "Hello World!"        0("Hello World!")
-:CR10,;               0(define function CR)
-10_ 10[n.b]           0(print out numbers from -10 through 10)
+:C10,;                0(define function C)
+1a!10[a@+." "]        0(print out numbers from 1 through 10)
 #("yes")~("no")       0(print "yes" or "no" depending on TOS)
-r1 0fO#(fR{,fR}fC)    0(print the contents of the file named by r1)
-123 {#.b1-}           0(count down and print out from 123 to 1)
-355e 113e f/ f.       0(floating point - PI)
-32 126[n.": "n,CR]    0(print the ascii table)
+a@ 0fO#(fR{,fR}fC)    0(print the contents of the file named by a)
+123 {#." "1-}         0(count down and print out from 123 to 1)
+355. 113. f/ f.       0(floating point - PI)
+32a!95[a@+#.": ",10,] 0(print the ascii table)
 ```
-## S2 Reference
+## S1 Reference
 ```
 *** STACK ***
 #  (a--a a)       Duplicate TOS             (DUP)
@@ -62,12 +66,12 @@ b~  (a--b)        b: NOT a (ones-complement, e.g - 11001011 => 00110100)
 *** MEMORY ***
         USAGE: ints:  [0- 64:stacks][ 65- 90:regs][NUM_FUNCS][locals:100][code/free]
                bytes: [0-259:stacks][260-359:regs][NUM_FUNCS][locals:400][code/free]
-@     (a--n)      Fetch INT   n from S2 address a
-c@    (a--n)      Fetch BYTE  n from S2 address a
-f@    (a--n)      Fetch FLOAT n from S2 address a
-!     (n a--)     Store INT   n to S2 address a
-c!    (n a--)     Store BYTE  n to S2 address a
-f!    (n a--)     Store FLOAT n to S2 address a
+@     (a--n)      Fetch INT   n from S1 address a
+c@    (a--n)      Fetch BYTE  n from S1 address a
+f@    (a--n)      Fetch FLOAT n from S1 address a
+!     (n a--)     Store INT   n to S1 address a
+c!    (n a--)     Store BYTE  n to S1 address a
+f!    (n a--)     Store FLOAT n to S1 address a
 
 
 *** LOCALS ***
@@ -147,5 +151,5 @@ fW    (c f--)     WRITE - f: file handle, c: char to write
 0@    (--n)       n: HERE
 t     (--n)       n: clock()
 q     (--)        Prints the stack
-xQ    (--)        Exit S2
+xQ    (--)        Exit S1
 ```
