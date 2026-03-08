@@ -36,7 +36,7 @@ static int sb=4, s, rb='z', r, fb=128, lb=200, cb=(256*4), l=200, c, h, p, t, u;
 /*  ;  */ void f59() { if (rb<r) { p=st.i[r--]; } else { r=rb; p=0; } }
 /*  <  */ void f60() { t=TOS; u=NOS; s--; TOS=(u<t)?-1:0; if (BP=='=') { ++p; TOS=(u<=t)?-1:0; } }
 /*  =  */ void f61() { NOS=(NOS==TOS)?-1:0; s--; }
-/*  <  */ void f62() { t=TOS; u=NOS; s--; TOS=(u>t)?-1:0; if (BP=='=') { ++p; TOS=(u>=t)?-1:0; } }
+/*  >  */ void f62() { t=TOS; u=NOS; s--; TOS=(u>t)?-1:0; if (BP=='=') { ++p; TOS=(u>=t)?-1:0; } }
 /*  ?  */ void f63() { c=fgetc(stdin); st.i[++s]=(c!=EOF)?c:0; }
 /*  @  */ void f64() { TOS=st.i[TOS]; }
 /* A-Z */ void AZ()  { t=st.i[u]; if (t) { if (BP!=';') { st.i[++r]=p; } p=t; } }
@@ -60,11 +60,12 @@ static int sb=4, s, rb='z', r, fb=128, lb=200, cb=(256*4), l=200, c, h, p, t, u;
 /*  {  */ void f123() { st.i[++r]=p; if (TOS==0) { while (BP!='}') { ++p; } } }
 /*  |  */ void f124() { while (BP!='|') { st.b[TOS++]=st.b[p++]; } st.b[TOS++]=0; ++p; }
 /*  }  */ void f125() { if (TOS) { p=st.i[r]; } else { --r; --s; } }
+/*  ~  */ void f126() { TOS=~TOS; }
 void fSTK() { for (int i=sb; i<=s; i++) { printf("%c%ld", (i==sb)?0:32, st.i[i]); } }
 void (*q[127])()={ X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,N,f33,f34,f35,f36,f37,f38,
     f39,f40,N,f42,f43,f44,f45,f46,f47,n09,n09,n09,n09,n09,n09,n09,n09,n09,n09,f58,f59,f60,f61,f62,f63,f64,
     AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,AZ,f91,f92,f93,f94,f95,f96,
-    az,az,f99,az,az,f102,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,f123,f124,f125,X };
+    az,az,f99,az,az,f102,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,az,f123,f124,f125,f126 };
 void R(int x) { s=(s<sb)?(sb-1):s; r=rb; p=x; while (p) { u=st.b[p++]; q[u](); } }
 void L() { y=&st.b[h]; printf("\ns1:("); fSTK(); printf(")>"); fgets(y, 128, stdin); R(h); }
 int main(int argc, char *argv[]) {
