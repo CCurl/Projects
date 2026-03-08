@@ -55,7 +55,6 @@ static int sb=4, s, rb='z', r, fb=128, lb=200, cb=(256*4), l=200, c, h, p, t, u;
 /*  f  */ void f102() { switch (st.b[p++]) {     case '.':  printf("%g", st.f[s--]);
             RC('+'): st.f[s-1]+=st.f[s]; s--;    RC('-'): st.f[s-1]-=st.f[s]; s--;
             RC('*'): st.f[s-1]*=st.f[s]; s--;    RC('/'): st.f[s-1]/=st.f[s]; s--;
-            RC('@'): st.f[s]=st.f[TOS];          RC('!'): st.f[TOS]=st.f[s-1]; s-=2;
           } }
 /*  {  */ void f123() { st.i[++r]=p; if (TOS==0) { while (BP!='}') { ++p; } } }
 /*  |  */ void f124() { while (BP!='|') { st.b[TOS++]=st.b[p++]; } st.b[TOS++]=0; ++p; }
