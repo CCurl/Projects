@@ -179,7 +179,8 @@ cell var t4   cell var t5   cell var t6
 ( Strings / Memory )
 : pad    ( --a ) vhere $100 + ;
 : fill   ( a num ch-- ) -rot for 2dup c! 1+ next 2drop ;
-: s-end  ( str--end ) dup s-len + ;   \ end: address of the null
+: s-trunc ( str--str ) 0 over c! ;
+: s-end  ( str--end )  dup s-len + ;   \ end: address of the null
 : s-cpy  ( dst src--dst ) 2dup s-len 1+ cmove ;
 : s-cat  ( dst src--dst ) over s-end  over s-len 1+  cmove ;
 : s-catc ( dst ch--dst )  over s-end  +L1  c!x+  0 c!x+  -L ;

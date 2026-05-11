@@ -1,12 +1,12 @@
 ( some tests )
 
-: ll z" ls -l" system ;
-: lg z" lazygit" system ;
+: ll  z" ls -l" system ;
+: lg  z" lazygit" system ;
 
-( dumping and printing )
 : .nwb ( n width base-- )
     base @ >r  base !  >r <# r> 1- for # next #s #> ztype  r> base ! ;
 : .hex     ( n-- )  #2 $10 .nwb ;
+: .dec     ( n-- )  #1 #10 .nwb ;
 
 : aemit ( ch-- )  dup #31 $7F btwi if0 drop '.' then emit ;
 : t0    ( addr-- )  +L1 $10 for c@x+ aemit next -L ;
@@ -15,12 +15,13 @@
      z@ $10 = if 0 z! space space x@ $10 - t0 then
    next -L ;
 
+: list ( n-- ) blk@ >r blk! blk-read blk-addr ztype r> blk! ;
+
 ( some benchmarks )
 : lap ( --n ) timer ; inline
 : .lap ( n-- ) lap swap - space . ." ticks" cr ;
 
-: k 1000 * ;
-: mil k k ;
+: mil 1000 dup * * ;
 : fib ( n--fib ) 1- dup 2 < if drop 1 exit then dup fib swap 1- fib + ;
 : t0 ( n a-- ) ztype '(' emit dup (.) ')' emit lap swap ;
 : bm-while ( n-- ) z" while " t0 begin 1- -while drop .lap ;
@@ -28,7 +29,7 @@
 : bm-fib   ( n-- ) z" fib "   t0 fib space (.) .lap ;
 : bm-fibs  ( n-- ) 1 +L1 for x@+ bm-fib next -L ;
 : bb ( -- ) 1000 mil bm-loop ;
-: bm-all ( -- ) 250 mil bm-while bb 30 bm-fib ;
+: bm-all ( -- ) 250 mil bm-while bb 38 bm-fib ;
 
 ( simple fixed point )
 val fprec@   (val) t1   \ Precision digits
@@ -39,28 +40,27 @@ val fscale@  (val) t2   \ Scale value
 : f/ ( a b--c ) swap fscale@ * swap / ;
 : f+ ( a b--c ) + ; inline
 : f- ( a b--c ) - ; inline
-: d>f ( n f-m ) swap fscale@ * + ;
-: i>f ( n--m )  0 d>f ;
-: f>i ( n--m )  fscale@ / ;
-3 fprec!
+: i>f ( n--m ) fscale@ * ;
+: f>i ( n--m ) fscale@ / ;
+4 fprec!
 
-\ A example stack
+\ A normal or circular stack
 16 cells var tstk      \ the stack start
 vhere cell - const t9  \ t9 is the stack end
 val tsp@   (val) t1    \ the stack pointer
 : tsp! ( n-- ) t1 ! ;  \ set the stack pointer
 tstk tsp!              \ Initialize
 \ for a normal stack, use these definitions
-\ : tsp++ ( -- ) tsp@ cell+ t9    min tsp! ;
+\ : tsp++ ( -- ) tsp@ cell + t9   min tsp! ;
 \ : tsp-- ( -- ) tsp@ cell - tstk max tsp! ;
 \ for a circular stack, use these definitions
-: tsp++ ( -- )  tsp@ cell+   dup t9   > if drop tstk then tsp! ;
+: tsp++ ( -- )  tsp@ cell +  dup t9   > if drop tstk then tsp! ;
 : tsp-- ( -- )  tsp@ cell -  dup tstk < if drop t9   then tsp! ;
 : t!    ( n-- ) tsp@ ! ;
 : t@    ( --n ) tsp@ @ ;
 : >t    ( n-- ) tsp++ t! ;
 : t>    ( --n ) tsp@ @  tsp-- ;
-: t6    ( -- )  dup tsp@ = if ." sp:" then dup @ . cell+ ;
+: t6    ( -- )  dup tsp@ = if ." sp:" then dup @ . cell + ;
 : .tstk ( -- )  '(' emit space tstk 16 for t6 next drop ')' emit ;
 
 ( ANSI color codes )
@@ -73,6 +73,10 @@ tstk tsp!              \ Initialize
 : blue    63 fg ;      : purple  201 fg ;
 : cyan   117 fg ;      : grey    246 fg ;
 : white  255 fg ;
+: cursor-off csi ." ?25l" ;
+: cursor-on  csi ." ?25h" ;
+
+ 2 load   4 load   10 load   9 load
 
 ( *** Banner *** )
 : .version version <# # # #. # # #. #s 'v' hold #> ztype ;
