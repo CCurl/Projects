@@ -194,10 +194,10 @@ cell var t4   cell var t5   cell var t6
 mem 14 mb + const disk
 32 var fn
 val blk@   (val) t0
-: #blks     ( --n )   64 ;
-: blk-sz    ( --n )   16 kb ;
+: #blks     ( --n )   128 ;
+: blk-sz    ( --n )   8 kb ;
 : blk!      ( n-- )   0 max #blks 1- min t0 ! ;
-: blk-fn    ( --a )   fn z" block-" s-cpy blk@ <# # #s #> s-cat z" .fth" s-cat ;
+: blk-fn    ( --a )   fn z" block-" s-cpy blk@ <# # # #s #> s-cat z" .fth" s-cat ;
 : blk-addr  ( --a )   blk@ blk-sz * disk + ;
 : blk-clr   ( -- )    blk-addr blk-sz 0 fill ;
 : t2        ( fh-- )  >r  blk-clr  blk-addr blk-sz r@ fread drop  r> fclose ;

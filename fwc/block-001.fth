@@ -19,7 +19,8 @@
 : lap ( --n ) timer ; inline
 : .lap ( n-- ) lap swap - space . ." ticks" cr ;
 
-: mil 1000 dup * * ;
+: k 1000 * ;
+: mil k k ;
 : fib ( n--fib ) 1- dup 2 < if drop 1 exit then dup fib swap 1- fib + ;
 : t0 ( n a-- ) ztype '(' emit dup (.) ')' emit lap swap ;
 : bm-while ( n-- ) z" while " t0 begin 1- -while drop .lap ;
