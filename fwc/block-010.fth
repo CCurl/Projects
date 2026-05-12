@@ -7,6 +7,7 @@
   x@ 'q' = if '"' emit exit then
   x@ 'r' = if 13  emit exit then
   x@ 's' = if ztype    exit then
+  x@ 'B' = if blue     exit then
   x@ 'G' = if green    exit then
   x@ 'R' = if red      exit then
   x@ 'W' = if white    exit then

@@ -43,7 +43,7 @@
 ( the original here and last - used by 'rb' )
 const -last-   const -here-
 
-mem mem-sz + 1- const dict-end
+mem mem-sz + const dict-end
 32 ->code const (vh)
 64 1024 * ->code const vars
 vars (vh) !
@@ -154,7 +154,7 @@ cell var (buf)
     then ')' emit ;
 
 : .word ( de-- ) cell+ 2 + ztype ;
-: words ( -- ) +L last x! 0 y! 1 z! begin
+: words ( -- ) +L last x! 0 y! 0 z! begin
         x@ dict-end < if0 '(' emit z@ . ." words)" -L exit then
         x@ .word tab z++
         x@ cell+ 1+ c@ 7 > if y++ then
