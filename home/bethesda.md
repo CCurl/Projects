@@ -22,7 +22,7 @@ Kitchen: Unknown, Peach (unknown)
 2025-12-04 - Vents and attic fan  (DMV Attic)
 2026-01-22 - Replaced water filter
 2026-02-10 - Garage pipe burst (Leahy)
-2026-02-21 - Installed pip heater (garage)
+2026-02-21 - Installed pipe heater (garage)
 
 ## Other
 Mulch: 17 bags
