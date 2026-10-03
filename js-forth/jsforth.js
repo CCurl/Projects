@@ -1,6 +1,7 @@
-  stk = [], rstk = [], mem = [];
-  dictionary = [];
-  here = 1, last = -1, pc = -1;
+  mem = [], dictionary = [];
+  sB = 50, rB = 100;  // Stack and Return stack base addresses
+  sSp = sB, rSp = rB; // Stack and Return stack pointers
+  here = 150, last = -1, pc = -1;
   tib = '', wd = '';
   pos = 0, tibLen = 0;
   compiling = false;
@@ -17,17 +18,17 @@
   }
 
   function under()     { throw new Error('Stack underflow'); }
-  function push(val)   { stk.push(val); }
-  function pop()       { return (0 < stk.length) ? stk.pop() : under(); }
-  function rPush(val)  { rstk.push(val); }
-  function rPop()      { return (0 < rstk.length) ? rstk.pop() : undefined; }
-  function TOS()    { return (0 < stk.length) ? stk[stk.length-1] : undefined; }
-  function getNOS()    { return (1 < stk.length) ? stk[stk.length-2] : undefined; }
-  function setTOS(val) { if (0 < stk.length) stk[stk.length-1] = val; }
-  function setNOS(val) { if (1 < stk.length) stk[stk.length-2] = val; }
-  function Comma(x) { mem[here++] = x; }
-  function exit()  { pc = rPop(); }
-  function lit()   { push(mem[pc++]); }
+  function push(val)   { mem[++sSp] = val; }
+  function rPush(val)  { mem[++rSp] = val; }
+  function pop()       { return (sSp > sB) ? mem[sSp--] : 0; }
+  function rPop()      { return (rSp > rB) ? mem[rSp--] : undefined; }
+  function TOS()       { return mem[sSp]; }
+  function NOS()       { return mem[sSp-1]; }
+  function setTOS(val) { mem[sSp] = val; }
+  function setNOS(val) { mem[sSp-1] = val; }
+  function Comma(x)    { mem[here++] = x; }
+  function exit()      { pc = rPop(); }
+  function lit()       { push(mem[pc++]); }
 
   function definePrimitives() {
     definePrim('+',    () => { t=pop(); setTOS(TOS() + t); });
@@ -44,8 +45,8 @@
     definePrim('com',  () => { t=pop(); setTOS(~TOS()); });
     definePrim('dup',  () => { push(TOS()); });
     definePrim('drop', () => { pop(); });
-    definePrim('swap', () => { n=getNOS(); t=TOS(); setTOS(n); setNOS(t); });
-    definePrim('over', () => { n=getNOS(); push(n); });
+    definePrim('swap', () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+    definePrim('over', () => { n=NOS(); push(n); });
     definePrim('@',    () => { setTOS(mem[TOS()]); });
     definePrim('!',    () => { t=pop(); n=pop(); mem[t] = n; });
     definePrim(',',    () => { Comma(pop()); });
