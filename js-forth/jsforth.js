@@ -21,34 +21,33 @@
   function pop()       { return (0 < stk.length) ? stk.pop() : under(); }
   function rPush(val)  { rstk.push(val); }
   function rPop()      { return (0 < rstk.length) ? rstk.pop() : undefined; }
-
-  function getTOS()    { return (0 < stk.length) ? stk[stk.length-1] : undefined; }
+  function TOS()    { return (0 < stk.length) ? stk[stk.length-1] : undefined; }
   function getNOS()    { return (1 < stk.length) ? stk[stk.length-2] : undefined; }
   function setTOS(val) { if (0 < stk.length) stk[stk.length-1] = val; }
   function setNOS(val) { if (1 < stk.length) stk[stk.length-2] = val; }
-  
   function Comma(x) { mem[here++] = x; }
-  
   function exit()  { pc = rPop(); }
   function lit()   { push(mem[pc++]); }
 
   function definePrimitives() {
-    definePrim('+',    () => { t=pop(); setTOS(getTOS() + t); });
-    definePrim('-',    () => { t=pop(); setTOS(getTOS() - t); });
-    definePrim('*',    () => { t=pop(); setTOS(getTOS() * t); });
-    definePrim('/',    () => { t=pop(); setTOS(getTOS() / t); });
-    definePrim('<',    () => { t=pop(); setTOS(getTOS() < t); });
-    definePrim('=',    () => { t=pop(); setTOS(getTOS()===t); });
-    definePrim('>',    () => { t=pop(); setTOS(getTOS() > t); });
-    definePrim('0=',   () => { setTOS(getTOS() === 0); });
-    definePrim('and',  () => { t=pop(); setTOS(getTOS() & t); });
-    definePrim('or',   () => { t=pop(); setTOS(getTOS() | t); });
-    definePrim('xor',  () => { t=pop(); setTOS(getTOS() ^ t); });
-    definePrim('com',  () => { t=pop(); setTOS(~getTOS()); });
-    definePrim('dup',  () => { push(getTOS()); });
+    definePrim('+',    () => { t=pop(); setTOS(TOS() + t); });
+    definePrim('-',    () => { t=pop(); setTOS(TOS() - t); });
+    definePrim('*',    () => { t=pop(); setTOS(TOS() * t); });
+    definePrim('/',    () => { t=pop(); setTOS(TOS() / t); });
+    definePrim('<',    () => { t=pop(); setTOS(TOS() < t); });
+    definePrim('=',    () => { t=pop(); setTOS(TOS()===t); });
+    definePrim('>',    () => { t=pop(); setTOS(TOS() > t); });
+    definePrim('0=',   () => { setTOS(TOS() === 0); });
+    definePrim('and',  () => { t=pop(); setTOS(TOS() & t); });
+    definePrim('or',   () => { t=pop(); setTOS(TOS() | t); });
+    definePrim('xor',  () => { t=pop(); setTOS(TOS() ^ t); });
+    definePrim('com',  () => { t=pop(); setTOS(~TOS()); });
+    definePrim('dup',  () => { push(TOS()); });
     definePrim('drop', () => { pop(); });
-    definePrim('swap', () => { n=getNOS(); t=getTOS(); setTOS(n); setNOS(t); });
+    definePrim('swap', () => { n=getNOS(); t=TOS(); setTOS(n); setNOS(t); });
     definePrim('over', () => { n=getNOS(); push(n); });
+    definePrim('@',    () => { setTOS(mem[TOS()]); });
+    definePrim('!',    () => { t=pop(); n=pop(); mem[t] = n; });
     definePrim(',',    () => { Comma(pop()); });
     definePrim('.',    () => console.log(pop()));
     definePrim('exit', exit);
@@ -59,9 +58,8 @@
     while ((pc)  && (pc < mem.length)) {
       const op = mem[pc++];
       if (op === undefined) { return; }
-      if (typeof op === 'function') {
-        op();
-      } else {
+      if (typeof op === 'function') { op(); }
+      else {
         if (mem[pc] != exit) { rPush(pc); }
         pc = op;
       }
