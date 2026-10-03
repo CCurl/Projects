@@ -1,0 +1,15 @@
+<html>
+  <head>
+  <title>JS Forth</title>
+  </head>
+  <body>
+    <h1>Welcome to JS Forth</h1>
+    <textarea id="forth-input" rows="10" cols="50"></textarea>
+    <button onclick="runForth(undefined)">Run</button>
+    <pre id="forth-output"></pre>
+    <script src="./jsforth.js"></script>
+    <script type="application/forth">
+      : hdr 123 667 / . ; hdr
+    </script>
+  </body>
+</html>
