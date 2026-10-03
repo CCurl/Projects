@@ -1,15 +1,9 @@
-  stk = [];
-  rstk = [];
-  mem = [];
+  stk = [], rstk = [], mem = [];
   dictionary = [];
-  here = 1;
-  lastPrim = -1;
-  last = -1;
-  pc = -1;
+  here = 1, last = -1, pc = -1;
+  tib = '', wd = '';
+  pos = 0, tibLen = 0;
   compiling = false;
-  theinput = undefined;
-
-  definePrimitives();
 
   // define(name, immediate) adds an entry to the dictionary
   function define(name, immediate = false) {
@@ -61,7 +55,6 @@
   }
 
   function inner(start) {
-    // const curPC = pc;
     pc = start;
     while ((pc)  && (pc < mem.length)) {
       const op = mem[pc++];
@@ -73,24 +66,16 @@
         pc = op;
       }
     }
-    // pc = curPC;
   }
-
-  tib = '';
-  wd = '';
-  pos = 0;
-  tibLen = 0;
   
   function nextWord(delim) {
     wd = '';
     const isSpace = (delim === ' ');
     const isWS = (p) => { return tib.charCodeAt(p) < 33; };
 
-    // Skip leading whitespace if delim is space
     if (isSpace) {
       while ((pos < tibLen) && isWS(pos)) { pos++; }
     }
-    // Collect word
     const start = pos;
     while (pos < tibLen) {
       if ((delim === tib[pos])) { break; }
@@ -100,46 +85,54 @@
     wd = tib.slice(start, pos);
     return wd.length;
   }
+  
+  function doNum(token) {
+    const num = Number(token);
+    if (isNaN(num)) { return false; }
+    if (compiling) { Comma(lit); Comma(num); }
+    else { push(num); }
+    return true;
+  }
+
+  function doWord(token) {
+    const entry = dictionary.find(e => e.name === token);
+    if (!entry) { return false; }
+    if (entry.immediate || !compiling) {
+      const x = here+100;
+      mem[x] = entry.xt;
+      mem[x+1] = undefined;
+      inner(x);
+    } else {
+      Comma(entry.xt); // compile reference
+    }
+    return true;
+  }
+
+  function doColon(token) {
+    if (token != ':') { return false; }
+    if (nextWord(' ') === 0) { throw new Error('expected a name after ":"'); }
+    define(wd);
+    compiling = true;
+    return true;
+  }
+
+  function doSemi(token) {
+    if (token != ';') { return false; }
+    Comma(exit);
+    compiling = false;
+    return true;
+  }
 
   function outer(source) {
     tib = source;
     tibLen = tib.length;
     pos = 0;
     while (nextWord(' ') > 0) {
-      if (wd == ':') {
-        if (nextWord(' ') === 0) { throw new Error('expected a name after ":"'); }
-        define(wd);
-        compiling = true;
-        continue;
-      }
-      
-      if (wd == ';') {
-        Comma(exit);
-        compiling = false;
-        continue;
-      }
-      
-      const num = Number(wd);
-      if (!isNaN(num)) {
-        if (compiling) { Comma(lit); Comma(num); }
-        else { push(num); }
-        continue;
-      }
-    
-      const entry = dictionary.find(e => e.name === wd);
-      if (!entry) {
-        throw new Error(`unknown word: ${wd}`);
-      }
-
-      // Found in dictionary
-      if (entry.immediate || !compiling) {
-        const x = here+100;
-        mem[x] = entry.xt;
-        mem[x+1] = undefined;
-        inner(x);
-      } else {
-        Comma(entry.xt); // compile reference
-      }
+      if (doColon(wd)) { continue; }
+      if (doSemi(wd)) { continue; }
+      if (doNum(wd)) { continue; }
+      if (doWord(wd)) { continue; }
+      throw new Error(`unknown word: ${wd}`);
     }
   }
 
@@ -159,6 +152,8 @@ function runForth(src) {
     console.log = origLog;
   }
 }
+
+definePrimitives();
 
 // For handling embedded Forth scripts in the HTML document
 window.addEventListener('load', async ()=>{              ///< load event handler
