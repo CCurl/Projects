@@ -18,8 +18,9 @@ This is a complete Forth virtual machine implemented in ~200 lines of JavaScript
 ### Core Components
 
 - **Memory (`mem`)**: Unified array holding stacks, dictionary, and compiled code
-  - Data Stack: base 50, grows upward
-  - Return Stack: base 100, grows upward
+  - Data Stack: base 0, grows upward
+  - Return Stack: base 50, grows upward
+  - Loop Stack: base 100, grows upward
   - Compiled Code: starts at address 150
 - **Dictionary (`dictionary[]`)**: Array of word definitions with name, execution token (xt), and immediate flag
 - **Input Buffer (`tib`, `pos`, `tibLen`)**: Tokenization state
@@ -36,6 +37,7 @@ This is a complete Forth virtual machine implemented in ~200 lines of JavaScript
    - Fetches and executes opcodes from memory
    - Supports both primitive functions and compiled word addresses
    - Manages return stack for nested word calls
+   - Supports tail-call optimization
    
 3. **Word Types**
    - **Immediate**: Executed during compilation (e.g., `:`, `;`)
@@ -61,10 +63,19 @@ Include the interpreter in your HTML file:
 <html>
 <head>
   <title>Forth.js Demo</title>
+  <link rel="stylesheet" href="jsforth.css">
 </head>
 <body>
-  <textarea id="forth-input" rows="10" cols="50"></textarea>
-  <button onclick="runForth()">Run</button>
+  <h1>JS-Forth v2026.10.04 - Chris Curl</h1>
+  <input 
+    id="forth-repl" 
+    type="text" 
+    placeholder="Enter Forth code" 
+    autofocus
+    onkeydown="if (event.key==='Enter') { repl(); }">
+  <br>
+  <textarea id="forth-input" rows="10" cols="50" style="margin-top: 10px;"></textarea>
+  <button onclick="runForth(undefined)">Run</button>
   <pre id="forth-output"></pre>
   
   <script src="jsforth.js"></script>
@@ -72,10 +83,12 @@ Include the interpreter in your HTML file:
 </html>
 ```
 
-The `runForth()` function:
-- Reads input from textarea with id `forth-input`
-- Captures console output and displays in `forth-output`
-- Reports errors with line number and message
+The interface includes:
+- **REPL Input**: Single-line text input for quick Forth commands (press Enter to execute)
+- **Multi-line Editor**: Textarea for larger programs
+- **Run Button**: Executes code from the textarea
+- **Output Window**: Pre-formatted text display for results
+- **Dark Mode**: Automatic detection of system color scheme preference
 
 ### Embedded Forth Scripts
 
@@ -121,16 +134,16 @@ outer('10 2 / .');    // Outputs: 5
 - `/` - Divide (truncated): `( a b -- a/b )`
 
 ### Comparison
-- `<` - Less than: `( a b -- flag )`
-- `=` - Equal: `( a b -- flag )`
-- `>` - Greater than: `( a b -- flag )`
-- `0=` - Test zero: `( n -- flag )`
+- `<` - Less than: `( a b -- flag )` where flag is -1 (true) or 0 (false)
+- `=` - Equal: `( a b -- flag )` where flag is -1 (true) or 0 (false)
+- `>` - Greater than: `( a b -- flag )` where flag is -1 (true) or 0 (false)
+- `0=` - Test zero: `( n -- flag )` where flag is -1 (true) or 0 (false)
 
 ### Bitwise
 - `and` - Bitwise AND: `( a b -- a&b )`
-- `or` - Bitwise OR: `( a b -- a|b )`
+- `or`  - Bitwise OR:  `( a b -- a|b )`
 - `xor` - Bitwise XOR: `( a b -- a^b )`
-- `com` - Bitwise NOT: `( a -- ~a )`
+- `com` - Bitwise COMPLEMENT: `( a -- ~a )`
 
 ### Memory Access
 - `@` - Fetch from memory: `( addr -- value )`
@@ -140,8 +153,14 @@ outer('10 2 / .');    // Outputs: 5
 ### I/O
 - `.` - Print top of stack and remove: `( n -- )`
 
-### Control
+### Control Flow
 - `exit` - Return from word (automatic at end of `:` definitions)
+- `if` ... `then` - Conditional execution: `( flag -- )` executes code if flag is true (!= 0)
+- `begin` ... `until` - Loop until flag is true: `( ... flag -- ... )` exits when flag is true
+- `begin` ... `while` - Loop while flag is true: `( ... flag -- ... )` continues while flag is true
+- `begin` ... `again` - Infinite loop: `( -- )` jumps back to begin unconditionally
+- `for` ... `next` - Counted loop: `( n -- )` executes n times, use `i` to access loop counter
+- `i` - Loop counter: `( -- count )` pushes current iteration number (0 to n-1)
 
 ## Examples
 
@@ -178,9 +197,9 @@ outer('10 2 / .');    // Outputs: 5
 
 ### Conditional Logic (using flags)
 ```forth
-5 3 > .          \ Output: 1 (true)
+5 3 > .          \ Output: -1 (true)
 5 3 < .          \ Output: 0 (false)
-5 5 = .          \ Output: 1 (true)
+5 5 = .          \ Output: -1 (true)
 ```
 
 ## Implementation Details
@@ -200,7 +219,8 @@ outer('10 2 / .');    // Outputs: 5
 - `inner(start)` - Execute compiled code starting at address
 - `outer(source)` - Parse and execute/compile source string
 - `define(name, immediate)` - Add entry to dictionary
-- `definePrim(name, fn)` - Add primitive function to dictionary
+- `definePrim(name, fn)` - Add a primitive to dictionary
+- `defineImm(name, fn)` - Add an IMMEDIATE primitive to dictionary
 - `nextWord(delim)` - Extract next token from input buffer
 - `doNum(token)` - Parse and handle numeric literal
 - `doWord(token)` - Look up and execute/compile word
@@ -209,52 +229,10 @@ outer('10 2 / .');    // Outputs: 5
 
 ### Limitations
 
-- No conditional branching (`if`/`else`)
-- No loop constructs (`do`/`loop`)
 - Limited error handling
 - Stack underflow returns 0 instead of error
 - No string literals or comments
 - Fixed memory size (array length)
-
-### Memory
-- `,` - Write top of stack to memory
-
-### Control
-- `:` `name` ... `;` - Define a new word
-- `exit` - Return from word
-
-## Examples
-
-### Basic Arithmetic
-```forth
-5 3 + .        \ Prints: 8
-10 3 - .       \ Prints: 7
-4 5 * .        \ Prints: 20
-20 4 / .       \ Prints: 5
-```
-
-### Stack Operations
-```forth
-5 dup . .      \ Prints: 5 5
-5 3 swap . .   \ Prints: 5 3
-5 3 over . . . \ Prints: 5 5 3
-```
-
-### Word Definitions
-```forth
-: double  dup + ;
-5 double .    \ Prints: 10
-
-: square  dup * ;
-3 square .    \ Prints: 9
-```
-
-### Comparisons
-```forth
-5 3 > .       \ Prints: 1 (true)
-2 2 = .       \ Prints: 1 (true)
-10 0= .       \ Prints: 0 (false)
-```
 
 ## How It Works
 
@@ -270,7 +248,7 @@ outer('10 2 / .');    // Outputs: 5
 
 When `:` is encountered:
 1. Next token becomes the word name
-2. `compiling` flag is set
+2. `compiling` flag is set to true
 3. Subsequent tokens are added to memory via `Comma()`
 4. `;` seals the definition and sets `compiling = false`
 
@@ -287,7 +265,7 @@ When `:` is encountered:
 2. **Cached length**: `tibLen` computed once per input
 3. **Efficient lookup**: `charCodeAt()` for whitespace detection
 4. **Inline lambdas**: Primitives defined inline in `definePrimitives()`
-5. **Direct stack access**: `getTOS()`, `setTOS()` for fast operations
+5. **Direct stack access**: `TOS()`, `setTOS()` for fast operations
 
 ## Browser Integration
 

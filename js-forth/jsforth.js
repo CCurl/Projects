@@ -1,6 +1,8 @@
+// jsforth.js - (c) Chris Curl, MIT license
+
   mem = [], dictionary = [];
-  sB = 50, rB = 100;  // Stack and Return stack base addresses
-  sSp = sB, rSp = rB; // Stack and Return stack pointers
+  sBs = 0,   rBs = 50,  lBs = 100;  // Data, Return, Loop stack bases
+  sSp = sBs, rSp = rBs, lSp = lBs;  // Stack pointers
   here = 150, last = -1, pc = -1;
   tib = '', wd = '';
   pos = 0, tibLen = 0;
@@ -9,19 +11,16 @@
   // define(name, immediate) adds an entry to the dictionary
   function define(name, immediate = false) {
     dictionary[++last] = { name, xt: here, immediate };
-  }
-
-  // definePrim(name, fn) adds a primitive to the dictionary
-  function definePrim(name, fn) {
-    define(name);
-    dictionary[last].xt = fn;
+    return dictionary[last];
   }
 
   function under()     { throw new Error('Stack underflow'); }
   function push(val)   { mem[++sSp] = val; }
   function rPush(val)  { mem[++rSp] = val; }
-  function pop()       { return (sSp > sB) ? mem[sSp--] : 0; }
-  function rPop()      { return (rSp > rB) ? mem[rSp--] : undefined; }
+  function lPush(val)  { mem[++lSp] = val; }
+  function pop()       { return (sSp > sBs) ? mem[sSp--] : under(); }
+  function rPop()      { return (rSp > rBs) ? mem[rSp--] : undefined; }
+  function lPop()      { return (lSp > lBs) ? mem[lSp--] : undefined; }
   function TOS()       { return mem[sSp]; }
   function NOS()       { return mem[sSp-1]; }
   function setTOS(val) { mem[sSp] = val; }
@@ -29,29 +28,74 @@
   function Comma(x)    { mem[here++] = x; }
   function exit()      { pc = rPop(); }
   function lit()       { push(mem[pc++]); }
+  function jmp()       { tgt = mem[pc++]; pc = tgt; }
+  function jmpz()      { tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
+  function jmpnz()     { tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
+  function njmpz()     { tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
+  function njmpnz()    { tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
+  function emit(x)     { console.log(String.fromCharCode(x)) }
+  function type(str)   { console.log(str?.toString() ?? "-undef-"); }
+  function doType()    { type(pop()); }
+  function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
+  function definePrim(name, fn) { define(name).xt = fn; }
+  function defineImm(name, fn)  { define(name, true).xt = fn; }
+  
+  function sQuote() {
+    ++pos; // skip the initial space
+    nextWord('"');
+    const str = new String(wd);  // this creates a copy of the current word
+    if (compiling) { Comma(lit); Comma(str); }
+    else { push(str); }
+  }
+  
+  function doWords() {
+    num = 0, cnt = 0;
+    for (let i = last; i >= 0; i--) {
+      type(dictionary[i].name);
+      type(' ');
+      ++cnt; ++num;
+      if (7 < num) { type('\n'); num = 0; }
+    }
+    type(` (${cnt} words)`);
+  }
 
   function definePrimitives() {
-    definePrim('+',    () => { t=pop(); setTOS(TOS() + t); });
-    definePrim('-',    () => { t=pop(); setTOS(TOS() - t); });
-    definePrim('*',    () => { t=pop(); setTOS(TOS() * t); });
-    definePrim('/',    () => { t=pop(); setTOS(TOS() / t); });
-    definePrim('<',    () => { t=pop(); setTOS(TOS() < t); });
-    definePrim('=',    () => { t=pop(); setTOS(TOS()===t); });
-    definePrim('>',    () => { t=pop(); setTOS(TOS() > t); });
-    definePrim('0=',   () => { setTOS(TOS() === 0); });
-    definePrim('and',  () => { t=pop(); setTOS(TOS() & t); });
-    definePrim('or',   () => { t=pop(); setTOS(TOS() | t); });
-    definePrim('xor',  () => { t=pop(); setTOS(TOS() ^ t); });
-    definePrim('com',  () => { t=pop(); setTOS(~TOS()); });
-    definePrim('dup',  () => { push(TOS()); });
-    definePrim('drop', () => { pop(); });
-    definePrim('swap', () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
-    definePrim('over', () => { n=NOS(); push(n); });
-    definePrim('@',    () => { setTOS(mem[TOS()]); });
-    definePrim('!',    () => { t=pop(); n=pop(); mem[t] = n; });
-    definePrim(',',    () => { Comma(pop()); });
-    definePrim('.',    () => console.log(pop()));
-    definePrim('exit', exit);
+    definePrim('+',      () => { t=pop(); setTOS(TOS() + t); });
+    definePrim('-',      () => { t=pop(); setTOS(TOS() - t); });
+    definePrim('*',      () => { t=pop(); setTOS(TOS() * t); });
+    definePrim('/',      () => { t=pop(); setTOS(TOS() / t); });
+    definePrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
+    definePrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
+    definePrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+    definePrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
+    definePrim('and',    () => { t=pop(); setTOS(TOS() & t); });
+    definePrim('or',     () => { t=pop(); setTOS(TOS() | t); });
+    definePrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
+    definePrim('com',    () => { t=pop(); setTOS(~TOS()); });
+    definePrim('dup',    () => { push(TOS()); });
+    definePrim('drop',   () => { pop(); });
+    definePrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+    definePrim('over',   () => { n=NOS(); push(n); });
+    definePrim('@',      () => { setTOS(mem[TOS()]); });
+    definePrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
+    definePrim(',',      () => { Comma(pop()); });
+    definePrim('.',      () => { dot(pop()); });
+    definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
+    definePrim('i',      () => { push(mem[lSp]); });
+    definePrim('next',   () => { if (++mem[lSp] < mem[lSp-1]) { pc = mem[lSp-2]; } else { lSp -= 3; } });
+    definePrim('emit',   () => { emit(pop()); });
+    definePrim('exit',   () => { exit(); });
+    definePrim('type',   () => { doType(); });
+    definePrim('words',  () => { doWords(); });
+    definePrim('immediate', () => { dictionary[last].immediate = true; });
+    defineImm('s"',      () => { sQuote(); });
+    defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
+    defineImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
+    defineImm('then',    () => { mem[pop()] = here; });
+    defineImm('begin',   () => { push(here); });
+    defineImm('while',   () => { Comma(jmpnz); Comma(pop()); });
+    defineImm('until',   () => { Comma(jmpz);  Comma(pop()); });
+    defineImm('again',   () => { Comma(jmp);   Comma(pop()); });
   }
 
   function inner(start) {
@@ -77,11 +121,12 @@
     }
     const start = pos;
     while (pos < tibLen) {
-      if ((delim === tib[pos])) { break; }
       if (isSpace && isWS(pos)) { break; }
+      if ((delim === tib[pos])) { break; }
       pos++;
     }
     wd = tib.slice(start, pos);
+    if (!isSpace) { pos++; }
     return wd.length;
   }
   
@@ -134,6 +179,8 @@
       throw new Error(`unknown word: ${wd}`);
     }
   }
+  
+definePrimitives();
 
 function runForth(src) {
   const input = src ?? document.getElementById('forth-input').value;
@@ -143,27 +190,26 @@ function runForth(src) {
   console.log = (...args) => lines.push(args.join(' '));
   try {
     outer(input);
-    output.textContent = lines.join('\n');
-} catch (e) {
-    lines.push(`Error: ${e.message}`);
-    output.textContent = lines.join('\n');
+    if (!src){ type(' ok\n'); }
+    output.textContent = lines.join('');
+  } catch (e) {
+    output.textContent = lines.join('');
+    output.textContent += `\nError: ${e.message}`;
   } finally {
     console.log = origLog;
   }
 }
 
-definePrimitives();
-
 // For handling embedded Forth scripts in the HTML document
-window.addEventListener('load', async ()=>{              ///< load event handler
-    let slst = document.getElementsByTagName('script')   ///< get HTMLcollection
+window.addEventListener('load', async ()=>{              // load event handler
+    let slst = document.getElementsByTagName('script')   // get scripts
     for (let i=0; i<slst.length; i++) {
         let s = slst[i]
-        if (s.type != 'application/forth') continue;     /// * handle embedded Forth 
-        if (s.src) {                                     /// * handle nested scripts
-            await fetch(s.src)                           /// * fetch remote Forth script
-            .then(r=>r.text())                           /// * get Forth commands
-            .then(cmd=>runForth(cmd))                    /// * send it to Forth VM
+        if (s.type != 'application/forth') continue;     // handle embedded Forth 
+        if (s.src) {                                     // handle nested scripts
+            await fetch(s.src)                           // fetch remote Forth script
+            .then(r=>r.text())                           // get Forth commands
+            .then(cmd=>runForth(cmd))                    // send it to Forth VM
         }
         else runForth(s.innerText)
     }
