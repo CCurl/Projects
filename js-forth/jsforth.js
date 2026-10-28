@@ -7,34 +7,36 @@ const EXIT=1, LIT=2, JMP=3, JMPZ=4, JMPNZ=5, NJMPZ=6, NJMPNZ=7, DUP=8,
     ZTYPE=33, FIND=34, KEY=35, QKEY=36, EMIT=37, TIMER=38, ADDW=39,
     OUTER=40, state=99, HERE_START=150;
 
-let mem = new Int32Array(1000000), dictionary = [];
-let sBs = 0,   sE = 49;
-let rBs = 50,  rE = 99;
-let lBs = 100, lE = 149;
+const M = new Int32Array(250000), DV = new DataView(M.buffer), MB = new Uint8Array(M.buffer);
+const dictionary = [];
+const sBs = 0,   sE = 49;
+const rBs = 50,  rE = 99;
+const lBs = 100, lE = 149;
 let here = HERE_START, last = -1, pc = -1, op = 0;
 let tib = 256, toin = 255, wdSt = 200;
+const stk = [], sp = 0;
 
-inner(start) {
+function inner(start) {
   pc = start;
-  while (op = mem[pc++]) {
+  while (op = M[pc++]) {
     switch (op) {
       case EXIT:   pc = rPop(); break;
-      case LIT:    push(mem[pc++]); break;
-      case JMP:    pc = mem[pc]; break;
-      case JMPZ:   tgt = mem[pc++]; if (pop() === 0) { pc = tgt; }; break;
-      case JMPNZ:  tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; }; break;
-      case NJMPZ:  tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; }; break;
-      case NJMPNZ: tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; }; break;
+      case LIT:    push(DV.getFloat64(pc)); pc += 8; break;
+      case JMP:    pc = M[pc]; break;
+      case JMPZ:   tgt = M[pc++]; if (pop() === 0) { pc = tgt; }; break;
+      case JMPNZ:  tgt = M[pc++]; if (pop() !== 0) { pc = tgt; }; break;
+      case NJMPZ:  tgt = M[pc++]; if (TOS() === 0) { pc = tgt; }; break;
+      case NJMPNZ: tgt = M[pc++]; if (TOS() !== 0) { pc = tgt; }; break;
       case DUP:    push(TOS()); break;
       case DROP:   pop(); break;
       case SWAP:   n=pop(); t=pop(); push(n); push(t); break;
       case OVER:   n=NOS(); push(n); break;
-      case STO:    t=pop(); mem[t] = pop(); break;
-      case FET:    push(mem[pop()]); break;
-      case CSTO:   t=pop(); mem[t] = pop(); break;
-      case CFET:   push(mem[pop()]); break;
+      case STO:    t=pop(); M[t] = pop(); break;
+      case FET:    push(M[pop()]); break;
+      case CSTO:   t=pop(); M[t] = pop(); break;
+      case CFET:   push(M[pop()]); break;
       case RTO:    push(rPop()); break;
-      case RAT:    push(mem[rSp]); break;
+      case RAT:    push(M[rSp]); break;
       case RFROM:  push(rPop()); break;
       case MULT:   t=pop(); n=pop(); push(n * t); break;
       case ADD:    t=pop(); n=pop(); push(n + t); break;
@@ -73,13 +75,13 @@ function find(name) {
 }
 
 function under()     { throw new Error('Stack underflow'); }
-function push(val)   { if (mem[sBs] < sE) { mem[++mem[sBs]] = val; } }
-function rPush(val)  { if (mem[rBs] < rE) { mem[++mem[rBs]] = val; } }
-function lPush(val)  { if (mem[lBs] < lE) { mem[++mem[lBs]] = val; } }
-function pop()       { return (mem[sBs] > sBs) ? mem[mem[sBs]--] : under(); }
-function rPop()      { return (mem[rBs] > rBs) ? mem[mem[rBs]--] : under(); }
-function lPop()      { return (mem[lBs] > lBs) ? mem[mem[lBs]--] : under(); }
-function Comma(x)    { mem[here++] = x; }
+function push(val)   { stk[sp++] = val; }
+function pop()       { return (sp > 0) ? stk[--sp] : under(); }
+function rPush(val)  { if (rSp < rE) { stk[rSp++] = val; } }
+function rPop()      { return (rSp > rBs) ? stk[--rSp] : under(); }
+function lPush(val)  { if (lSp < lE) { stk[lSp++] = val; } }
+function lPop()      { return (lSp > lBs) ? stk[--lSp] : under(); }
+function Comma(x)    { M[here++] = x; }
 function emit(x)     { console.log(String.fromCharCode(x)) }
 function type(str)   { console.log(str?.toString() ?? "-undef-"); }
 function doType(x)   { type(x); }
@@ -89,25 +91,25 @@ function defineImm(name, fn)  { define(name, true).xt = fn; }
 
 function stringToTib(str) {
   let i = 0;
-  while (str[i]) { mem[tib+i] = str.charCodeAt(i++); }
+  while (str[i]) { M[tib+i] = str.charCodeAt(i++); }
 }
 
 function strLen(str) {
   let len = 0;
-  while (mem[str]) { ++len; ++str; }
+  while (M[str]) { ++len; ++str; }
   return len;
 }
 
 function strCmp(src, dst) {
-  while (mem[src] && mem[dst]) { if (mem[src++] !== mem[dst++]) { return false; } }
-  return (mem[src] === mem[dst]);
+  while (M[src] && M[dst]) { if (M[src++] !== M[dst++]) { return false; } }
+  return (M[src] === M[dst]);
 }
 
 function nextWord() {
   let len = 0;
-  while (mem[toIn] && mem[toIn] < 33) { toIn++; }
-  while (mem[toIn] > 32) { mem[wdSt+len++] = mem[toIn++]; }
-  mem[wdSt+len] = 0;
+  while (M[toIn] && M[toIn] < 33) { toIn++; }
+  while (M[toIn] > 32) { M[wdSt+len++] = M[toIn++]; }
+  M[wdSt+len] = 0;
   return len;
 }
 
@@ -123,12 +125,12 @@ function outer(src) {
   const cTib = tib, cTibLen = tibLen, cToIn = toIn;
   tib = src, tibLen = src.length, toIn = 0;
   while (nextWord() > 0) {
-    if (wd === ':') { Comma(exit); mem[state = 1]; continue; }
-    if (wd === ';') { Comma(exit); mem[state = 0]; continue; }
+    if (wd === ':') { Comma(exit); M[state = 1]; continue; }
+    if (wd === ';') { Comma(exit); M[state = 0]; continue; }
     if (doNum(wd)) { continue; }
     const entry = find(wd);
     if (!entry) { throw new Error(`unknown word: ${wd}`); }
-    if (entry.immediate || mem[state] === 0) { exec(entry.xt); continue; }
+    if (entry.immediate || M[state] === 0) { exec(entry.xt); continue; }
     Comma(entry.xt);
   }
   tib = cTib, tibLen = cTibLen, toIn = cToIn;
