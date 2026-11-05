@@ -86,6 +86,7 @@ function emit(x)     { console.log(String.fromCharCode(x)) }
 function type(str)   { console.log(str?.toString() ?? "-undef-"); }
 function doType(x)   { type(x); }
 function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
+function setState(x) { M[state] = x; }
 function definePrim(name, fn) { define(name).xt = fn; }
 function defineImm(name, fn)  { define(name, true).xt = fn; }
 
@@ -96,7 +97,7 @@ function stringToTib(str) {
 
 function strLen(str) {
   let len = 0;
-  while (M[str]) { ++len; ++str; }
+  while (M[str++]) { ++len; }
   return len;
 }
 
@@ -134,4 +135,5 @@ function outer(src) {
     Comma(entry.xt);
   }
   tib = cTib, tibLen = cTibLen, toIn = cToIn;
+  console.error(`stk: ${stk.slice(0, sp).join(' ')}`);  
 }

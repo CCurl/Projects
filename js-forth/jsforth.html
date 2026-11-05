@@ -22,6 +22,56 @@
         runForth(document.getElementById('forth-repl').value);
         document.getElementById('forth-repl').value='';
       }
+      function execSelected() {
+        var ta = document.getElementById('forth-hist');
+        var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+        if (sel) runForth(sel);
+      }
+      function runCommand() {
+        var inp  = document.getElementById('forth-input');
+        var hist = document.getElementById('forth-hist');
+        hist.value += inp.value+'\n';
+        runForth(inp.value);
+        inp.value = '';
+      }
+      const outputBuffer = [];
+      function runForth(src, logCmd = true, logOutput = true) {
+        const origLog = console.log;
+        const input = src ?? '';
+        if (logOutput) {
+          console.log = (...args) => outputBuffer.push(args.join(' '));
+          if (logCmd) { console.log(`--> ${input}\n`); }
+        }
+        try {
+          outer(input);
+        } catch (e) {
+          console.log(`Error: ${e.message}`);
+          setState(0);
+        } finally {
+          if (logOutput) {
+            const output = document.getElementById('forth-output');
+            output.value += outputBuffer.join('') + " ok\n";
+            output.scrollTop = output.scrollHeight;
+            outputBuffer.length = 0; // Clear the buffer
+          }
+          console.log = origLog;
+        }
+      }
+      // For handling embedded Forth scripts in the HTML document
+      window.addEventListener('load', async ()=>{              // load event handler
+        // initForth();
+        let slst = document.getElementsByTagName('script');    // get scripts
+        for (let i=0; i<slst.length; i++) {
+          let s = slst[i]
+          if (s.type != 'application/forth') continue;         // handle embedded Forth 
+          if (s.src) {                                         // handle nested scripts
+            await fetch(s.src)                                 // fetch remote Forth script
+              .then(r=>r.text())                               // get Forth commands
+              .then(cmd=>runForth(cmd, false))                 // send it to Forth VM
+          }
+          else { runForth(s.innerText, false); }
+        }
+      });
     </script>
   </body>
 </html>
