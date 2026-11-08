@@ -1,4 +1,4 @@
-/* file: "tc.c" */
+/* tc.c - A extended verion of the 'Tiny C' Compiler */
 /* Copyright (C) 2001 by Marc Feeley, All Rights Reserved. */
 /* Modified and enhanced by Chris Curl */
 
@@ -7,8 +7,7 @@
 #include <string.h>
 
 /*
- * This is a compiler for a considerably stripped down version of C.
- * The integer global variables must be declared with "int <id>;".
+ * This is a compiler for Tiny-C, a stripped down version of C.
  * The compiler reads the program from standard input and prints out
  * the value of the variables that are not zero.
  * The grammar of Tiny-C in EBNF is:
@@ -45,8 +44,8 @@
  *  corresponding return type. Void calls are statements, not terms.
  *  <id> ::= [A-Z|a-z|_][A-Z|a-z|0-9|_]*
  *  <int> ::= <a_decimal_integer>
- * Array parameters pass global-array base slots by reference. Array indexes
- * are unchecked at runtime.
+ * Array parameters pass global-array base slots by reference.
+ * Array indexes are unchecked at runtime.
  *
  * The compiler does a minimal amount of error checking to help
  * highlight the structure of the compiler.
@@ -880,7 +879,7 @@ void c(node *x) {
 
 /*---------------------------------------------------------------------------*/
 /* Virtual machine. */
-int globals[MAX_VARIABLES], sp, rsp;
+int globals[MAX_VARIABLES], sp;
 
 #define ACASE    goto again; case
 #define TOS      st[sp]
@@ -1016,7 +1015,7 @@ int main(int argc, char *argv[]) {
     printf("(nodes: %d, ", num_nodes);
     printf("code: %d bytes)\n", (int)(here-&vm[0]));
     dis();
-    sp=rsp=0;
+    sp=0;
     run(vm);
     for (int i=0; i<num_variables; i++) {
         if (variable_is_array[i]) {
